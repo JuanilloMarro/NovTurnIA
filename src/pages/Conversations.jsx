@@ -80,9 +80,9 @@ export default function Conversations() {
                                 <button
                                     key={p.id}
                                     onClick={() => setSelectedPatient(p)}
-                                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left ${isSelected ? 'bg-navy-50 border border-navy-100' : 'hover:bg-white border border-transparent hover:border-gray-100'}`}
+                                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group ${isSelected ? 'bg-navy-50 border border-navy-100' : 'hover:bg-white border border-transparent hover:border-gray-100'}`}
                                 >
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-[13px] font-bold shrink-0 ${isSelected ? 'bg-navy-900' : 'bg-gray-300'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-[13px] font-bold shrink-0 transition-all duration-300 ${isSelected ? 'bg-navy-900' : 'bg-gray-300 group-hover:bg-navy-900'}`}>
                                         {getInitials(name)}
                                     </div>
                                     <div className="flex-1 min-w-0">

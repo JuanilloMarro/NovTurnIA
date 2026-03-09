@@ -1,9 +1,16 @@
-import { Bell, Moon, Sun, Monitor, Check } from 'lucide-react';
+import { Bell, Moon, Sun, Monitor, Check, LogOut } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAppStore } from '../store/useAppStore';
+import { useAuth } from '../hooks/useAuth';
+
+function getInitials(name) {
+    if (!name) return '?';
+    return name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
 
 export default function Topbar() {
+    const { profile, logout } = useAuth();
     const { notifications, unreadCount } = useNotifications();
     const { theme, setTheme } = useAppStore();
     const [showNotif, setShowNotif] = useState(false);
@@ -93,7 +100,7 @@ export default function Topbar() {
                         }}
                         className="w-11 h-11 rounded-full bg-navy-900 border border-white/20 flex items-center justify-center text-white font-bold shadow-card shadow-navy-900/20 text-[15px] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
                     >
-                        CN
+                        {getInitials(profile?.full_name)}
                     </div>
 
                     {showThemeMenu && (
@@ -119,6 +126,16 @@ export default function Topbar() {
                                     {theme === opt.id && <Check size={14} className="text-navy-500" />}
                                 </button>
                             ))}
+
+                            <div className="h-px bg-gray-100/50 my-2 mx-2"></div>
+
+                            <button
+                                onClick={() => logout()}
+                                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-50 transition-all duration-200"
+                            >
+                                <LogOut size={16} />
+                                Cerrar Sesión
+                            </button>
                         </div>
                     )}
                 </div>

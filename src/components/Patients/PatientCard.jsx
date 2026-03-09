@@ -26,7 +26,7 @@ export default function PatientCard({ patient, index, onClick }) {
             style={{ animationDelay: `${index * 0.04}s` }}
         >
             <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm`}>
+                <div className="w-12 h-12 rounded-full bg-gray-300 group-hover:bg-navy-900 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm transition-all duration-300">
                     {getInitials(patient.display_name)}
                 </div>
                 <div>

@@ -45,9 +45,8 @@ export default function PatientDrawer({ patient, onClose }) {
             {/* Content scrolleable */}
             <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
 
-                {/* Profile Info Center */}
                 <div className="flex flex-col items-center text-center mb-10">
-                    <div className={`w-[52px] h-[52px] rounded-full ${colorClass} flex items-center justify-center text-white text-[18px] font-bold shadow-sm mb-4 border border-white/20`}>
+                    <div className="w-[52px] h-[52px] rounded-full bg-navy-900 flex items-center justify-center text-white text-[18px] font-bold shadow-sm mb-4 border border-white/20">
                         {getInitials(name)}
                     </div>
                     <h2 className="text-[22px] font-bold text-navy-900 mb-1 tracking-tight">{name}</h2>
