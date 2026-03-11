@@ -8,21 +8,21 @@ export default function CalendarDay({ appointments, selectedDate, loading, onEve
     const isToday = isSameDay(selectedDate, new Date());
 
     return (
-        <div className="bg-white/80 backdrop-blur-card border border-white/90 rounded-2xl shadow-card overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-card border border-white/90 rounded-2xl shadow-card overflow-hidden flex flex-col h-full">
             {/* Header día */}
-            <div className="grid grid-cols-[80px_1fr] border-b border-gray-100 bg-white/50">
-                <div className="p-4 text-[11px] uppercase text-gray-400 font-semibold text-center flex items-center justify-center border-r border-gray-100">
+            <div className="grid grid-cols-[70px_1fr] border-b border-gray-100/50 bg-white/30 backdrop-blur-md">
+                <div className="p-2 text-[10px] uppercase text-gray-400 font-bold text-center flex items-center justify-center border-r border-gray-100/50">
                     GMT-6
                 </div>
-                <div className="p-4 flex items-center gap-4">
-                    <div className={`text-3xl font-bold flex items-center justify-center rounded-2xl w-14 h-14 ${isToday ? 'bg-navy-900 text-white shadow-md' : 'text-navy-900 bg-white/60 shadow-sm border border-gray-100'}`}>
+                <div className="p-2 px-4 flex items-center gap-3">
+                    <div className={`text-2xl font-bold flex items-center justify-center rounded-xl w-10 h-10 shadow-sm ${isToday ? 'bg-navy-900 text-white' : 'text-gray-600 bg-white border border-gray-100'}`}>
                         {selectedDate.getDate()}
                     </div>
                     <div>
-                        <div className={`text-xs font-bold uppercase tracking-wider ${isToday ? 'text-navy-700' : 'text-gray-400'}`}>
+                        <div className={`text-[11px] font-bold uppercase tracking-wider ${isToday ? 'text-navy-700' : 'text-gray-400'}`}>
                             {selectedDate.toLocaleDateString('es-GT', { weekday: 'long' })}
                         </div>
-                        <div className="text-sm font-medium text-gray-500 mt-0.5">
+                        <div className="text-xs font-medium text-gray-500 mt-0.5">
                             {selectedDate.toLocaleDateString('es-GT', { month: 'long', year: 'numeric' })}
                         </div>
                     </div>
@@ -30,32 +30,36 @@ export default function CalendarDay({ appointments, selectedDate, loading, onEve
             </div>
 
             {/* Cuerpo */}
-            <div className="grid grid-cols-[80px_1fr] overflow-y-auto" style={{ height: '540px' }}>
-                {/* Gutter de horas */}
-                <div className="border-r border-gray-100 bg-gray-50/30">
+            <div className="flex-1 overflow-hidden relative">
+                {/* Fondo de líneas */}
+                <div className="absolute inset-0 left-[70px] pointer-events-none flex flex-col">
                     {HOURS.map(h => (
-                        <div key={h} className="h-[80px] flex items-start justify-end pr-4 pt-2 border-b border-transparent">
-                            <span className="text-[13px] font-medium text-gray-400">{h}:00</span>
-                        </div>
+                        <div key={`line-${h}`} className="flex-1 w-full border-t border-gray-100/50" />
                     ))}
                 </div>
 
-                {/* Columna del día */}
-                <div className="relative" style={{ minHeight: `${HOURS.length * 80}px` }}>
-                    {/* Líneas de hora */}
-                    {HOURS.map((h, i) => (
-                        <div key={i} className="absolute w-full border-t border-gray-100/80" style={{ top: `${(h - 9) * 80}px` }} />
-                    ))}
+                <div className="grid grid-cols-[70px_1fr] h-full">
+                    {/* Gutter de horas */}
+                    <div className="border-r border-gray-100/50 bg-white/10 relative z-10 w-full h-full flex flex-col">
+                        {HOURS.map(h => (
+                            <div key={h} className="flex-1 w-full pr-3 pt-1.5 text-right">
+                                <span className="text-[12px] font-medium text-gray-400">{h}:00</span>
+                            </div>
+                        ))}
+                    </div>
 
-                    {/* Eventos */}
-                    {dayAppointments.map(apt => (
-                        <CalendarEvent
-                            key={apt.id}
-                            appointment={apt}
-                            style={getEventStyle(apt.date_start, apt.date_end, 80)}
-                            onClick={onEventClick}
-                        />
-                    ))}
+                    {/* Columna del día */}
+                    <div className="relative h-full">
+                        {/* Eventos */}
+                        {dayAppointments.map(apt => (
+                            <CalendarEvent
+                                key={apt.id}
+                                appointment={apt}
+                                style={getEventStyle(apt.date_start, apt.date_end, 'percent')}
+                                onClick={onEventClick}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

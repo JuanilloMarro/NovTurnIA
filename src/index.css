@@ -25,18 +25,37 @@ body::before {
 
 /* Animaciones */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes drawerIn {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .animate-fade-up {
@@ -54,8 +73,15 @@ body::before {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .animate-float {
@@ -63,8 +89,15 @@ body::before {
 }
 
 @keyframes float-delayed {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
 }
 
 .animate-float-delayed {
@@ -80,25 +113,33 @@ body::before {
 }
 
 @keyframes liquid {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
-.animate-liquid {
-  background: linear-gradient(-45deg, #F4F5F9, #EBF2FB, #F5F8FD, #DAE6F5, #F4F5F9);
-  background-size: 400% 400%;
-  animation: liquid 15s ease infinite;
+@layer utilities {
+  .shadow-card {
+    box-shadow: 0 8px 30px rgba(26, 58, 107, 0.06);
+  }
 }
 
 .glass-premium {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 
-    0 10px 40px -10px rgba(26, 58, 107, 0.12),
-    0 20px 60px -20px rgba(26, 58, 107, 0.08);
+    0 4px 24px rgba(26, 58, 107, 0.04),
+    0 8px 48px rgba(26, 58, 107, 0.08);
 }
 
 .glass-input {
@@ -116,10 +157,37 @@ body::before {
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-spin-slow {
   animation: spin-slow 8s linear infinite;
+}
+
+/* ── Burbujas (Orbes) Decorativas - Aspecto "volador" ── */
+.lg-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(200, 225, 255, 0.15) 30%,
+    rgba(26, 58, 107, 0.08) 60%,
+    transparent 100%
+  );
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    inset -8px -8px 20px rgba(100, 160, 230, 0.05),
+    inset 8px 8px 20px rgba(255, 255, 255, 0.5),
+    0 20px 50px rgba(26, 58, 107, 0.06);
+  pointer-events: none;
+  transition: all 1s ease-in-out;
 }

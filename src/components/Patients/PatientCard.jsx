@@ -22,21 +22,21 @@ export default function PatientCard({ patient, index, onClick }) {
     return (
         <div
             onClick={() => onClick(patient)}
-            className="group bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-card-hover transition-all duration-300 cursor-pointer animate-fade-up shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+            className="group bg-white/40 backdrop-blur-sm border border-white/60 rounded-2xl p-4 hover:bg-white/60 transition-all duration-300 cursor-pointer animate-fade-up shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
             style={{ animationDelay: `${index * 0.04}s` }}
         >
             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gray-300 group-hover:bg-navy-900 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm transition-all duration-300">
+                <div className="w-11 h-11 rounded-full bg-white border border-white/60 group-hover:bg-navy-900 flex items-center justify-center text-navy-900 group-hover:text-white text-xs font-bold flex-shrink-0 shadow-sm transition-all duration-300">
                     {getInitials(patient.display_name)}
                 </div>
                 <div>
-                    <div className="font-bold text-navy-900 text-[15px]">{name}</div>
-                    <div className="text-sm font-medium text-gray-500 tracking-wide mt-0.5">{formatPhone(patient.id)}</div>
+                    <div className="font-bold text-navy-900 text-sm">{name}</div>
+                    <div className="text-xs font-semibold text-navy-700/60 tracking-wide mt-0.5">{formatPhone(patient.id)}</div>
                 </div>
             </div>
 
-            <div className="hidden md:flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 text-gray-400 group-hover:bg-navy-50 group-hover:border-navy-100 group-hover:text-navy-700 transition-colors">
-                <ChevronRight size={20} />
+            <div className="hidden md:flex items-center justify-center w-8 h-8 rounded-full border border-white/60 bg-white/40 text-navy-700 group-hover:bg-white group-hover:scale-105 transition-all shadow-sm">
+                <ChevronRight size={16} />
             </div>
         </div>
     );

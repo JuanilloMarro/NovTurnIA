@@ -95,27 +95,27 @@ export function MainChart({ rawApts }) {
     const lineColor = isPositive ? '#10B981' : '#EF4444'; // Emerald for positive, red for negative
 
     return (
-        <div className="bg-white/80 backdrop-blur-card border border-gray-100 rounded-[20px] shadow-sm p-6 pb-2 h-full flex flex-col">
+        <div className="bg-white/20 backdrop-blur-md p-6 h-full flex flex-col">
             <div className="flex justify-between items-start mb-8">
                 <div>
-                    <h3 className="font-semibold text-navy-900 text-[15px]">Turnos atendidos</h3>
-                    <p className="text-xs text-gray-500 mt-1">Comparativa vs. período anterior</p>
+                    <h3 className="font-bold text-navy-900 text-sm tracking-tight mb-1">Turnos atendidos</h3>
+                    <p className="text-[10px] text-navy-900/40 font-bold tracking-tight">Comparativa vs. período anterior</p>
                 </div>
 
                 <div className="relative">
                     <div
                         onClick={() => setShowOptions(!showOptions)}
-                        className="flex items-center gap-1.5 border border-gray-200 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors shadow-sm"
+                        className="flex items-center gap-1.5 bg-white/40 border border-white/60 rounded-full px-3 py-1.5 text-[10px] font-bold text-navy-900/60 hover:bg-white/60 cursor-pointer transition-all shadow-sm"
                     >
-                        Este {period} <ChevronDown size={14} className="text-gray-400" />
+                        Este {period} <ChevronDown size={14} className="text-navy-900/40" />
                     </div>
                     {showOptions && (
-                        <div className="absolute right-0 top-full mt-2 w-32 bg-white rounded-xl shadow-lg border border-gray-100 z-10 py-1 overflow-hidden animate-fade-up">
+                        <div className="absolute right-0 top-full mt-2 w-32 bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/60 z-10 py-1 overflow-hidden animate-scale-in">
                             {['Semana', 'Mes', 'Año'].map(opt => (
                                 <div
                                     key={opt}
                                     onClick={() => { setPeriod(opt); setShowOptions(false); }}
-                                    className={`px-4 py-2 text-xs font-medium cursor-pointer hover:bg-gray-50 ${period === opt ? 'text-navy-900 font-bold bg-navy-50/50' : 'text-gray-600'}`}
+                                    className={`px-4 py-2 text-[11px] font-bold cursor-pointer transition-colors ${period === opt ? 'text-navy-900 bg-navy-900/5' : 'text-navy-900/60 hover:bg-navy-900/5 font-bold'}`}
                                 >
                                     Este {opt}
                                 </div>
@@ -125,7 +125,7 @@ export function MainChart({ rawApts }) {
                 </div>
             </div>
 
-            <div className="flex-1 w-full min-h-[300px]">
+            <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                         <defs>

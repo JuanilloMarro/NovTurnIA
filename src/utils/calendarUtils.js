@@ -1,7 +1,7 @@
 const BASE_HOUR = 9;
 const PX_PER_HOUR = 60;
 
-export function getEventStyle(dateStart, dateEnd, pxPerHour = 60) {
+export function getEventStyle(dateStart, dateEnd, pxPerHour = 48) {
     const toDecimal = iso => {
         const d = new Date(iso);
         const h = parseInt(d.toLocaleTimeString('es-GT', { hour: '2-digit', hour12: false, timeZone: 'America/Guatemala' }));
@@ -10,12 +10,25 @@ export function getEventStyle(dateStart, dateEnd, pxPerHour = 60) {
 
     const start = toDecimal(dateStart);
     const end = toDecimal(dateEnd);
+
+    if (pxPerHour === 'percent') {
+        const top = ((start - BASE_HOUR) / 9) * 100;
+        const height = ((end - start) / 9) * 100;
+        return {
+            top: `${Math.max(top, 0)}%`,
+            height: `${Math.max(height, 5)}%`, // min ~30 mins
+            position: 'absolute',
+            left: '4px',
+            right: '4px',
+        };
+    }
+
     const top = (start - BASE_HOUR) * pxPerHour;
     const height = (end - start) * pxPerHour;
 
     return {
         top: `${Math.max(top, 0)}px`,
-        height: `${Math.max(height, 28)}px`,
+        height: `${Math.max(height, 24)}px`,
         position: 'absolute',
         left: '4px',
         right: '4px',

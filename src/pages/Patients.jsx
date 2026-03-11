@@ -18,39 +18,41 @@ export default function Patients() {
     const sortLabel = sortOptions.find(o => o.id === sortOrder)?.label || 'Ordenar';
 
     return (
-        <div className="h-full flex flex-col pt-2 max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-navy-900 tracking-tight">Pacientes</h1>
-                    <p className="text-sm text-gray-500 mt-1">{patients.length} pacientes registrados</p>
+        <div className="h-full flex flex-col max-w-4xl mx-auto w-full pt-2">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-4">
+                    <div>
+                        <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Pacientes</h1>
+                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{patients.length} pacientes registrados</p>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="relative w-80">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
-                            <Search size={18} />
+                <div className="flex items-center gap-3 h-10">
+                    <div className="relative w-80 h-full">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
+                            <Search size={14} strokeWidth={2.5} />
                         </div>
                         <input
-                            className="w-full bg-white border border-gray-200 rounded-full pl-11 pr-4 py-2.5 text-sm outline-none focus:border-navy-500 focus:ring-1 focus:ring-navy-500 transition-all placeholder-gray-400 shadow-sm"
+                            className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-sm"
                             placeholder="Buscar por nombre o teléfono..."
                             value={search}
                             onChange={e => handleSearch(e.target.value)}
                         />
                     </div>
 
-                    <div className="relative">
-                        <div onClick={() => setShowSort(!showSort)} className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-5 py-2.5 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
-                            <span className="text-[13px] font-medium text-gray-600">Ordenar: <span className="font-semibold text-navy-900">{sortLabel}</span></span>
-                            <ChevronDown size={16} className={`text-gray-400 transition-transform ${showSort ? 'rotate-180' : ''}`} />
+                    <div className="relative h-full">
+                        <div onClick={() => setShowSort(!showSort)} className="h-full flex items-center gap-3 bg-white/60 backdrop-blur-card border border-white/90 rounded-full px-5 shadow-sm text-xs font-bold text-navy-900 cursor-pointer hover:bg-white/80 transition-colors">
+                            <span>Ordenar: {sortLabel}</span>
+                            <ChevronDown size={14} strokeWidth={2.5} className={`transition-transform ${showSort ? 'rotate-180' : ''}`} />
                         </div>
 
                         {showSort && (
-                            <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 py-2 animate-fade-up">
+                            <div className="absolute right-0 top-full mt-2 w-48 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card z-50 py-2 animate-fade-up">
                                 {sortOptions.map(opt => (
                                     <div
                                         key={opt.id}
                                         onClick={() => { setSortOrder(opt.id); setShowSort(false); }}
-                                        className={`px-5 py-2.5 text-[13.5px] cursor-pointer hover:bg-gray-50 transition-colors border-l-2 ${sortOrder === opt.id ? 'font-bold text-navy-900 border-navy-500 bg-navy-50/30' : 'text-gray-600 border-transparent font-medium'}`}
+                                        className={`px-4 py-2.5 text-xs font-bold cursor-pointer hover:bg-white/60 transition-colors ${sortOrder === opt.id ? 'text-navy-900 bg-white/50' : 'text-navy-700'}`}
                                     >
                                         {opt.label}
                                     </div>

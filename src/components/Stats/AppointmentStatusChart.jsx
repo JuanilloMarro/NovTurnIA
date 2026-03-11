@@ -4,11 +4,14 @@ const PIE_COLORS = ['#10B981', '#F59E0B', '#EF4444'];
 
 export function AppointmentStatusChart({ data, confRate }) {
     return (
-        <div className="bg-white/80 backdrop-blur-card border border-gray-100 rounded-[20px] shadow-sm p-6 h-full flex flex-col">
-            <h3 className="font-semibold text-navy-900 mb-6 text-[15px]">Tasa de confirmación</h3>
+        <div className="bg-white/20 backdrop-blur-md p-6 h-full flex flex-col">
+            <div className="mb-6">
+                <h3 className="font-bold text-navy-900 text-sm tracking-tight mb-1">Tasa de confirmación</h3>
+                <p className="text-[10px] text-navy-900/40 font-bold tracking-tight">Distribución de estados</p>
+            </div>
 
-            <div className="relative flex-1 flex flex-col items-center justify-center">
-                <ResponsiveContainer width="100%" height={200}>
+            <div className="relative flex-1 flex flex-col items-center justify-center min-h-0">
+                <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                         <Pie
                             data={data}
@@ -30,22 +33,22 @@ export function AppointmentStatusChart({ data, confRate }) {
                 </ResponsiveContainer>
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
-                    <span className="text-gray-400 text-[11px] font-bold uppercase tracking-wider">Confirmados</span>
-                    <span className="text-[32px] font-bold text-navy-900 tracking-tight leading-none mt-1">{confRate}%</span>
+                    <span className="text-navy-900/40 text-[9px] font-bold tracking-tight text-center">Confirmación</span>
+                    <span className="text-3xl font-bold text-navy-900 tracking-tight leading-none mt-1">{confRate}%</span>
                 </div>
             </div>
 
-            <div className="mt-6 flex flex-col gap-2.5">
+            <div className="mt-4 flex flex-col gap-2">
                 {data.map((entry, index) => {
                     const total = data.reduce((acc, curr) => acc + curr.value, 0);
                     const percentage = total === 0 ? 0 : Math.round((entry.value / total) * 100);
                     return (
-                        <div key={index} className="flex justify-between items-center text-sm">
+                        <div key={index} className="flex justify-between items-center bg-white/40 border border-white/60 p-2 px-3 rounded-2xl shadow-sm">
                             <div className="flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PIE_COLORS[index] }}></span>
-                                <span className="text-gray-600 font-medium">{entry.name}</span>
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PIE_COLORS[index] }}></span>
+                                <span className="text-navy-900/70 font-bold text-[11px] tracking-wide">{entry.name}</span>
                             </div>
-                            <span className="font-bold text-navy-900">{percentage}%</span>
+                            <span className="font-bold text-navy-900 text-xs">{percentage}%</span>
                         </div>
                     );
                 })}

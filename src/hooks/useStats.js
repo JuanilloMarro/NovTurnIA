@@ -14,26 +14,24 @@ export function useStats() {
             const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-            const [usersRes, aptsRes] = await Promise.all([
-                supabase.from('users').select('created_at').eq('business_id', BUSINESS_ID),
-                supabase.from('appointments').select('date_start, status, confirmed').eq('business_id', BUSINESS_ID)
+            const [usersRes, aptsRes, historyRes] = await Promise.all([
+                supabase.from('users').select('*').eq('business_id', BUSINESS_ID),
+                supabase.from('appointments').select('*').eq('business_id', BUSINESS_ID),
+                supabase.from('history').select('*').eq('business_id', BUSINESS_ID)
             ]);
 
             const users = usersRes.data || [];
             const apts = aptsRes.data || [];
+            const history = historyRes.data || [];
 
-            // Patients KPI
+            // Patients KPI (Users table)
             const totalPatients = users.length;
-            const patientsUpToLastMonth = users.filter(u => new Date(u.created_at) < startOfThisMonth).length;
-            const patientsUpToPreviousMonth = users.filter(u => new Date(u.created_at) < startOfLastMonth).length;
+            const newPatientsThisMonth = users.filter(u => new Date(u.created_at) >= startOfThisMonth).length;
+            const newPatientsLastMonth = users.filter(u => new Date(u.created_at) >= startOfLastMonth && new Date(u.created_at) < startOfThisMonth).length;
 
-            const newPatientsThisMonth = users.length - patientsUpToLastMonth;
-            const newPatientsLastMonth = patientsUpToLastMonth - patientsUpToPreviousMonth;
-
-            // Protect against Infinity
-            const patientsChange = patientsUpToLastMonth === 0
+            const patientsChange = newPatientsLastMonth === 0
                 ? (newPatientsThisMonth > 0 ? 100 : 0)
-                : (newPatientsThisMonth / patientsUpToLastMonth) * 100;
+                : ((newPatientsThisMonth - newPatientsLastMonth) / newPatientsLastMonth) * 100;
 
             // Appointments KPI
             const aptsThisMonth = apts.filter(a => new Date(a.date_start) >= startOfThisMonth && a.status === 'active');
@@ -49,6 +47,34 @@ export function useStats() {
                 ? (confThisMonth > 0 ? 100 : 0)
                 : ((confThisMonth - confLastMonth) / confLastMonth) * 100;
 
+            // History KPI (Messages) - Strict filtering to match user visible messages
+            // We only count messages that belong to an existing user and have content
+            const validUserIds = new Set(users.map(u => u.id));
+            
+            const sentHistory = history.filter(h => 
+                h.role === 'assistant' && 
+                validUserIds.has(h.user_id) && 
+                h.content && h.content.trim().length > 0
+            );
+            const totalSent = sentHistory.length;
+            const sentThisMonth = sentHistory.filter(h => new Date(h.created_at) >= startOfThisMonth).length;
+            const sentLastMonth = sentHistory.filter(h => new Date(h.created_at) >= startOfLastMonth && new Date(h.created_at) < startOfThisMonth).length;
+            const sentChange = sentLastMonth === 0
+                ? (sentThisMonth > 0 ? 100 : 0)
+                : ((sentThisMonth - sentLastMonth) / sentLastMonth) * 100;
+
+            const receivedHistory = history.filter(h => 
+                h.role === 'user' && 
+                validUserIds.has(h.user_id) && 
+                h.content && h.content.trim().length > 0
+            );
+            const totalReceived = receivedHistory.length;
+            const receivedThisMonth = receivedHistory.filter(h => new Date(h.created_at) >= startOfThisMonth).length;
+            const receivedLastMonth = receivedHistory.filter(h => new Date(h.created_at) >= startOfLastMonth && new Date(h.created_at) < startOfThisMonth).length;
+            const receivedChange = receivedLastMonth === 0
+                ? (receivedThisMonth > 0 ? 100 : 0)
+                : ((receivedThisMonth - receivedLastMonth) / receivedLastMonth) * 100;
+
             // Donut Data
             const pendingThisMonth = aptsThisMonth.filter(a => !a.confirmed).length;
             const cancelledThisMonth = apts.filter(a => new Date(a.date_start) >= startOfThisMonth && a.status === 'cancelled').length;
@@ -59,11 +85,13 @@ export function useStats() {
             setStats({
                 kpi: {
                     totalPatients,
-                    patientsChange: patientsChange.toFixed(1),
+                    patientsChange: newPatientsLastMonth > 0 ? patientsChange.toFixed(1) : undefined,
                     monthApts: aptsThisMonth.length,
-                    aptsChange: aptsChange.toFixed(1),
-                    confThisMonth,
-                    confChange: confChange.toFixed(1),
+                    aptsChange: aptsLastMonth.length > 0 ? aptsChange.toFixed(1) : undefined,
+                    sentMessages: totalSent.toLocaleString(),
+                    sentChange: sentLastMonth > 0 ? sentChange.toFixed(1) : undefined,
+                    receivedMessages: totalReceived.toLocaleString(),
+                    receivedChange: receivedLastMonth > 0 ? receivedChange.toFixed(1) : undefined,
                 },
                 donut: {
                     confRate,

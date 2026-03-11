@@ -28,38 +28,39 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
     }
 
     return (
-        <div className="fixed top-0 right-0 bottom-0 w-[420px] bg-white border-l border-gray-100 shadow-2xl z-50 flex flex-col animate-drawer-in">
+        <div className="absolute top-2 right-2 bottom-2 w-[360px] bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-50 flex flex-col animate-drawer-in overflow-hidden">
             {/* Header */}
-            <div className="flex items-center gap-3 p-5 bg-gray-50/50 border-b border-gray-100">
-                <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-navy-700 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-2 p-4 bg-white/20 border-b border-white/40 backdrop-blur-md">
+                <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
                     <ChevronLeft size={16} />
                 </button>
-                <h3 className="flex-1 font-bold text-navy-900 tracking-tight">Detalle del turno</h3>
-                <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-navy-50 text-navy-700 hover:bg-navy-100 transition-colors">
+                <h3 className="flex-1 font-bold text-navy-900 tracking-tight text-sm text-center">Detalle del turno</h3>
+                <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
                     <X size={16} />
                 </button>
             </div>
 
-            {/* Content scrolleable */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 pb-32">
-                {/* Paciente hero */}
-                <div className="flex items-center gap-4 mb-8">
-                    <div className="w-14 h-14 rounded-full bg-amber-700 flex items-center justify-center text-white text-lg font-bold shadow-sm">
+            {/* Content scrolleable - but without scrolling */}
+            <div className="flex-1 overflow-hidden px-5 py-4 flex flex-col justify-between">
+                <div>
+                    {/* Paciente hero */}
+                <div className="flex items-center gap-3 mb-6 bg-white/30 p-3 rounded-2xl border border-white/50 shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-amber-700/90 flex items-center justify-center text-white text-base font-bold shadow-sm border border-white/50">
                         {getInitials(users?.display_name)}
                     </div>
-                    <div>
-                        <div className="font-bold text-navy-900 text-lg">{users?.display_name || 'Sin nombre'}</div>
-                        <div className="text-gray-500 font-medium tracking-wide text-sm">{formatPhone(appointment.user_id)}</div>
+                    <div className="overflow-hidden">
+                        <div className="font-bold text-navy-900 text-base truncate">{users?.display_name || 'Sin nombre'}</div>
+                        <div className="text-navy-700/80 font-semibold tracking-wide text-xs truncate">{formatPhone(appointment.user_id)}</div>
                     </div>
                 </div>
 
                 {/* Secciones */}
-                <div className="space-y-8">
+                <div className="space-y-6">
                     {/* Fecha y hora */}
-                    <div>
-                        <div className="flex items-center gap-4 mb-4">
-                            <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-none">Fecha y hora</h4>
-                            <div className="flex-1 h-px bg-gray-100"></div>
+                    <div className="bg-white/30 p-4 rounded-2xl border border-white/50 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                            <h4 className="text-[10px] font-bold text-navy-800 uppercase tracking-widest leading-none">Fecha y hora</h4>
+                            <div className="flex-1 h-px bg-navy-900/10"></div>
                         </div>
 
                         <div className="space-y-4">
@@ -93,61 +94,23 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                             </div>
                         </div>
                     </div>
-
-                    {/* Estado */}
-                    <div>
-                        <div className="flex items-center gap-4 mb-4">
-                            <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-none">Estado</h4>
-                            <div className="flex-1 h-px bg-gray-100"></div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="relative w-48">
-                                <select
-                                    className="w-full appearance-none bg-white border border-gray-200 text-gray-700 font-medium rounded-full px-4 py-2.5 outline-none focus:border-navy-500 transition-colors shadow-sm"
-                                    value={status === 'cancelled' ? 'cancelado' : 'activo'}
-                                    disabled
-                                >
-                                    <option value="activo">Activo</option>
-                                    <option value="cancelado">Cancelado</option>
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-navy-900">
-                                    <ChevronDown size={16} />
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 mt-6">
-                                <div className="flex items-center justify-between">
-                                    <span className="font-semibold text-gray-500 text-sm">Notificado 24hs</span>
-                                    <span className="text-sm font-bold text-gray-400 flex items-center gap-1">
-                                        <X size={14} className="stroke-[3px]" /> No
-                                    </span>
-                                </div>
-                                <div className="w-full border-b border-dashed border-gray-200"></div>
-                                <div className="flex items-center justify-between">
-                                    <span className="font-semibold text-gray-500 text-sm">Confirmado</span>
-                                    <span className={`text-sm font-bold flex items-center gap-1 ${confirmed ? 'text-emerald-500' : 'text-gray-400'}`}>
-                                        {confirmed ? '✓ Sí' : <><X size={14} className="stroke-[3px]" /> No</>}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Footer de Acciones fijo abajo */}
-            <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-5 space-y-3 z-10">
+            <div className="bg-white/30 backdrop-blur-2xl border-t border-white/50 p-4 space-y-3 mt-auto flex flex-col items-center">
                 <button
                     onClick={() => navigate(`/conversations?patient=${appointment.user_id}`)}
-                    className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-navy-700 font-semibold py-3 rounded-full hover:bg-navy-50 transition-colors shadow-sm text-sm"
+                    className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-white/80 text-navy-900 text-xs font-bold rounded-full shadow-card hover:bg-white/80 transition-colors"
                 >
-                    <MessageSquare size={16} /> Ver conversación WhatsApp
+                    <MessageSquare size={14} /> Ver conversación WhatsApp
                 </button>
                 {status === 'active' && (
                     <button onClick={handleCancel}
-                        className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 font-semibold py-3 rounded-full hover:bg-red-100 transition-colors text-sm">
-                        <Trash2 size={16} /> Cancelar turno
+                        className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-white/80 text-red-600 text-xs font-bold rounded-full shadow-card hover:bg-white/80 transition-colors"
+                    >
+                        <Trash2 size={14} /> Cancelar turno
                     </button>
                 )}
             </div>

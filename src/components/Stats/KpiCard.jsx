@@ -10,23 +10,26 @@ export default function KpiCard({ label, value, change, icon, color = 'navy', in
 
     return (
         <div
-            className="bg-white/80 backdrop-blur-card border border-gray-100 rounded-[20px] shadow-sm p-6 animate-fade-up flex flex-col justify-between"
+            className="bg-white/40 backdrop-blur-md border border-white/60 rounded-[32px] p-5 animate-fade-up flex flex-col justify-between"
             style={{ animationDelay: `${index * 0.06}s` }}
         >
-            <div className="flex items-start justify-between mb-2">
-                <div className="text-gray-500 font-medium text-[15px]">{label}</div>
-                <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${colors[color]} flex items-center justify-center text-white text-sm shadow-sm opacity-90`}>
+            <div className="flex items-center justify-between mb-4">
+                <div className="text-navy-900/60 font-bold text-xs tracking-tight">{label}</div>
+                <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${colors[color]} flex items-center justify-center text-white text-sm shadow-sm opacity-90`}>
                     {icon}
                 </div>
             </div>
-            <div>
-                <div className="text-[32px] font-bold text-navy-900 tracking-tight leading-none mb-3">{value}</div>
-                <div className="flex items-center gap-1.5 text-[13px] font-medium">
-                    <span className={`flex items-center ${isPositive ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'} px-2 py-0.5 rounded-full`}>
-                        {isPositive ? '↑' : '↓'} {isPositive ? '+' : ''}{change}%
-                    </span>
-                    <span className="text-gray-400 font-normal">vs mes ant</span>
-                </div>
+            
+            <div className="flex flex-col items-center justify-center text-center">
+                <div className="text-3xl font-bold text-navy-900 tracking-tight leading-none mb-3">{value}</div>
+                {change !== undefined && change !== "0.0" && (
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold">
+                        <span className={`flex items-center ${isPositive ? 'text-emerald-600 bg-emerald-50/50' : 'text-rose-600 bg-rose-50/50'} px-2 py-0.5 rounded-full border border-current/10`}>
+                            {isPositive ? '↑' : '↓'} {isPositive ? '+' : ''}{change}%
+                        </span>
+                        <span className="text-navy-900/40 font-bold tracking-tight text-[9px]">vs mes ant</span>
+                    </div>
+                )}
             </div>
         </div>
     );

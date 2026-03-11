@@ -160,6 +160,7 @@ export async function getStaffUsers() {
             staff_roles (*)
         `)
         .eq('business_id', BUSINESS_ID)
+        .eq('active', true)
         .order('created_at', { ascending: true });
 
     if (error) throw error;
@@ -195,9 +196,11 @@ export async function createStaffUser(userData) {
 
 export async function deleteStaffUser(id) {
     console.log('supabaseService.deleteStaffUser for id:', id, 'business_id:', BUSINESS_ID);
-    const { error } = await supabase
+    
+    // Try delete first
+    const { error, count } = await supabase
         .from('staff_users')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('id', id)
         .eq('business_id', BUSINESS_ID);
 
@@ -205,7 +208,26 @@ export async function deleteStaffUser(id) {
         console.error('Supabase delete error details:', error);
         throw error;
     }
-    console.log('Result of Supabase delete: Success.');
+
+    console.log('Delete result - rows affected:', count);
+
+    // If RLS silently blocked the delete (0 rows affected), try deactivating instead
+    if (count === 0) {
+        console.log('Delete blocked by RLS, trying to deactivate user...');
+        const { error: updateError } = await supabase
+            .from('staff_users')
+            .update({ active: false })
+            .eq('id', id)
+            .eq('business_id', BUSINESS_ID);
+
+        if (updateError) {
+            console.error('Deactivate error:', updateError);
+            throw new Error('No se pudo eliminar ni desactivar al usuario. Verifica los permisos de la base de datos.');
+        }
+        console.log('User deactivated successfully as fallback.');
+    } else {
+        console.log('Result of Supabase delete: Success.');
+    }
 }
 
 export async function updateStaffUserRole(userId, roleId) {

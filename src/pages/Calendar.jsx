@@ -50,42 +50,40 @@ export default function Calendar() {
     const monthName = displayDate.toLocaleDateString('es-GT', { month: 'long', year: 'numeric' });
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-navy-900 tracking-tight">Turnos</h1>
-                    <p className="text-sm text-gray-500 mt-1">Gestión de citas de la clínica</p>
-                </div>
-                <button onClick={() => setIsModalOpen(true)} className="bg-navy-700 hover:bg-navy-900 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-btn hover:shadow-btn-hover transition-all duration-200">
-                    + Nuevo Turno
-                </button>
-            </div>
-
-
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4 bg-white/90 backdrop-blur-card border border-white/90 rounded-full px-5 py-2 shadow-card">
-                    <div className="flex items-center gap-2 text-navy-900 font-semibold text-sm">
-                        <CalendarIcon size={16} className="text-navy-500" />
-                        <span className="capitalize">{monthName}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <button onClick={handlePrev} className="w-7 h-7 flex flex-col items-center justify-center rounded-full border border-gray-100/50 hover:bg-gray-100 text-gray-400 transition-colors">
-                            <ChevronLeft size={16} />
-                        </button>
-                        <button onClick={handleNext} className="w-7 h-7 flex flex-col items-center justify-center rounded-full border border-gray-100/50 hover:bg-gray-100 text-gray-400 transition-colors">
-                            <ChevronRight size={16} />
-                        </button>
+        <div className="h-full flex flex-col px-2">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-4">
+                    <div>
+                        <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Turnos</h1>
+                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Gestión de citas de la clínica</p>
                     </div>
                 </div>
 
-                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-card text-sm">
-                    <button onClick={() => setViewMode('day')} className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'day' ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-gray-600 hover:text-navy-700'}`}>Día</button>
-                    <button onClick={() => setViewMode('week')} className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'week' ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-gray-600 hover:text-navy-700'}`}>Semana</button>
-                    <button onClick={() => setViewMode('month')} className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'month' ? 'bg-white text-navy-700 shadow-sm font-semibold' : 'text-gray-600 hover:text-navy-700'}`}>Mes</button>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-xs">
+                        <button onClick={handlePrev} className="px-2 py-1.5 text-navy-900 hover:text-navy-800 transition-colors"><ChevronLeft size={14} /></button>
+                        <div className="flex items-center gap-1.5 px-3 text-navy-900 font-bold border-x border-white/40">
+                            <CalendarIcon size={14} className="text-navy-900" />
+                            <span className="capitalize">{monthName}</span>
+                        </div>
+                        <button onClick={handleNext} className="px-2 py-1.5 text-navy-900 hover:text-navy-800 transition-colors"><ChevronRight size={14} /></button>
+                    </div>
+
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-xs font-bold text-navy-900">
+                        <button onClick={() => setViewMode('day')} className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'day' ? 'bg-white' : 'hover:bg-white/40'}`}>Día</button>
+                        <button onClick={() => setViewMode('week')} className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'week' ? 'bg-white' : 'hover:bg-white/40'}`}>Semana</button>
+                        <button onClick={() => setViewMode('month')} className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'month' ? 'bg-white' : 'hover:bg-white/40'}`}>Mes</button>
+                    </div>
+
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-xs font-bold text-navy-900">
+                        <button onClick={() => setIsModalOpen(true)} className="px-4 py-1.5 rounded-full bg-white hover:scale-[1.02] transition-transform flex items-center justify-center gap-1">
+                            <span>+</span> Nuevo Turno
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div className="flex-1 relative">
+            <div className="flex-1 relative min-h-0 overflow-hidden rounded-[24px]">
                 {viewMode === 'week' ? (
                     <CalendarWeek
                         appointments={appointments}

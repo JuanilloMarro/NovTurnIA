@@ -29,16 +29,15 @@ export default function Login() {
     return (
         <div className="min-h-screen animate-liquid flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-navy-100/50">
             {/* Elementos ambientales del sistema - Azul Marino y Gris */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] h-[70%] rounded-full bg-navy-100/10 blur-[200px] pointer-events-none animate-pulse duration-[10s]" />
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-navy-200/10 blur-[150px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-navy-300/10 blur-[150px] pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] rounded-full bg-navy-100/10 blur-[120px] pointer-events-none animate-pulse-slow" />
+            <div className="lg-orb w-[500px] h-[500px] top-[-10%] left-[-10%] animate-float opacity-80" />
+            <div className="lg-orb w-[400px] h-[400px] bottom-[-5%] right-[-5%] animate-float-delayed opacity-80" />
 
             <div className="relative z-10 w-full max-w-md mb-6 animate-fade-up">
                 {/* Branding Dental Sistemático */}
-                <div className="flex flex-col items-center mb-10 px-4">
-                    <div className="text-center space-y-1">
-                        <h1 className="text-3xl font-light text-navy-900 tracking-[-0.04em]">NovTurnIA <span className="font-extrabold text-navy-900">Plan Pro</span></h1>
-
+                <div className="flex flex-col items-center mb-16 px-4">
+                    <div className="text-center">
+                        <h1 className="text-4xl font-light text-navy-900 tracking-tight text-center">NovTurnIA <span className="font-extrabold text-navy-900">Pro</span></h1>
                     </div>
                 </div>
 
@@ -93,9 +92,7 @@ export default function Login() {
                                     <label className="text-[9px] font-black text-navy-900 uppercase tracking-[0.4em] opacity-40">
                                         Contraseña
                                     </label>
-                                    <button type="button" className="text-[9px] font-bold text-navy-700 hover:text-navy-900 transition-colors uppercase tracking-widest duration-300 underline underline-offset-4 decoration-navy-200">
-                                        ¿Nueva clave?
-                                    </button>
+
                                 </div>
                                 <div className="relative group/input">
                                     <input
@@ -137,19 +134,9 @@ export default function Login() {
                     </div>
                 </div>
 
-                {/* Footer Institucional */}
-                <div className="mt-8 text-center">
-                    <div className="flex items-center justify-center gap-3 text-[9px] font-black text-gray-400 uppercase tracking-[0.8em]">
-                        <div className="w-8 h-[1.5px] bg-gray-400/40" />
-                        Gestión Odontológica Integral
-                        <div className="w-8 h-[1.5px] bg-gray-400/40" />
-                    </div>
-                </div>
+
             </div>
 
-            {/* Decoraciones Estilo Dashboard */}
-            <div className="absolute top-[20%] right-[-5%] w-[40rem] h-[40rem] border-[1px] border-navy-900/5 rounded-full animate-float-delayed pointer-events-none" />
-            <div className="absolute bottom-[-10%] left-[-10%] w-[50rem] h-[50rem] border-[1px] border-navy-900/5 rounded-full animate-float pointer-events-none" />
         </div>
     );
 }

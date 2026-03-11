@@ -10,19 +10,15 @@ export default function Sidebar() {
     const normalClass = 'flex items-center gap-3 px-4 py-3 xl:px-5 xl:py-3.5 rounded-2xl text-gray-500 hover:bg-white/40 hover:backdrop-blur-sm hover:shadow-sm hover:border hover:border-white/50 hover:text-navy-700 text-[14.5px] font-medium transition-all duration-200 border border-transparent';
 
     return (
-        <aside className="fixed left-0 top-0 bottom-0 w-[240px] p-6 flex flex-col z-20 bg-transparent">
-            <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer transition-transform hover:scale-[1.02]">
-                <div className="w-9 h-9 rounded-[10px] bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card">
-                    <Bot size={18} strokeWidth={2.5} />
+        <aside className="absolute left-0 top-0 bottom-0 w-[240px] p-6 flex flex-col z-20 bg-transparent">
+            <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer transition-transform hover:scale-[1.02] group/logo">
+                <div className="w-9 h-9 rounded-[10px] bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card transition-all duration-500 group-hover/logo:-translate-y-1">
+                    <div className="relative">
+                        <Bot size={18} strokeWidth={2.5} className="transition-transform duration-500 group-hover/logo:rotate-12" />
+                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-navy-400 rounded-full animate-pulse border-2 border-navy-900 shadow-sm" />
+                    </div>
                 </div>
                 <span className="font-bold text-navy-900 tracking-tight text-lg">NovTurnIA</span>
-            </div>
-
-            <div className="mb-6 px-3 py-3 rounded-2xl bg-white/30 backdrop-blur-sm border border-white/40 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-                <div className="font-bold text-navy-900 truncate tracking-tight text-[13px]">Clínica Novium Test</div>
-                <div className="mt-0.5 text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
-                    ID: {BUSINESS_ID}
-                </div>
             </div>
 
             <nav className="flex-1 flex flex-col gap-1.5 mt-2">
@@ -47,8 +43,11 @@ export default function Sidebar() {
                 )}
             </nav>
 
-            <div className="mt-auto pt-6 px-2 text-[10px] text-gray-400">
-                NovTurnIA · Powered with AI
+            <div className="mt-auto pt-6 px-5 border-t border-white/20">
+                <div className="font-bold text-navy-900/60 truncate tracking-tight text-[12px]">Clínica Novium Test</div>
+                <div className="mt-0.5 text-[9px] font-bold text-navy-900/30 uppercase tracking-widest">
+                    ID: {BUSINESS_ID}
+                </div>
             </div>
         </aside>
     );

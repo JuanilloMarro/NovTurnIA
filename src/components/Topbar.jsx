@@ -58,30 +58,30 @@ export default function Topbar() {
                     </button>
 
                     {showNotif && (
-                        <div className="absolute top-12 right-0 w-[380px] bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-gray-100 p-4 animate-fade-up z-50">
-                            <div className="flex justify-between items-center mb-4 px-2">
-                                <h3 className="font-bold text-navy-900 text-lg">Notificaciones</h3>
-                                <span className="text-sm text-gray-500 font-medium">{unreadCount} pendiente{unreadCount !== 1 ? 's' : ''}</span>
+                        <div className="absolute top-14 right-0 w-[320px] sm:w-[360px] bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 p-3 animate-fade-up z-50 overflow-hidden">
+                            <div className="flex justify-between items-center mb-3 px-3 pt-1">
+                                <h3 className="font-bold text-navy-900 text-base">Notificaciones</h3>
+                                <span className="text-xs text-navy-800 font-bold bg-white/40 px-2 py-0.5 rounded-full border border-white/50">{unreadCount} nuevas</span>
                             </div>
-                            <div className="max-h-[300px] overflow-y-auto space-y-2 custom-scrollbar pr-1">
+                            <div className="max-h-[320px] overflow-y-auto space-y-2 custom-scrollbar pr-1">
                                 {notifications.length === 0 ? (
-                                    <div className="text-center text-gray-400 py-6 text-[13px] font-medium">No hay notificaciones nuevas</div>
+                                    <div className="text-center text-navy-800/60 py-8 text-xs font-bold">Sin notificaciones nuevas</div>
                                 ) : (
                                     notifications.map(n => {
                                         const name = n.users?.display_name || n.user_id || '?';
                                         return (
-                                            <div key={n.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer">
-                                                <div className="w-10 h-10 rounded-full bg-amber-700 flex items-center justify-center text-white font-bold shrink-0 shadow-sm border border-white/20">
+                                            <div key={n.id} className="flex items-center gap-3 p-3 bg-white/40 hover:bg-white/60 border border-white/50 rounded-2xl transition-all cursor-pointer shadow-sm">
+                                                <div className="w-9 h-9 rounded-full bg-amber-600/90 flex items-center justify-center text-white font-bold shrink-0 shadow-sm border border-white/30 text-sm">
                                                     {name[0].toUpperCase()}
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="font-semibold text-navy-900 text-[15px] truncate">{name}</div>
-                                                    <div className="text-gray-500 text-[13px] truncate">
+                                                <div className="flex-1 min-w-0 pr-1">
+                                                    <div className="font-bold text-navy-900 text-sm truncate leading-tight">{name}</div>
+                                                    <div className="text-navy-800/70 text-[11px] truncate mt-0.5 font-medium">
                                                         {new Date(n.date_start).toLocaleDateString('es-GT', { day: 'numeric', month: 'short' }).replace(/\./g, '')} · {new Date(n.date_start).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                                     </div>
                                                 </div>
-                                                <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-100/50 text-amber-700 text-[11px] font-bold tracking-wide">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Pendiente
+                                                <div className="shrink-0 flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 text-[10px] font-bold">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.5)]" />
                                                 </div>
                                             </div>
                                         );
