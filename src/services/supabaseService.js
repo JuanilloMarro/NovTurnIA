@@ -1,4 +1,4 @@
-import { supabase, BUSINESS_ID } from '../config/supabase';
+import { supabase, BUSINESS_ID, callEdgeFunction } from '../config/supabase';
 
 // Helper for dates (from 04-appointments.md)
 function timeToDecimal(str) {
@@ -28,42 +28,15 @@ export async function getAppointmentsByWeek(weekStart, weekEnd) {
 }
 
 export async function createAppointment({ userId, date, startTime, endTime }) {
-    // Verificar disponibilidad primero
+    // ── Route through Edge Function (server-side validation) ──
     const dateStr = date instanceof Date ? date.toISOString().slice(0, 10) : date;
-    const { data: existing } = await supabase
-        .from('appointments')
-        .select('id, date_start, date_end')
-        .eq('business_id', BUSINESS_ID)
-        .eq('status', 'active')
-        .gte('date_start', `${dateStr}T00:00:00`)
-        .lt('date_start', `${dateStr}T23:59:59`);
-
-    const startDec = timeToDecimal(startTime);
-    const endDec = timeToDecimal(endTime);
-    const conflict = (existing || []).find(a => {
-        const aStart = timeToDecimal(a.date_start.slice(11, 16));
-        const aEnd = timeToDecimal(a.date_end.slice(11, 16));
-        return startDec < aEnd && endDec > aStart;
+    const result = await callEdgeFunction('create-appointment', {
+        userId,
+        date: dateStr,
+        startTime,
+        endTime,
     });
-
-    if (conflict) throw new Error('Ya existe un turno en ese horario');
-
-    const { data, error } = await supabase
-        .from('appointments')
-        .insert({
-            business_id: BUSINESS_ID,
-            user_id: userId,
-            date_start: toISO(date, startTime),
-            date_end: toISO(date, endTime),
-            status: 'active',
-            confirmed: false,
-            notif_24hs: false,
-        })
-        .select()
-        .single();
-
-    if (error) throw error;
-    return data;
+    return result.data;
 }
 
 export async function cancelAppointment(id) {
@@ -135,21 +108,11 @@ export async function getStatsOverview() {
     return { totalPatients, totalApts, monthApts };
 }
 
-// ── Staff & Roles (Manual Auth) ───────────────────────────
+// ── Staff & Roles (Auth via Edge Function) ───────────────
 export async function loginStaff(email, password) {
-    const { data, error } = await supabase
-        .from('staff_users')
-        .select(`
-            *,
-            staff_roles (*)
-        `)
-        .eq('email', email)
-        .eq('password', password)
-        .eq('active', true)
-        .single();
-
-    if (error || !data) throw new Error('Credenciales incorrectas o usuario inactivo');
-    return data;
+    // ── Route through Edge Function (never send password to frontend) ──
+    const result = await callEdgeFunction('auth-login', { email, password });
+    return { user: result.user, token: result.token };
 }
 
 export async function getStaffUsers() {
@@ -178,64 +141,27 @@ export async function getStaffRoles() {
 }
 
 export async function createStaffUser(userData) {
-    const { data, error } = await supabase
-        .from('staff_users')
-        .insert({
-            ...userData,
-            business_id: BUSINESS_ID
-        })
-        .select(`
-            *,
-            staff_roles (*)
-        `)
-        .single();
-
-    if (error) throw error;
-    return data;
+    // ── Route through Edge Function (requires manage_users permission) ──
+    const result = await callEdgeFunction('manage-staff', {
+        action: 'create',
+        ...userData,
+    });
+    return result.data;
 }
 
 export async function deleteStaffUser(id) {
-    console.log('supabaseService.deleteStaffUser for id:', id, 'business_id:', BUSINESS_ID);
-    
-    // Try delete first
-    const { error, count } = await supabase
-        .from('staff_users')
-        .delete({ count: 'exact' })
-        .eq('id', id)
-        .eq('business_id', BUSINESS_ID);
-
-    if (error) {
-        console.error('Supabase delete error details:', error);
-        throw error;
-    }
-
-    console.log('Delete result - rows affected:', count);
-
-    // If RLS silently blocked the delete (0 rows affected), try deactivating instead
-    if (count === 0) {
-        console.log('Delete blocked by RLS, trying to deactivate user...');
-        const { error: updateError } = await supabase
-            .from('staff_users')
-            .update({ active: false })
-            .eq('id', id)
-            .eq('business_id', BUSINESS_ID);
-
-        if (updateError) {
-            console.error('Deactivate error:', updateError);
-            throw new Error('No se pudo eliminar ni desactivar al usuario. Verifica los permisos de la base de datos.');
-        }
-        console.log('User deactivated successfully as fallback.');
-    } else {
-        console.log('Result of Supabase delete: Success.');
-    }
+    // ── Route through Edge Function (requires manage_users permission) ──
+    await callEdgeFunction('manage-staff', {
+        action: 'delete',
+        id,
+    });
 }
 
 export async function updateStaffUserRole(userId, roleId) {
-    const { error } = await supabase
-        .from('staff_users')
-        .update({ role_id: roleId })
-        .eq('id', userId)
-        .eq('business_id', BUSINESS_ID);
-
-    if (error) throw error;
+    // ── Route through Edge Function (requires manage_users permission) ──
+    await callEdgeFunction('manage-staff', {
+        action: 'update-role',
+        userId,
+        roleId,
+    });
 }

@@ -9,3 +9,43 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const BUSINESS_ID = parseInt(
     new URLSearchParams(window.location.search).get('bid') || '1'
 );
+
+// ── Auth Token Management ────────────────────────────
+const TOKEN_KEY = 'turnia_session_token';
+
+export function getAuthToken() {
+    return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setAuthToken(token) {
+    localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearAuthToken() {
+    localStorage.removeItem(TOKEN_KEY);
+}
+
+// ── Edge Function Caller ─────────────────────────────
+// Wraps supabase.functions.invoke() with auth headers
+export async function callEdgeFunction(functionName, body = {}) {
+    const token = getAuthToken();
+
+    const { data, error } = await supabase.functions.invoke(functionName, {
+        body,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (error) {
+        // Supabase SDK wraps edge function errors
+        throw new Error(error.message || 'Error en la función del servidor');
+    }
+
+    // Edge functions return { error: '...' } for business logic errors
+    if (data?.error) {
+        const err = new Error(data.error);
+        err.status = data.status || 400;
+        throw err;
+    }
+
+    return data;
+}
