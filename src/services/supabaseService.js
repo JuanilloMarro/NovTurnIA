@@ -230,3 +230,35 @@ export async function updateStaffUserRole(userId, roleId) {
         roleId,
     });
 }
+
+// ── Notifications (Persistent, Cloud-based) ──────────
+export async function getNotifications() {
+    const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('business_id', BUSINESS_ID)
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+    if (error) throw error;
+    return data || [];
+}
+
+export async function markNotificationsRead() {
+    const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('business_id', BUSINESS_ID)
+        .eq('read', false);
+
+    if (error) throw error;
+}
+
+export async function clearNotifications() {
+    const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('business_id', BUSINESS_ID);
+
+    if (error) throw error;
+}

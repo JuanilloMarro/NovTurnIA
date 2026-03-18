@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createAppointment, getPatients } from '../../services/supabaseService';
 import { X, Search, Calendar, ChevronDown, Save } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
-import { showSuccessToast, showErrorToast, useToastStore } from '../../store/useToastStore';
+import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 
 const TIME_SLOTS = [];
 for (let h = 9; h <= 17; h++) {
@@ -55,11 +55,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                 'Turno Creado Exitosamente',
                 `${patientObj.display_name || 'Paciente'} : ${startTime} a ${endTime}`
             );
-            useToastStore.getState().addActivity({
-                type: 'appointment',
-                title: 'Nuevo Turno Agendado',
-                message: `${patientObj.display_name || 'Paciente'} : ${date} · ${startTime} a ${endTime}`,
-            });
+            // Note: Activity log notification is auto-created by DB trigger
             onCreated();
             onClose();
         } catch (err) {

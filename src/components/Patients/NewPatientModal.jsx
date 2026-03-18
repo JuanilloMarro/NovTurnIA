@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, User, Phone, Save } from 'lucide-react';
 import { createPatient } from '../../services/supabaseService';
 import { formatPhone } from '../../utils/format';
-import { showSuccessToast, showErrorToast, useToastStore } from '../../store/useToastStore';
+import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 
 export default function NewPatientModal({ isOpen, onClose, onCreated }) {
     const [name, setName] = useState('');
@@ -35,11 +35,7 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
                 'Paciente Registrado',
                 `${name.trim()} : ${formatPhone(cleanPhone)}`
             );
-            useToastStore.getState().addActivity({
-                type: 'patient',
-                title: 'Nuevo Paciente Registrado',
-                message: `${name.trim()} : ${formatPhone(cleanPhone)}`,
-            });
+            // Note: Activity log notification is auto-created by DB trigger
             onCreated();
             onClose();
         } catch (err) {

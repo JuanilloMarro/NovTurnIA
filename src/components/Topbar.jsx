@@ -102,7 +102,7 @@ export default function Topbar() {
                                                     </div>
                                                 </div>
                                                 <div className="shrink-0 flex items-center gap-1.5 px-2 py-1.5 rounded-xl border text-[10px] font-bold bg-white/30 border-white/40 text-navy-700">
-                                                    <span>{getTimeAgo(entry.timestamp)}</span>
+                                                    <span>{getTimeAgo(entry.created_at || entry.timestamp)}</span>
                                                 </div>
                                             </div>
                                         );
