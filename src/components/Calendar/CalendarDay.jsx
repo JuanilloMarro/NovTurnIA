@@ -1,16 +1,17 @@
-import { isSameDay, getEventStyle } from '../../utils/calendarUtils';
+import { isSameDay, getEventStyleWithColumns, layoutOverlappingEvents } from '../../utils/calendarUtils';
 import CalendarEvent from './CalendarEvent';
 
 const HOURS = Array.from({ length: 9 }, (_, i) => i + 9); // 9 a 17
 
 export default function CalendarDay({ appointments, selectedDate, loading, onEventClick }) {
     const dayAppointments = appointments.filter(apt => isSameDay(new Date(apt.date_start), selectedDate));
+    const layoutEvents = layoutOverlappingEvents(dayAppointments);
     const isToday = isSameDay(selectedDate, new Date());
 
     return (
-        <div className="bg-white/80 backdrop-blur-card border border-white/90 rounded-2xl shadow-card overflow-hidden flex flex-col h-full">
+        <div className="bg-white border border-white/90 rounded-2xl shadow-card overflow-hidden flex flex-col h-full">
             {/* Header día */}
-            <div className="grid grid-cols-[70px_1fr] border-b border-gray-100/50 bg-white/30 backdrop-blur-md">
+            <div className="grid grid-cols-[70px_1fr] border-b border-gray-100/50 bg-white">
                 <div className="p-2 text-[10px] uppercase text-gray-400 font-bold text-center flex items-center justify-center border-r border-gray-100/50">
                     GMT-6
                 </div>
@@ -40,7 +41,7 @@ export default function CalendarDay({ appointments, selectedDate, loading, onEve
 
                 <div className="grid grid-cols-[70px_1fr] h-full">
                     {/* Gutter de horas */}
-                    <div className="border-r border-gray-100/50 bg-white/10 relative z-10 w-full h-full flex flex-col">
+                    <div className="border-r border-gray-100/50 bg-white relative z-10 w-full h-full flex flex-col">
                         {HOURS.map(h => (
                             <div key={h} className="flex-1 w-full pr-3 pt-1.5 text-right">
                                 <span className="text-[12px] font-medium text-gray-400">{h}:00</span>
@@ -50,12 +51,11 @@ export default function CalendarDay({ appointments, selectedDate, loading, onEve
 
                     {/* Columna del día */}
                     <div className="relative h-full">
-                        {/* Eventos */}
-                        {dayAppointments.map(apt => (
+                        {layoutEvents.map(({ appointment: apt, column, totalColumns }) => (
                             <CalendarEvent
                                 key={apt.id}
                                 appointment={apt}
-                                style={getEventStyle(apt.date_start, apt.date_end, 'percent')}
+                                style={getEventStyleWithColumns(apt.date_start, apt.date_end, column, totalColumns)}
                                 onClick={onEventClick}
                             />
                         ))}

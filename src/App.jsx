@@ -12,6 +12,7 @@ import PatientHistory from './pages/PatientHistory';
 import Stats from './pages/Stats';
 import Users from './pages/Users';
 import Login from './pages/Login';
+import ToastContainer from './components/ToastContainer';
 
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
@@ -40,16 +41,14 @@ export default function App() {
     }, []);
 
     return (
+        <>
+        <ToastContainer />
         <Routes>
             <Route path="/login" element={<Login />} />
 
             <Route path="/*" element={
                 <ProtectedRoute>
                     <div className="h-screen w-screen relative overflow-hidden bg-transparent p-4 lg:p-6 flex items-center justify-center">
-                        {/* Fondo de Burbujas Decorativas en el Dashboard */}
-                        <div className="lg-orb w-[900px] h-[900px] -top-64 -left-32 animate-float opacity-50 blur-[1px]"></div>
-                        <div className="lg-orb w-[700px] h-[700px] -bottom-32 -right-32 animate-float-delayed opacity-40 blur-[1px]"></div>
-                        
                         {/* Macro Módulo Unificado - Sensación Voladora y de Cristal */}
                         <div className="w-full max-w-[1920px] h-full rounded-[24px] sm:rounded-[32px] bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex">
                             <Sidebar />
@@ -72,5 +71,6 @@ export default function App() {
                 </ProtectedRoute>
             } />
         </Routes>
+        </>
     );
 }

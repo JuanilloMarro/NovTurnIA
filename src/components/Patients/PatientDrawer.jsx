@@ -46,7 +46,7 @@ export default function PatientDrawer({ patient, onClose }) {
             <div className="flex-1 overflow-y-auto px-5 py-4 custom-scrollbar">
 
                 <div className="flex items-center gap-3 mb-6 bg-white/30 p-3 rounded-2xl border border-white/50 shadow-sm">
-                    <div className="w-12 h-12 rounded-full bg-navy-900/90 flex items-center justify-center text-white text-base font-bold shadow-sm border border-white/50">
+                    <div className="w-12 h-12 rounded-full bg-navy-900 flex items-center justify-center text-white text-base font-bold shadow-md border border-white/20">
                         {getInitials(name)}
                     </div>
                     <div className="overflow-hidden">
@@ -76,13 +76,22 @@ export default function PatientDrawer({ patient, onClose }) {
                             <div className="space-y-4">
                                 {appointments.map(apt => (
                                     <div key={apt.id} className="flex gap-3 items-center">
-                                        <div className={`w-2 h-2 rounded-full shrink-0 ${apt.status === 'active' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'bg-gray-400'}`} />
+                                        <div className={`w-2 h-2 rounded-full shrink-0 ${
+                                            apt.status === 'cancelled' 
+                                                ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' 
+                                                : apt.confirmed 
+                                                    ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' 
+                                                    : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                                        }`} />
                                         <div>
                                             <div className="text-xs font-bold text-navy-900 tracking-wide">
                                                 {formatAptDate(apt.date_start)}
                                             </div>
-                                            <div className="text-[10px] font-semibold text-navy-700/60 mt-0.5 uppercase tracking-widest">
-                                                {apt.status === 'active' ? 'Pendiente' : 'Cancelado'}
+                                            <div className={`text-[10px] font-black mt-0.5 uppercase tracking-widest ${
+                                                apt.status === 'cancelled' ? 'text-rose-600/70' : 
+                                                apt.confirmed ? 'text-emerald-600/70' : 'text-amber-600/70'
+                                            }`}>
+                                                {apt.status === 'cancelled' ? 'Cancelado' : apt.confirmed ? 'Confirmado' : 'Pendiente'}
                                             </div>
                                         </div>
                                     </div>

@@ -4,23 +4,21 @@ import { supabase, BUSINESS_ID } from '../config/supabase';
 export function useRealtimeAppointments(onUpdate) {
     useEffect(() => {
         const channel = supabase
-            .channel('appointments-changes')
+            .channel('calendar-sync')
             .on(
                 'postgres_changes',
-                {
-                    event: '*',           // INSERT | UPDATE | DELETE | *
-                    schema: 'public',
-                    table: 'appointments',
-                    filter: `business_id=eq.${BUSINESS_ID}`
-                },
+                { event: '*', schema: 'public', table: 'appointments' },
                 (payload) => {
-                    console.log('Cambio en appointments:', payload.eventType);
-                    onUpdate(payload);
+                    // Solo refrescar si pertenece al negocio
+                    if (payload.new?.business_id == BUSINESS_ID || payload.old?.business_id == BUSINESS_ID) {
+                        onUpdate(payload);
+                    }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('🔌 Sync Calendar:', status);
+            });
 
-        // Limpiar suscripción al desmontar
         return () => supabase.removeChannel(channel);
     }, [onUpdate]);
 }
@@ -28,21 +26,17 @@ export function useRealtimeAppointments(onUpdate) {
 export function useRealtimePatients(onUpdate) {
     useEffect(() => {
         const channel = supabase
-            .channel('patients-changes')
+            .channel('patients-sync')
             .on(
                 'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'users',
-                    filter: `business_id=eq.${BUSINESS_ID}`
-                },
+                { event: '*', schema: 'public', table: 'users' },
                 (payload) => {
-                    console.log('Cambio en users:', payload.eventType);
-                    onUpdate(payload);
+                    if (payload.new?.business_id == BUSINESS_ID || payload.old?.business_id == BUSINESS_ID) {
+                        onUpdate(payload);
+                    }
                 }
             )
-            .subscribe();
+            .subscribe((status) => console.log('🔌 Sync Patients:', status));
 
         return () => supabase.removeChannel(channel);
     }, [onUpdate]);

@@ -1,9 +1,9 @@
 export default function KpiCard({ label, value, change, icon, color = 'navy', index = 0 }) {
     const colors = {
-        navy: 'from-navy-700 to-navy-500',
-        emerald: 'from-emerald-700 to-emerald-500',
-        amber: 'from-amber-600 to-amber-400',
-        rose: 'from-rose-700 to-rose-500',
+        navy: 'bg-navy-900',
+        emerald: 'bg-emerald-600',
+        amber: 'bg-amber-600',
+        rose: 'bg-rose-600',
     };
 
     const isPositive = Number(change) >= 0;
@@ -15,7 +15,7 @@ export default function KpiCard({ label, value, change, icon, color = 'navy', in
         >
             <div className="flex items-center justify-between mb-4">
                 <div className="text-navy-900/60 font-bold text-xs tracking-tight">{label}</div>
-                <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${colors[color]} flex items-center justify-center text-white text-sm shadow-sm opacity-90`}>
+                <div className={`w-8 h-8 rounded-xl shadow-sm ${colors[color]} flex items-center justify-center text-white text-sm opacity-90 border border-white/20`}>
                     {icon}
                 </div>
             </div>

@@ -1,7 +1,8 @@
-import { Bell, Moon, Sun, Monitor, Check, LogOut } from 'lucide-react';
+import { Bell, Moon, Sun, Monitor, Check, LogOut, Calendar, UserPlus, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAppStore } from '../store/useAppStore';
+import { useToastStore } from '../store/useToastStore';
 import { useAuth } from '../hooks/useAuth';
 
 function getInitials(name) {
@@ -11,7 +12,8 @@ function getInitials(name) {
 
 export default function Topbar() {
     const { profile, logout } = useAuth();
-    const { notifications, unreadCount } = useNotifications();
+    const { activityLog, unreadCount, markAllRead } = useNotifications();
+    const clearActivityLog = useToastStore(s => s.clearActivityLog);
     const { theme, setTheme } = useAppStore();
     const [showNotif, setShowNotif] = useState(false);
     const [showThemeMenu, setShowThemeMenu] = useState(false);
@@ -38,20 +40,24 @@ export default function Topbar() {
         { id: 'system', label: 'Predeterminado', icon: <Monitor size={14} /> },
     ];
 
+    const handleBellClick = () => {
+        const willOpen = !showNotif;
+        setShowNotif(willOpen);
+        setShowThemeMenu(false);
+        if (willOpen) markAllRead();
+    };
+
     return (
         <header className="h-[72px] px-6 flex items-center justify-end z-40 transition-all sticky top-0 bg-transparent">
             <div className="flex items-center gap-6 mt-2">
                 <div className="relative" ref={notifRef}>
                     <button
-                        onClick={() => {
-                            setShowNotif(!showNotif);
-                            setShowThemeMenu(false);
-                        }}
+                        onClick={handleBellClick}
                         className="relative flex items-center justify-center w-11 h-11 rounded-full border border-white/80 bg-white/40 backdrop-blur-md text-navy-700 shadow-card hover:bg-white/60 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
                     >
                         <Bell size={20} />
                         {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] px-1 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                            <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] px-1 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
                                 {unreadCount}
                             </span>
                         )}
@@ -60,28 +66,43 @@ export default function Topbar() {
                     {showNotif && (
                         <div className="absolute top-14 right-0 w-[320px] sm:w-[360px] bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 p-3 animate-fade-up z-50 overflow-hidden">
                             <div className="flex justify-between items-center mb-3 px-3 pt-1">
-                                <h3 className="font-bold text-navy-900 text-base">Notificaciones</h3>
-                                <span className="text-xs text-navy-800 font-bold bg-white/40 px-2 py-0.5 rounded-full border border-white/50">{unreadCount} nuevas</span>
+                                <h3 className="font-bold text-navy-900 text-base">Actividad</h3>
+                                {activityLog.length > 0 && (
+                                    <button 
+                                        onClick={() => clearActivityLog()}
+                                        className="text-[10px] text-red-600/70 hover:text-red-600 font-bold uppercase tracking-wider flex items-center gap-1 transition-colors"
+                                    >
+                                        <Trash2 size={10} />
+                                        Limpiar
+                                    </button>
+                                )}
                             </div>
                             <div className="max-h-[320px] overflow-y-auto space-y-2 custom-scrollbar pr-1">
-                                {notifications.length === 0 ? (
-                                    <div className="text-center text-navy-800/60 py-8 text-xs font-bold">Sin notificaciones nuevas</div>
+                                {activityLog.length === 0 ? (
+                                    <div className="text-center text-navy-800/60 py-8 text-xs font-bold">Sin actividad reciente</div>
                                 ) : (
-                                    notifications.map(n => {
-                                        const name = n.users?.display_name || n.user_id || '?';
+                                    activityLog.map(entry => {
+                                        const isApt = entry.type === 'appointment';
+                                        const isPatient = entry.type === 'patient';
+
                                         return (
-                                            <div key={n.id} className="flex items-center gap-3 p-3 bg-white/40 hover:bg-white/60 border border-white/50 rounded-2xl transition-all cursor-pointer shadow-sm">
-                                                <div className="w-9 h-9 rounded-full bg-amber-600/90 flex items-center justify-center text-white font-bold shrink-0 shadow-sm border border-white/30 text-sm">
-                                                    {name[0].toUpperCase()}
+                                            <div key={entry.id} className={`flex items-center gap-3 p-3 bg-white/40 hover:bg-white/60 border border-white/50 rounded-2xl transition-all cursor-pointer shadow-sm group ${
+                                                !entry.read ? 'ring-1 ring-navy-400/20' : ''
+                                            }`}>
+                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm border border-white/30 text-sm bg-navy-900/90`}>
+                                                    {isApt ? <Calendar size={15} className="text-white" /> : isPatient ? <UserPlus size={15} className="text-white" /> : (entry.title?.[0] || '?')}
                                                 </div>
                                                 <div className="flex-1 min-w-0 pr-1">
-                                                    <div className="font-bold text-navy-900 text-sm truncate leading-tight">{name}</div>
+                                                    <div className="font-bold text-navy-900 text-sm truncate leading-tight flex items-center gap-1.5">
+                                                        {entry.title}
+                                                        {isPatient && <span className="bg-navy-100 text-navy-800 text-[8px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter">Nuevo</span>}
+                                                    </div>
                                                     <div className="text-navy-800/70 text-[11px] truncate mt-0.5 font-medium">
-                                                        {new Date(n.date_start).toLocaleDateString('es-GT', { day: 'numeric', month: 'short' }).replace(/\./g, '')} · {new Date(n.date_start).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                                        {entry.message}
                                                     </div>
                                                 </div>
-                                                <div className="shrink-0 flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 text-[10px] font-bold">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.5)]" />
+                                                <div className="shrink-0 flex items-center gap-1.5 px-2 py-1.5 rounded-xl border text-[10px] font-bold bg-white/30 border-white/40 text-navy-700">
+                                                    <span>{getTimeAgo(entry.timestamp)}</span>
                                                 </div>
                                             </div>
                                         );
@@ -100,7 +121,7 @@ export default function Topbar() {
                         }}
                         className="w-11 h-11 rounded-full bg-navy-900 border border-white/20 flex items-center justify-center text-white font-bold shadow-card shadow-navy-900/20 text-[15px] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
                     >
-                        {getInitials(profile?.full_name)}
+                        {getInitials(profile?.full_name || profile?.display_name)}
                     </div>
 
                     {showThemeMenu && (
@@ -142,4 +163,20 @@ export default function Topbar() {
             </div>
         </header>
     );
+}
+
+function getTimeAgo(dateStr) {
+    if (!dateStr) return '';
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now - date;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMin < 1) return 'Ahora';
+    if (diffMin < 60) return `${diffMin}m`;
+    if (diffHrs < 24) return `${diffHrs}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return date.toLocaleDateString('es-GT', { day: 'numeric', month: 'short' });
 }

@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { usePatients } from '../hooks/usePatients';
 import PatientCard from '../components/Patients/PatientCard';
 import PatientDrawer from '../components/Patients/PatientDrawer';
+import NewPatientModal from '../components/Patients/NewPatientModal';
 import { Search, ChevronDown } from 'lucide-react';
 
 export default function Patients() {
     const { patients, loading, search, handleSearch, sortOrder, setSortOrder } = usePatients();
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [showSort, setShowSort] = useState(false);
+    const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
 
     const sortOptions = [
         { id: 'recent', label: 'Más reciente' },
@@ -28,7 +30,7 @@ export default function Patients() {
                 </div>
 
                 <div className="flex items-center gap-3 h-10">
-                    <div className="relative w-80 h-full">
+                    <div className="relative w-72 h-full">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
                             <Search size={14} strokeWidth={2.5} />
                         </div>
@@ -60,6 +62,15 @@ export default function Patients() {
                             </div>
                         )}
                     </div>
+
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                        <button 
+                            onClick={() => setIsNewPatientModalOpen(true)}
+                            className="px-4 h-full rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-navy-900 text-xs font-bold"
+                        >
+                            <span className="text-[14px]">+</span> Nuevo Paciente
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -80,6 +91,17 @@ export default function Patients() {
                         <PatientCard key={p.id} patient={p} index={i} onClick={setSelectedPatient} />
                     ))}
                 </div>
+            )}
+
+            {isNewPatientModalOpen && (
+                <NewPatientModal 
+                    isOpen={isNewPatientModalOpen} 
+                    onClose={() => setIsNewPatientModalOpen(false)} 
+                    onCreated={() => {
+                        handleSearch(search); // Refresh with current search
+                        setIsNewPatientModalOpen(false);
+                    }}
+                />
             )}
 
             {selectedPatient && (

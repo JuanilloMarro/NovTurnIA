@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { cancelAppointment, confirmAppointment } from '../../services/supabaseService';
-import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageSquare, Trash2, ChevronDown } from 'lucide-react';
+import { setHumanTakeover, cancelAppointment, confirmAppointment } from '../../services/supabaseService';
+import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageSquare, Trash2, Bot, Check } from 'lucide-react';
+import { useState } from 'react';
+import AIStar from '../Icons/AIStar';
 import { formatPhone } from '../../utils/format';
 
 function getInitials(name) {
@@ -10,6 +12,9 @@ function getInitials(name) {
 
 export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
     const navigate = useNavigate();
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [successMsg, setSuccessMsg] = useState('');
+
     if (!appointment) return null;
     const { id, date_start, date_end, status, confirmed, users } = appointment;
 
@@ -44,56 +49,56 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
             <div className="flex-1 overflow-hidden px-5 py-4 flex flex-col justify-between">
                 <div>
                     {/* Paciente hero */}
-                <div className="flex items-center gap-3 mb-6 bg-white/30 p-3 rounded-2xl border border-white/50 shadow-sm">
-                    <div className="w-12 h-12 rounded-full bg-amber-700/90 flex items-center justify-center text-white text-base font-bold shadow-sm border border-white/50">
-                        {getInitials(users?.display_name)}
-                    </div>
-                    <div className="overflow-hidden">
-                        <div className="font-bold text-navy-900 text-base truncate">{users?.display_name || 'Sin nombre'}</div>
-                        <div className="text-navy-700/80 font-semibold tracking-wide text-xs truncate">{formatPhone(appointment.user_id)}</div>
-                    </div>
-                </div>
-
-                {/* Secciones */}
-                <div className="space-y-6">
-                    {/* Fecha y hora */}
-                    <div className="bg-white/30 p-4 rounded-2xl border border-white/50 shadow-sm">
-                        <div className="flex items-center gap-3 mb-3">
-                            <h4 className="text-[10px] font-bold text-navy-800 uppercase tracking-widest leading-none">Fecha y hora</h4>
-                            <div className="flex-1 h-px bg-navy-900/10"></div>
+                    <div className="flex items-center gap-3 mb-6 bg-white/30 p-3 rounded-2xl border border-white/50 shadow-sm">
+                        <div className="w-12 h-12 rounded-full bg-navy-900 flex items-center justify-center text-white text-base font-bold shadow-md border border-white/20">
+                            {getInitials(users?.display_name)}
                         </div>
+                        <div className="overflow-hidden">
+                            <div className="font-bold text-navy-900 text-base truncate">{users?.display_name || 'Sin nombre'}</div>
+                            <div className="text-navy-700/80 font-semibold tracking-wide text-xs truncate">{formatPhone(appointment.user_id)}</div>
+                        </div>
+                    </div>
 
-                        <div className="space-y-4">
-                            <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center shrink-0">
-                                    <CalendarIcon size={18} />
+                    {/* Secciones */}
+                    <div className="space-y-6">
+                        {/* Fecha y hora */}
+                        <div className="bg-white/30 p-4 rounded-2xl border border-white/50 shadow-sm">
+                            <div className="flex items-center gap-3 mb-3">
+                                <h4 className="text-[10px] font-bold text-navy-800 uppercase tracking-widest leading-none">Fecha y hora</h4>
+                                <div className="flex-1 h-px bg-navy-900/10"></div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center shrink-0">
+                                        <CalendarIcon size={18} />
+                                    </div>
+                                    <div className="pt-0.5">
+                                        <div className="text-xs font-semibold text-gray-400 mb-0.5">Fecha</div>
+                                        <div className="font-semibold text-navy-900 text-[15px]">
+                                            {new Date(date_start).toLocaleDateString('es-GT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Guatemala' })
+                                                .replace(/^\w/, (c) => c.toUpperCase())}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="pt-0.5">
-                                    <div className="text-xs font-semibold text-gray-400 mb-0.5">Fecha</div>
-                                    <div className="font-semibold text-navy-900 text-[15px]">
-                                        {new Date(date_start).toLocaleDateString('es-GT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Guatemala' })
-                                            .replace(/^\w/, (c) => c.toUpperCase())}
+
+                                <div className="w-full border-b border-dashed border-gray-200 ml-[56px] w-[calc(100%-56px)]"></div>
+
+                                <div className="flex items-start gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center shrink-0">
+                                        <Clock size={18} />
+                                    </div>
+                                    <div className="pt-0.5">
+                                        <div className="text-xs font-semibold text-gray-400 mb-0.5">Horario</div>
+                                        <div className="font-semibold text-navy-900 text-[15px]">
+                                            {new Date(date_start).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Guatemala', hour12: true })}
+                                            {' — '}
+                                            {new Date(date_end).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Guatemala', hour12: true })}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="w-full border-b border-dashed border-gray-200 ml-[56px] w-[calc(100%-56px)]"></div>
-
-                            <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center shrink-0">
-                                    <Clock size={18} />
-                                </div>
-                                <div className="pt-0.5">
-                                    <div className="text-xs font-semibold text-gray-400 mb-0.5">Horario</div>
-                                    <div className="font-semibold text-navy-900 text-[15px]">
-                                        {new Date(date_start).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Guatemala', hour12: true })}
-                                        {' — '}
-                                        {new Date(date_end).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Guatemala', hour12: true })}
-                                    </div>
-                                </div>
-                            </div>
                         </div>
-                    </div>
                     </div>
                 </div>
             </div>
@@ -106,6 +111,40 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                 >
                     <MessageSquare size={14} /> Ver conversación WhatsApp
                 </button>
+
+                {appointment.users && (
+                    <button
+                        onClick={async () => {
+                            const newValue = !appointment.users.human_takeover;
+                            try {
+                                await setHumanTakeover(appointment.user_id, newValue);
+                                // Actualizar el objeto localmente para reflejar el cambio en la UI
+                                appointment.users.human_takeover = newValue;
+                                setSuccessMsg(newValue ? 'IA Pausada - Atención Manual activada' : 'Inteligencia Artificial Reactivada');
+                                setShowSuccess(true);
+                                setTimeout(() => setShowSuccess(false), 3000);
+                                onUpdated?.();
+                            } catch (err) {
+                                alert('Error al actualizar bot: ' + err.message);
+                            }
+                        }}
+                        className={`w-full flex items-center justify-center gap-2 px-5 py-2.5 border text-xs font-bold rounded-full shadow-card transition-all ${appointment.users?.human_takeover
+                            ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                            : 'bg-white border-white/80 text-navy-900 hover:bg-white/80'
+                            }`}
+                    >
+                        <div className="relative">
+                            <Bot size={14} />
+                            <AIStar
+                                size={7}
+                                className={`absolute -top-1 -left-1 animate-pulse ${appointment.users?.human_takeover ? 'text-amber-500' : 'text-navy-900'}`}
+                                strokeWidth={2.5}
+                            />
+                        </div>
+                        {appointment.users?.human_takeover ? 'Reactivar Inteligencia Artificial' : 'Pausar IA (Atención Manual)'}
+                    </button>
+                )}
+
                 {status === 'active' && (
                     <button onClick={handleCancel}
                         className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-white/80 text-red-600 text-xs font-bold rounded-full shadow-card hover:bg-white/80 transition-colors"
@@ -114,6 +153,13 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                     </button>
                 )}
             </div>
+            {/* Success Toast */}
+            {showSuccess && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[60] bg-navy-900 text-white px-4 py-2 rounded-full text-[11px] font-bold shadow-lg flex items-center gap-2 animate-fade-up border border-white/20">
+                    <Check size={14} className="text-emerald-400" />
+                    {successMsg}
+                </div>
+            )}
         </div>
     );
 }

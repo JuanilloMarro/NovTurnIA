@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck } from 'lucide-react';
+import AIStar from './Icons/AIStar';
 import { usePermissions } from '../hooks/usePermissions';
 import { BUSINESS_ID } from '../config/supabase';
 
@@ -15,7 +16,11 @@ export default function Sidebar() {
                 <div className="w-9 h-9 rounded-[10px] bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card transition-all duration-500 group-hover/logo:-translate-y-1">
                     <div className="relative">
                         <Bot size={18} strokeWidth={2.5} className="transition-transform duration-500 group-hover/logo:rotate-12" />
-                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-navy-400 rounded-full animate-pulse border-2 border-navy-900 shadow-sm" />
+                        <AIStar 
+                            size={10} 
+                            className="absolute -top-1.5 -left-1.5 text-white animate-pulse transition-all duration-500 group-hover/logo:scale-125" 
+                            strokeWidth={2.5}
+                        />
                     </div>
                 </div>
                 <span className="font-bold text-navy-900 tracking-tight text-lg">NovTurnIA</span>

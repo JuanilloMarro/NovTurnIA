@@ -12,34 +12,94 @@ function getMonday(date) {
 }
 
 export function useAppointments() {
-    const [weekStart, setWeekStart] = useState(getMonday(new Date()));
+    const [anchorDate, setAnchorDate] = useState(new Date());
+    const [viewMode, setViewMode] = useState('week'); // 'day', 'week', 'month'
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 7);
+    // Calculate start and end dates based on viewMode
+    const getRange = (date, mode) => {
+        const start = new Date(date);
+        const end = new Date(date);
+
+        if (mode === 'day') {
+            start.setHours(0, 0, 0, 0);
+            end.setDate(start.getDate() + 1);
+            end.setHours(0, 0, 0, 0);
+        } else if (mode === 'week') {
+            const monday = getMonday(date);
+            start.setTime(monday.getTime());
+            end.setTime(monday.getTime());
+            end.setDate(end.getDate() + 7);
+        } else if (mode === 'month') {
+            // Fetch the whole month + padding (roughly 42 days)
+            start.setDate(1);
+            const mondayOfFirstWeek = getMonday(start);
+            start.setTime(mondayOfFirstWeek.getTime());
+            
+            end.setTime(start.getTime());
+            end.setDate(end.getDate() + 42); // 6 weeks
+        }
+        return { start, end };
+    };
+
+    const { start: rangeStart, end: rangeEnd } = getRange(anchorDate, viewMode);
 
     const load = useCallback(async () => {
         setLoading(true);
         try {
             const data = await getAppointmentsByWeek(
-                weekStart.toISOString().slice(0, 10),
-                weekEnd.toISOString().slice(0, 10)
+                rangeStart.toISOString().slice(0, 10),
+                rangeEnd.toISOString().slice(0, 10)
             );
             setAppointments(data);
+        } catch (err) {
+            console.error("Error loading appointments:", err);
         } finally {
             setLoading(false);
         }
-    }, [weekStart]);
+    }, [rangeStart.getTime(), rangeEnd.getTime()]);
 
     useEffect(() => { load(); }, [load]);
 
-    // Recargar al recibir cambio en tiempo real
     useRealtimeAppointments(load);
 
-    const prevWeek = () => setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; });
-    const nextWeek = () => setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n; });
-    const goToday = () => setWeekStart(getMonday(new Date()));
+    const prevWeek = () => setAnchorDate(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; });
+    const nextWeek = () => setAnchorDate(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n; });
+    
+    const prevDay = () => setAnchorDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; });
+    const nextDay = () => setAnchorDate(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n; });
 
-    return { appointments, loading, weekStart, weekEnd, prevWeek, nextWeek, goToday };
+    const prevMonth = () => setAnchorDate(d => { 
+        const n = new Date(d); 
+        n.setMonth(n.getMonth() - 1); 
+        n.setDate(1); 
+        return n; 
+    });
+    const nextMonth = () => setAnchorDate(d => { 
+        const n = new Date(d); 
+        n.setMonth(n.getMonth() + 1); 
+        n.setDate(1);
+        return n; 
+    });
+
+    const goToday = () => setAnchorDate(new Date());
+
+    return { 
+        appointments, 
+        loading, 
+        anchorDate, 
+        weekStart: getMonday(anchorDate), // For backwards compatibility
+        viewMode,
+        setViewMode,
+        setDate: setAnchorDate,
+        prevWeek, 
+        nextWeek, 
+        prevDay,
+        nextDay,
+        prevMonth,
+        nextMonth,
+        goToday, 
+        reload: load 
+    };
 }

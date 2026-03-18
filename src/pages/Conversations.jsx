@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Send, User, MessageCircle } from 'lucide-react';
+import { Search, Send, MessageCircle, Bot, User as UserIcon, ShieldAlert } from 'lucide-react';
+import AIStar from '../components/Icons/AIStar';
 import { usePatients } from '../hooks/usePatients';
-import { getPatientHistory } from '../services/supabaseService';
+import { getPatientHistory, setHumanTakeover } from '../services/supabaseService';
 import { formatPhone } from '../utils/format';
 
 function getInitials(name) {
@@ -44,6 +45,17 @@ export default function Conversations() {
         const data = await getPatientHistory(id);
         setHistory(data);
         setLoadingHistory(false);
+    }
+
+    async function handleReactivateIA() {
+        if (!selectedPatient) return;
+        try {
+            await setHumanTakeover(selectedPatient.id, false);
+            // Actualizar estado local
+            setSelectedPatient({ ...selectedPatient, human_takeover: false });
+        } catch (err) {
+            alert('Error al reactivar IA: ' + err.message);
+        }
     }
 
     return (
@@ -89,7 +101,12 @@ export default function Conversations() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className={`font-bold text-sm truncate ${isSelected ? 'text-navy-900' : 'text-navy-900/80'}`}>{name}</div>
-                                        <div className={`text-xs font-semibold tracking-wide truncate mt-0.5 ${isSelected ? 'text-navy-700' : 'text-navy-700/60'}`}>{formatPhone(p.id)}</div>
+                                        <div className="flex items-center gap-2">
+                                            <div className={`text-xs font-semibold tracking-wide truncate mt-0.5 ${isSelected ? 'text-navy-700' : 'text-navy-700/60'}`}>{formatPhone(p.id)}</div>
+                                            {p.human_takeover && (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" title="Intervención Humana Activa" />
+                                            )}
+                                        </div>
                                     </div>
                                 </button>
                             );
@@ -112,6 +129,24 @@ export default function Conversations() {
                                         <div className="text-xs font-semibold text-navy-700/60 tracking-wide mt-0.5">{formatPhone(selectedPatient.id)}</div>
                                     </div>
                                 </div>
+
+                                {selectedPatient.human_takeover && (
+                                    <button
+                                        onClick={handleReactivateIA}
+                                        className="flex items-center gap-2.5 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-bold shadow-sm hover:bg-amber-100 transition-all group/btn"
+                                        title="El bot está desactivado para este paciente"
+                                    >
+                                        <div className="relative">
+                                            <Bot size={15} strokeWidth={2.5} />
+                                            <AIStar 
+                                                size={8} 
+                                                className="absolute -top-1.5 -left-1.5 text-amber-600 animate-pulse" 
+                                                strokeWidth={2.5}
+                                            />
+                                        </div>
+                                        <span>Reactivar IA</span>
+                                    </button>
+                                )}
                             </div>
 
                             {/* Chat Messages */}

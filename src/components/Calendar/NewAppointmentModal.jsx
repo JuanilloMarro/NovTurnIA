@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { createAppointment, getPatients } from '../../services/supabaseService';
 import { X, Search, Calendar, ChevronDown, Save } from 'lucide-react';
+import { formatPhone } from '../../utils/format';
+import { showSuccessToast, showErrorToast, useToastStore } from '../../store/useToastStore';
 
-const TIME_SLOTS = Array.from({ length: 9 }, (_, i) => {
-    const h = i + 9;
-    return `${String(h).padStart(2, '0')}:00`;
-}); // ['09:00', '10:00', ... '17:00']
+const TIME_SLOTS = [];
+for (let h = 9; h <= 17; h++) {
+    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
+    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
+}
+TIME_SLOTS.push('18:00'); // Allow ending at 18:00
 
 function getInitials(name) {
     if (!name) return '?';
@@ -16,7 +20,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
     const [patientObj, setPatientObj] = useState(null);
     const [patientQ, setPatientQ] = useState('');
     const [patients, setPatients] = useState([]);
-    const [date, setDate] = useState('');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [startTime, setStartTime] = useState('09:00');
     const [endTime, setEndTime] = useState('10:00');
     const [error, setError] = useState('');
@@ -33,14 +37,36 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
 
     async function handleSubmit(e) {
         e.preventDefault();
-        if (!patientObj) return setError('Selecciona un paciente');
+        if (!patientObj) return setError('Por favor, selecciona un paciente.');
+        
+        // Validación de fecha mínima (hoy)
+        const selectedDate = new Date(date + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (selectedDate < today) {
+            return setError('No se pueden agendar turnos en fechas pasadas. Por favor, ingresa una fecha válida.');
+        }
+
         setError(''); setLoading(true);
         try {
             await createAppointment({ userId: patientObj.id, date, startTime, endTime });
+            showSuccessToast(
+                'Turno Creado Exitosamente',
+                `${patientObj.display_name || 'Paciente'} : ${startTime} a ${endTime}`
+            );
+            useToastStore.getState().addActivity({
+                type: 'appointment',
+                title: 'Nuevo Turno Agendado',
+                message: `${patientObj.display_name || 'Paciente'} : ${date} · ${startTime} a ${endTime}`,
+            });
             onCreated();
             onClose();
         } catch (err) {
-            setError(err.message);
+            console.error('Error creating appointment:', err);
+            const errorMsg = err.message || 'Error al conectar con el servidor de citas.';
+            setError(errorMsg);
+            showErrorToast('Error al Crear Turno', errorMsg);
         } finally {
             setLoading(false);
         }
@@ -87,12 +113,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                                                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/50 transition-colors border-b border-white/40 last:border-0"
                                                     onClick={() => { setPatientObj(p); setPatientQ(''); setPatients([]); }}
                                                 >
-                                                    <div className="w-8 h-8 rounded-full bg-amber-600/90 flex items-center justify-center text-white text-xs font-bold border border-white/30 shadow-sm">
+                                                    <div className="w-8 h-8 rounded-full bg-navy-900 flex items-center justify-center text-white text-xs font-bold border border-white/30 shadow-sm">
                                                         {getInitials(p.display_name)}
                                                     </div>
                                                     <div className="text-left">
                                                         <div className="font-bold text-navy-900 text-sm leading-tight">{p.display_name || '—'}</div>
-                                                        <div className="text-xs text-navy-700/70 font-medium">+{p.id}</div>
+                                                        <div className="text-xs text-navy-700/70 font-medium">{formatPhone(p.id)}</div>
                                                     </div>
                                                 </button>
                                             ))}
@@ -102,12 +128,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                             ) : (
                                 <div className="flex items-center justify-between bg-white/50 border border-white/60 py-1.5 px-2.5 rounded-full shadow-sm">
                                     <div className="flex items-center gap-2.5">
-                                        <div className="w-7 h-7 rounded-full bg-amber-700/90 flex items-center justify-center text-white text-[11px] font-bold border border-white/30 shadow-sm">
+                                        <div className="w-10 h-10 rounded-full bg-navy-900 flex items-center justify-center text-white text-sm font-bold shadow-md border border-white/20">
                                             {getInitials(patientObj.display_name)}
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <span className="font-bold text-navy-900 text-sm leading-none">{patientObj.display_name || 'Sin nombre'}</span>
-                                            <span className="text-xs font-medium text-navy-700/70 leading-none">+{patientObj.id}</span>
+                                            <span className="text-xs font-medium text-navy-700/70 leading-none">{formatPhone(patientObj.id)}</span>
                                         </div>
                                     </div>
                                     <button type="button" onClick={() => setPatientObj(null)} className="text-navy-700 hover:text-navy-900 hover:bg-white/40 rounded-full p-1 transition-colors">
@@ -135,9 +161,19 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                             <div className="flex-1">
                                 <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Inicio</label>
                                 <div className="relative">
-                                    <select value={startTime} onChange={e => { setStartTime(e.target.value); setEndTime(`${String(parseInt(e.target.value) + 1).padStart(2, '0')}:00`); }}
+                                    <select value={startTime} onChange={e => { 
+                                        const newStart = e.target.value;
+                                        setStartTime(newStart);
+                                        // Auto-set end time to 1 hour after start
+                                        const [sh, sm] = newStart.split(':').map(Number);
+                                        const endMinutes = sh * 60 + sm + 60; // +1 hour default
+                                        const eh = Math.floor(endMinutes / 60);
+                                        const em = endMinutes % 60;
+                                        const autoEnd = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
+                                        setEndTime(autoEnd);
+                                    }}
                                         className="w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-10 py-2 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm">
-                                        {TIME_SLOTS.map(t => <option key={t}>{t}</option>)}
+                                        {TIME_SLOTS.filter(t => t !== '18:00').map(t => <option key={t}>{t}</option>)}
                                     </select>
                                     <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-navy-800">
                                         <ChevronDown size={16} />
@@ -149,7 +185,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                                 <div className="relative">
                                     <select value={endTime} onChange={e => setEndTime(e.target.value)}
                                         className="w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-10 py-2 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm">
-                                        {TIME_SLOTS.slice(1).concat(['18:00']).map(t => <option key={t}>{t}</option>)}
+                                        {TIME_SLOTS.filter(t => t > startTime).map(t => <option key={t}>{t}</option>)}
                                     </select>
                                     <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-navy-800">
                                         <ChevronDown size={16} />
@@ -165,7 +201,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                             <X size={14} /> Cancelar
                         </button>
                         <button type="submit" disabled={loading}
-                            className="flex items-center gap-2 px-5 py-2 bg-white border border-white/80 text-navy-900 text-xs font-bold rounded-full shadow-card hover:bg-white/80 transition-colors disabled:opacity-60">
+                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-white/80 rounded-full text-navy-900 text-xs font-bold shadow-sm hover:bg-white/80 transition-all disabled:opacity-50">
                             <Save size={14} />
                             {loading ? 'Guardando...' : 'Guardar turno'}
                         </button>

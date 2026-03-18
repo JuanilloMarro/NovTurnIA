@@ -36,9 +36,9 @@ export default function CalendarMonth({ appointments, monthDate, loading, onEven
     }, [monthDate]);
 
     return (
-        <div className="bg-white/80 backdrop-blur-card border border-white/90 rounded-2xl shadow-card overflow-hidden h-full flex flex-col">
+        <div className="bg-white border border-white/90 rounded-2xl shadow-card overflow-hidden h-full flex flex-col">
             {/* Header días */}
-            <div className="grid grid-cols-7 border-b border-gray-100 bg-white/50">
+            <div className="grid grid-cols-7 border-b border-gray-100 bg-white">
                 {DAYS_ES.map((dayName, idx) => (
                     <div key={idx} className="p-3 text-xs text-gray-400 font-semibold uppercase relative">
                         {dayName}
@@ -48,14 +48,14 @@ export default function CalendarMonth({ appointments, monthDate, loading, onEven
             </div>
 
             {/* Grid del mes */}
-            <div className="flex-1 grid grid-cols-7 grid-rows-5 bg-gray-50/50">
+            <div className="flex-1 grid grid-cols-7 grid-rows-5 bg-white">
                 {calendarDays.map((date, idx) => {
                     const isCurrentMonth = date.getMonth() === monthDate.getMonth();
                     const dayAppointments = appointments.filter(apt => isSameDay(new Date(apt.date_start), date));
                     const isToday = isSameDay(date, new Date());
 
                     return (
-                        <div key={idx} className={`border-b border-r border-gray-100 p-2 overflow-hidden bg-white/70 hover:bg-white transition-colors
+                        <div key={idx} className={`border-b border-r border-gray-100 p-2 overflow-hidden bg-white hover:bg-gray-50/30 transition-colors
                             ${!isCurrentMonth ? 'opacity-40' : ''}`}
                         >
                             <div className="flex justify-between items-start mb-1">

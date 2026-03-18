@@ -262,7 +262,7 @@ export default function Users() {
                             {/* User Profile Info */}
                             <div className="flex items-center justify-between mb-6 bg-white/40 p-4 rounded-2xl border border-white/60 shadow-sm">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-16 h-16 rounded-full bg-navy-900 flex items-center justify-center text-white text-xl font-bold shadow-md border border-white/30">
+                                    <div className="w-16 h-16 rounded-full bg-navy-900 flex items-center justify-center text-white text-xl font-bold shadow-md border border-white/20">
                                         {getInitials(selectedUser.full_name)}
                                     </div>
                                     <div>

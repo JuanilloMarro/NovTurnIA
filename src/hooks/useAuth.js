@@ -1,5 +1,5 @@
 import { useAppStore } from '../store/useAppStore';
-import { setAuthToken, clearAuthToken, getAuthToken } from '../config/supabase';
+import { supabase, setAuthToken, clearAuthToken, getAuthToken } from '../config/supabase';
 import { loginStaff } from '../services/supabaseService';
 
 export function useAuth() {
@@ -12,6 +12,7 @@ export function useAuth() {
 
             // Store JWT token (NOT plaintext credentials)
             setAuthToken(token);
+            await supabase.auth.setSession({ access_token: token, refresh_token: token }); 
 
             // 'user' en nuestro store ahora es el staff_user
             setAuth(staffUser, staffUser);
@@ -24,6 +25,7 @@ export function useAuth() {
 
     async function logout() {
         clearAuthToken();
+        await supabase.auth.signOut();
         clearAuth();
     }
 
@@ -40,6 +42,9 @@ export async function initializeAuth(setAuth, setLoading, clearAuth) {
     const token = getAuthToken();
 
     if (token) {
+        // Sync session even on load
+        await supabase.auth.setSession({ access_token: token, refresh_token: token });
+        
         try {
             // Decode the JWT payload to restore the session
             // (No need to re-login with plaintext credentials)
@@ -61,7 +66,8 @@ export async function initializeAuth(setAuth, setLoading, clearAuth) {
                 id: payload.staff_id,
                 business_id: payload.business_id,
                 email: payload.email,
-                display_name: payload.display_name,
+                full_name: payload.full_name || payload.display_name || payload.name,
+                display_name: payload.full_name || payload.display_name || payload.name,
                 role_id: payload.role_id,
                 staff_roles: {
                     name: payload.role_name,

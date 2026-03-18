@@ -9,45 +9,52 @@ import Button from '../components/ui/Button';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Calendar() {
-    const { appointments, loading, weekStart, prevWeek, nextWeek, goToday } = useAppointments();
+    const { 
+        appointments, 
+        loading, 
+        anchorDate, 
+        viewMode, 
+        setViewMode, 
+        weekStart,
+        prevWeek, 
+        nextWeek, 
+        prevDay,
+        nextDay,
+        prevMonth, 
+        nextMonth, 
+        goToday, 
+        reload 
+    } = useAppointments();
 
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [viewMode, setViewMode] = useState('week'); // 'day', 'week', 'month'
-    const [selectedDate, setSelectedDate] = useState(new Date());
 
     const handleToday = () => {
-        setSelectedDate(new Date());
         goToday();
     };
 
     const handlePrev = () => {
-        if (viewMode === 'day') {
-            const d = new Date(selectedDate);
-            d.setDate(d.getDate() - 1);
-            setSelectedDate(d);
-            if (d < weekStart) prevWeek();
+        if (viewMode === 'month') {
+            prevMonth();
+        } else if (viewMode === 'day') {
+            prevDay();
         } else {
             prevWeek();
         }
     };
 
     const handleNext = () => {
-        if (viewMode === 'day') {
-            const d = new Date(selectedDate);
-            d.setDate(d.getDate() + 1);
-            setSelectedDate(d);
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekEnd.getDate() + 7);
-            if (d >= weekEnd) nextWeek();
+        if (viewMode === 'month') {
+            nextMonth();
+        } else if (viewMode === 'day') {
+            nextDay();
         } else {
             nextWeek();
         }
     };
 
     // Month navigation display
-    const displayDate = viewMode === 'day' ? selectedDate : weekStart;
-    const monthName = displayDate.toLocaleDateString('es-GT', { month: 'long', year: 'numeric' });
+    const monthName = anchorDate.toLocaleDateString('es-GT', { month: 'long', year: 'numeric' });
 
     return (
         <div className="h-full flex flex-col px-2">
@@ -60,26 +67,30 @@ export default function Calendar() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-xs">
-                        <button onClick={handlePrev} className="px-2 py-1.5 text-navy-900 hover:text-navy-800 transition-colors"><ChevronLeft size={14} /></button>
-                        <div className="flex items-center gap-1.5 px-3 text-navy-900 font-bold border-x border-white/40">
-                            <CalendarIcon size={14} className="text-navy-900" />
-                            <span className="capitalize">{monthName}</span>
-                        </div>
-                        <button onClick={handleNext} className="px-2 py-1.5 text-navy-900 hover:text-navy-800 transition-colors"><ChevronRight size={14} /></button>
+                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-11">
+                    <button onClick={handlePrev} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
+                        <ChevronLeft size={16} />
+                    </button>
+                    <div className="flex items-center gap-2 px-4 text-navy-900 font-bold">
+                        <CalendarIcon size={14} className="text-navy-900" />
+                        <span className="capitalize text-[13.5px] tracking-tight whitespace-nowrap">{monthName}</span>
                     </div>
+                    <button onClick={handleNext} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
+                        <ChevronRight size={16} />
+                    </button>
+                </div>
 
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-xs font-bold text-navy-900">
-                        <button onClick={() => setViewMode('day')} className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'day' ? 'bg-white' : 'hover:bg-white/40'}`}>Día</button>
-                        <button onClick={() => setViewMode('week')} className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'week' ? 'bg-white' : 'hover:bg-white/40'}`}>Semana</button>
-                        <button onClick={() => setViewMode('month')} className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'month' ? 'bg-white' : 'hover:bg-white/40'}`}>Mes</button>
-                    </div>
+                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-xs font-bold text-navy-900 h-11">
+                    <button onClick={() => setViewMode('day')} className={`px-4 h-9 rounded-full transition-all ${viewMode === 'day' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Día</button>
+                    <button onClick={() => setViewMode('week')} className={`px-4 h-9 rounded-full transition-all ${viewMode === 'week' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Semana</button>
+                    <button onClick={() => setViewMode('month')} className={`px-4 h-9 rounded-full transition-all ${viewMode === 'month' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Mes</button>
+                </div>
 
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-xs font-bold text-navy-900">
-                        <button onClick={() => setIsModalOpen(true)} className="px-4 py-1.5 rounded-full bg-white hover:scale-[1.02] transition-transform flex items-center justify-center gap-1">
-                            <span>+</span> Nuevo Turno
-                        </button>
-                    </div>
+                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-xs font-bold text-navy-900 shadow-sm h-11">
+                    <button onClick={() => setIsModalOpen(true)} className="px-4 h-9 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5">
+                        <span className="text-[14px] font-bold">+</span> Nuevo Turno
+                    </button>
+                </div>
                 </div>
             </div>
 
@@ -94,14 +105,14 @@ export default function Calendar() {
                 ) : viewMode === 'month' ? (
                     <CalendarMonth
                         appointments={appointments}
-                        monthDate={weekStart}
+                        monthDate={anchorDate}
                         loading={loading}
                         onEventClick={setSelectedAppointment}
                     />
                 ) : (
                     <CalendarDay
                         appointments={appointments}
-                        selectedDate={selectedDate}
+                        selectedDate={anchorDate}
                         loading={loading}
                         onEventClick={setSelectedAppointment}
                     />
@@ -111,7 +122,10 @@ export default function Calendar() {
             <NewAppointmentModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onCreated={() => setIsModalOpen(false)}
+                onCreated={() => {
+                    reload();
+                    setIsModalOpen(false);
+                }}
             />
 
             {selectedAppointment && (

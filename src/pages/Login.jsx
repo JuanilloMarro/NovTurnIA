@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { Bot, Lock, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import AIStar from '../components/Icons/AIStar';
 
 export default function Login() {
     const { user, login } = useAuth();
@@ -48,7 +49,11 @@ export default function Login() {
                         <div className="w-14 h-14 rounded-[22px] bg-white border border-navy-50 flex items-center justify-center shadow-[0_10px_30px_rgba(26,58,107,0.12)] group/bot cursor-pointer">
                             <div className="relative">
                                 <Bot size={28} className="text-navy-900 transition-transform group-hover/bot:rotate-12 duration-500" strokeWidth={2.2} />
-                                <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-navy-500 rounded-full animate-pulse border-2 border-white shadow-sm" />
+                                <AIStar 
+                                    size={14} 
+                                    className="absolute -top-1.5 -left-1.5 text-navy-900 animate-pulse" 
+                                    strokeWidth={2.5}
+                                />
                             </div>
                         </div>
                     </div>
