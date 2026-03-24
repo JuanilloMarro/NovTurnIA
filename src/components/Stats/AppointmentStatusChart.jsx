@@ -4,7 +4,7 @@ const PIE_COLORS = ['#10B981', '#F59E0B', '#EF4444'];
 
 export function AppointmentStatusChart({ data, confRate }) {
     return (
-        <div className="bg-white/20 backdrop-blur-md p-6 h-full flex flex-col">
+        <div className="h-full flex flex-col">
             <div className="mb-6">
                 <h3 className="font-bold text-navy-900 text-sm tracking-tight mb-1">Tasa de confirmación</h3>
                 <p className="text-[10px] text-navy-900/40 font-bold tracking-tight">Distribución de estados</p>
@@ -43,12 +43,12 @@ export function AppointmentStatusChart({ data, confRate }) {
                     const total = data.reduce((acc, curr) => acc + curr.value, 0);
                     const percentage = total === 0 ? 0 : Math.round((entry.value / total) * 100);
                     return (
-                        <div key={index} className="flex justify-between items-center bg-white/40 border border-white/60 p-2 px-3 rounded-2xl shadow-sm">
-                            <div className="flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PIE_COLORS[index] }}></span>
-                                <span className="text-navy-900/70 font-bold text-[11px] tracking-wide">{entry.name}</span>
+                        <div key={index} className="flex justify-between items-center py-2.5 px-1 border-b border-white/20 last:border-0">
+                            <div className="flex items-center gap-3">
+                                <span className="w-2 h-2 rounded-full shadow-sm" style={{ backgroundColor: PIE_COLORS[index] }}></span>
+                                <span className="text-navy-900/80 font-bold text-[12px] tracking-tight">{entry.name}</span>
                             </div>
-                            <span className="font-bold text-navy-900 text-xs">{percentage}%</span>
+                            <span className="font-bold text-navy-900 text-sm tracking-tighter">{percentage}%</span>
                         </div>
                     );
                 })}

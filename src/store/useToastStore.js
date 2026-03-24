@@ -127,5 +127,15 @@ export function showPatientToast(patientName) {
         message: patientName,
         duration: 5000,
     });
-    // Note: Activity log entry is now auto-created by the DB trigger
+}
+
+export function showBotToast(isPaused, patientName) {
+    const title = isPaused ? 'IA Pausada' : 'IA Reactivada';
+    const type = isPaused ? 'bot_pause' : 'bot_reactivate';
+    useToastStore.getState().addToast({ 
+        type, 
+        title, 
+        message: (isPaused ? 'Pausada' : 'Reactivada') + ' para ' + patientName,
+        duration: 5000,
+    });
 }

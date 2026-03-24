@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { createAppointment, getPatients } from '../../services/supabaseService';
 import { X, Search, Calendar, ChevronDown, Save } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
@@ -50,12 +51,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
 
         setError(''); setLoading(true);
         try {
-            await createAppointment({ userId: patientObj.id, date, startTime, endTime });
+            await createAppointment({ patientId: patientObj.id, date, startTime, endTime });
             showSuccessToast(
                 'Turno Creado Exitosamente',
                 `${patientObj.display_name || 'Paciente'} : ${startTime} a ${endTime}`
             );
-            // Note: Activity log notification is auto-created by DB trigger
             onCreated();
             onClose();
         } catch (err) {
@@ -68,11 +68,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
         }
     }
 
-    return (
-        <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    // Helper para obtener teléfono del paciente
+    const getPhone = (p) => p.patient_phones?.[0]?.phone || '';
+
+    return createPortal(
+        <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
             <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-md overflow-hidden animate-fade-up">
 
-                <div className="flex items-center justify-between px-5 py-4 border-b border-white/40 bg-white/20">
+                <div className="flex items-center justify-between px-6 pt-6 pb-2">
                     <h2 className="text-lg font-bold text-navy-900 tracking-tight">Nuevo Turno</h2>
                     <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
                         <X size={16} />
@@ -86,7 +89,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <div className="p-5 space-y-5">
+                    <div className="px-6 py-4 space-y-5">
                         {/* Paciente */}
                         <div>
                             <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Paciente</label>
@@ -114,7 +117,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                                                     </div>
                                                     <div className="text-left">
                                                         <div className="font-bold text-navy-900 text-sm leading-tight">{p.display_name || '—'}</div>
-                                                        <div className="text-xs text-navy-700/70 font-medium">{formatPhone(p.id)}</div>
+                                                        <div className="text-xs text-navy-700/70 font-medium">{formatPhone(getPhone(p))}</div>
                                                     </div>
                                                 </button>
                                             ))}
@@ -129,7 +132,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <span className="font-bold text-navy-900 text-sm leading-none">{patientObj.display_name || 'Sin nombre'}</span>
-                                            <span className="text-xs font-medium text-navy-700/70 leading-none">{formatPhone(patientObj.id)}</span>
+                                            <span className="text-xs font-medium text-navy-700/70 leading-none">{formatPhone(getPhone(patientObj))}</span>
                                         </div>
                                     </div>
                                     <button type="button" onClick={() => setPatientObj(null)} className="text-navy-700 hover:text-navy-900 hover:bg-white/40 rounded-full p-1 transition-colors">
@@ -191,19 +194,20 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-center gap-3 px-5 py-4 border-t border-white/40 bg-white/20 backdrop-blur-md">
+                    <div className="flex items-center justify-center gap-4 px-6 pb-6 pt-2">
                         <button type="button" onClick={onClose}
-                            className="flex items-center gap-2 px-5 py-2 bg-white/40 border border-white/50 text-navy-800 text-xs font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm">
-                            <X size={14} /> Cancelar
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm min-w-[100px]">
+                            <X size={13} /> Cancelar
                         </button>
                         <button type="submit" disabled={loading}
-                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-white/80 rounded-full text-navy-900 text-xs font-bold shadow-sm hover:bg-white/80 transition-all disabled:opacity-50">
-                            <Save size={14} />
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/40 border border-white/60 rounded-full text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/60 transition-all disabled:opacity-50 min-w-[100px]">
+                            <Save size={13} />
                             {loading ? 'Guardando...' : 'Guardar turno'}
                         </button>
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

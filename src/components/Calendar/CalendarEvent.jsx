@@ -18,7 +18,7 @@ export default function CalendarEvent({ appointment, style, onClick, isCompact }
         hour: '2-digit', minute: '2-digit', timeZone: 'America/Guatemala', hour12: true
     });
 
-    const name = appointment.users?.display_name || appointment.user_id;
+    const name = appointment.patients?.display_name || 'Sin nombre';
     const timeText = `${formatTime(start)} - ${formatTime(end)}`;
 
     // Compact layout for short events (≤ 30min)

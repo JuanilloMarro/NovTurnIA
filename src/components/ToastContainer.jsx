@@ -1,5 +1,5 @@
 import { useToastStore } from '../store/useToastStore';
-import { Calendar, UserPlus, CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { Calendar, UserPlus, CheckCircle2, AlertCircle, Info, X, Bot } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const TOAST_ICONS = {
@@ -8,6 +8,8 @@ const TOAST_ICONS = {
     info: <Info size={18} />,
     appointment: <Calendar size={18} />,
     patient: <UserPlus size={18} />,
+    bot_pause: <Bot size={18} />,
+    bot_reactivate: <Bot size={18} />,
 };
 
 const TOAST_COLORS = {
@@ -50,6 +52,22 @@ const TOAST_COLORS = {
         title: 'text-indigo-900',
         message: 'text-indigo-700',
         bar: 'bg-indigo-500',
+    },
+    bot_pause: {
+        bg: 'bg-amber-50',
+        border: 'border-amber-200',
+        icon: 'text-amber-600 bg-amber-100',
+        title: 'text-amber-900',
+        message: 'text-amber-700',
+        bar: 'bg-amber-500',
+    },
+    bot_reactivate: {
+        bg: 'bg-emerald-50',
+        border: 'border-emerald-200',
+        icon: 'text-emerald-600 bg-emerald-100',
+        title: 'text-emerald-900',
+        message: 'text-emerald-700',
+        bar: 'bg-emerald-500',
     },
 };
 

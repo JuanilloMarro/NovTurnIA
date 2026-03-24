@@ -6,7 +6,7 @@ import NewPatientModal from '../components/Patients/NewPatientModal';
 import { Search, ChevronDown } from 'lucide-react';
 
 export default function Patients() {
-    const { patients, loading, search, handleSearch, sortOrder, setSortOrder } = usePatients();
+    const { patients, loading, search, handleSearch, sortOrder, setSortOrder, reload } = usePatients();
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [showSort, setShowSort] = useState(false);
     const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
@@ -20,7 +20,7 @@ export default function Patients() {
     const sortLabel = sortOptions.find(o => o.id === sortOrder)?.label || 'Ordenar';
 
     return (
-        <div className="h-full flex flex-col max-w-4xl mx-auto w-full pt-2">
+        <div className={`h-full flex flex-col w-full pt-2 relative transition-all duration-300 ${selectedPatient ? 'pr-[380px]' : 'px-4'}`}>
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
@@ -65,7 +65,7 @@ export default function Patients() {
 
                     <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
                         <button 
-                            onClick={() => setIsNewPatientModalOpen(true)}
+                            onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
                             className="px-4 h-full rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-navy-900 text-xs font-bold"
                         >
                             <span className="text-[14px]">+</span> Nuevo Paciente
@@ -93,8 +93,9 @@ export default function Patients() {
                 </div>
             )}
 
+
             {isNewPatientModalOpen && (
-                <NewPatientModal 
+                <NewPatientModal
                     isOpen={isNewPatientModalOpen} 
                     onClose={() => setIsNewPatientModalOpen(false)} 
                     onCreated={() => {
@@ -105,7 +106,7 @@ export default function Patients() {
             )}
 
             {selectedPatient && (
-                <PatientDrawer patient={selectedPatient} onClose={() => setSelectedPatient(null)} />
+                <PatientDrawer patient={selectedPatient} onClose={() => setSelectedPatient(null)} onRefresh={() => reload(search)} />
             )}
         </div>
     )

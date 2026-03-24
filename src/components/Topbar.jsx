@@ -1,4 +1,4 @@
-import { Bell, Moon, Sun, Monitor, Check, LogOut, Calendar, UserPlus, Trash2 } from 'lucide-react';
+import { Bell, Moon, Sun, Monitor, Check, LogOut, Calendar, UserPlus, Trash2, Bot } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAppStore } from '../store/useAppStore';
@@ -48,7 +48,7 @@ export default function Topbar() {
     };
 
     return (
-        <header className="h-[72px] px-6 flex items-center justify-end z-40 transition-all sticky top-0 bg-transparent">
+        <header className="h-[72px] px-6 flex items-center justify-end z-[100] transition-all sticky top-0 bg-transparent">
             <div className="flex items-center gap-6 mt-2">
                 <div className="relative" ref={notifRef}>
                     <button
@@ -64,7 +64,7 @@ export default function Topbar() {
                     </button>
 
                     {showNotif && (
-                        <div className="absolute top-14 right-0 w-[320px] sm:w-[360px] bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 p-3 animate-fade-up z-50 overflow-hidden">
+                        <div className="absolute top-14 right-0 w-[400px] sm:w-[440px] bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 p-3 animate-fade-up z-[110] overflow-hidden">
                             <div className="flex justify-between items-center mb-3 px-3 pt-1">
                                 <h3 className="font-bold text-navy-900 text-base">Actividad</h3>
                                 {activityLog.length > 0 && (
@@ -84,13 +84,14 @@ export default function Topbar() {
                                     activityLog.map(entry => {
                                         const isApt = entry.type === 'appointment';
                                         const isPatient = entry.type === 'patient';
+                                        const isBot = entry.type.startsWith('bot');
 
                                         return (
                                             <div key={entry.id} className={`flex items-center gap-3 p-3 bg-white/40 hover:bg-white/60 border border-white/50 rounded-2xl transition-all cursor-pointer shadow-sm group ${
                                                 !entry.read ? 'ring-1 ring-navy-400/20' : ''
                                             }`}>
                                                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm border border-white/30 text-sm bg-navy-900/90`}>
-                                                    {isApt ? <Calendar size={15} className="text-white" /> : isPatient ? <UserPlus size={15} className="text-white" /> : (entry.title?.[0] || '?')}
+                                                    {isBot ? <Bot size={15} className="text-white" /> : isApt ? <Calendar size={15} className="text-white" /> : isPatient ? <UserPlus size={15} className="text-white" /> : (entry.title?.[0] || '?')}
                                                 </div>
                                                 <div className="flex-1 min-w-0 pr-1">
                                                     <div className="font-bold text-navy-900 text-sm truncate leading-tight flex items-center gap-1.5">
@@ -125,7 +126,7 @@ export default function Topbar() {
                     </div>
 
                     {showThemeMenu && (
-                        <div className="absolute top-12 right-0 w-48 bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-white/90 p-2 animate-fade-up z-50">
+                        <div className="absolute top-12 right-0 w-48 bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-white/90 p-2 animate-fade-up z-[110]">
                             <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-1">Apariencia</div>
                             {themeOptions.map((opt) => (
                                 <button

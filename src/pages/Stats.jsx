@@ -55,26 +55,26 @@ export default function Stats() {
                         index={0}
                     />
                     <KpiCard
-                        label="Pacientes totales"
-                        value={kpi.totalPatients}
-                        change={kpi.patientsChange}
+                        label="Pacientes activos"
+                        value={kpi.activePatients}
+                        change={undefined}
                         icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>}
                         color="navy"
                         index={1}
                     />
                     <KpiCard
-                        label="Mensajes enviados"
-                        value={kpi.sentMessages}
-                        change={kpi.sentChange}
-                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>}
+                        label="Tasa completitud"
+                        value={`${kpi.completionPct}%`}
+                        change={undefined}
+                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
                         color="navy"
                         index={2}
                     />
                     <KpiCard
-                        label="Mensajes recibidos"
-                        value={kpi.receivedMessages}
-                        change={kpi.receivedChange}
-                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>}
+                        label="Nuevos este mes"
+                        value={kpi.newThisMonth}
+                        change={undefined}
+                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg>}
                         color="navy"
                         index={3}
                     />
@@ -82,10 +82,10 @@ export default function Stats() {
 
                 {/* Charts Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0 pb-2 px-1">
-                    <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden">
+                    <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6">
                         <MainChart rawApts={rawApts} />
                     </div>
-                    <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden">
+                    <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6">
                         <AppointmentStatusChart data={donut.data} confRate={donut.confRate} />
                     </div>
                 </div>

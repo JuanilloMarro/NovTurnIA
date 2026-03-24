@@ -1,6 +1,5 @@
 import { useAppStore } from '../store/useAppStore';
-import { supabase, setAuthToken, clearAuthToken, getAuthToken } from '../config/supabase';
-import { loginStaff } from '../services/supabaseService';
+import { supabase } from '../config/supabase';
 
 export function useAuth() {
     const { user, profile, loading, setAuth, setLoading, clearAuth } = useAppStore();
@@ -8,14 +7,19 @@ export function useAuth() {
     async function login(email, password) {
         setLoading(true);
         try {
-            const { user: staffUser, token } = await loginStaff(email, password);
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
 
-            // Store JWT token (NOT plaintext credentials)
-            setAuthToken(token);
-            await supabase.auth.setSession({ access_token: token, refresh_token: token }); 
+            // Obtener perfil del staff desde staff_users
+            const { data: staffProfile, error: profileError } = await supabase
+                .from('staff_users')
+                .select('*, staff_roles(*)')
+                .eq('id', data.user.id)
+                .single();
 
-            // 'user' en nuestro store ahora es el staff_user
-            setAuth(staffUser, staffUser);
+            if (profileError) throw new Error('Usuario no tiene perfil de staff asignado.');
+
+            setAuth(staffProfile, staffProfile);
         } catch (err) {
             throw err;
         } finally {
@@ -24,7 +28,6 @@ export function useAuth() {
     }
 
     async function logout() {
-        clearAuthToken();
         await supabase.auth.signOut();
         clearAuth();
     }
@@ -39,51 +42,35 @@ export function useAuth() {
 }
 
 export async function initializeAuth(setAuth, setLoading, clearAuth) {
-    const token = getAuthToken();
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
 
-    if (token) {
-        // Sync session even on load
-        await supabase.auth.setSession({ access_token: token, refresh_token: token });
-        
-        try {
-            // Decode the JWT payload to restore the session
-            // (No need to re-login with plaintext credentials)
-            const payloadB64 = token.split('.')[1];
-            const padded = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
-            const payload = JSON.parse(atob(padded));
+        if (session) {
+            const { data: staffProfile } = await supabase
+                .from('staff_users')
+                .select('*, staff_roles(*)')
+                .eq('id', session.user.id)
+                .single();
 
-            // Check if token is expired
-            if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-                console.log('Session token expired, clearing auth.');
-                clearAuthToken();
+            if (staffProfile) {
+                setAuth(staffProfile, staffProfile);
+            } else {
+                // Usuario autenticado pero sin perfil de staff
+                await supabase.auth.signOut();
                 clearAuth();
-                setLoading(false);
-                return;
             }
-
-            // Reconstruct the staff user from token payload
-            const staffUser = {
-                id: payload.staff_id,
-                business_id: payload.business_id,
-                email: payload.email,
-                full_name: payload.full_name || payload.display_name || payload.name,
-                display_name: payload.full_name || payload.display_name || payload.name,
-                role_id: payload.role_id,
-                staff_roles: {
-                    name: payload.role_name,
-                    permissions: payload.permissions || {},
-                },
-            };
-
-            setAuth(staffUser, staffUser);
-        } catch (err) {
-            console.error('Invalid session token:', err.message);
-            clearAuthToken();
-            clearAuth();
-        } finally {
-            setLoading(false);
         }
-    } else {
+    } catch (err) {
+        console.error('Auth init error:', err.message);
+        clearAuth();
+    } finally {
         setLoading(false);
     }
+
+    // Escuchar cambios de sesión
+    supabase.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_OUT') {
+            clearAuth();
+        }
+    });
 }

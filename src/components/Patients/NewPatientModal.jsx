@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, User, Phone, Save } from 'lucide-react';
 import { createPatient } from '../../services/supabaseService';
 import { formatPhone } from '../../utils/format';
@@ -7,7 +8,6 @@ import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 export default function NewPatientModal({ isOpen, onClose, onCreated }) {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
-    const [displayPhone, setDisplayPhone] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -18,8 +18,8 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
         setError('');
         
         const cleanPhone = phone.replace(/\D/g, '');
-        if (cleanPhone.length < 8) {
-            return setError('El teléfono debe tener al menos 8 dígitos.');
+        if (cleanPhone.length !== 8) {
+            return setError('El número de WhatsApp debe tener exactamente 8 dígitos.');
         }
         if (!name.trim()) {
             return setError('El nombre es obligatorio.');
@@ -28,8 +28,8 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
         setLoading(true);
         try {
             await createPatient({
-                id: cleanPhone,
-                display_name: name.trim()
+                display_name: name.trim(),
+                phone: `+502${cleanPhone}`
             });
             showSuccessToast(
                 'Paciente Registrado',
@@ -48,11 +48,11 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
         }
     }
 
-    return (
-        <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-sm overflow-hidden animate-fade-up">
+    return createPortal(
+        <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+            <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-md overflow-hidden animate-fade-up">
 
-                <div className="flex items-center justify-between px-5 py-4 border-b border-white/40 bg-white/20">
+                <div className="flex items-center justify-between px-6 pt-6 pb-2">
                     <h2 className="text-lg font-bold text-navy-900 tracking-tight">Nuevo Paciente</h2>
                     <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
                         <X size={16} />
@@ -66,7 +66,7 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <div className="p-5 space-y-5">
+                    <div className="px-6 py-4 space-y-5">
                         {/* Nombre */}
                         <div>
                             <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Nombre Completo</label>
@@ -93,33 +93,34 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
                                 </div>
                                 <input
                                     className="w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900"
-                                    value={displayPhone}
+                                    value={phone}
                                     onChange={e => {
-                                        const val = e.target.value;
-                                        setPhone(val.replace(/\D/g, ''));
-                                        setDisplayPhone(formatPhone(val));
+                                        const val = e.target.value.replace(/\D/g, '');
+                                        if (val.length <= 8) setPhone(val);
                                     }}
-                                    placeholder="Ej: 502 4798 9357"
+                                    placeholder="Ej: 47989357"
                                     required
                                     type="tel"
+                                    inputMode="numeric"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-center gap-3 px-5 py-4 border-t border-white/40 bg-white/20 backdrop-blur-md">
+                    <div className="flex items-center justify-center gap-4 px-6 pb-6 pt-2">
                         <button type="button" onClick={onClose}
-                            className="flex items-center gap-2 px-5 py-2 bg-white/40 border border-white/50 text-navy-800 text-xs font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm">
-                            <X size={14} /> Cancelar
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm min-w-[100px]">
+                            <X size={13} /> Cancelar
                         </button>
                         <button type="submit" disabled={loading}
-                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-white/80 rounded-full text-navy-900 text-xs font-bold shadow-sm hover:bg-white/80 transition-all disabled:opacity-50">
-                            <Save size={14} />
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/40 border border-white/60 rounded-full text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/60 transition-all disabled:opacity-50 min-w-[100px]">
+                            <Save size={13} />
                             {loading ? 'Registrando...' : 'Registrar'}
                         </button>
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

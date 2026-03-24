@@ -110,21 +110,21 @@ function NewUserModal({ isOpen, onClose, onAdd, roles }) {
                         {roles.length === 0 && <p className="text-[10px] text-red-500 mt-1 font-bold">⚠️ No se encontraron roles.</p>}
                     </div>
 
-                    <div className="flex items-center justify-center gap-3 pt-4 border-t border-white/40 mt-auto">
+                    <div className="flex items-center justify-center gap-4 pt-4 border-t border-white/40 mt-auto">
                         <button type="button" onClick={onClose}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-white/40 border border-white/50 text-navy-800 text-xs font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm">
-                            <X size={14} /> Cancelar
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-white/80 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/80 transition-colors shadow-sm min-w-[110px]">
+                            <X size={13} /> Cancelar
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-white/80 rounded-full text-navy-900 text-xs font-bold shadow-sm hover:bg-white/80 transition-all disabled:opacity-50"
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-white/80 rounded-full text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all disabled:opacity-50 min-w-[130px]"
                         >
                             {isSubmitting ? (
                                 'Guardando...'
                             ) : (
                                 <>
-                                    <UserPlus size={14} /> Crear Usuario
+                                    <UserPlus size={13} /> Crear Usuario
                                 </>
                             )}
                         </button>

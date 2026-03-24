@@ -1,23 +1,18 @@
-import { supabase, supabaseAdmin, BUSINESS_ID, callEdgeFunction, setAuthToken, clearAuthToken, getAuthToken } from '../config/supabase';
+import { supabase, BUSINESS_ID } from '../config/supabase';
 
-// Helper for dates (from 04-appointments.md)
-function timeToDecimal(str) {
-    const [h, m] = str.slice(0, 5).split(':').map(Number);
-    return h + m / 60;
-}
-
+// Helper for dates
 function toISO(date, time) {
     const d = date instanceof Date ? date : new Date(date + 'T12:00:00');
     const [h, m] = time.split(':').map(Number);
     const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(h)}:${pad(m)}:00`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(h)}:${pad(m)}:00-06:00`;
 }
 
 // ── Appointments ──────────────────────────────────────────
 export async function getAppointmentsByWeek(weekStart, weekEnd) {
     const { data, error } = await supabase
         .from('appointments')
-        .select('*, users(display_name)')
+        .select('*, patients(display_name)')
         .eq('business_id', BUSINESS_ID)
         .gte('date_start', weekStart)
         .lt('date_start', weekEnd)
@@ -27,42 +22,17 @@ export async function getAppointmentsByWeek(weekStart, weekEnd) {
     return data || [];
 }
 
-export async function createAppointment({ userId, date, startTime, endTime }) {
-    // ── Direct Insertion via Admin Client (Bypasses Edge Function Errors & RLS) ──
-    const dateStr = date instanceof Date ? date.toISOString().slice(0, 10) : date;
-    
-    // 1. Conflict Check (Manual)
-    const { data: existing } = await supabaseAdmin
-        .from('appointments')
-        .select('id, date_start, date_end')
-        .eq('business_id', BUSINESS_ID)
-        .eq('status', 'active')
-        .gte('date_start', `${dateStr}T00:00:00`)
-        .lt('date_start', `${dateStr}T23:59:59`);
-
-    const startDec = timeToDecimal(startTime);
-    const endDec = timeToDecimal(endTime);
-    
-    const conflict = (existing || []).find(a => {
-        const getTime = iso => iso.includes('T') ? iso.split('T')[1] : iso.split(' ')[1];
-        const sTime = getTime(a.date_start).slice(0, 5);
-        const eTime = getTime(a.date_end).slice(0, 5);
-        const aStart = timeToDecimal(sTime);
-        const aEnd = timeToDecimal(eTime);
-        return startDec < aEnd && endDec > aStart;
-    });
-
-    if (conflict) throw new Error('Este horario ya está ocupado.');
-
-    // 2. Insert Record using Admin privileges
-    const { data, error } = await supabaseAdmin
+export async function createAppointment({ patientId, serviceId, date, startTime, endTime }) {
+    const { data, error } = await supabase
         .from('appointments')
         .insert({
             business_id: BUSINESS_ID,
-            user_id: userId,
+            patient_id: patientId,
+            service_id: serviceId || null,
             date_start: toISO(date, startTime),
             date_end: toISO(date, endTime),
-            status: 'active',
+            status: 'scheduled',
+            created_by: 'dashboard',
             confirmed: false,
             notif_24hs: false
         })
@@ -70,8 +40,33 @@ export async function createAppointment({ userId, date, startTime, endTime }) {
         .single();
 
     if (error) {
-        console.error('Admin Insert Error:', error);
+        // Exclusion constraint violation = double booking
+        if (error.code === '23P01') {
+            throw new Error('Este horario ya está ocupado. Seleccioná otro.');
+        }
+        console.error('Insert Error:', error);
         throw new Error('Error al guardar el turno. Verifica los datos.');
+    }
+    return data;
+}
+
+export async function updateAppointment(id, { date, startTime, endTime }) {
+    const { data, error } = await supabase
+        .from('appointments')
+        .update({
+            date_start: toISO(date, startTime),
+            date_end: toISO(date, endTime),
+        })
+        .eq('id', id)
+        .eq('business_id', BUSINESS_ID)
+        .select()
+        .single();
+
+    if (error) {
+        if (error.code === '23P01') {
+            throw new Error('Este horario ya está ocupado. Seleccioná otro.');
+        }
+        throw error;
     }
     return data;
 }
@@ -89,7 +84,7 @@ export async function cancelAppointment(id) {
 export async function confirmAppointment(id) {
     const { error } = await supabase
         .from('appointments')
-        .update({ confirmed: true })
+        .update({ confirmed: true, status: 'confirmed' })
         .eq('id', id)
         .eq('business_id', BUSINESS_ID);
 
@@ -99,13 +94,14 @@ export async function confirmAppointment(id) {
 // ── Patients ──────────────────────────────────────────────
 export async function getPatients(search = '') {
     let query = supabase
-        .from('users')
-        .select('*, appointments(id, date_start, status)')
+        .from('patients')
+        .select('*, patient_phones(phone, is_primary), appointments(id, date_start, status)')
         .eq('business_id', BUSINESS_ID)
+        .is('deleted_at', null)
         .order('display_name', { ascending: true });
 
     if (search) {
-        query = query.or(`display_name.ilike.%${search}%,id.ilike.%${search}%`);
+        query = query.or(`display_name.ilike.%${search}%`);
     }
 
     const { data, error } = await query;
@@ -113,73 +109,115 @@ export async function getPatients(search = '') {
     return data || [];
 }
 
-export async function getPatientHistory(userId) {
+export async function getPatientHistory(patientId) {
     const { data, error } = await supabase
         .from('history')
         .select('*')
         .eq('business_id', BUSINESS_ID)
-        .eq('user_id', userId)
+        .eq('patient_id', patientId)
         .order('created_at', { ascending: true });
 
     if (error) throw error;
     return data || [];
 }
 
-export async function setHumanTakeover(userId, value) {
+export async function reactivateBot(patientId) {
+    const { data, error } = await supabase.rpc('reactivate_bot', {
+        p_patient_id: patientId
+    });
+    if (error) throw error;
+    return data;
+}
+
+export async function setHumanTakeover(patientId, value) {
+    if (!value) {
+        // Reactivar bot via RPC (atómico)
+        return reactivateBot(patientId);
+    }
+    // Activar takeover manual
     const { error } = await supabase
-        .from('users')
-        .update({ human_takeover: value })
-        .eq('id', userId)
+        .from('patients')
+        .update({
+            human_takeover: true,
+            handoff_reason: 'manual',
+            handoff_at: new Date().toISOString()
+        })
+        .eq('id', patientId)
         .eq('business_id', BUSINESS_ID);
 
     if (error) throw error;
 }
 
-export async function createPatient(patientData) {
-    const { data, error } = await supabaseAdmin
-        .from('users')
-        .insert({
-            ...patientData,
-            business_id: BUSINESS_ID,
-            created_at: new Date().toISOString()
-        })
+export async function createPatient({ display_name, phone, email, notes }) {
+    // 1. Crear paciente
+    const { data: patient, error: patientError } = await supabase
+        .from('patients')
+        .insert({ business_id: BUSINESS_ID, display_name, email: email || null, notes: notes || null })
         .select()
         .single();
-
-    if (error) {
-        console.error('Create Patient Error:', error);
+    if (patientError) {
+        console.error('Create Patient Error:', patientError);
         throw new Error('No se pudo registrar al paciente.');
     }
-    return data;
+
+    // 2. Agregar teléfono
+    const { error: phoneError } = await supabase
+        .from('patient_phones')
+        .insert({ patient_id: patient.id, phone, is_primary: true });
+    if (phoneError) {
+        console.error('Create Phone Error:', phoneError);
+        throw new Error('Paciente creado pero error al guardar teléfono.');
+    }
+
+    return patient;
+}
+
+export async function updatePatient(patientId, { display_name, phone }) {
+    const { error: patientError } = await supabase
+        .from('patients')
+        .update({ display_name })
+        .eq('id', patientId)
+        .eq('business_id', BUSINESS_ID);
+    if (patientError) throw new Error('No se pudo actualizar el paciente.');
+
+    if (phone) {
+        // Upsert primary phone
+        const { error: phoneError } = await supabase
+            .from('patient_phones')
+            .upsert({ patient_id: patientId, phone, is_primary: true }, { onConflict: 'patient_id,is_primary' });
+        if (phoneError) throw new Error('Paciente actualizado pero error al guardar teléfono.');
+    }
+}
+
+export async function deletePatient(patientId) {
+    const { error } = await supabase
+        .from('patients')
+        .delete()
+        .eq('id', patientId)
+        .eq('business_id', BUSINESS_ID);
+    if (error) throw new Error('No se pudo eliminar al paciente.');
 }
 
 // ── Stats ─────────────────────────────────────────────────
 export async function getStatsOverview() {
-    const startOfMonth = new Date(
-        new Date().getFullYear(), new Date().getMonth(), 1
-    ).toISOString().slice(0, 10);
+    const [{ data: apptStats, error: e1 }, { data: patientStats, error: e2 }] = await Promise.all([
+        supabase.from('mv_business_stats')
+            .select('*')
+            .eq('business_id', BUSINESS_ID)
+            .order('month', { ascending: false })
+            .limit(6),
+        supabase.from('mv_patient_stats')
+            .select('*')
+            .eq('business_id', BUSINESS_ID)
+            .single()
+    ]);
 
-    const [{ count: totalPatients }, { count: totalApts }, { count: monthApts }] =
-        await Promise.all([
-            supabase.from('users').select('*', { count: 'exact', head: true })
-                .eq('business_id', BUSINESS_ID),
-            supabase.from('appointments').select('*', { count: 'exact', head: true })
-                .eq('business_id', BUSINESS_ID).eq('status', 'active'),
-            supabase.from('appointments').select('*', { count: 'exact', head: true })
-                .eq('business_id', BUSINESS_ID).eq('status', 'active')
-                .gte('date_start', startOfMonth),
-        ]);
-
-    return { totalPatients, totalApts, monthApts };
+    if (e1) throw e1;
+    // e2 puede ser PGRST116 (no rows) si no hay datos aún
+    return { apptStats: apptStats || [], patientStats: patientStats || null };
 }
 
-// ── Staff & Roles (Auth via Edge Function) ───────────────
-export async function loginStaff(email, password) {
-    // ── Route through Edge Function (never send password to frontend) ──
-    const result = await callEdgeFunction('auth-login', { email, password });
-    return { user: result.user, token: result.token };
-}
-
+// ── Staff & Roles ─────────────────────────────────────────
 export async function getStaffUsers() {
     const { data, error } = await supabase
         .from('staff_users')
@@ -203,32 +241,6 @@ export async function getStaffRoles() {
 
     if (error) throw error;
     return data || [];
-}
-
-export async function createStaffUser(userData) {
-    // ── Route through Edge Function (requires manage_users permission) ──
-    const result = await callEdgeFunction('manage-staff', {
-        action: 'create',
-        ...userData,
-    });
-    return result.data;
-}
-
-export async function deleteStaffUser(id) {
-    // ── Route through Edge Function (requires manage_users permission) ──
-    await callEdgeFunction('manage-staff', {
-        action: 'delete',
-        id,
-    });
-}
-
-export async function updateStaffUserRole(userId, roleId) {
-    // ── Route through Edge Function (requires manage_users permission) ──
-    await callEdgeFunction('manage-staff', {
-        action: 'update-role',
-        userId,
-        roleId,
-    });
 }
 
 // ── Notifications (Persistent, Cloud-based) ──────────
@@ -258,6 +270,58 @@ export async function clearNotifications() {
     const { error } = await supabase
         .from('notifications')
         .delete()
+        .eq('business_id', BUSINESS_ID);
+
+    if (error) throw error;
+}
+
+// ── Staff Management ──────────────────────────────────────
+export async function createStaffUser({ email, password, full_name, role_id }) {
+    // 1. Crear usuario en auth.users (con anon key funciona si sign-ups está habilitado)
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+            data: {
+                full_name,
+                business_id: BUSINESS_ID,
+                role_id: parseInt(role_id)
+            }
+        }
+    });
+    if (authError) throw authError;
+
+    // 2. El trigger handle_new_staff_user crea automáticamente el row en staff_users
+    // Esperar un momento para que el trigger se ejecute
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 3. Fetch the created staff user
+    const { data: staffUser, error: fetchError } = await supabase
+        .from('staff_users')
+        .select('*, staff_roles(*)')
+        .eq('id', authData.user.id)
+        .single();
+
+    if (fetchError) throw fetchError;
+    return staffUser;
+}
+
+export async function deleteStaffUser(userId) {
+    // Desactivar en lugar de borrar (soft delete)
+    const { error } = await supabase
+        .from('staff_users')
+        .update({ active: false })
+        .eq('id', userId)
+        .eq('business_id', BUSINESS_ID);
+
+    if (error) throw error;
+}
+
+export async function updateStaffUserRole(userId, roleId) {
+    const { error } = await supabase
+        .from('staff_users')
+        .update({ role_id: roleId })
+        .eq('id', userId)
         .eq('business_id', BUSINESS_ID);
 
     if (error) throw error;

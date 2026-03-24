@@ -7,12 +7,14 @@ export function useRealtimeAppointments(onUpdate) {
             .channel('calendar-sync')
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'appointments' },
+                { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'appointments',
+                    filter: `business_id=eq.${BUSINESS_ID}` 
+                },
                 (payload) => {
-                    // Solo refrescar si pertenece al negocio
-                    if (payload.new?.business_id == BUSINESS_ID || payload.old?.business_id == BUSINESS_ID) {
-                        onUpdate(payload);
-                    }
+                    onUpdate(payload);
                 }
             )
             .subscribe((status) => {
@@ -29,11 +31,14 @@ export function useRealtimePatients(onUpdate) {
             .channel('patients-sync')
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'users' },
+                { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'patients',
+                    filter: `business_id=eq.${BUSINESS_ID}` 
+                },
                 (payload) => {
-                    if (payload.new?.business_id == BUSINESS_ID || payload.old?.business_id == BUSINESS_ID) {
-                        onUpdate(payload);
-                    }
+                    onUpdate(payload);
                 }
             )
             .subscribe((status) => console.log('🔌 Sync Patients:', status));

@@ -69,7 +69,7 @@ export default function CalendarMonth({ appointments, monthDate, loading, onEven
                                     const timeStr = new Date(apt.date_start).toLocaleTimeString('es-GT', {
                                         hour: '2-digit', minute: '2-digit', timeZone: 'America/Guatemala', hour12: true
                                     });
-                                    const name = apt.users?.display_name || apt.user_id;
+                                    const name = apt.patients?.display_name || 'Sin nombre';
 
                                     return (
                                         <div

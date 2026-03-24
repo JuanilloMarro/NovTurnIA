@@ -31,7 +31,7 @@ export default function PatientCard({ patient, index, onClick }) {
                 </div>
                 <div>
                     <div className="font-bold text-navy-900 text-sm">{name}</div>
-                    <div className="text-xs font-semibold text-navy-700/60 tracking-wide mt-0.5">{formatPhone(patient.id)}</div>
+                    <div className="text-xs font-semibold text-navy-700/60 tracking-wide mt-0.5">{formatPhone(patient.patient_phones?.[0]?.phone)}</div>
                 </div>
             </div>
 

@@ -20,9 +20,13 @@ export function useNotifications() {
             .channel('notifications-realtime')
             .on(
                 'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'notifications' },
+                { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'notifications',
+                    filter: `business_id=eq.${BUSINESS_ID}`
+                },
                 (payload) => {
-                    if (Number(payload.new?.business_id) !== Number(BUSINESS_ID)) return;
 
                     const entry = payload.new;
 

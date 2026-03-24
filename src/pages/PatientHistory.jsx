@@ -34,10 +34,10 @@ export default function PatientHistory() {
         setLoadingHistory(true);
         try {
             const { data } = await supabase
-                .from('conversation_history')
+                .from('history')
                 .select('*')
                 .eq('business_id', BUSINESS_ID)
-                .eq('user_id', userId)
+                .eq('patient_id', userId)
                 .order('created_at', { ascending: true });
             setHistory(data || []);
         } finally {
@@ -70,7 +70,7 @@ export default function PatientHistory() {
                                     {getInitials(p.display_name)}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-semibold text-navy-900 text-sm truncate">{p.display_name || `+${p.id}`}</div>
+                                    <div className="font-semibold text-navy-900 text-sm truncate">{p.display_name || 'Sin nombre'}</div>
                                     <div className="text-xs text-gray-400 mt-0.5 truncate pr-2">Seleccionar para ver historial</div>
                                 </div>
                             </div>
@@ -88,7 +88,7 @@ export default function PatientHistory() {
                                 {getInitials(selectedPatient.display_name)}
                             </div>
                             <div>
-                                <h2 className="font-bold text-navy-900 leading-tight">{selectedPatient.display_name || `+${selectedPatient.id}`}</h2>
+                                <h2 className="font-bold text-navy-900 leading-tight">{selectedPatient.display_name || 'Sin nombre'}</h2>
                                 <p className="text-xs text-navy-500">Historial de WhatsApp</p>
                             </div>
                         </div>

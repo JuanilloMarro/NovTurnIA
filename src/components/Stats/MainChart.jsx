@@ -1,179 +1,202 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer, ReferenceLine
+    AreaChart, Area, XAxis, YAxis, CartesianGrid,
+    Tooltip, ResponsiveContainer
 } from 'recharts';
-import { ChevronDown } from 'lucide-react';
+
+const PERIODS = [
+    { key: 'day', label: 'Día' },
+    { key: 'week', label: 'Semana' },
+    { key: 'month', label: 'Mes' },
+];
+
+// Helpers para agrupar
+function getWeekKey(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
+    const monday = new Date(d.setDate(diff));
+    return monday.toISOString().split('T')[0];
+}
+
+function formatWeekLabel(mondayStr) {
+    const mon = new Date(mondayStr + 'T12:00:00');
+    const sun = new Date(mon);
+    sun.setDate(sun.getDate() + 6);
+    const fmt = (d) => `${d.getDate()}/${d.getMonth() + 1}`;
+    return `${fmt(mon)}-${fmt(sun)}`;
+}
 
 export function MainChart({ rawApts }) {
-    const [period, setPeriod] = useState('Mes');
-    const [showOptions, setShowOptions] = useState(false);
+    const [period, setPeriod] = useState('week');
 
-    const { data, isPositive, prevAvg } = useMemo(() => {
-        const now = new Date();
-        const activeApts = (rawApts || []).filter(a => a.status === 'active');
-        const grouped = {};
+    const data = useMemo(() => {
+        if (!rawApts) return [];
 
-        let previousPeriodTotal = 0;
-        let previousPeriodCount = 0;
-        let currentPeriodTotal = 0;
+        const today = new Date();
+        today.setHours(12, 0, 0, 0); // Evitar problemas de timezone
 
-        if (period === 'Semana') {
-            const startOfThisWeek = new Date(now);
-            startOfThisWeek.setDate(now.getDate() - now.getDay() + 1);
-            startOfThisWeek.setHours(0, 0, 0, 0);
+        const generatedData = [];
 
-            const startOfLastWeek = new Date(startOfThisWeek);
-            startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+        if (period === 'day') {
+            // Monday to Sunday of the current week
+            const dayOfWeek = today.getDay();
+            const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            const monday = new Date(today);
+            monday.setDate(diff);
 
-            // Initialize 7 days
-            const days = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
-            days.forEach(d => grouped[d] = 0);
-
-            activeApts.forEach(apt => {
-                const d = new Date(apt.date_start);
-                if (d >= startOfThisWeek) {
-                    const dayIdx = d.getDay() === 0 ? 6 : d.getDay() - 1;
-                    grouped[days[dayIdx]] += 1;
-                    currentPeriodTotal++;
-                } else if (d >= startOfLastWeek && d < startOfThisWeek) {
-                    previousPeriodTotal++;
-                }
-            });
-            previousPeriodCount = 7;
-        } else if (period === 'Mes') {
-            const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            for (let i = 1; i <= daysInMonth; i++) {
-                grouped[i] = 0;
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(monday);
+                d.setDate(monday.getDate() + i);
+                const key = d.toISOString().split('T')[0];
+                const label = d.toLocaleDateString('es-GT', { weekday: 'short', day: '2-digit' }).replace('.', '');
+                generatedData.push({ key, name: label, turnos: 0, completed: 0, cancelled: 0 });
             }
+        } else if (period === 'week') {
+            // 4 weeks ago to 1 week ahead (6 weeks total)
+            const dayOfWeek = today.getDay();
+            const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            const mondayThisWeek = new Date(today);
+            mondayThisWeek.setDate(diff);
+            
+            const startMonday = new Date(mondayThisWeek);
+            startMonday.setDate(startMonday.getDate() - 28);
 
-            activeApts.forEach(apt => {
-                const d = new Date(apt.date_start);
-                if (d >= startOfThisMonth) {
-                    grouped[d.getDate()] += 1;
-                    currentPeriodTotal++;
-                } else if (d >= startOfLastMonth && d < startOfThisMonth) {
-                    previousPeriodTotal++;
-                }
-            });
-            const daysInLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
-            previousPeriodCount = daysInLastMonth;
-        } else if (period === 'Año') {
-            const startOfThisYear = new Date(now.getFullYear(), 0, 1);
-            const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1);
-
-            const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-            months.forEach(m => grouped[m] = 0);
-
-            activeApts.forEach(apt => {
-                const d = new Date(apt.date_start);
-                if (d >= startOfThisYear) {
-                    grouped[months[d.getMonth()]] += 1;
-                    currentPeriodTotal++;
-                } else if (d >= startOfLastYear && d < startOfThisYear) {
-                    previousPeriodTotal++;
-                }
-            });
-            previousPeriodCount = 12;
+            for (let i = 0; i < 6; i++) {
+                const d = new Date(startMonday);
+                d.setDate(startMonday.getDate() + (i * 7));
+                const key = getWeekKey(d);
+                const label = formatWeekLabel(key);
+                generatedData.push({ key, name: label, turnos: 0, completed: 0, cancelled: 0 });
+            }
+        } else if (period === 'month') {
+            // Jan to Dec current year
+            const year = today.getFullYear();
+            for (let i = 0; i < 12; i++) {
+                const d = new Date(year, i, 15);
+                const key = `${year}-${String(i + 1).padStart(2, '0')}`;
+                let label = d.toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
+                label = label.charAt(0).toUpperCase() + label.slice(1);
+                generatedData.push({ key, name: label, turnos: 0, completed: 0, cancelled: 0 });
+            }
         }
 
-        const chartData = Object.keys(grouped).map(key => ({
-            name: key,
-            turnos: grouped[key]
-        }));
+        const map = {};
+        generatedData.forEach(item => {
+            map[item.key] = item;
+        });
 
-        const isPositive = currentPeriodTotal >= previousPeriodTotal;
-        const prevAvg = previousPeriodCount > 0 ? previousPeriodTotal / previousPeriodCount : 0;
+        rawApts.forEach(apt => {
+            const d = new Date(apt.date_start);
+            let key;
+            if (period === 'day') {
+                key = d.toISOString().split('T')[0];
+            } else if (period === 'week') {
+                key = getWeekKey(d);
+            } else {
+                key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            }
 
-        return { data: chartData, isPositive, prevAvg };
+            if (map[key]) {
+                if (apt.status !== 'cancelled') {
+                    map[key].turnos++;
+                }
+                if (apt.status === 'completed') map[key].completed++;
+                if (apt.status === 'cancelled') map[key].cancelled++;
+            }
+        });
 
+        return generatedData;
     }, [rawApts, period]);
 
-    const lineColor = isPositive ? '#10B981' : '#EF4444'; // Emerald for positive, red for negative
 
     return (
-        <div className="bg-white/20 backdrop-blur-md p-6 h-full flex flex-col">
-            <div className="flex justify-between items-start mb-8">
+        <div className="h-full flex flex-col">
+            <div className="flex justify-between items-start mb-6">
                 <div>
-                    <h3 className="font-bold text-navy-900 text-sm tracking-tight mb-1">Turnos atendidos</h3>
-                    <p className="text-[10px] text-navy-900/40 font-bold tracking-tight">Comparativa vs. período anterior</p>
+                    <h3 className="font-bold text-navy-900 text-sm tracking-tight mb-1">Turnos por período</h3>
+                    <p className="text-[10px] text-navy-900/40 font-bold tracking-tight">
+                        {period === 'day' ? 'Esta semana (Lun-Dom)' : period === 'week' ? 'Vistazo de 6 semanas' : `Año ${new Date().getFullYear()}`}
+                    </p>
                 </div>
 
-                <div className="relative">
-                    <div
-                        onClick={() => setShowOptions(!showOptions)}
-                        className="flex items-center gap-1.5 bg-white/40 border border-white/60 rounded-full px-3 py-1.5 text-[10px] font-bold text-navy-900/60 hover:bg-white/60 cursor-pointer transition-all shadow-sm"
-                    >
-                        Este {period} <ChevronDown size={14} className="text-navy-900/40" />
-                    </div>
-                    {showOptions && (
-                        <div className="absolute right-0 top-full mt-2 w-32 bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/60 z-10 py-1 overflow-hidden animate-scale-in">
-                            {['Semana', 'Mes', 'Año'].map(opt => (
-                                <div
-                                    key={opt}
-                                    onClick={() => { setPeriod(opt); setShowOptions(false); }}
-                                    className={`px-4 py-2 text-[11px] font-bold cursor-pointer transition-colors ${period === opt ? 'text-navy-900 bg-navy-900/5' : 'text-navy-900/60 hover:bg-navy-900/5 font-bold'}`}
-                                >
-                                    Este {opt}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                {/* Period Selector */}
+                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-0.5 shadow-sm">
+                    {PERIODS.map(p => (
+                        <button
+                            key={p.key}
+                            onClick={() => setPeriod(p.key)}
+                            className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-tight transition-all ${
+                                period === p.key
+                                    ? 'bg-white shadow-sm text-navy-900'
+                                    : 'text-navy-700/60 hover:text-navy-900'
+                            }`}
+                        >
+                            {p.label}
+                        </button>
+                    ))}
                 </div>
             </div>
 
             <div className="flex-1 w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                        <defs>
-                            <linearGradient id="colorTurnos" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={lineColor} stopOpacity={0.2} />
-                                <stop offset="95%" stopColor={lineColor} stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                        <XAxis
-                            dataKey="name"
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#9CA3AF', fontSize: 11 }}
-                            dy={10}
-                            minTickGap={10}
-                        />
-                        <YAxis
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#9CA3AF', fontSize: 11 }}
-                            allowDecimals={false}
-                        />
-                        <Tooltip
-                            contentStyle={{ background: '#1A3A6B', border: 'none', borderRadius: 12, color: 'white', fontSize: 13, padding: '8px 12px', boxShadow: '0 10px 25px rgba(26,58,107,0.3)' }}
-                            itemStyle={{ color: 'white', fontWeight: 'bold' }}
-                            labelStyle={{ color: '#9CA3AF', marginBottom: '4px' }}
-                            cursor={{ stroke: 'rgba(26,58,107,0.1)', strokeWidth: 2 }}
-                        />
-
-                        {/* Reference line for previous period average */}
-                        <ReferenceLine
-                            y={Math.ceil(prevAvg)}
-                            stroke="#9CA3AF"
-                            strokeDasharray="4 4"
-                            strokeOpacity={0.6}
-                        />
-
-                        <Line
-                            type="monotone"
-                            dataKey="turnos"
-                            stroke={lineColor}
-                            strokeWidth={3}
-                            dot={false}
-                            activeDot={{ r: 6, fill: lineColor, stroke: 'white', strokeWidth: 2 }}
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
+                {data.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-navy-900/30">
+                        <p className="text-xs font-bold">Sin datos para este período</p>
+                    </div>
+                ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorTurnos" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.6}/>
+                                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                            <XAxis
+                                dataKey="name"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#9CA3AF', fontSize: 10 }}
+                                dy={10}
+                                interval={0}
+                                angle={period === 'day' ? -45 : 0}
+                                textAnchor={period === 'day' ? 'end' : 'middle'}
+                                height={period === 'day' ? 50 : 30}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                                allowDecimals={false}
+                            />
+                            <Tooltip
+                                contentStyle={{
+                                    background: '#1A3A6B',
+                                    border: 'none',
+                                    borderRadius: 12,
+                                    color: 'white',
+                                    fontSize: 12,
+                                    padding: '8px 12px',
+                                    boxShadow: '0 10px 25px rgba(26,58,107,0.3)'
+                                }}
+                                itemStyle={{ color: 'white', fontWeight: 'bold' }}
+                                labelStyle={{ color: '#9CA3AF', marginBottom: '4px', fontSize: 11 }}
+                                cursor={{ stroke: 'rgba(26,58,107,0.1)', strokeWidth: 2, fill: 'none' }}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="turnos"
+                                stroke="#10B981"
+                                strokeWidth={3}
+                                fillOpacity={1}
+                                fill="url(#colorTurnos)"
+                                name="Turnos"
+                                activeDot={{ r: 6, fill: '#10B981', stroke: 'white', strokeWidth: 2 }}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                )}
             </div>
         </div>
     );

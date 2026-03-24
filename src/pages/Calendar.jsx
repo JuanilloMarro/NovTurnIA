@@ -57,7 +57,7 @@ export default function Calendar() {
     const monthName = anchorDate.toLocaleDateString('es-GT', { month: 'long', year: 'numeric' });
 
     return (
-        <div className="h-full flex flex-col px-2">
+        <div className="h-full flex flex-col px-2 relative">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
@@ -118,6 +118,7 @@ export default function Calendar() {
                     />
                 )}
             </div>
+
 
             <NewAppointmentModal
                 isOpen={isModalOpen}

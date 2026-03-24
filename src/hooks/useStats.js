@@ -10,98 +10,105 @@ export function useStats() {
     async function load() {
         setLoading(true);
         try {
+            // Inicio y fin del mes actual
             const now = new Date();
-            const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
 
-            const [usersRes, aptsRes, historyRes] = await Promise.all([
-                supabase.from('users').select('*').eq('business_id', BUSINESS_ID),
-                supabase.from('appointments').select('*').eq('business_id', BUSINESS_ID),
-                supabase.from('history').select('*').eq('business_id', BUSINESS_ID)
+            // Mes pasado
+            const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+            const lastMonthEnd = monthStart;
+
+            // Consultas en paralelo
+            const [
+                { data: currentMonthApts },
+                { data: lastMonthApts },
+                { data: patientStats },
+                { data: trendRaw }
+            ] = await Promise.all([
+                // Turnos del mes actual (todos los estados)
+                supabase.from('appointments')
+                    .select('id, status, confirmed, created_by, date_start, created_at')
+                    .eq('business_id', BUSINESS_ID)
+                    .gte('date_start', monthStart)
+                    .lt('date_start', monthEnd),
+                // Turnos del mes pasado
+                supabase.from('appointments')
+                    .select('id')
+                    .eq('business_id', BUSINESS_ID)
+                    .gte('date_start', lastMonthStart)
+                    .lt('date_start', lastMonthEnd),
+                // Pacientes (MV funciona porque no filtra por estado)
+                supabase.from('mv_patient_stats')
+                    .select('*')
+                    .eq('business_id', BUSINESS_ID)
+                    .single(),
+                // Últimos 6 meses para el gráfico de tendencia (incluye MV + históricos)
+                supabase.from('appointments')
+                    .select('date_start, status')
+                    .eq('business_id', BUSINESS_ID)
+                    .gte('date_start', new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString())
+                    .order('date_start', { ascending: true })
             ]);
 
-            const users = usersRes.data || [];
-            const apts = aptsRes.data || [];
-            const history = historyRes.data || [];
+            const apts = (currentMonthApts || []);
+            const lastMonthData = (lastMonthApts || []);
 
-            // Patients KPI (Users table)
-            const totalPatients = users.length;
-            const newPatientsThisMonth = users.filter(u => new Date(u.created_at) >= startOfThisMonth).length;
-            const newPatientsLastMonth = users.filter(u => new Date(u.created_at) >= startOfLastMonth && new Date(u.created_at) < startOfThisMonth).length;
+            const ps = patientStats || {};
 
-            const patientsChange = newPatientsLastMonth === 0
-                ? (newPatientsThisMonth > 0 ? 100 : 0)
-                : ((newPatientsThisMonth - newPatientsLastMonth) / newPatientsLastMonth) * 100;
+            // KPIs del mes actual - Solo activos (no cancelados)
+            const monthApts = apts.filter(a => a.status !== 'cancelled').length;
+            const lastMonthCount = lastMonthData.filter(a => a.status !== 'cancelled').length;
+            const aptsChange = lastMonthCount > 0
+                ? (((monthApts - lastMonthCount) / lastMonthCount) * 100).toFixed(1)
+                : undefined;
 
-            // Appointments KPI
-            const aptsThisMonth = apts.filter(a => new Date(a.date_start) >= startOfThisMonth && a.status === 'active');
-            const aptsLastMonth = apts.filter(a => new Date(a.date_start) >= startOfLastMonth && new Date(a.date_start) < startOfThisMonth && a.status === 'active');
-            const aptsChange = aptsLastMonth.length === 0
-                ? (aptsThisMonth.length > 0 ? 100 : 0)
-                : ((aptsThisMonth.length - aptsLastMonth.length) / aptsLastMonth.length) * 100;
+            const completedThisMonth = apts.filter(a => a.status === 'completed').length;
+            const cancelledThisMonth = apts.filter(a => a.status === 'cancelled').length;
+            const noShowThisMonth = apts.filter(a => a.status === 'no_show').length;
+            const confirmedThisMonth = apts.filter(a => a.confirmed).length;
+            const scheduledThisMonth = apts.filter(a => a.status === 'scheduled').length;
+            const createdByBot = apts.filter(a => a.created_by === 'bot').length;
+            const createdByStaff = apts.filter(a => a.created_by === 'dashboard').length;
 
-            // Confirmed KPI
-            const confThisMonth = aptsThisMonth.filter(a => a.confirmed).length;
-            const confLastMonth = aptsLastMonth.filter(a => a.confirmed).length;
-            const confChange = confLastMonth === 0
-                ? (confThisMonth > 0 ? 100 : 0)
-                : ((confThisMonth - confLastMonth) / confLastMonth) * 100;
+            const completionPct = monthApts > 0 ? Math.round((completedThisMonth / monthApts) * 100) : 0;
+            const cancellationPct = monthApts > 0 ? Math.round((cancelledThisMonth / monthApts) * 100) : 0;
 
-            // History KPI (Messages) - Strict filtering to match user visible messages
-            // We only count messages that belong to an existing user and have content
-            const validUserIds = new Set(users.map(u => u.id));
-            
-            const sentHistory = history.filter(h => 
-                h.role === 'assistant' && 
-                validUserIds.has(h.user_id) && 
-                h.content && h.content.trim().length > 0
-            );
-            const totalSent = sentHistory.length;
-            const sentThisMonth = sentHistory.filter(h => new Date(h.created_at) >= startOfThisMonth).length;
-            const sentLastMonth = sentHistory.filter(h => new Date(h.created_at) >= startOfLastMonth && new Date(h.created_at) < startOfThisMonth).length;
-            const sentChange = sentLastMonth === 0
-                ? (sentThisMonth > 0 ? 100 : 0)
-                : ((sentThisMonth - sentLastMonth) / sentLastMonth) * 100;
+            const totalPatients = Number(ps.total_patients) || 0;
+            const activePatients = Number(ps.active_patients) || 0;
+            const newThisMonth = Number(ps.new_this_month) || 0;
 
-            const receivedHistory = history.filter(h => 
-                h.role === 'user' && 
-                validUserIds.has(h.user_id) && 
-                h.content && h.content.trim().length > 0
-            );
-            const totalReceived = receivedHistory.length;
-            const receivedThisMonth = receivedHistory.filter(h => new Date(h.created_at) >= startOfThisMonth).length;
-            const receivedLastMonth = receivedHistory.filter(h => new Date(h.created_at) >= startOfLastMonth && new Date(h.created_at) < startOfThisMonth).length;
-            const receivedChange = receivedLastMonth === 0
-                ? (receivedThisMonth > 0 ? 100 : 0)
-                : ((receivedThisMonth - receivedLastMonth) / receivedLastMonth) * 100;
+            // Donut data
+            const totalForDonut = confirmedThisMonth + scheduledThisMonth + cancelledThisMonth;
+            const confRate = totalForDonut === 0 ? 0 : Math.round((confirmedThisMonth / totalForDonut) * 100);
 
-            // Donut Data
-            const pendingThisMonth = aptsThisMonth.filter(a => !a.confirmed).length;
-            const cancelledThisMonth = apts.filter(a => new Date(a.date_start) >= startOfThisMonth && a.status === 'cancelled').length;
-
-            const totalForDonut = confThisMonth + pendingThisMonth + cancelledThisMonth;
-            const confRate = totalForDonut === 0 ? 0 : Math.round((confThisMonth / totalForDonut) * 100);
+            // Raw appointments para que MainChart agrupe por día/semana/mes
+            const rawApts = (trendRaw || []).map(a => ({ date_start: a.date_start, status: a.status }));
 
             setStats({
                 kpi: {
+                    monthApts,
+                    aptsChange,
                     totalPatients,
-                    patientsChange: newPatientsLastMonth > 0 ? patientsChange.toFixed(1) : undefined,
-                    monthApts: aptsThisMonth.length,
-                    aptsChange: aptsLastMonth.length > 0 ? aptsChange.toFixed(1) : undefined,
-                    sentMessages: totalSent.toLocaleString(),
-                    sentChange: sentLastMonth > 0 ? sentChange.toFixed(1) : undefined,
-                    receivedMessages: totalReceived.toLocaleString(),
-                    receivedChange: receivedLastMonth > 0 ? receivedChange.toFixed(1) : undefined,
+                    activePatients,
+                    newThisMonth,
+                    completionPct,
+                    cancellationPct,
+                    confirmedThisMonth,
+                    createdByBot,
+                    createdByStaff,
+                    avgDaysAdvance: 0,
+                    inTakeover: Number(ps.in_takeover) || 0,
                 },
                 donut: {
                     confRate,
                     data: [
-                        { name: 'Confirmados', value: confThisMonth },
-                        { name: 'Pendientes', value: pendingThisMonth },
+                        { name: 'Confirmados', value: confirmedThisMonth },
+                        { name: 'Pendientes', value: Math.max(0, scheduledThisMonth) },
                         { name: 'Cancelados', value: cancelledThisMonth },
                     ]
                 },
-                rawApts: apts
+                rawApts
             });
 
         } finally {
