@@ -10,7 +10,7 @@ export function usePermissions() {
     return {
         role: roleName,
         canViewStats: perms.view_stats || false,
-        canManageRoles: perms.manage_users || false,
+        canManageRoles: perms.manage_staff || false,
         canViewCalendar: true, // Acceso base para staff activo
         canViewPatients: perms.view_patients || true,
         canViewHistory: true,

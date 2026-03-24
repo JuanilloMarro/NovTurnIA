@@ -208,11 +208,7 @@ export default function Users() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm text-xs font-bold text-navy-900">
-                        <button onClick={() => setIsModalOpen(true)} className="px-4 py-1.5 rounded-full bg-white shadow-sm hover:scale-[1.02] transition-transform flex items-center justify-center gap-1">
-                            <span>+</span> Agregar Personal
-                        </button>
-                    </div>
+                    {/* Botón de añadir personal desactivado (solo lectura) */}
                 </div>
             </div>
 
@@ -275,13 +271,7 @@ export default function Users() {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleDelete(selectedUser)}
-                                        className="p-2.5 bg-white/60 text-red-600 rounded-full border border-white/80 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors shadow-sm"
-                                        title="Eliminar Acceso"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                    {/* Botón de borrar personal removido temporalmente */}
                                 </div>
                             </div>
 
@@ -294,19 +284,9 @@ export default function Users() {
                                     {roles.map(r => (
                                         <button
                                             key={r.id}
-                                            onClick={async () => {
-                                                if (selectedUser.role_id === r.id) return;
-                                                if (!confirm(`¿Cambiar el cargo de ${selectedUser.full_name} a ${r.name}?`)) return;
-                                                try {
-                                                    await changeRole(selectedUser.id, r.id);
-                                                    setSelectedUser({ ...selectedUser, role_id: r.id, staff_roles: r });
-                                                } catch (err) {
-                                                    alert('Error al cambiar rol: ' + err.message);
-                                                }
-                                            }}
                                             className={`p-3 rounded-2xl border transition-all text-left relative flex items-center ${selectedUser.role_id === r.id
                                                 ? 'bg-navy-900 border-navy-800 text-white shadow-md'
-                                                : 'bg-white/50 backdrop-blur-md border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm'}`}
+                                                : 'bg-white/30 backdrop-blur-md border border-white/40 text-navy-900 opacity-70 shadow-sm cursor-default pointer-events-none'}`}
                                         >
                                             <div className="font-bold text-xs tracking-wide">
                                                 {(() => {
@@ -380,12 +360,14 @@ export default function Users() {
                 </div>
             </div>
 
+            {/* 
             <NewUserModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onAdd={addUser}
                 roles={roles}
-            />
+            /> 
+            */}
         </div>
     );
 }
