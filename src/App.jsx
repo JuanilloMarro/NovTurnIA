@@ -11,6 +11,7 @@ import Conversations from './pages/Conversations';
 import PatientHistory from './pages/PatientHistory';
 import Stats from './pages/Stats';
 import Users from './pages/Users';
+import AuditLog from './pages/AuditLog';
 import Login from './pages/Login';
 import ToastContainer from './components/ToastContainer';
 
@@ -62,6 +63,7 @@ export default function App() {
                                         <Route path="/patients/:id/history" element={<PatientHistory />} />
                                         <Route path="/stats" element={canViewStats ? <Stats /> : <Navigate to="/" replace />} />
                                         <Route path="/users" element={canManageRoles ? <Users /> : <Navigate to="/" replace />} />
+                                        <Route path="/audit-log" element={canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
                                         <Route path="*" element={<Navigate to="/" replace />} />
                                     </Routes>
                                 </main>

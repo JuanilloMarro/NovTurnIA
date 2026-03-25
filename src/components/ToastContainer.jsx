@@ -3,16 +3,19 @@ import { Calendar, UserPlus, CheckCircle2, AlertCircle, Info, X, Bot } from 'luc
 import { useState, useEffect } from 'react';
 
 const TOAST_ICONS = {
+    appointment: <Calendar size={18} />,
+    patient: <UserPlus size={18} />,
     success: <CheckCircle2 size={18} />,
     error: <AlertCircle size={18} />,
     info: <Info size={18} />,
-    appointment: <Calendar size={18} />,
-    patient: <UserPlus size={18} />,
+    staff: <UserPlus size={18} />,
     bot_pause: <Bot size={18} />,
     bot_reactivate: <Bot size={18} />,
 };
 
-const TOAST_COLORS = {
+// Map status/type to colors
+const TOAST_STYLES = {
+    // Creations (Green)
     success: {
         bg: 'bg-emerald-50',
         border: 'border-emerald-200',
@@ -21,23 +24,8 @@ const TOAST_COLORS = {
         message: 'text-emerald-700',
         bar: 'bg-emerald-500',
     },
-    error: {
-        bg: 'bg-red-50',
-        border: 'border-red-200',
-        icon: 'text-red-600 bg-red-100',
-        title: 'text-red-900',
-        message: 'text-red-700',
-        bar: 'bg-red-500',
-    },
-    info: {
-        bg: 'bg-blue-50',
-        border: 'border-blue-200',
-        icon: 'text-blue-600 bg-blue-100',
-        title: 'text-blue-900',
-        message: 'text-blue-700',
-        bar: 'bg-blue-500',
-    },
-    appointment: {
+    // Edits (Yellow)
+    warning: {
         bg: 'bg-amber-50',
         border: 'border-amber-200',
         icon: 'text-amber-600 bg-amber-100',
@@ -45,6 +33,24 @@ const TOAST_COLORS = {
         message: 'text-amber-700',
         bar: 'bg-amber-500',
     },
+    // Deletions (Red)
+    error: {
+        bg: 'bg-rose-50',
+        border: 'border-rose-200',
+        icon: 'text-rose-600 bg-rose-100',
+        title: 'text-rose-900',
+        message: 'text-rose-700',
+        bar: 'bg-rose-500',
+    },
+    staff: {
+        bg: 'bg-emerald-50',
+        border: 'border-emerald-200',
+        icon: 'text-emerald-600 bg-emerald-100',
+        title: 'text-emerald-900',
+        message: 'text-emerald-700',
+        bar: 'bg-emerald-500',
+    },
+    // Special Info/Patient default
     patient: {
         bg: 'bg-indigo-50',
         border: 'border-indigo-200',
@@ -53,28 +59,22 @@ const TOAST_COLORS = {
         message: 'text-indigo-700',
         bar: 'bg-indigo-500',
     },
-    bot_pause: {
+    appointment: {
         bg: 'bg-amber-50',
         border: 'border-amber-200',
         icon: 'text-amber-600 bg-amber-100',
         title: 'text-amber-900',
         message: 'text-amber-700',
         bar: 'bg-amber-500',
-    },
-    bot_reactivate: {
-        bg: 'bg-emerald-50',
-        border: 'border-emerald-200',
-        icon: 'text-emerald-600 bg-emerald-100',
-        title: 'text-emerald-900',
-        message: 'text-emerald-700',
-        bar: 'bg-emerald-500',
-    },
+    }
 };
 
 function SingleToast({ toast, onRemove }) {
     const [isVisible, setIsVisible] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
-    const colors = TOAST_COLORS[toast.type] || TOAST_COLORS.info;
+    
+    // Choose style based on status FIRST, then type, then info
+    const styles = TOAST_STYLES[toast.status] || TOAST_STYLES[toast.type] || TOAST_STYLES.success;
     
     useEffect(() => {
         // Trigger enter animation
@@ -83,7 +83,7 @@ function SingleToast({ toast, onRemove }) {
         // Start exit animation before auto-removal
         const exitTimer = setTimeout(() => {
             setIsLeaving(true);
-        }, toast.duration - 400);
+        }, (toast.duration || 4000) - 400);
         
         return () => clearTimeout(exitTimer);
     }, [toast.duration]);
@@ -98,22 +98,22 @@ function SingleToast({ toast, onRemove }) {
             className={`
                 w-[380px] rounded-2xl border shadow-[0_8px_30px_rgba(0,0,0,0.08)] overflow-hidden
                 transition-all duration-300 ease-out
-                ${colors.bg} ${colors.border}
+                ${styles.bg} ${styles.border}
                 ${isVisible && !isLeaving 
                     ? 'translate-x-0 opacity-100' 
                     : 'translate-x-[120%] opacity-0'}
             `}
         >
             <div className="flex items-start gap-3 p-4">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${colors.icon}`}>
-                    {TOAST_ICONS[toast.type]}
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${styles.icon}`}>
+                    {TOAST_ICONS[toast.type] || TOAST_ICONS.success}
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
-                    <div className={`font-bold text-[13px] leading-tight ${colors.title}`}>
+                    <div className={`font-bold text-[13px] leading-tight ${styles.title}`}>
                         {toast.title}
                     </div>
                     {toast.message && (
-                        <div className={`text-[12px] font-medium mt-1 truncate ${colors.message}`}>
+                        <div className={`text-[12px] font-medium mt-1 truncate ${styles.message}`}>
                             {toast.message}
                         </div>
                     )}
@@ -128,9 +128,9 @@ function SingleToast({ toast, onRemove }) {
             {/* Progress bar */}
             <div className="h-[3px] w-full bg-black/5">
                 <div 
-                    className={`h-full ${colors.bar} rounded-full`}
+                    className={`h-full ${styles.bar} rounded-full`}
                     style={{ 
-                        animation: `toast-progress ${toast.duration}ms linear forwards`,
+                        animation: `toast-progress ${toast.duration || 4000}ms linear forwards`,
                     }}
                 />
             </div>

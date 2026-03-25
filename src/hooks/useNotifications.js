@@ -41,13 +41,8 @@ export function useNotifications() {
                         created_at: entry.created_at,
                     });
 
-                    // Show toast for visual feedback
-                    useToastStore.getState().addToast({
-                        type: entry.type,
-                        title: entry.title,
-                        message: entry.message,
-                        duration: 5000,
-                    });
+                    // Only add to activity log, don't show second toast
+                    // (Frontend components already show their own detailed toasts)
                 }
             )
             .subscribe((status) => {

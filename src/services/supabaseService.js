@@ -12,7 +12,7 @@ function toISO(date, time) {
 export async function getAppointmentsByWeek(weekStart, weekEnd) {
     const { data, error } = await supabase
         .from('appointments')
-        .select('*, patients(display_name)')
+        .select('*, patients(display_name, patient_phones(phone))')
         .eq('business_id', BUSINESS_ID)
         .gte('date_start', weekStart)
         .lt('date_start', weekEnd)
@@ -91,11 +91,25 @@ export async function confirmAppointment(id) {
     if (error) throw error;
 }
 
+export async function scheduledAppointment(id) {
+    const { error } = await supabase
+        .from('appointments')
+        .update({ confirmed: false, status: 'scheduled' })
+        .eq('id', id)
+        .eq('business_id', BUSINESS_ID);
+
+    if (error) throw error;
+}
+
 // ── Patients ──────────────────────────────────────────────
 export async function getPatients(search = '') {
     let query = supabase
         .from('patients')
-        .select('*, patient_phones(phone, is_primary), appointments(id, date_start, status)')
+        .select(`
+            *,
+            patient_phones(phone, is_primary),
+            appointments(id, date_start, status, confirmed)
+        `)
         .eq('business_id', BUSINESS_ID)
         .is('deleted_at', null)
         .order('display_name', { ascending: true });
@@ -105,6 +119,21 @@ export async function getPatients(search = '') {
     }
 
     const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+}
+
+export async function getAuditLog(limit = 100) {
+    const { data, error } = await supabase
+        .from('history')
+        .select(`
+            *,
+            patients(display_name)
+        `)
+        .eq('business_id', BUSINESS_ID)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
     if (error) throw error;
     return data || [];
 }
@@ -181,11 +210,23 @@ export async function updatePatient(patientId, { display_name, phone }) {
     if (patientError) throw new Error('No se pudo actualizar el paciente.');
 
     if (phone) {
-        // Upsert primary phone
-        const { error: phoneError } = await supabase
+        // Try update first
+        const { data: existing, error: updateError } = await supabase
             .from('patient_phones')
-            .upsert({ patient_id: patientId, phone, is_primary: true }, { onConflict: 'patient_id,is_primary' });
-        if (phoneError) throw new Error('Paciente actualizado pero error al guardar teléfono.');
+            .update({ phone })
+            .eq('patient_id', patientId)
+            .eq('is_primary', true)
+            .select();
+
+        // If no rows were updated, it means there's no primary phone yet, so we insert it
+        if (!existing || existing.length === 0) {
+            const { error: insertError } = await supabase
+                .from('patient_phones')
+                .insert({ patient_id: patientId, phone, is_primary: true });
+            if (insertError) throw new Error('Paciente actualizado pero error al guardar teléfono.');
+        } else if (updateError) {
+            throw new Error('Paciente actualizado pero error al guardar teléfono.');
+        }
     }
 }
 
@@ -241,6 +282,16 @@ export async function getStaffRoles() {
 
     if (error) throw error;
     return data || [];
+}
+
+export async function updateRolePermissions(roleId, permissions) {
+    const { error } = await supabase
+        .from('staff_roles')
+        .update({ permissions })
+        .eq('id', roleId)
+        .eq('business_id', BUSINESS_ID);
+
+    if (error) throw error;
 }
 
 // ── Notifications (Persistent, Cloud-based) ──────────

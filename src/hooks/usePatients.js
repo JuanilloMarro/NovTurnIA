@@ -13,6 +13,7 @@ export function usePatients() {
         try {
             const data = await getPatients(q);
             setRawPatients(data);
+            return data;
         } finally {
             setLoading(false);
         }

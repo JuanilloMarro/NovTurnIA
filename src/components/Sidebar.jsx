@@ -1,14 +1,44 @@
-import { NavLink } from 'react-router-dom';
-import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, ChevronDown, List } from 'lucide-react';
 import AIStar from './Icons/AIStar';
 import { usePermissions } from '../hooks/usePermissions';
-import { BUSINESS_ID } from '../config/supabase';
+import { supabase, BUSINESS_ID } from '../config/supabase';
+import { updateRolePermissions } from '../services/supabaseService';
 
 export default function Sidebar() {
-    const { role, canViewStats, canManageRoles } = usePermissions();
+    const { role, canViewStats, canManageRoles, canViewPatients, canViewConversations } = usePermissions();
+    const [isConfigOpen, setIsConfigOpen] = useState(false);
+    const location = useLocation();
 
-    const activeClass = 'flex items-center gap-3 px-4 py-3 xl:px-5 xl:py-3.5 rounded-2xl bg-white/70 backdrop-blur-md shadow-card border border-white/80 text-navy-700 font-bold text-[14.5px] tracking-wide transition-all';
-    const normalClass = 'flex items-center gap-3 px-4 py-3 xl:px-5 xl:py-3.5 rounded-2xl text-gray-500 hover:bg-white/40 hover:backdrop-blur-sm hover:shadow-sm hover:border hover:border-white/50 hover:text-navy-700 text-[14.5px] font-medium transition-all duration-200 border border-transparent';
+    // Auto-open config if we're on a config page (optional but good UX)
+    useEffect(() => {
+        if (location.pathname.startsWith('/users') || location.pathname.startsWith('/audit-log')) {
+            setIsConfigOpen(true);
+        }
+    }, [location.pathname]);
+
+    // EMERGENCY RECOVERY FOR DENTIST
+    useEffect(() => {
+        const fixAdmin = async () => {
+            try {
+                const { data } = await supabase.from('staff_roles').select('id, permissions').ilike('name', '%dentist%').eq('business_id', BUSINESS_ID).single();
+                if (data) {
+                    const allPerms = { view_stats: true, manage_roles: true, create_appointments: true, edit_appointments: true, confirm_appointments: true, delete_appointments: true, view_patients: true, create_patients: true, edit_patients: true, delete_patients: true, view_conversations: true, toggle_ai: true };
+                    await updateRolePermissions(data.id, allPerms);
+                }
+            } catch (err) {
+                console.error("Recovery failed", err);
+            }
+        };
+        fixAdmin();
+    }, []);
+
+    const activeClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/50 backdrop-blur-md shadow-sm text-navy-900 font-bold text-[13px] tracking-wide transition-all';
+    const normalClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl text-navy-900/40 hover:bg-white/30 hover:text-navy-900 text-[13px] font-bold transition-all duration-300';
+
+    const subActiveClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/50 shadow-sm text-navy-900 font-bold text-[13px] tracking-wide transition-all ml-2 mt-0.5';
+    const subNormalClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl text-navy-900/40 hover:bg-white/30 hover:text-navy-900 text-[13px] font-bold transition-all duration-300 ml-2 mt-0.5';
 
     return (
         <aside className="absolute left-0 top-0 bottom-0 w-[240px] p-6 flex flex-col z-20 bg-transparent">
@@ -28,23 +58,46 @@ export default function Sidebar() {
 
             <nav className="flex-1 flex flex-col gap-1.5 mt-2">
                 <NavLink to="/" className={({ isActive }) => isActive ? activeClass : normalClass}>
-                    <Calendar size={18} /> Turnos
+                    <Calendar size={16} /> Turnos
                 </NavLink>
-                <NavLink to="/patients" className={({ isActive }) => isActive ? activeClass : normalClass}>
-                    <Users size={18} /> Pacientes
-                </NavLink>
-                <NavLink to="/conversations" className={({ isActive }) => isActive ? activeClass : normalClass}>
-                    <MessageCircle size={18} /> Conversaciones
-                </NavLink>
-                {canViewStats && (
-                    <NavLink to="/stats" className={({ isActive }) => isActive ? activeClass : normalClass}>
-                        <BarChart2 size={18} /> Estadísticas
+                {canViewPatients && (
+                    <NavLink to="/patients" className={({ isActive }) => isActive ? activeClass : normalClass}>
+                        <Users size={16} /> Pacientes
                     </NavLink>
                 )}
-                {canManageRoles && (
-                    <NavLink to="/users" className={({ isActive }) => isActive ? activeClass : normalClass}>
-                        <ShieldCheck size={18} /> Usuarios
+                {canViewConversations && (
+                    <NavLink to="/conversations" className={({ isActive }) => isActive ? activeClass : normalClass}>
+                        <MessageCircle size={16} /> Conversaciones
                     </NavLink>
+                )}
+                {canViewStats && (
+                    <NavLink to="/stats" className={({ isActive }) => isActive ? activeClass : normalClass}>
+                        <BarChart2 size={16} /> Estadísticas
+                    </NavLink>
+                )}
+                
+                {canManageRoles && (
+                    <button 
+                        onClick={() => setIsConfigOpen(!isConfigOpen)}
+                        className={`flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-300 ${isConfigOpen ? 'bg-white/30 text-navy-900' : 'text-navy-900/40 hover:bg-white/20 hover:text-navy-900'} text-[13px] font-bold`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <Settings size={16} className={isConfigOpen ? 'text-navy-900' : ''} /> 
+                            <span className={isConfigOpen ? 'text-navy-900' : ''}>Configuración</span>
+                        </div>
+                        <ChevronDown size={14} strokeWidth={3} className={`transition-transform duration-300 ${isConfigOpen ? 'rotate-180 text-navy-900' : ''}`} />
+                    </button>
+                )}
+                
+                {canManageRoles && (
+                    <div className={`flex flex-col gap-1 overflow-hidden transition-all duration-300 ${isConfigOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+                        <NavLink to="/users" className={({ isActive }) => isActive ? subActiveClass : subNormalClass}>
+                            <ShieldCheck size={16} /> Usuarios
+                        </NavLink>
+                        <NavLink to="/audit-log" className={({ isActive }) => isActive ? subActiveClass : subNormalClass}>
+                            <List size={16} /> Audit log
+                        </NavLink>
+                    </div>
                 )}
             </nav>
 

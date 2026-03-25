@@ -32,33 +32,35 @@ export default function CalendarDay({ appointments, selectedDate, loading, onEve
 
             {/* Cuerpo */}
             <div className="flex-1 overflow-hidden relative">
-                {/* Fondo de líneas */}
-                <div className="absolute inset-0 left-[70px] pointer-events-none flex flex-col">
-                    {HOURS.map(h => (
-                        <div key={`line-${h}`} className="flex-1 w-full border-t border-gray-100/50" />
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-[70px_1fr] h-full">
-                    {/* Gutter de horas */}
-                    <div className="border-r border-gray-100/50 bg-white relative z-10 w-full h-full flex flex-col">
+                <div className="absolute inset-0">
+                    {/* Fondo de líneas */}
+                    <div className="absolute inset-0 left-[70px] pointer-events-none flex flex-col">
                         {HOURS.map(h => (
-                            <div key={h} className="flex-1 w-full pr-3 pt-1.5 text-right">
-                                <span className="text-[12px] font-medium text-gray-400">{h}:00</span>
-                            </div>
+                            <div key={`line-${h}`} className="flex-1 w-full border-t border-gray-100/50" />
                         ))}
                     </div>
 
-                    {/* Columna del día */}
-                    <div className="relative h-full">
-                        {layoutEvents.map(({ appointment: apt, column, totalColumns }) => (
-                            <CalendarEvent
-                                key={apt.id}
-                                appointment={apt}
-                                style={getEventStyleWithColumns(apt.date_start, apt.date_end, column, totalColumns)}
-                                onClick={onEventClick}
-                            />
-                        ))}
+                    <div className="grid grid-cols-[70px_1fr] h-full">
+                        {/* Gutter de horas */}
+                        <div className="border-r border-gray-100/50 bg-white relative z-10 w-full h-full flex flex-col">
+                            {HOURS.map(h => (
+                                <div key={h} className="flex-1 w-full pr-3 pt-1.5 text-right">
+                                    <span className="text-[12px] font-medium text-gray-400">{h}:00</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Columna del día */}
+                        <div className="relative h-full">
+                            {layoutEvents.map(({ appointment: apt, column, totalColumns }) => (
+                                <CalendarEvent
+                                    key={apt.id}
+                                    appointment={apt}
+                                    style={getEventStyleWithColumns(apt.date_start, apt.date_end, column, totalColumns)}
+                                    onClick={onEventClick}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

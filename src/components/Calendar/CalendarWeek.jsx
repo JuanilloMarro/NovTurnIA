@@ -28,41 +28,43 @@ export default function CalendarWeek({ appointments, weekStart, loading, onEvent
 
             {/* Cuerpo */}
             <div className="flex-1 overflow-hidden relative">
-                {/* Fondo de líneas */}
-                <div className="absolute inset-0 left-[60px] pointer-events-none flex flex-col">
-                    {HOURS.map(h => (
-                        <div key={`line-${h}`} className="flex-1 w-full border-t border-gray-100/50" />
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-[60px_repeat(7,1fr)] h-full">
-                    {/* Gutter de horas */}
-                    <div className="border-r border-gray-100/50 bg-white relative z-10 w-full h-full flex flex-col">
+                <div className="absolute inset-0">
+                    {/* Fondo de líneas */}
+                    <div className="absolute inset-0 left-[60px] pointer-events-none flex flex-col">
                         {HOURS.map(h => (
-                            <div key={h} className="flex-1 w-full pr-2 pt-1.5 text-right">
-                                <span className="text-[10px] sm:text-xs text-gray-400 font-medium">{h}:00</span>
-                            </div>
+                            <div key={`line-${h}`} className="flex-1 w-full border-t border-gray-100/50" />
                         ))}
                     </div>
 
-                    {/* Columnas de días */}
-                    {days.map((day, idx) => {
-                        const dayApts = appointments.filter(apt => isSameDay(new Date(apt.date_start), day));
-                        const layoutEvents = layoutOverlappingEvents(dayApts);
+                    <div className="grid grid-cols-[60px_repeat(7,1fr)] h-full">
+                        {/* Gutter de horas */}
+                        <div className="border-r border-gray-100/50 bg-white relative z-10 w-full h-full flex flex-col">
+                            {HOURS.map(h => (
+                                <div key={h} className="flex-1 w-full pr-2 pt-1.5 text-right">
+                                    <span className="text-[10px] sm:text-xs text-gray-400 font-medium">{h}:00</span>
+                                </div>
+                            ))}
+                        </div>
 
-                        return (
-                            <div key={idx} className={`relative h-full ${idx !== 0 ? 'border-l border-gray-100/50' : ''}`}>
-                                {layoutEvents.map(({ appointment: apt, column, totalColumns }) => (
-                                    <CalendarEvent
-                                        key={apt.id}
-                                        appointment={apt}
-                                        style={getEventStyleWithColumns(apt.date_start, apt.date_end, column, totalColumns)}
-                                        onClick={onEventClick}
-                                    />
-                                ))}
-                            </div>
-                        );
-                    })}
+                        {/* Columnas de días */}
+                        {days.map((day, idx) => {
+                            const dayApts = appointments.filter(apt => isSameDay(new Date(apt.date_start), day));
+                            const layoutEvents = layoutOverlappingEvents(dayApts);
+
+                            return (
+                                <div key={idx} className={`relative h-full ${idx !== 0 ? 'border-l border-gray-100/50' : ''}`}>
+                                    {layoutEvents.map(({ appointment: apt, column, totalColumns }) => (
+                                        <CalendarEvent
+                                            key={apt.id}
+                                            appointment={apt}
+                                            style={getEventStyleWithColumns(apt.date_start, apt.date_end, column, totalColumns)}
+                                            onClick={onEventClick}
+                                        />
+                                    ))}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </div>

@@ -54,7 +54,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
             await createAppointment({ patientId: patientObj.id, date, startTime, endTime });
             showSuccessToast(
                 'Turno Creado Exitosamente',
-                `${patientObj.display_name || 'Paciente'} : ${startTime} a ${endTime}`
+                `${patientObj.display_name || 'Paciente'} : ${startTime} a ${endTime}`,
+                'appointment'
             );
             onCreated();
             onClose();

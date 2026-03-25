@@ -95,33 +95,37 @@ export const useToastStore = create((set, get) => ({
 
 // ── Toast-only helpers (immediate feedback, NO activity log) ──────────
 
-export function showSuccessToast(title, message) {
-    useToastStore.getState().addToast({ type: 'success', title, message });
+export function showSuccessToast(title, message, iconType = 'success') {
+    useToastStore.getState().addToast({ status: 'success', type: iconType, title, message });
 }
 
-export function showErrorToast(title, message) {
-    useToastStore.getState().addToast({ type: 'error', title, message });
+export function showErrorToast(title, message, iconType = 'error') {
+    useToastStore.getState().addToast({ status: 'error', type: iconType, title, message });
 }
 
-export function showInfoToast(title, message) {
-    useToastStore.getState().addToast({ type: 'info', title, message });
+export function showInfoToast(title, message, iconType = 'info') {
+    useToastStore.getState().addToast({ status: 'info', type: iconType, title, message });
+}
+
+export function showWarningToast(title, message, iconType = 'info') {
+    useToastStore.getState().addToast({ status: 'warning', type: iconType, title, message });
 }
 
 // ── Toast + Activity log helpers (for Realtime events → campanita) ────
 
 export function showAppointmentToast(patientName, time) {
     useToastStore.getState().addToast({ 
+        status: 'success',
         type: 'appointment', 
         title: 'Nuevo Turno Agendado',
         message: `${patientName} : ${time}`,
         duration: 5000,
     });
-    // Note: Activity log entry is now auto-created by the DB trigger
-    // and will arrive via Realtime subscription — no manual addActivity needed
 }
 
 export function showPatientToast(patientName) {
     useToastStore.getState().addToast({ 
+        status: 'success',
         type: 'patient', 
         title: 'Nuevo Paciente Registrado',
         message: patientName,

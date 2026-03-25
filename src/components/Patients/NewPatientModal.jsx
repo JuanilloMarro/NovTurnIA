@@ -33,7 +33,8 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
             });
             showSuccessToast(
                 'Paciente Registrado',
-                `${name.trim()} : ${formatPhone(cleanPhone)}`
+                `${name.trim()} : ${formatPhone(cleanPhone)}`,
+                'patient'
             );
             // Note: Activity log notification is auto-created by DB trigger
             onCreated();
