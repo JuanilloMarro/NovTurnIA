@@ -46,7 +46,7 @@ export function useAppointments() {
     const { start: rangeStart, end: rangeEnd } = getRange(anchorDate, viewMode);
 
     const load = useCallback(async () => {
-        setLoading(true);
+        if (appointments.length === 0) setLoading(true);
         try {
             const data = await getAppointmentsByWeek(
                 rangeStart.toISOString().slice(0, 10),
@@ -58,11 +58,20 @@ export function useAppointments() {
         } finally {
             setLoading(false);
         }
-    }, [rangeStart.getTime(), rangeEnd.getTime()]);
+    }, [rangeStart.getTime(), rangeEnd.getTime(), appointments.length]);
 
     useEffect(() => { load(); }, [load]);
 
-    useRealtimeAppointments(load);
+    // Realtime Sync (Optimized: only re-fetch on Insert/Delete, Update locally)
+    useRealtimeAppointments((payload) => {
+        if (payload.eventType === 'UPDATE') {
+            setAppointments(current => 
+                current.map(a => a.id === payload.new.id ? { ...a, ...payload.new } : a)
+            );
+        } else {
+            load();
+        }
+    });
 
     const prevWeek = () => setAnchorDate(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; });
     const nextWeek = () => setAnchorDate(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n; });

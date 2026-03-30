@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
-import { deletePatient, setHumanTakeover } from '../../services/supabaseService';
+import { deletePatient, setHumanTakeover, getPatientAppointments } from '../../services/supabaseService';
 import { showSuccessToast, showErrorToast, showBotToast } from '../../store/useToastStore';
 import EditPatientModal from './EditPatientModal';
 import { Bot } from 'lucide-react';
@@ -51,7 +51,16 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
     const colors = ['bg-amber-700', 'bg-navy-900', 'bg-emerald-700', 'bg-cyan-700'];
     const colorClass = colors[name.length % colors.length];
 
-    const appointments = (patient.appointments || []).sort((a, b) => new Date(b.date_start) - new Date(a.date_start));
+    const [appointments, setAppointments] = useState([]);
+    const [loadingApts, setLoadingApts] = useState(true);
+
+    useEffect(() => {
+        setLoadingApts(true);
+        getPatientAppointments(patient.id)
+            .then(data => setAppointments(data || []))
+            .catch(err => console.error("Error fetching appointments:", err))
+            .finally(() => setLoadingApts(false));
+    }, [patient.id]);
 
     return (
         <div className="absolute top-2 right-2 bottom-2 w-[360px] bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-50 flex flex-col animate-drawer-in overflow-hidden">
@@ -93,7 +102,13 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                             <div className="flex-1 h-px bg-navy-900/10"></div>
                         </div>
 
-                        {appointments.length === 0 ? (
+                        {loadingApts ? (
+                            <div className="space-y-3">
+                                {[1, 2].map(i => (
+                                    <div key={i} className="animate-shimmer h-12 rounded-xl w-full bg-white/40 border border-white/60" />
+                                ))}
+                            </div>
+                        ) : appointments.length === 0 ? (
                             <div className="text-center text-navy-800/60 text-xs font-bold py-4">No hay turnos registrados</div>
                         ) : (
                             <div className="space-y-4">

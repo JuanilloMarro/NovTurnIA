@@ -95,7 +95,7 @@ export async function confirmAppointment(id) {
 export async function getPatients(search = '') {
     let query = supabase
         .from('patients')
-        .select('*, patient_phones(phone, is_primary), appointments(id, date_start, status)')
+        .select('*, patient_phones(phone, is_primary)')
         .eq('business_id', BUSINESS_ID)
         .is('deleted_at', null)
         .order('display_name', { ascending: true });
@@ -105,6 +105,18 @@ export async function getPatients(search = '') {
     }
 
     const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+}
+
+export async function getPatientAppointments(patientId) {
+    const { data, error } = await supabase
+        .from('appointments')
+        .select('id, date_start, date_end, status, confirmed')
+        .eq('patient_id', patientId)
+        .eq('business_id', BUSINESS_ID)
+        .order('date_start', { ascending: false });
+
     if (error) throw error;
     return data || [];
 }
@@ -173,18 +185,29 @@ export async function createPatient({ display_name, phone, email, notes }) {
 }
 
 export async function updatePatient(patientId, { display_name, phone }) {
-    const { error: patientError } = await supabase
-        .from('patients')
-        .update({ display_name })
-        .eq('id', patientId)
-        .eq('business_id', BUSINESS_ID);
+    const promises = [
+        supabase
+            .from('patients')
+            .update({ display_name })
+            .eq('id', patientId)
+            .eq('business_id', BUSINESS_ID)
+    ];
+
+    if (phone) {
+        promises.push(
+            supabase
+                .from('patient_phones')
+                .upsert({ patient_id: patientId, phone, is_primary: true }, { onConflict: 'patient_id,is_primary' })
+        );
+    }
+
+    const results = await Promise.all(promises);
+
+    const patientError = results[0]?.error;
     if (patientError) throw new Error('No se pudo actualizar el paciente.');
 
     if (phone) {
-        // Upsert primary phone
-        const { error: phoneError } = await supabase
-            .from('patient_phones')
-            .upsert({ patient_id: patientId, phone, is_primary: true }, { onConflict: 'patient_id,is_primary' });
+        const phoneError = results[1]?.error;
         if (phoneError) throw new Error('Paciente actualizado pero error al guardar teléfono.');
     }
 }

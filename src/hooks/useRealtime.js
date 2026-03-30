@@ -1,7 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase, BUSINESS_ID } from '../config/supabase';
 
 export function useRealtimeAppointments(onUpdate) {
+    const onUpdateRef = useRef(onUpdate);
+
+    useEffect(() => {
+        onUpdateRef.current = onUpdate;
+    });
+
     useEffect(() => {
         const channel = supabase
             .channel('calendar-sync')
@@ -14,7 +20,7 @@ export function useRealtimeAppointments(onUpdate) {
                     filter: `business_id=eq.${BUSINESS_ID}` 
                 },
                 (payload) => {
-                    onUpdate(payload);
+                    onUpdateRef.current(payload);
                 }
             )
             .subscribe((status) => {
@@ -22,10 +28,16 @@ export function useRealtimeAppointments(onUpdate) {
             });
 
         return () => supabase.removeChannel(channel);
-    }, [onUpdate]);
+    }, []);
 }
 
 export function useRealtimePatients(onUpdate) {
+    const onUpdateRef = useRef(onUpdate);
+
+    useEffect(() => {
+        onUpdateRef.current = onUpdate;
+    });
+
     useEffect(() => {
         const channel = supabase
             .channel('patients-sync')
@@ -38,11 +50,11 @@ export function useRealtimePatients(onUpdate) {
                     filter: `business_id=eq.${BUSINESS_ID}` 
                 },
                 (payload) => {
-                    onUpdate(payload);
+                    onUpdateRef.current(payload);
                 }
             )
             .subscribe((status) => console.log('🔌 Sync Patients:', status));
 
         return () => supabase.removeChannel(channel);
-    }, [onUpdate]);
+    }, []);
 }
