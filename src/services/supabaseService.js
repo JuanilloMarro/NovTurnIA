@@ -137,11 +137,8 @@ export async function getPatientAppointments(patientId) {
 
 export async function getAuditLog(limit = 100) {
     const { data, error } = await supabase
-        .from('history')
-        .select(`
-            *,
-            patients(display_name)
-        `)
+        .from('audit_log')
+        .select('*')
         .eq('business_id', BUSINESS_ID)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -282,6 +279,18 @@ export async function getStatsOverview() {
     if (e1) throw e1;
     // e2 puede ser PGRST116 (no rows) si no hay datos aún
     return { apptStats: apptStats || [], patientStats: patientStats || null };
+}
+
+// ── Business Info ────────────────────────────────────────
+export async function getBusinessInfo() {
+    const { data, error } = await supabase
+        .from('businesses')
+        .select('id, name, plan, schedule_start, schedule_end, schedule_days')
+        .eq('id', BUSINESS_ID)
+        .single();
+
+    if (error) throw error;
+    return data;
 }
 
 // ── Staff & Roles ─────────────────────────────────────────

@@ -3,36 +3,33 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, ChevronDown, List } from 'lucide-react';
 import AIStar from './Icons/AIStar';
 import { usePermissions } from '../hooks/usePermissions';
-import { supabase, BUSINESS_ID } from '../config/supabase';
-import { updateRolePermissions } from '../services/supabaseService';
+import { useAuth } from '../hooks/useAuth';
+import { getBusinessInfo } from '../services/supabaseService';
 
 export default function Sidebar() {
     const { role, canViewStats, canManageRoles, canViewPatients, canViewConversations } = usePermissions();
+    const { profile } = useAuth();
     const [isConfigOpen, setIsConfigOpen] = useState(false);
+    const [businessName, setBusinessName] = useState('');
     const location = useLocation();
 
-    // Auto-open config if we're on a config page (optional but good UX)
+    const businessId = profile?.business_id || 0;
+
+    // Auto-open config if we're on a config page
     useEffect(() => {
         if (location.pathname.startsWith('/users') || location.pathname.startsWith('/audit-log')) {
             setIsConfigOpen(true);
         }
     }, [location.pathname]);
 
-    // EMERGENCY RECOVERY FOR DENTIST
+    // Fetch business name when profile loads
     useEffect(() => {
-        const fixAdmin = async () => {
-            try {
-                const { data } = await supabase.from('staff_roles').select('id, permissions').ilike('name', '%dentist%').eq('business_id', BUSINESS_ID).single();
-                if (data) {
-                    const allPerms = { view_stats: true, manage_roles: true, create_appointments: true, edit_appointments: true, confirm_appointments: true, delete_appointments: true, view_patients: true, create_patients: true, edit_patients: true, delete_patients: true, view_conversations: true, toggle_ai: true };
-                    await updateRolePermissions(data.id, allPerms);
-                }
-            } catch (err) {
-                console.error("Recovery failed", err);
-            }
-        };
-        fixAdmin();
-    }, []);
+        if (businessId) {
+            getBusinessInfo()
+                .then(info => setBusinessName(info?.name || 'Negocio'))
+                .catch(() => setBusinessName('Negocio'));
+        }
+    }, [businessId]);
 
     const activeClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/50 backdrop-blur-md shadow-sm text-navy-900 font-bold text-[13px] tracking-wide transition-all';
     const normalClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl text-navy-900/40 hover:bg-white/30 hover:text-navy-900 text-[13px] font-bold transition-all duration-300';
@@ -95,16 +92,16 @@ export default function Sidebar() {
                             <ShieldCheck size={16} /> Usuarios
                         </NavLink>
                         <NavLink to="/audit-log" className={({ isActive }) => isActive ? subActiveClass : subNormalClass}>
-                            <List size={16} /> Audit log
+                            <List size={16} /> Actividad
                         </NavLink>
                     </div>
                 )}
             </nav>
 
             <div className="mt-auto pt-6 px-5 border-t border-white/20">
-                <div className="font-bold text-navy-900/60 truncate tracking-tight text-[12px]">Clínica Novium Test</div>
+                <div className="font-bold text-navy-900/60 truncate tracking-tight text-[12px]">{businessName || 'Cargando...'}</div>
                 <div className="mt-0.5 text-[9px] font-bold text-navy-900/30 uppercase tracking-widest">
-                    ID: {BUSINESS_ID}
+                    NovTurnIA Pro
                 </div>
             </div>
         </aside>

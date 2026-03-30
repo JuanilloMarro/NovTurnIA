@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { supabase, BUSINESS_ID } from '../config/supabase';
 import { useToastStore } from '../store/useToastStore';
+import { useAuth } from './useAuth';
 
 export function useNotifications() {
     const activityLog = useToastStore(s => s.activityLog);
@@ -8,23 +9,27 @@ export function useNotifications() {
     const markAllRead = useToastStore(s => s.markAllRead);
     const loadFromDB = useToastStore(s => s.loadFromDB);
     const addActivity = useToastStore(s => s.addActivity);
+    const { profile } = useAuth();
+    const businessId = profile?.business_id || BUSINESS_ID;
 
     // Load existing notifications from Supabase on mount
     useEffect(() => {
-        loadFromDB();
-    }, []);
+        if (businessId) loadFromDB();
+    }, [businessId]);
 
     // Realtime listener — new rows in `notifications` table
     useEffect(() => {
+        if (!businessId) return; // No suscribirse sin business_id
+
         const channel = supabase
-            .channel('notifications-realtime')
+            .channel(`notifications-realtime-${businessId}`)
             .on(
                 'postgres_changes',
                 { 
                     event: 'INSERT', 
                     schema: 'public', 
                     table: 'notifications',
-                    filter: `business_id=eq.${BUSINESS_ID}`
+                    filter: `business_id=eq.${businessId}`
                 },
                 (payload) => {
 
@@ -52,7 +57,7 @@ export function useNotifications() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [businessId]); // Re-suscribirse cuando cambia el business_id
 
     return { activityLog, unreadCount, markAllRead };
 }

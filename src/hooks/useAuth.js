@@ -1,5 +1,5 @@
 import { useAppStore } from '../store/useAppStore';
-import { supabase } from '../config/supabase';
+import { supabase, setBusinessId } from '../config/supabase';
 
 export function useAuth() {
     const { user, profile, loading, setAuth, setLoading, clearAuth } = useAppStore();
@@ -10,14 +10,22 @@ export function useAuth() {
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
 
-            // Obtener perfil del staff desde staff_users
+            // Obtener perfil del staff — SIN filtro de business_id
+            // porque aún no sabemos cuál es (se detecta del perfil)
             const { data: staffProfile, error: profileError } = await supabase
                 .from('staff_users')
                 .select('*, staff_roles(*)')
                 .eq('id', data.user.id)
+                .eq('active', true)
                 .single();
 
-            if (profileError) throw new Error('Usuario no tiene perfil de staff asignado.');
+            if (profileError || !staffProfile) {
+                await supabase.auth.signOut();
+                throw new Error('Usuario no tiene perfil de staff asignado o está desactivado.');
+            }
+
+            // Auto-detect: establecer el business_id desde el perfil
+            setBusinessId(staffProfile.business_id);
 
             setAuth(staffProfile, staffProfile);
         } catch (err) {
@@ -29,6 +37,7 @@ export function useAuth() {
 
     async function logout() {
         await supabase.auth.signOut();
+        setBusinessId(0);
         clearAuth();
     }
 
@@ -50,12 +59,14 @@ export async function initializeAuth(setAuth, setLoading, clearAuth) {
                 .from('staff_users')
                 .select('*, staff_roles(*)')
                 .eq('id', session.user.id)
+                .eq('active', true)
                 .single();
 
             if (staffProfile) {
+                // Auto-detect: establecer el business_id desde el perfil
+                setBusinessId(staffProfile.business_id);
                 setAuth(staffProfile, staffProfile);
             } else {
-                // Usuario autenticado pero sin perfil de staff
                 await supabase.auth.signOut();
                 clearAuth();
             }
@@ -70,6 +81,7 @@ export async function initializeAuth(setAuth, setLoading, clearAuth) {
     // Escuchar cambios de sesión
     supabase.auth.onAuthStateChange((event) => {
         if (event === 'SIGNED_OUT') {
+            setBusinessId(0);
             clearAuth();
         }
     });
