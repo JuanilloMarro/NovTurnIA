@@ -76,10 +76,10 @@ export default function Conversations() {
                 </div>
             </div>
 
-            <div className="flex-1 bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-card flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
+            <div className="flex-1 bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
                 {/* Left Panel: Contacts */}
-                <div className="w-[320px] border-r border-white/40 flex flex-col bg-white/20 backdrop-blur-md z-10">
-                    <div className="p-4 border-b border-white/40">
+                <div className="w-[320px] flex flex-col z-10">
+                    <div className="p-4">
                         <div className="relative h-10 w-full">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
                                 <Search size={14} strokeWidth={2.5} />
@@ -93,7 +93,7 @@ export default function Conversations() {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pt-0 space-y-1">
                         {patients.map(p => {
                             const isSelected = selectedPatient?.id === p.id;
                             const name = p.display_name || 'Sin nombre';
@@ -122,11 +122,11 @@ export default function Conversations() {
                 </div>
 
                 {/* Right Panel: Chat */}
-                <div className="flex-1 flex flex-col relative bg-white/20 min-w-0">
+                <div className="flex-1 flex flex-col relative min-w-0">
                     {selectedPatient ? (
                         <>
                             {/* Chat Header */}
-                            <div className="h-[72px] px-6 border-b border-white/40 flex items-center justify-between bg-white/30 backdrop-blur-md shrink-0 z-10">
+                            <div className="h-[72px] px-6 flex items-center justify-between shrink-0 z-10">
                                 <div className="flex items-center gap-3">
                                     <div className="w-11 h-11 rounded-full bg-white border border-white/60 flex items-center justify-center text-navy-900 text-xs font-bold shadow-sm">
                                         {getInitials(selectedPatient.display_name)}

@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, MessageCircle, Pencil, Trash2 } from 'lucide-react';
+import { X, ChevronLeft, MessageCircle, Pencil, Trash2, Phone, Bot } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
-import { deletePatient, setHumanTakeover, getPatientAppointments } from '../../services/supabaseService';
-import { showSuccessToast, showErrorToast, showBotToast } from '../../store/useToastStore';
+import { deletePatient, setHumanTakeover } from '../../services/supabaseService';
+import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 import EditPatientModal from './EditPatientModal';
-import { Bot } from 'lucide-react';
 import AIStar from '../Icons/AIStar';
 
 function getInitials(name) {
@@ -51,16 +50,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
     const colors = ['bg-amber-700', 'bg-navy-900', 'bg-emerald-700', 'bg-cyan-700'];
     const colorClass = colors[name.length % colors.length];
 
-    const [appointments, setAppointments] = useState([]);
-    const [loadingApts, setLoadingApts] = useState(true);
-
-    useEffect(() => {
-        setLoadingApts(true);
-        getPatientAppointments(patient.id)
-            .then(data => setAppointments(data || []))
-            .catch(err => console.error("Error fetching appointments:", err))
-            .finally(() => setLoadingApts(false));
-    }, [patient.id]);
+    const appointments = (patient.appointments || []).sort((a, b) => new Date(b.date_start) - new Date(a.date_start));
 
     return (
         <div className="absolute top-2 right-2 bottom-2 w-[360px] bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-50 flex flex-col animate-drawer-in overflow-hidden">
@@ -73,71 +63,64 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                 <h3 className="flex-1 font-bold text-navy-900 tracking-tight text-sm text-center">Perfil del paciente</h3>
                 <div className="w-7 h-7" />
             </div>
-
-            {/* Content scrolleable */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 custom-scrollbar">
-
+            {/* 1. Información del Cliente y Título (FIJA) */}
+            <div className="px-6 pb-2">
                 <div className="flex items-center gap-3 mb-6 px-1">
                     <div className="w-12 h-12 rounded-full bg-navy-900 flex items-center justify-center text-white text-base font-bold shadow-md border border-white/20">
                         {getInitials(name)}
                     </div>
                     <div className="overflow-hidden">
                         <div className="font-bold text-navy-900 text-base truncate">{name}</div>
-                        <div className="text-navy-700/80 font-semibold tracking-wide text-xs truncate">{formatPhone(patient.patient_phones?.[0]?.phone)}</div>
+                        <div className="flex items-center gap-1.5 text-navy-700/60 font-semibold tracking-wide text-[11px] mt-0.5 truncate">
+                            <Phone size={11} className="shrink-0 opacity-60" />
+                            {formatPhone(patient.patient_phones?.[0]?.phone)}
+                        </div>
                         {patient.created_at && (
-                            <div className="text-[10px] text-navy-700/60 font-medium tracking-wide mt-0.5 truncate">
+                            <div className="text-[10px] text-navy-700/60 font-medium mt-0.5 truncate">
                                 Registrado: {formatDateLong(patient.created_at)}
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Appointments List */}
-                <div className="space-y-6 px-2">
-                    <div>
-                        <div className="flex items-center gap-3 mb-4">
-                            <h4 className="text-[10px] font-bold text-navy-800 uppercase tracking-widest leading-none">
-                                Turnos ({appointments.length})
-                            </h4>
-                            <div className="flex-1 h-px bg-navy-900/10"></div>
-                        </div>
-
-                        {loadingApts ? (
-                            <div className="space-y-3">
-                                {[1, 2].map(i => (
-                                    <div key={i} className="animate-shimmer h-12 rounded-xl w-full bg-white/40 border border-white/60" />
-                                ))}
-                            </div>
-                        ) : appointments.length === 0 ? (
-                            <div className="text-center text-navy-800/60 text-xs font-bold py-4">No hay turnos registrados</div>
-                        ) : (
-                            <div className="space-y-4">
-                                {appointments.map(apt => (
-                                    <div key={apt.id} className="flex gap-3 items-center">
-                                        <div className={`w-2 h-2 rounded-full shrink-0 ${
-                                            apt.status === 'cancelled' 
-                                                ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' 
-                                                : apt.confirmed 
-                                                    ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' 
-                                                    : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
-                                        }`} />
-                                        <div>
-                                            <div className="text-xs font-bold text-navy-900 tracking-wide">
-                                                {formatAptDate(apt.date_start)}
-                                            </div>
-                                            <div className={`text-[10px] font-black mt-0.5 uppercase tracking-widest ${
-                                                apt.status === 'cancelled' ? 'text-rose-600/70' : 
-                                                apt.confirmed ? 'text-emerald-600/70' : 'text-amber-600/70'
-                                            }`}>
-                                                {apt.status === 'cancelled' ? 'Cancelado' : apt.confirmed ? 'Confirmado' : 'Pendiente'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                <div className="flex items-center gap-3 px-1 mb-2">
+                    <h4 className="text-[11px] font-bold text-navy-800 leading-none">
+                        Turnos ({appointments.length})
+                    </h4>
+                    <div className="flex-1 h-px bg-navy-900/10"></div>
                 </div>
+            </div>
+
+            {/* 2. Área Scrolleable (Solo los items del Turno) */}
+            <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
+                {appointments.length === 0 ? (
+                    <div className="text-center text-navy-800/60 text-xs font-bold py-4">No hay turnos registrados</div>
+                ) : (
+                    <div className="space-y-4">
+                        {appointments.map(apt => (
+                            <div key={apt.id} className="flex gap-3 items-center">
+                                <div className={`w-2 h-2 rounded-full shrink-0 ${
+                                    apt.status === 'cancelled' 
+                                        ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' 
+                                        : apt.confirmed 
+                                            ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' 
+                                            : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                                }`} />
+                                <div>
+                                    <div className="text-xs font-bold text-navy-900 tracking-wide">
+                                        {formatAptDate(apt.date_start)}
+                                    </div>
+                                    <div className={`text-[10px] font-bold mt-0.5 ${
+                                        apt.status === 'cancelled' ? 'text-rose-600/70' : 
+                                        apt.confirmed ? 'text-emerald-600/70' : 'text-amber-600/70'
+                                    }`}>
+                                        {apt.status === 'cancelled' ? 'Cancelado' : apt.confirmed ? 'Confirmado' : 'Pendiente'}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Bottom Fixed Buttons */}
@@ -152,7 +135,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                         className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
                     >
                         <MessageCircle size={14} className="shrink-0" />
-                        <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">Conversación</span>
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Chat</span>
                     </button>
 
                     {/* 2. IA (Bot Toggle) */}
@@ -198,10 +181,10 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                     {/* 4. Eliminar */}
                     <button
                         onClick={() => setShowDeleteConfirm(true)}
-                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-red-600 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
                     >
                         <Trash2 size={14} className="shrink-0" />
-                        <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Eliminar</span>
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">Eliminar</span>
                     </button>
                 </div>
             </div>

@@ -30,6 +30,7 @@ export function usePatients() {
             if (!q) {
                 useAppStore.getState().setPatientsCache(data);
             }
+            return data;
         } finally {
             setLoading(false);
         }

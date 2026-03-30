@@ -67,7 +67,9 @@ CREATE TRIGGER trg_validate_appointment
 CREATE OR REPLACE FUNCTION validate_staff_user()
 RETURNS TRIGGER AS $$
 BEGIN
+    /*
     -- ── Validate unique email per business ───────────
+    -- NOTA: Validacion movida a capa de auth (auth.users)
     IF EXISTS (
         SELECT 1 FROM staff_users
         WHERE business_id = NEW.business_id
@@ -77,6 +79,7 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'Ya existe un usuario con ese email en este negocio.';
     END IF;
+    */
 
     -- ── Validate role belongs to same business ──────
     IF NEW.role_id IS NOT NULL THEN

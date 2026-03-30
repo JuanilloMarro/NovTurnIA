@@ -126,31 +126,7 @@ export default function Topbar() {
                     </div>
 
                     {showThemeMenu && (
-                        <div className="absolute top-12 right-0 w-48 bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-white/90 p-2 animate-fade-up z-[110]">
-                            <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-1">Apariencia</div>
-                            {themeOptions.map((opt) => (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => {
-                                        setTheme(opt.id);
-                                        setShowThemeMenu(false);
-                                    }}
-                                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${theme === opt.id
-                                        ? 'bg-navy-50 text-navy-700 shadow-sm'
-                                        : 'text-gray-600 hover:bg-white/60 hover:translate-x-1'}`}
-                                >
-                                    <div className="flex items-center gap-2.5">
-                                        <div className={`${theme === opt.id ? 'text-navy-600' : 'text-gray-400'}`}>
-                                            {opt.icon}
-                                        </div>
-                                        {opt.label}
-                                    </div>
-                                    {theme === opt.id && <Check size={14} className="text-navy-500" />}
-                                </button>
-                            ))}
-
-                            <div className="h-px bg-gray-100/50 my-2 mx-2"></div>
-
+                        <div className="absolute top-12 right-0 w-44 bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-white/90 p-2 animate-fade-up z-[110]">
                             <button
                                 onClick={() => logout()}
                                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-50 transition-all duration-200"

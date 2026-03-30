@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { updateAppointment } from '../../services/supabaseService';
 import { X, Calendar, ChevronDown, Save } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
-import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
+import { showWarningToast, showErrorToast } from '../../store/useToastStore';
 
 const TIME_SLOTS = [];
 for (let h = 9; h <= 17; h++) {
@@ -43,9 +43,10 @@ export default function EditAppointmentModal({ appointment, onClose, onUpdated }
         setError(''); setLoading(true);
         try {
             await updateAppointment(appointment.id, { date, startTime, endTime });
-            showSuccessToast(
+            showWarningToast(
                 'Turno Actualizado',
-                `${appointment.patients?.display_name || 'Paciente'} : ${startTime} a ${endTime}`
+                `${appointment.patients?.display_name || 'Paciente'} : ${startTime} a ${endTime}`,
+                'appointment'
             );
             onUpdated();
             onClose();

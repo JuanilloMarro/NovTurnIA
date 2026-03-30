@@ -66,9 +66,9 @@ export default function Patients() {
                     <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
                         <button 
                             onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
-                            className="px-4 h-full rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-navy-900 text-xs font-bold"
+                            className="px-4 h-full rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-navy-900 text-[11px] font-bold"
                         >
-                            <span className="text-[14px]">+</span> Nuevo Paciente
+                            <span className="text-[14px]">+</span> Agregar Paciente
                         </button>
                     </div>
                 </div>
@@ -106,7 +106,15 @@ export default function Patients() {
             )}
 
             {selectedPatient && (
-                <PatientDrawer patient={selectedPatient} onClose={() => setSelectedPatient(null)} onRefresh={() => reload(search)} />
+                <PatientDrawer 
+                    patient={selectedPatient} 
+                    onClose={() => setSelectedPatient(null)} 
+                    onRefresh={async () => {
+                        const data = await reload(search);
+                        const updated = data.find(p => p.id === selectedPatient.id);
+                        if (updated) setSelectedPatient(updated);
+                    }} 
+                />
             )}
         </div>
     )

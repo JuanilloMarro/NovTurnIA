@@ -67,28 +67,28 @@ export default function Calendar() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-11">
-                    <button onClick={handlePrev} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
+                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-10">
+                    <button onClick={handlePrev} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
                         <ChevronLeft size={16} />
                     </button>
-                    <div className="flex items-center gap-2 px-4 text-navy-900 font-bold">
+                    <div className="flex items-center gap-2 px-3 text-navy-900 font-bold">
                         <CalendarIcon size={14} className="text-navy-900" />
-                        <span className="capitalize text-[13.5px] tracking-tight whitespace-nowrap">{monthName}</span>
+                        <span className="capitalize text-[13px] tracking-tight whitespace-nowrap">{monthName}</span>
                     </div>
-                    <button onClick={handleNext} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
+                    <button onClick={handleNext} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
                         <ChevronRight size={16} />
                     </button>
                 </div>
 
-                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-xs font-bold text-navy-900 h-11">
-                    <button onClick={() => setViewMode('day')} className={`px-4 h-9 rounded-full transition-all ${viewMode === 'day' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Día</button>
-                    <button onClick={() => setViewMode('week')} className={`px-4 h-9 rounded-full transition-all ${viewMode === 'week' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Semana</button>
-                    <button onClick={() => setViewMode('month')} className={`px-4 h-9 rounded-full transition-all ${viewMode === 'month' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Mes</button>
+                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-[11px] font-bold text-navy-900 shadow-sm h-10">
+                    <button onClick={() => setViewMode('day')} className={`px-4 h-8 rounded-full transition-all ${viewMode === 'day' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Día</button>
+                    <button onClick={() => setViewMode('week')} className={`px-4 h-8 rounded-full transition-all ${viewMode === 'week' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Semana</button>
+                    <button onClick={() => setViewMode('month')} className={`px-4 h-8 rounded-full transition-all ${viewMode === 'month' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Mes</button>
                 </div>
 
-                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-xs font-bold text-navy-900 shadow-sm h-11">
-                    <button onClick={() => setIsModalOpen(true)} className="px-4 h-9 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5">
-                        <span className="text-[14px] font-bold">+</span> Nuevo Turno
+                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-[11px] font-bold text-navy-900 shadow-sm h-10">
+                    <button onClick={() => setIsModalOpen(true)} className="px-5 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5 font-bold">
+                        <span className="text-[14px]">+</span> Agregar Turno
                     </button>
                 </div>
                 </div>
@@ -133,7 +133,7 @@ export default function Calendar() {
                 <AppointmentDrawer
                     appointment={selectedAppointment}
                     onClose={() => setSelectedAppointment(null)}
-                    onUpdated={() => { }}
+                    onUpdated={() => reload()}
                 />
             )}
         </div>

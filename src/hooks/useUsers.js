@@ -4,7 +4,8 @@ import {
     createStaffUser,
     deleteStaffUser,
     getStaffRoles,
-    updateStaffUserRole
+    updateStaffUserRole,
+    updateRolePermissions
 } from '../services/supabaseService';
 
 export function useUsers() {
@@ -53,5 +54,10 @@ export function useUsers() {
         await loadData();
     }
 
-    return { users, roles, loading, addUser, removeUser, changeRole, refresh: loadData };
+    async function changeRolePermissions(roleId, permissions) {
+        await updateRolePermissions(roleId, permissions);
+        await loadData();
+    }
+
+    return { users, roles, loading, addUser, removeUser, changeRole, changeRolePermissions, refresh: loadData };
 }

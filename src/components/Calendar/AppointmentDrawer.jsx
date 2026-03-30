@@ -1,12 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { setHumanTakeover, cancelAppointment, confirmAppointment } from '../../services/supabaseService';
-import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil } from 'lucide-react';
+import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment } from '../../services/supabaseService';
+import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone } from 'lucide-react';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import EditAppointmentModal from './EditAppointmentModal';
 import AIStar from '../Icons/AIStar';
 import { formatPhone } from '../../utils/format';
-import { showSuccessToast, showBotToast } from '../../store/useToastStore';
+import { showSuccessToast, showErrorToast, showBotToast } from '../../store/useToastStore';
+import { usePermissions } from '../../hooks/usePermissions';
 
 function getInitials(name) {
     if (!name) return '?';
@@ -19,6 +20,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
     const [canceling, setCanceling] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [botPaused, setBotPaused] = useState(appointment?.patients?.human_takeover || false);
+    
+    const { canViewConversations, canToggleAi, canEditAppointments, canConfirmAppointments, canDeleteAppointments } = usePermissions();
 
     if (!appointment) return null;
     const { id, date_start, date_end, status, confirmed, patients } = appointment;
@@ -29,10 +32,11 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
         setCanceling(true);
         try {
             await cancelAppointment(id);
+            showErrorToast('Turno Cancelado', patients?.display_name || 'Paciente', 'appointment');
             onUpdated?.();
             onClose();
         } catch (error) {
-            alert('Error al cancelar: ' + error.message);
+            showErrorToast('Error al cancelar', error.message, 'appointment');
         } finally {
             setCanceling(false);
             setShowCancelConfirm(false);
@@ -40,8 +44,23 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
     }
 
     async function handleConfirm() {
-        await confirmAppointment(id);
-        onUpdated?.();
+        try {
+            await confirmAppointment(id);
+            showSuccessToast('Turno Confirmado', patients?.display_name, 'appointment');
+            onUpdated?.();
+        } catch (error) {
+            showErrorToast('Error al confirmar', error.message, 'appointment');
+        }
+    }
+
+    async function handleSetScheduled() {
+        try {
+            await scheduledAppointment(id);
+            showSuccessToast('Turno en Pendiente', patients?.display_name, 'appointment');
+            onUpdated?.();
+        } catch (error) {
+            showErrorToast('Error al actualizar', error.message, 'appointment');
+        }
     }
 
     return (
@@ -65,7 +84,31 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                             {getInitials(patients?.display_name)}
                         </div>
                         <div className="overflow-hidden">
-                            <div className="font-bold text-navy-900 text-base truncate">{patients?.display_name || 'Sin nombre'}</div>
+                            <div className="font-bold text-navy-900 text-base truncate flex items-center gap-2">
+                                {patients?.display_name || 'Sin nombre'}
+                            </div>
+                            <div className="mt-1 flex items-center gap-1.5 text-navy-700/50 font-semibold text-[11px]">
+                                <Phone size={11} className="shrink-0 opacity-40 ml-0.5" />
+                                {formatPhone(patients?.patient_phones?.[0]?.phone) || 'Sin teléfono'}
+                            </div>
+                            <div className="mt-2 flex items-center gap-1.5">
+                                {status === 'cancelled' ? (
+                                    <div className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 px-2 py-[2px] rounded-md text-[9px] font-bold">
+                                        <X size={10} strokeWidth={3} />
+                                        Cancelado
+                                    </div>
+                                ) : confirmed ? (
+                                    <div className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-[2px] rounded-md text-[9px] font-bold">
+                                        <Check size={10} strokeWidth={3} />
+                                        Confirmado
+                                    </div>
+                                ) : (
+                                    <div className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-[2px] rounded-md text-[9px] font-bold">
+                                        <Circle size={10} strokeWidth={3} />
+                                        Pendiente
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -74,7 +117,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                         {/* Fecha y hora */}
                         <div>
                             <div className="flex items-center gap-3 mb-3">
-                                <h4 className="text-[10px] font-bold text-navy-800 uppercase tracking-widest leading-none">Fecha y hora</h4>
+                                <h4 className="text-[11px] font-bold text-navy-800 leading-none">Fecha y hora</h4>
                                 <div className="flex-1 h-px bg-navy-900/10"></div>
                             </div>
 
@@ -85,7 +128,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                                     </div>
                                     <div className="pt-0.5">
                                         <div className="text-xs font-semibold text-gray-400 mb-0.5">Fecha</div>
-                                        <div className="font-semibold text-navy-900 text-[15px]">
+                                        <div className="font-bold text-navy-900 text-xs">
                                             {new Date(date_start).toLocaleDateString('es-GT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Guatemala' })
                                                 .replace(/^\w/, (c) => c.toUpperCase())}
                                         </div>
@@ -100,7 +143,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                                     </div>
                                     <div className="pt-0.5">
                                         <div className="text-xs font-semibold text-gray-400 mb-0.5">Horario</div>
-                                        <div className="font-semibold text-navy-900 text-[15px]">
+                                        <div className="font-bold text-navy-900 text-xs">
                                             {new Date(date_start).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Guatemala', hour12: true })}
                                             {' — '}
                                             {new Date(date_end).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Guatemala', hour12: true })}
@@ -114,19 +157,22 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
             </div>
 
             {/* Footer de Acciones fijo abajo */}
+            {/* Footer de Acciones fijo abajo */}
             <div className="p-4 mt-auto">
-                <div className="flex items-center justify-center gap-2">
-                    {/* 1. Conversación */}
-                    <button
-                        onClick={() => navigate(`/conversations?patient=${appointment.patient_id}`)}
-                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
-                    >
-                        <MessageCircle size={14} className="shrink-0" />
-                        <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">Conversación</span>
-                    </button>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                    {/* 1. Chat */}
+                    {canViewConversations && status !== 'cancelled' && (
+                        <button
+                            onClick={() => navigate(`/conversations?patient=${appointment.patient_id}`)}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        >
+                            <MessageCircle size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Chat</span>
+                        </button>
+                    )}
 
                     {/* 2. IA (Bot Toggle) */}
-                    {appointment.patients && (
+                    {canToggleAi && appointment.patients && status !== 'cancelled' && (
                         <button
                             onClick={async () => {
                                 const newValue = !appointment.patients.human_takeover;
@@ -152,32 +198,53 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                                     strokeWidth={2.5}
                                 />
                             </div>
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap ml-0 group-hover:ml-0">
-                                {botPaused ? 'Reactivar IA' : 'Pausar IA'}
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap ml-0 group-hover:ml-0">
+                                {botPaused ? 'Reactivar' : 'Pausar IA'}
                             </span>
                         </button>
                     )}
 
                     {/* 3. Editar */}
-                    <button onClick={() => setShowEdit(true)}
-                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-800 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
-                    >
-                        <Pencil size={14} className="shrink-0" />
-                        <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Editar</span>
-                    </button>
+                    {canEditAppointments && status !== 'cancelled' && (
+                        <button onClick={() => setShowEdit(true)}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        >
+                            <Pencil size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Editar</span>
+                        </button>
+                    )}
 
-                    {/* 4. Eliminar */}
-                    {['scheduled', 'confirmed'].includes(status) && (
+                    {/* 4. Pendiente (Amber Hover) */}
+                    {canConfirmAppointments && status === 'confirmed' && (
+                        <button onClick={handleSetScheduled}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-amber-600 text-[11px] font-bold rounded-full shadow-card hover:bg-amber-50 hover:border-amber-100/50 transition-all duration-300 overflow-hidden"
+                        >
+                            <Circle size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Pendiente</span>
+                        </button>
+                    )}
+
+                    {/* 5. Confirmar (Emerald Hover) */}
+                    {canConfirmAppointments && status === 'scheduled' && !confirmed && (
+                        <button onClick={handleConfirm}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-emerald-600 text-[11px] font-bold rounded-full shadow-card hover:bg-emerald-50 hover:border-emerald-100/50 transition-all duration-300 overflow-hidden"
+                        >
+                            <Check size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Confirmar</span>
+                        </button>
+                    )}
+
+                    {/* 6. Eliminar (No red border) */}
+                    {canDeleteAppointments && ['scheduled', 'confirmed'].includes(status) && (
                         <button onClick={() => setShowCancelConfirm(true)}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-red-600 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
                         >
                             <Trash2 size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[90px] transition-all duration-300 whitespace-nowrap">Eliminar</span>
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">Eliminar</span>
                         </button>
                     )}
                 </div>
             </div>
-
 
             {/* Cancel Confirmation */}
             {showCancelConfirm && createPortal(

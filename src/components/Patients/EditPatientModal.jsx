@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, User, Phone, Save } from 'lucide-react';
 import { updatePatient } from '../../services/supabaseService';
-import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
+import { showWarningToast, showErrorToast } from '../../store/useToastStore';
 
 export default function EditPatientModal({ patient, onClose, onUpdated }) {
     const [name, setName] = useState(patient.display_name || '');
@@ -25,7 +25,7 @@ export default function EditPatientModal({ patient, onClose, onUpdated }) {
                 display_name: name.trim(), 
                 phone: `+502${cleanPhone}` 
             });
-            showSuccessToast('Paciente Actualizado', name.trim());
+            showWarningToast('Paciente Actualizado', name.trim(), 'patient');
             onUpdated();
             onClose();
         } catch (err) {
