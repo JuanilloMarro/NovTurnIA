@@ -3,6 +3,11 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 const PIE_COLORS = ['#10B981', '#F59E0B', '#EF4444'];
 
 export function AppointmentStatusChart({ data, confRate }) {
+    const hasData = data.some(d => d.value > 0);
+    // If all values are 0, use a placeholder slice so a ring is visible
+    const chartData = hasData ? data : [{ name: 'Sin datos', value: 1 }];
+    const chartColors = hasData ? PIE_COLORS : ['#E5E7EB'];
+
     return (
         <div className="h-full flex flex-col">
             <div className="mb-6">
@@ -10,31 +15,35 @@ export function AppointmentStatusChart({ data, confRate }) {
                 <p className="text-[10px] text-navy-900/40 font-bold tracking-tight">Distribución de estados</p>
             </div>
 
-            <div className="relative flex-1 flex flex-col items-center justify-center min-h-0">
+            <div className="relative flex-1 flex flex-col items-center justify-center min-h-[200px]">
                 <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                         <Pie
-                            data={data}
-                            cx="50%" cy="50%"
-                            innerRadius={70}
-                            outerRadius={85}
-                            paddingAngle={3}
+                            data={chartData}
+                            cx="50%"  cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={hasData ? 3 : 0}
                             dataKey="value"
                             stroke="none"
+                            isAnimationActive={hasData}
                         >
-                            {data.map((_, i) => (
-                                <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                            {chartData.map((_, i) => (
+                                <Cell key={i} fill={chartColors[i % chartColors.length]} />
                             ))}
                         </Pie>
-                        <Tooltip
-                            contentStyle={{ background: 'white', border: 'none', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', fontSize: 13, padding: '8px 12px' }}
-                        />
+                        {hasData && (
+                            <Tooltip
+                                contentStyle={{ background: 'white', border: 'none', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', fontSize: 13, padding: '8px 12px' }}
+                            />
+                        )}
                     </PieChart>
                 </ResponsiveContainer>
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
                     <span className="text-navy-900/40 text-[9px] font-bold tracking-tight text-center">Confirmación</span>
                     <span className="text-3xl font-bold text-navy-900 tracking-tight leading-none mt-1">{confRate}%</span>
+                    {!hasData && <span className="text-[9px] text-navy-900/30 font-bold mt-1">Sin turnos este mes</span>}
                 </div>
             </div>
 

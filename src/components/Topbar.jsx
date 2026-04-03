@@ -51,17 +51,19 @@ export default function Topbar() {
         <header className="h-[72px] px-6 flex items-center justify-end z-[100] transition-all sticky top-0 bg-transparent">
             <div className="flex items-center gap-6 mt-2">
                 <div className="relative" ref={notifRef}>
-                    <button
-                        onClick={handleBellClick}
-                        className="relative flex items-center justify-center w-11 h-11 rounded-full border border-white/80 bg-white/40 backdrop-blur-md text-navy-700 shadow-card hover:bg-white/60 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
-                    >
-                        <Bell size={20} />
-                        {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] px-1 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
-                                {unreadCount}
-                            </span>
-                        )}
-                    </button>
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-11">
+                        <button
+                            onClick={handleBellClick}
+                            className="relative w-9 h-9 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 font-bold"
+                        >
+                            <Bell size={16} />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-[16px] min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
+                                    {unreadCount}
+                                </span>
+                            )}
+                        </button>
+                    </div>
 
                     {showNotif && (
                         <div className="absolute top-14 right-0 w-[400px] sm:w-[440px] bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 p-3 animate-fade-up z-[110] overflow-hidden">

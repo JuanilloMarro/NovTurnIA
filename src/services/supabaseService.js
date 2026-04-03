@@ -112,7 +112,9 @@ export async function getPatients(search = '') {
         `)
         .eq('business_id', BUSINESS_ID)
         .is('deleted_at', null)
-        .order('display_name', { ascending: true });
+        .order('display_name', { ascending: true })
+        .order('date_start', { referencedTable: 'appointments', ascending: false })
+        .limit(5, { referencedTable: 'appointments' });
 
     if (search) {
         query = query.or(`display_name.ilike.%${search}%`);
@@ -190,7 +192,7 @@ export async function createPatient({ display_name, phone, email, notes }) {
     // 1. Crear paciente
     const { data: patient, error: patientError } = await supabase
         .from('patients')
-        .insert({ business_id: BUSINESS_ID, display_name, email: email || null, notes: notes || null })
+        .insert({ business_id: BUSINESS_ID, display_name })
         .select()
         .single();
     if (patientError) {
@@ -378,17 +380,18 @@ export async function createStaffUser({ email, password, full_name, role_id }) {
     if (authError) throw authError;
 
     // 2. El trigger handle_new_staff_user crea automáticamente el row en staff_users
-    // Esperar un momento para que el trigger se ejecute
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // 3. Fetch the created staff user
-    const { data: staffUser, error: fetchError } = await supabase
-        .from('staff_users')
-        .select('*, staff_roles(*)')
-        .eq('id', authData.user.id)
-        .single();
-
-    if (fetchError) throw fetchError;
+    // Retry con backoff exponencial para esperar al trigger
+    let staffUser = null;
+    for (let i = 0; i < 5; i++) {
+        await new Promise(r => setTimeout(r, 200 * (i + 1)));
+        const { data } = await supabase
+            .from('staff_users')
+            .select('*, staff_roles(*)')
+            .eq('id', authData.user.id)
+            .single();
+        if (data) { staffUser = data; break; }
+    }
+    if (!staffUser) throw new Error('Timeout esperando creación de staff user. Intenta recargar la página.');
     return staffUser;
 }
 

@@ -43,9 +43,9 @@ export default function Sidebar() {
                 <div className="w-9 h-9 rounded-[10px] bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card transition-all duration-500 group-hover/logo:-translate-y-1">
                     <div className="relative">
                         <Bot size={18} strokeWidth={2.5} className="transition-transform duration-500 group-hover/logo:rotate-12" />
-                        <AIStar 
-                            size={10} 
-                            className="absolute -top-1.5 -left-1.5 text-white animate-pulse transition-all duration-500 group-hover/logo:scale-125" 
+                        <AIStar
+                            size={10}
+                            className="absolute -top-1.5 -left-1.5 text-white animate-pulse transition-all duration-500 group-hover/logo:scale-125"
                             strokeWidth={2.5}
                         />
                     </div>
@@ -72,20 +72,20 @@ export default function Sidebar() {
                         <BarChart2 size={16} /> Estadísticas
                     </NavLink>
                 )}
-                
+
                 {canManageRoles && (
-                    <button 
+                    <button
                         onClick={() => setIsConfigOpen(!isConfigOpen)}
                         className={`flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-300 ${isConfigOpen ? 'bg-white/30 text-navy-900' : 'text-navy-900/40 hover:bg-white/20 hover:text-navy-900'} text-[13px] font-bold`}
                     >
                         <div className="flex items-center gap-3">
-                            <Settings size={16} className={isConfigOpen ? 'text-navy-900' : ''} /> 
+                            <Settings size={16} className={isConfigOpen ? 'text-navy-900' : ''} />
                             <span className={isConfigOpen ? 'text-navy-900' : ''}>Configuración</span>
                         </div>
                         <ChevronDown size={14} strokeWidth={3} className={`transition-transform duration-300 ${isConfigOpen ? 'rotate-180 text-navy-900' : ''}`} />
                     </button>
                 )}
-                
+
                 {canManageRoles && (
                     <div className={`flex flex-col gap-1 overflow-hidden transition-all duration-300 ${isConfigOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
                         <NavLink to="/users" className={({ isActive }) => isActive ? subActiveClass : subNormalClass}>
@@ -99,9 +99,7 @@ export default function Sidebar() {
             </nav>
 
             <div className="mt-auto pt-6 px-5 border-t border-white/20">
-                <div className="font-bold text-navy-900/60 truncate tracking-tight text-[12px]">{businessName || 'Cargando...'}</div>
-                <div className="mt-0.5 text-[9px] font-bold text-navy-900/30 uppercase tracking-widest">
-                    NovTurnIA Pro
+                <div className="font-bold text-navy-900/60 truncate tracking-tight text-[12px]">{businessName || 'Cargando...'}
                 </div>
             </div>
         </aside>

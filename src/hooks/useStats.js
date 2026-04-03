@@ -37,7 +37,7 @@ export function useStats() {
                     .lt('date_start', monthEnd),
                 // Turnos del mes pasado
                 supabase.from('appointments')
-                    .select('id')
+                    .select('id, status')
                     .eq('business_id', BUSINESS_ID)
                     .gte('date_start', lastMonthStart)
                     .lt('date_start', lastMonthEnd),
@@ -79,7 +79,7 @@ export function useStats() {
                 : undefined;
 
             const confirmedThisMonth = apts.filter(a => a.confirmed).length;
-            const scheduledThisMonth = apts.filter(a => a.status === 'scheduled').length;
+            const scheduledThisMonth = apts.filter(a => a.status === 'scheduled' && !a.confirmed).length;
             const cancelledThisMonth = apts.filter(a => a.status === 'cancelled').length;
             const createdByBot = apts.filter(a => a.created_by === 'bot').length;
             const createdByStaff = apts.filter(a => a.created_by === 'dashboard').length;
@@ -115,6 +115,14 @@ export function useStats() {
                 rawApts
             });
 
+        } catch (err) {
+            console.error('Error loading stats:', err);
+            // Show empty stats instead of hanging on loading forever
+            setStats({
+                kpi: { monthApts: 0, totalPatients: 0, activePatients: 0, newThisMonth: 0, sentMessages: 0, receivedMessages: 0, confirmedThisMonth: 0, createdByBot: 0, createdByStaff: 0 },
+                donut: { confRate: 0, data: [{ name: 'Confirmados', value: 0 }, { name: 'Pendientes', value: 0 }, { name: 'Cancelados', value: 0 }] },
+                rawApts: []
+            });
         } finally {
             setLoading(false);
         }

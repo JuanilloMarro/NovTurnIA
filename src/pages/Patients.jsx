@@ -3,7 +3,7 @@ import { usePatients } from '../hooks/usePatients';
 import PatientCard from '../components/Patients/PatientCard';
 import PatientDrawer from '../components/Patients/PatientDrawer';
 import NewPatientModal from '../components/Patients/NewPatientModal';
-import { Search, ChevronDown } from 'lucide-react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 
 export default function Patients() {
     const { patients, loading, search, handleSearch, sortOrder, setSortOrder, reload } = usePatients();
@@ -42,10 +42,24 @@ export default function Patients() {
                         />
                     </div>
 
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                        <button 
+                            onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
+                            className="px-4 h-full rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-navy-900 text-[11px] font-bold"
+                        >
+                            <span className="text-[14px]">+</span> Agregar Paciente
+                        </button>
+                    </div>
+
+                    {/* Sort funnel button - moved to last position */}
                     <div className="relative h-full">
-                        <div onClick={() => setShowSort(!showSort)} className="h-full flex items-center gap-3 bg-white/60 backdrop-blur-card border border-white/90 rounded-full px-5 shadow-sm text-xs font-bold text-navy-900 cursor-pointer hover:bg-white/80 transition-colors">
-                            <span>Ordenar: {sortLabel}</span>
-                            <ChevronDown size={14} strokeWidth={2.5} className={`transition-transform ${showSort ? 'rotate-180' : ''}`} />
+                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                            <button 
+                                onClick={() => setShowSort(!showSort)}
+                                className="w-8 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900"
+                            >
+                                <SlidersHorizontal size={14} />
+                            </button>
                         </div>
 
                         {showSort && (
@@ -61,15 +75,6 @@ export default function Patients() {
                                 ))}
                             </div>
                         )}
-                    </div>
-
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
-                        <button 
-                            onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
-                            className="px-4 h-full rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-navy-900 text-[11px] font-bold"
-                        >
-                            <span className="text-[14px]">+</span> Agregar Paciente
-                        </button>
                     </div>
                 </div>
             </div>

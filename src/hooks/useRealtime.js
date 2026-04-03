@@ -28,9 +28,7 @@ export function useRealtimeAppointments(onUpdate) {
                     onUpdateRef.current(payload);
                 }
             )
-            .subscribe((status) => {
-                console.log('🔌 Sync Calendar:', status);
-            });
+            .subscribe();
 
         return () => supabase.removeChannel(channel);
     }, [businessId]); // Re-suscribirse cuando cambia el business_id
@@ -62,7 +60,7 @@ export function useRealtimePatients(onUpdate) {
                     onUpdateRef.current(payload);
                 }
             )
-            .subscribe((status) => console.log('🔌 Sync Patients:', status));
+            .subscribe();
 
         return () => supabase.removeChannel(channel);
     }, [businessId]);

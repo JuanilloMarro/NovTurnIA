@@ -37,12 +37,9 @@ export function useUsers() {
     }
 
     async function removeUser(id) {
-        console.log('useUsers.removeUser called for id:', id);
         try {
             await deleteStaffUser(id);
-            console.log('deleteStaffUser successful in DB');
             setUsers(prev => prev.filter(u => u.id !== id));
-            console.log('users state updated in hook');
         } catch (err) {
             console.error('Error in useUsers.removeUser hook:', err);
             throw err;

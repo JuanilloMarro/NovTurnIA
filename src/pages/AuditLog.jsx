@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getAuditLog, getStaffUsers } from '../services/supabaseService';
-import { Search, Database, ArrowRight, Filter } from 'lucide-react';
+import { getAuditLog, getStaffUsers, getPatients } from '../services/supabaseService';
+import { Search, Database, ArrowRight, SlidersHorizontal, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { formatPhone } from '../utils/format';
 
 // ── Módulos ──
 const MODULES = {
@@ -29,7 +30,7 @@ const FIELDS = {
     'phone': 'Teléfono', 'status': 'Estado', 'confirmed': 'Confirmado',
     'notes': 'Notas', 'active': 'Activo', 'permissions': 'Permisos',
     'name': 'Nombre', 'description': 'Descripción', 'duration_minutes': 'Duración',
-    'created_by': 'Desde', 'content': 'Contenido', 'plan': 'Plan',
+    'content': 'Contenido', 'plan': 'Plan',
     'title': 'Título', 'type': 'Tipo', 'read': 'Leído',
 };
 
@@ -61,13 +62,85 @@ function fmtVal(key, val) {
     return String(val);
 }
 
-function parseData(obj) {
+function parseData(obj, table, pMap) {
     if (!obj || typeof obj !== 'object') return null;
-    const entries = Object.entries(obj)
+    let entries = Object.entries(obj)
         .filter(([k]) => FIELDS[k])
         .map(([k, v]) => ({ label: FIELDS[k], value: fmtVal(k, v) }))
         .filter(e => e.value !== null);
-    return entries.length > 0 ? entries : null;
+
+    // Context enrichment: Inject patient name or phone number
+    if (table === 'appointments' && obj.patient_id && pMap?.[obj.patient_id]) {
+        entries.unshift({ label: 'Paciente', value: pMap[obj.patient_id].name || 'Sin nombre' });
+    }
+    if (table === 'patients' && obj.id && pMap?.[obj.id]?.phone) {
+        entries.push({ label: 'Teléfono', value: formatPhone(pMap[obj.id].phone) });
+    }
+    if (table === 'patient_phones' && obj.user_id && pMap?.[obj.user_id]) {
+        entries.unshift({ label: 'Paciente', value: pMap[obj.user_id].name || 'Sin nombre' });
+    }
+
+    // Deduplicate entries by label
+    const uniqueEntries = [];
+    const seen = new Set();
+    for (const e of entries) {
+        if (!seen.has(e.label)) {
+            seen.add(e.label);
+            uniqueEntries.push(e);
+        }
+    }
+
+    return uniqueEntries.length > 0 ? uniqueEntries : null;
+}
+
+function getLogSummary(log, oldP, newP, ctxPaciente) {
+    try {
+        const isUpdate = log.action === 'UPDATE';
+        const isDelete = log.action === 'DELETE';
+        const isInsert = log.action === 'INSERT';
+        
+        if (log.table_name === 'appointments') {
+            const pName = ctxPaciente || 'un paciente';
+            if (isInsert) return `creó un nuevo turno para ${pName}`;
+            if (isDelete) return `eliminó el turno de ${pName}`;
+            if (isUpdate) {
+                const oldStatus = (oldP || []).find(e => e?.label === 'Estado')?.value;
+                const newStatus = (newP || []).find(e => e?.label === 'Estado')?.value;
+                if (oldStatus !== newStatus) {
+                    if (newStatus === 'Cancelado') return `canceló el turno de ${pName}`;
+                    if (newStatus === 'Confirmado') return `confirmó el turno de ${pName}`;
+                    if (newStatus === 'Pendiente') return `marcó como pendiente el turno de ${pName}`;
+                }
+                
+                const changedFields = (newP || []).filter(e => {
+                    const oldVal = (oldP || []).find(o => o?.label === e?.label)?.value;
+                    return oldVal !== e?.value;
+                }).map(e => e?.label).filter(Boolean).join(', ');
+                
+                return `actualizó el turno de ${pName}${changedFields ? ` (${String(changedFields).toLowerCase()})` : ''}`;
+            }
+        }
+        
+        if (log.table_name === 'patients') {
+            const pName = ctxPaciente || (newP || []).find(e => e?.label === 'Nombre' || e?.label === 'Nombre completo')?.value || 'un paciente';
+            
+            if (isInsert) return `registró a ${pName} como nuevo paciente`;
+            if (isDelete) return `eliminó el registro del paciente ${pName}`;
+            if (isUpdate) {
+                const changedFields = (newP || []).filter(e => {
+                    const oldVal = (oldP || []).find(o => o?.label === e?.label)?.value;
+                    return oldVal !== e?.value;
+                }).map(e => e?.label).filter(Boolean).join(', ');
+                return `actualizó información del paciente ${pName}${changedFields ? ` (${String(changedFields).toLowerCase()})` : ''}`;
+            }
+        }
+        
+        const actMap = { 'INSERT': 'creó un registro en', 'UPDATE': 'actualizó un registro en', 'DELETE': 'eliminó un registro en' };
+        const moduleName = MODULES[log.table_name] || log.table_name || 'Módulo';
+        return `${actMap[log.action] || log.action || 'Modificó'} ${moduleName}`;
+    } catch (err) {
+        return `Registró una actividad en ${MODULES[log.table_name] || log.table_name || 'el sistema'}`;
+    }
 }
 
 export default function AuditLog() {
@@ -75,17 +148,34 @@ export default function AuditLog() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [staffMap, setStaffMap] = useState({});
+    const [patientMap, setPatientMap] = useState({});
     const [filterAction, setFilterAction] = useState('');
     const [filterUser, setFilterUser] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
 
     useEffect(() => {
         async function fetchData() {
             try {
-                const [logData, staffData] = await Promise.all([getAuditLog(200), getStaffUsers()]);
-                const map = {};
-                (staffData || []).forEach(u => { map[u.id] = u.full_name || u.email || 'Staff'; });
+                const [logData, staffData, patientsData] = await Promise.all([
+                    getAuditLog(200), 
+                    getStaffUsers(),
+                    getPatients()
+                ]);
+                
+                const sMap = {};
+                (staffData || []).forEach(u => { sMap[u.id] = u.full_name || u.email || 'Staff'; });
+                
+                const pMap = {};
+                (patientsData || []).forEach(p => { 
+                    pMap[p.id] = { 
+                        name: p.display_name, 
+                        phone: p.patient_phones?.[0]?.phone 
+                    }; 
+                });
+
                 setLogs(logData || []);
-                setStaffMap(map);
+                setStaffMap(sMap);
+                setPatientMap(pMap);
             } catch (err) {
                 console.error('Error fetching audit log:', err);
             } finally {
@@ -105,6 +195,8 @@ export default function AuditLog() {
         uuid, name: userName(uuid)
     }));
 
+    const hasActiveFilters = filterAction || filterUser;
+
     const filtered = logs.filter(log => {
         if (filterAction && log.action !== filterAction) return false;
         if (filterUser && log.changed_by !== filterUser) return false;
@@ -115,167 +207,145 @@ export default function AuditLog() {
         return true;
     });
 
-    const selectClass = "appearance-none bg-white/60 backdrop-blur-card border border-white/90 rounded-full px-3 py-2 text-[11px] font-bold text-navy-900 outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all shadow-sm cursor-pointer";
-
     return (
         <div className="h-full flex flex-col max-w-5xl mx-auto w-full pt-2 px-0">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div>
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
-                    <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Historial de cambios en el sistema</p>
+                    <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{filtered.length} registros</p>
                 </div>
-                <div className="flex items-center gap-2 h-10 flex-wrap">
-                    {/* Filtro Acción */}
-                    <select value={filterAction} onChange={e => setFilterAction(e.target.value)} className={selectClass}>
-                        <option value="">Todas las acciones</option>
-                        <option value="INSERT">Creado</option>
-                        <option value="UPDATE">Actualizado</option>
-                        <option value="DELETE">Eliminado</option>
-                    </select>
-
-                    {/* Filtro Usuario */}
-                    <select value={filterUser} onChange={e => setFilterUser(e.target.value)} className={selectClass}>
-                        <option value="">Todos los usuarios</option>
-                        {uniqueUsers.map(u => (
-                            <option key={u.uuid} value={u.uuid}>{u.name}</option>
-                        ))}
-                    </select>
-
-                    {/* Búsqueda */}
-                    <div className="relative w-48 h-full">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-navy-900">
-                            <Search size={13} strokeWidth={2.5} />
+                <div className="flex items-center gap-2 h-10">
+                    {/* Search bar */}
+                    <div className="relative w-64 h-full">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
+                            <Search size={14} strokeWidth={2.5} />
                         </div>
                         <input
-                            className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full pl-9 pr-3 text-[11px] font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/50 shadow-sm"
-                            placeholder="Buscar..."
+                            className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-sm"
+                            placeholder="Buscar por acción o usuario..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
 
-                    <div className="px-2.5 py-2 bg-white/50 border border-white/70 rounded-full text-[10px] font-bold text-navy-700 shadow-sm">
-                        {filtered.length}
+                    {/* Filter funnel button */}
+                    <div className="relative">
+                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`w-8 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 ${hasActiveFilters ? 'ring-1 ring-navy-400/30' : ''}`}
+                            >
+                                <SlidersHorizontal size={14} />
+                            </button>
+                        </div>
+
+                        {/* Filter dropdown */}
+                        {showFilters && (
+                            <div className="absolute right-0 top-full mt-2 w-56 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card z-50 p-4 animate-fade-up space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-navy-900 uppercase tracking-wider">Filtros</span>
+                                    {hasActiveFilters && (
+                                        <button onClick={() => { setFilterAction(''); setFilterUser(''); }} className="text-[10px] font-bold text-red-500 hover:text-red-600">
+                                            Limpiar
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-navy-700/60 uppercase tracking-wider mb-1.5 block">Acción</label>
+                                    <select value={filterAction} onChange={e => setFilterAction(e.target.value)} className="w-full bg-white/60 border border-white/90 rounded-xl px-3 py-2 text-[11px] font-bold text-navy-900 outline-none focus:ring-1 focus:ring-white">
+                                        <option value="">Todas</option>
+                                        <option value="INSERT">Creado</option>
+                                        <option value="UPDATE">Actualizado</option>
+                                        <option value="DELETE">Eliminado</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-navy-700/60 uppercase tracking-wider mb-1.5 block">Usuario</label>
+                                    <select value={filterUser} onChange={e => setFilterUser(e.target.value)} className="w-full bg-white/60 border border-white/90 rounded-xl px-3 py-2 text-[11px] font-bold text-navy-900 outline-none focus:ring-1 focus:ring-white">
+                                        <option value="">Todos</option>
+                                        {uniqueUsers.map(u => (
+                                            <option key={u.uuid} value={u.uuid}>{u.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex flex-col overflow-hidden animate-fade-up mb-4 lg:mb-6">
-                <div className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar">
-                    {loading ? (
-                        <div className="flex items-center justify-center p-12">
-                            <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
-                        </div>
-                    ) : filtered.length === 0 ? (
-                        <div className="py-12 text-center">
-                            <Database size={32} className="mx-auto mb-3 text-navy-900/20" />
-                            <p className="text-sm font-semibold text-navy-700/60">Sin registros de auditoría.</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2 pt-3">
-                            {filtered.map(log => {
-                                const mod = MODULES[log.table_name] || log.table_name || '—';
-                                const act = ACTIONS[log.action] || log.action || '—';
-                                const actStyle = ACTION_STYLES[log.action] || 'bg-gray-100 text-gray-600 border-gray-200';
-                                const who = userName(log.changed_by);
-                                const d = log.created_at ? new Date(log.created_at) : null;
+            <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 lg:mb-6">
+                {loading ? (
+                    <div className="flex items-center justify-center p-12">
+                        <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div className="py-12 text-center">
+                        <Database size={32} className="mx-auto mb-3 text-navy-900/20" />
+                        <p className="text-sm font-semibold text-navy-700/60">Sin registros de auditoría.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-2 pt-1">
+                        {filtered.map(log => {
+                            const modRaw = MODULES[log.table_name] || log.table_name || '—';
+                            const mod = modRaw.charAt(0).toUpperCase() + modRaw.slice(1).toLowerCase();
+                            const act = ACTIONS[log.action] || log.action || '—';
+                            const actStyle = ACTION_STYLES[log.action] || 'bg-gray-100 text-gray-600 border-gray-200';
+                            
+                            // Title Case User
+                            const whoRaw = userName(log.changed_by);
+                            const who = whoRaw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                            
+                            const d = log.created_at ? new Date(log.created_at) : null;
 
-                                const oldP = parseData(log.old_data);
-                                const newP = parseData(log.new_data);
-                                const isUpdate = log.action === 'UPDATE';
-                                const isDelete = log.action === 'DELETE';
+                            const isInsert = log.action === 'INSERT';
+                            const isUpdate = log.action === 'UPDATE';
+                            const isDelete = log.action === 'DELETE';
 
-                                return (
-                                    <div key={log.id} className="bg-white/50 hover:bg-white/70 border border-white/60 rounded-2xl px-5 py-4 transition-colors">
-                                        {/* Header: Acción → Módulo → Usuario → Hora */}
-                                        <div className="flex items-center gap-2.5 flex-wrap mb-3">
-                                            {/* Acción */}
-                                            <span className={`text-[9px] font-bold px-2.5 py-1 rounded-lg border uppercase tracking-widest ${actStyle}`}>
-                                                {act}
-                                            </span>
+                            const oldPRaw = parseData(log.old_data, log.table_name, patientMap);
+                            const newPRaw = parseData(log.new_data, log.table_name, patientMap);
 
-                                            {/* Módulo */}
-                                            <span className="text-[9px] font-bold text-navy-700 bg-navy-900/5 px-2.5 py-1 rounded-lg border border-navy-900/10 uppercase tracking-widest">
-                                                {mod}
-                                            </span>
+                            // Extract context tags
+                            const ctxPaciente = (newPRaw || oldPRaw)?.find(e => e.label === 'Paciente')?.value;
+                            const ctxTelefono = (newPRaw || oldPRaw)?.find(e => e.label === 'Teléfono')?.value;
 
-                                            <div className="w-px h-4 bg-navy-900/10" />
+                            // Filter out context tags for the delta view
+                            const oldP = oldPRaw?.filter(e => e.label !== 'Paciente' && e.label !== 'Teléfono');
+                            const newP = newPRaw?.filter(e => e.label !== 'Paciente' && e.label !== 'Teléfono');
 
-                                            {/* Usuario */}
-                                            <span className="text-[11px] font-bold text-navy-900">
-                                                {who}
-                                            </span>
+                            const summary = getLogSummary(log, oldP, newP, ctxPaciente);
 
-                                            {/* Hora (derecha) */}
+                            return (
+                                <div key={log.id} className="bg-white/40 hover:bg-white/60 border border-white/50 rounded-2xl px-5 py-4 transition-all">
+                                    <div className="flex items-center gap-3.5">
+                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${actStyle}`}>
+                                            {isInsert ? <Plus size={16} strokeWidth={2.5} /> : isDelete ? <Trash2 size={16} strokeWidth={2.5} /> : <Edit2 size={16} strokeWidth={2.5} />}
+                                        </div>
+                                        
+                                        <div className="flex-1">
+                                            <p className="text-[13px] font-semibold text-navy-900 leading-snug">
+                                                <span className="font-bold text-navy-900/60 text-[10px] tracking-wider block mb-0.5">{who}</span>
+                                                {String(summary || '').charAt(0).toUpperCase() + String(summary || '').slice(1)}.
+                                            </p>
                                             {d && (
-                                                <div className="ml-auto flex items-center gap-1.5 text-[10px] text-navy-900/45 font-semibold shrink-0">
-                                                    <span>{d.toLocaleDateString('es-GT', { day: '2-digit', month: 'short' })}</span>
-                                                    <span className="text-navy-900/20">•</span>
-                                                    <span>{d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <div className="flex items-center gap-2 mt-1.5">
+                                                    <span className="text-[10px] font-bold text-navy-900/40 tracking-widest bg-white/50 px-2 py-0.5 rounded border border-white/80">
+                                                        {mod}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-navy-900/40 tracking-wider">
+                                                        {d.toLocaleDateString('es-GT', { day: '2-digit', month: 'short' })} • {d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* Data */}
-                                        {(oldP || newP) && (() => {
-                                            // Colores: DELETE = rojo "Datos", INSERT = verde "Datos", UPDATE = amber antes + verde después
-                                            const oldStyle = isDelete
-                                                ? 'bg-rose-50/40 border-rose-200/30'
-                                                : 'bg-amber-50/40 border-amber-200/30';
-                                            const oldLabel = isDelete
-                                                ? 'text-rose-500/80'
-                                                : 'text-amber-600/80';
-                                            const newStyle = 'bg-emerald-50/40 border-emerald-200/30';
-                                            const newLabel = 'text-emerald-600/80';
-
-                                            return (
-                                                <div className={`grid gap-3 ${oldP && newP ? 'grid-cols-[1fr_auto_1fr]' : 'grid-cols-1'}`}>
-                                                    {oldP && (
-                                                        <div className={`border rounded-xl px-3 py-2.5 ${oldStyle}`}>
-                                                            <div className={`text-[9px] font-bold uppercase tracking-widest mb-1.5 ${oldLabel}`}>
-                                                                {isDelete ? 'Datos' : 'Antes'}
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                {oldP.map((e, i) => (
-                                                                    <div key={i} className="flex gap-2 text-[11px]">
-                                                                        <span className="text-navy-700/50 font-semibold min-w-[70px] shrink-0">{e.label}</span>
-                                                                        <span className="text-navy-800/70 break-all">{e.value}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {oldP && newP && (
-                                                        <div className="flex items-center justify-center">
-                                                            <ArrowRight size={14} className="text-navy-900/20" />
-                                                        </div>
-                                                    )}
-
-                                                    {newP && (
-                                                        <div className={`border rounded-xl px-3 py-2.5 ${isUpdate ? newStyle : (log.action === 'INSERT' ? 'bg-emerald-50/40 border-emerald-200/30' : oldStyle)}`}>
-                                                            <div className={`text-[9px] font-bold uppercase tracking-widest mb-1.5 ${isUpdate ? newLabel : (log.action === 'INSERT' ? 'text-emerald-600/80' : oldLabel)}`}>
-                                                                {oldP ? 'Después' : 'Datos'}
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                {newP.map((e, i) => (
-                                                                    <div key={i} className="flex gap-2 text-[11px]">
-                                                                        <span className="text-navy-700/50 font-semibold min-w-[70px] shrink-0">{e.label}</span>
-                                                                        <span className="text-navy-900 font-semibold break-all">{e.value}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })()}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );

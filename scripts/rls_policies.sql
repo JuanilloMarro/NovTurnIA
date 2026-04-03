@@ -23,11 +23,27 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 CREATE OR REPLACE FUNCTION get_user_business_id()
 RETURNS INTEGER
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 AS $$
-  SELECT business_id FROM staff_users WHERE id = auth.uid() LIMIT 1;
+DECLARE
+  cached_bid TEXT;
+  result_bid INTEGER;
+BEGIN
+  -- Intenta leer del cache de sesión (missing_ok=true evita exception si no existe)
+  cached_bid := current_setting('app.business_id', true);
+  IF cached_bid IS NOT NULL AND cached_bid <> '' THEN
+    RETURN cached_bid::INTEGER;
+  END IF;
+
+  -- Cache miss: buscar en staff_users y guardar en variable de sesión
+  SELECT business_id INTO result_bid
+  FROM staff_users WHERE id = auth.uid() LIMIT 1;
+
+  PERFORM set_config('app.business_id', result_bid::TEXT, true);
+  RETURN result_bid;
+END;
 $$;
 
 -- ════════════════════════════════════════════════════════════

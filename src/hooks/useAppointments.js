@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getAppointmentsByWeek } from '../services/supabaseService';
 import { useRealtimeAppointments } from './useRealtime';
 
@@ -44,21 +44,23 @@ export function useAppointments() {
     };
 
     const { start: rangeStart, end: rangeEnd } = getRange(anchorDate, viewMode);
+    const hasLoadedRef = useRef(false);
 
     const load = useCallback(async () => {
-        if (appointments.length === 0) setLoading(true);
+        if (!hasLoadedRef.current) setLoading(true);
         try {
             const data = await getAppointmentsByWeek(
                 rangeStart.toISOString().slice(0, 10),
                 rangeEnd.toISOString().slice(0, 10)
             );
             setAppointments(data);
+            hasLoadedRef.current = true;
         } catch (err) {
             console.error("Error loading appointments:", err);
         } finally {
             setLoading(false);
         }
-    }, [rangeStart.getTime(), rangeEnd.getTime(), appointments.length]);
+    }, [rangeStart.getTime(), rangeEnd.getTime()]);
 
     useEffect(() => { load(); }, [load]);
 

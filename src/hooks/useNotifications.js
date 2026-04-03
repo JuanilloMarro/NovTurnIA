@@ -50,9 +50,7 @@ export function useNotifications() {
                     // (Frontend components already show their own detailed toasts)
                 }
             )
-            .subscribe((status) => {
-                console.log('📡 Realtime Notificaciones:', status);
-            });
+            .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
