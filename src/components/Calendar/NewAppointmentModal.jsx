@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { createAppointment, getPatients } from '../../services/supabaseService';
 import { X, Search, Calendar, ChevronDown, Save } from 'lucide-react';
@@ -27,13 +27,23 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Debounce ref para el buscador de pacientes.
+    // Sin debounce, cada carácter escrito dispara una query a Supabase:
+    // escribir "Juan García" genera ~10 queries simultáneas, derrocha quota
+    // y puede generar race conditions (respuesta 3 llega antes que respuesta 5).
+    const searchDebounceRef = useRef(null);
+
     if (!isOpen) return null;
 
-    async function searchPatients(q) {
+    function searchPatients(q) {
         setPatientQ(q);
-        if (q.length < 2) return setPatients([]);
-        const data = await getPatients(q);
-        setPatients(data);
+        setPatients([]);
+        clearTimeout(searchDebounceRef.current);
+        if (q.length < 2) return;
+        searchDebounceRef.current = setTimeout(async () => {
+            const data = await getPatients(q);
+            setPatients(data);
+        }, 300);
     }
 
     async function handleSubmit(e) {

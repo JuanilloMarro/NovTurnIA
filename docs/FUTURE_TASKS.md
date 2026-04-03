@@ -202,7 +202,37 @@ Agregar `.env` a `.gitignore` y crear `.env.example` con placeholders.
 
 ---
 
-### 2.2 🟠 Eliminar filtro `BUSINESS_ID` redundante del frontend
+### 2.2 ✅ ~~Deshabilitar `?bid=` override en producción~~ (COMPLETADO 2026-04-03)
+
+**Resuelto:** `config/supabase.js` ahora solo lee `?bid=` de la URL cuando `import.meta.env.DEV` es `true`. En builds de producción, el valor siempre se establece desde el perfil autenticado via `setBusinessId()` en `useAuth.js`.
+
+---
+
+### 2.3 ✅ ~~RBAC completamente del lado del cliente (MAIN_ROLES hardcodeado)~~ (COMPLETADO 2026-04-03)
+
+**Resuelto:** Eliminado el array `MAIN_ROLES = ['dentist', 'barber', ...]` de `usePermissions.js`. Todos los permisos ahora se derivan **únicamente** del campo `permissions` en la columna de `staff_roles` en la DB. No existe ningún rol "especial" en el frontend. Si un rol necesita todos los permisos, éstos deben estar seteados en su registro de DB.
+
+---
+
+### 2.4 ✅ ~~Subscription leak en `onAuthStateChange` + TOKEN_REFRESHED no manejado~~ (COMPLETADO 2026-04-03)
+
+**Resuelto:** `initializeAuth` en `useAuth.js` ahora retorna el objeto `subscription`. `App.jsx` almacena la referencia y llama `subscription.unsubscribe()` en el cleanup del `useEffect`. Además, se agregó manejo de los eventos `TOKEN_REFRESHED` y `SIGNED_IN` para re-fetch del perfil cuando Supabase rota el JWT automáticamente.
+
+---
+
+### 2.5 ✅ ~~`deletePatient` era hard delete~~ (COMPLETADO 2026-04-03)
+
+**Resuelto:** `deletePatient` en `supabaseService.js` ahora hace soft delete (`.update({ deleted_at: ... })`) en lugar de `.delete()`. El historial de turnos, conversaciones y audit trail del paciente se preserva. `getPatients` ya filtraba `.is('deleted_at', null)`, por lo que el paciente desaparece del listado sin borrar datos.
+
+---
+
+### 2.6 ✅ ~~Headers de seguridad faltantes~~ (COMPLETADO 2026-04-03)
+
+**Resuelto:** Agregado `Content-Security-Policy` en `vercel.json`. Los demás headers (`X-Frame-Options`, `X-Content-Type-Options`, `HSTS`, `Referrer-Policy`, `X-XSS-Protection`) ya estaban presentes. El CSP restringe scripts/estilos al origen, y `connect-src` limita las conexiones a `*.supabase.co` únicamente.
+
+---
+
+### 2.7 🟠 Refactorizar fuente de `BUSINESS_ID` — eliminar filtro `?bid=` redundante del frontend
 
 **Problema:** Casi TODAS las queries en `supabaseService.js` tienen `.eq('business_id', BUSINESS_ID)` — se encontraron **27 ocurrencias**. Pero RLS ya filtra por `business_id` en el servidor.
 
@@ -310,45 +340,22 @@ const Stats = React.lazy(() => import('./pages/Stats'));
 
 ---
 
-### 3.4 🟡 Eliminar debounce del search con `window._patientSearchTimeout`
+### 3.4 ✅ ~~Eliminar debounce del search con `window._patientSearchTimeout`~~ (COMPLETADO 2026-04-03)
 
-**Problema:** `usePatients.js` (línea 47) usa un timeout global en `window`:
-```js
-clearTimeout(window._patientSearchTimeout);
-window._patientSearchTimeout = setTimeout(() => load(q), 300);
-```
-
-Problemas:
-- Poluciona el namespace global
-- No se limpia en unmount
-- Patrón frágil si hay múltiples instancias del componente
-
-**Solución:** Usar un `useRef` o `useDebouncedCallback` de `use-debounce`:
-```js
-const debouncedSearch = useDebouncedCallback((q) => load(q), 300);
-```
-
-**Esfuerzo:** Bajo
+**Resuelto:** Reemplazado `window._patientSearchTimeout` por `useRef(null)` privado a la instancia del hook. Se agregó un `useEffect` de cleanup que llama `clearTimeout` al desmontar. Además se removió `rawPatients.length` de las dependencias de `useCallback` (reemplazado por `hasDataRef`), eliminando el ciclo potencial que causaba re-fetches al recibir eventos de realtime.
 
 ---
 
 ## 4. Rendimiento Frontend
 
-### 4.1 🟠 `useStats` hace 7 queries sin cache ni stale detection
+### 4.1 ✅ ~~`useStats` hace 7 queries sin cache ni stale detection~~ (COMPLETADO 2026-04-03)
 
-**Problema:** Cada vez que abres `/stats`:
-- Se ejecutan 7 queries en paralelo
-- No hay cache: salir y volver dispara todo de nuevo
-- No hay stale detection
-- La función `load()` siempre muestra loading spinner
+**Resuelto:** `useStats.js` fue refactorizado para:
+1. Usar `getStatsOverview()` (vistas materializadas `mv_business_stats` + `mv_patient_stats`) para conteos de pacientes y comparación con mes anterior — reemplazando 2 queries crudas a tablas grandes
+2. Agregar cache de 5 minutos en Zustand (`_statsCache`) — navegaciones frecuentes a `/stats` son instantáneas
+3. Exponer `reload` para forzar refresco desde la UI si se necesita
 
-Esto con la tabla `history` creciendo, puede tardar segundos.
-
-**Solución inmediata:**
-1. Agregar cache similar a `usePatients` (con `STALE_MS`)
-2. Mover a RPC (ver tarea 1.3)
-
-**Esfuerzo:** Bajo (cache) / Medio (RPC)
+De 7 queries + sin cache → 4 queries + cache de 5 min.
 
 ---
 

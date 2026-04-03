@@ -20,8 +20,14 @@ export default function Login() {
         setLoading(true);
         try {
             await login(email, password);
+            // Limpiar el campo de contraseña inmediatamente tras el submit exitoso.
+            // El password no debe permanecer en el estado de React más tiempo del necesario:
+            // si el componente no se desmonta de inmediato (ej: animación de salida),
+            // la contraseña queda en memoria y podría ser inspeccionada con DevTools.
+            setPassword('');
         } catch (err) {
             setError('Credenciales incorrectas, vuelve a intentarlo');
+            setPassword('');
         } finally {
             setLoading(false);
         }

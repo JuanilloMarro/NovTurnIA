@@ -79,10 +79,31 @@ export async function initializeAuth(setAuth, setLoading, clearAuth) {
     }
 
     // Escuchar cambios de sesión
-    supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         if (event === 'SIGNED_OUT') {
             setBusinessId(0);
             clearAuth();
+        } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+             // Si hay sesión y aún no tenemos el perfil o algo falló, volvemos a checkear
+            if (currentSession && currentSession.user) {
+                try {
+                    const { data: profile } = await supabase
+                        .from('staff_users')
+                        .select('*, staff_roles(*)')
+                        .eq('id', currentSession.user.id)
+                        .eq('active', true)
+                        .single();
+                        
+                    if (profile) {
+                        setBusinessId(profile.business_id);
+                        setAuth(profile, profile);
+                    }
+                } catch (e) {
+                    console.error('Error fetching on auth change', e);
+                }
+            }
         }
     });
+    
+    return subscription;
 }

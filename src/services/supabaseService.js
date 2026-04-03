@@ -33,8 +33,7 @@ export async function createAppointment({ patientId, serviceId, date, startTime,
             date_end: toISO(date, endTime),
             status: 'scheduled',
             created_by: 'dashboard',
-            confirmed: false,
-            notif_24hs: false
+            confirmed: false
         })
         .select()
         .single();
@@ -44,7 +43,7 @@ export async function createAppointment({ patientId, serviceId, date, startTime,
         if (error.code === '23P01') {
             throw new Error('Este horario ya está ocupado. Seleccioná otro.');
         }
-        console.error('Insert Error:', error);
+        console.error('Insert Error — code:', error.code, '| message:', error.message, '| details:', error.details, '| hint:', error.hint);
         throw new Error('Error al guardar el turno. Verifica los datos.');
     }
     return data;
@@ -117,7 +116,15 @@ export async function getPatients(search = '') {
         .limit(5, { referencedTable: 'appointments' });
 
     if (search) {
-        query = query.or(`display_name.ilike.%${search}%`);
+        // Escapar caracteres especiales de PostgREST antes de interpolar en el filtro.
+        // Los caracteres , ( ) . tienen significado en la sintaxis de filtros PostgREST:
+        //   , separa condiciones OR
+        //   ( ) agrupan expresiones
+        //   . separa tabla.columna
+        // Sin escape, un input como "Ana,id.gt.0" podría inyectar condiciones adicionales
+        // (filter injection). Escapamos % y _ también para que la búsqueda sea literal.
+        const safe = search.replace(/[%_(),. ]/g, c => `\\${c}`);
+        query = query.or(`display_name.ilike.%${safe}%`);
     }
 
     const { data, error } = await query;
@@ -205,7 +212,7 @@ export async function createPatient({ display_name, phone, email, notes }) {
         .from('patient_phones')
         .insert({ patient_id: patient.id, phone, is_primary: true });
     if (phoneError) {
-        console.error('Create Phone Error:', phoneError);
+        console.error('Create Phone Error — code:', phoneError.code, '| msg:', phoneError.message, '| hint:', phoneError.hint);
         throw new Error('Paciente creado pero error al guardar teléfono.');
     }
 
@@ -258,7 +265,7 @@ export async function updatePatient(patientId, { display_name, phone }) {
 export async function deletePatient(patientId) {
     const { error } = await supabase
         .from('patients')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', patientId)
         .eq('business_id', BUSINESS_ID);
     if (error) throw new Error('No se pudo eliminar al paciente.');

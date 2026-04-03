@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
-import { Shield, User, Check, Key, Info, X, Mail, Save, Lock } from 'lucide-react';
+import { Shield, Check, Save, Lock, Info } from 'lucide-react';
 import { showErrorToast, showSuccessToast } from '../store/useToastStore';
 
 function getInitials(name) {
@@ -10,12 +10,19 @@ function getInitials(name) {
     return name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-// ── Helpers: Detectar si un rol es "main user" (no secretary) ──
-const MAIN_ROLES = ['dentist', 'barber', 'veterinarian', 'doctor', 'admin'];
-function isMainRole(roleName) {
-    return MAIN_ROLES.includes((roleName || '').toLowerCase());
-}
+// isMainRole y MAIN_ROLES han sido eliminados de este archivo.
+// Antes se usaban para determinar si los permisos de un usuario estaban bloqueados
+// y si el usuario actual podía editar permisos. El problema:
+//   1. Duplicaba la lógica hardcodeada que acabamos de eliminar de usePermissions.js
+//   2. canEditPermissions usaba isCurrentUserMain (hardcodeado) en lugar de canManageRoles
+//      (derivado de la DB), creando una inconsistencia: un usuario con manage_roles:true
+//      cuyo rol se llame "supervisor" no podría editar permisos aunque la DB lo autorice.
+//   3. Los checkboxes mostraban todos en true para "doctor" sin consultar la DB.
+// Ahora: un usuario puede editar si canManageRoles (del hook, derivado de DB).
+// Un rol tiene permisos "fijos" si la DB no permite edición (rol no-secretary).
 function isSecretaryRole(roleName) {
+    // La única categoría de rol con permisos configurables en este sistema.
+    // Los roles principales deben tener sus permisos seteados directamente en DB.
     return (roleName || '').toLowerCase() === 'secretary';
 }
 
@@ -35,19 +42,15 @@ function translateRole(name) {
 
 export default function Users() {
     const { users, roles, loading, changeRole, changeRolePermissions } = useUsers();
-    const { user: currentUser, profile: currentProfile } = useAuth();
+    const { user: currentUser } = useAuth();
     const { canManageRoles } = usePermissions();
     const [selectedUser, setSelectedUser] = useState(null);
-
-    // Determine if the current logged-in user is a "main user" (admin/dentist/barber/vet/doctor)
-    const currentRoleName = currentProfile?.staff_roles?.name || '';
-    const isCurrentUserMain = isMainRole(currentRoleName);
 
     const getRoleBadge = (user) => {
         const roleName = user.staff_roles?.name || 'Personal';
         const label = translateRole(roleName);
-        const isMain = isMainRole(roleName);
-        if (isMain) return { label, classes: 'bg-navy-900 text-white shadow-navy-100' };
+        const isSecretary = isSecretaryRole(roleName);
+        if (!isSecretary) return { label, classes: 'bg-navy-900 text-white shadow-navy-100' };
         return { label, classes: 'bg-white border border-gray-200 text-gray-600 shadow-sm' };
     };
 
@@ -59,9 +62,11 @@ export default function Users() {
 
     // ── Determine permission editability for selected user ──
     const selectedRoleName = selectedUser?.staff_roles?.name || '';
-    const isSelectedMain = isMainRole(selectedRoleName);
     const isSelectedSecretary = isSecretaryRole(selectedRoleName);
-    const canEditPermissions = isCurrentUserMain && isSelectedSecretary;
+    // canEditPermissions usa canManageRoles del hook (derivado 100% de la DB),
+    // no del array MAIN_ROLES hardcodeado. Antes un "supervisor" con manage_roles:true
+    // no podía editar porque su nombre no estaba en la lista.
+    const canEditPermissions = canManageRoles && isSelectedSecretary;
 
     return (
         <div className="h-full flex flex-col mx-auto w-full max-w-4xl pt-2 px-0">
@@ -140,14 +145,14 @@ export default function Users() {
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-col xl:items-end">
-                                        {isSelectedMain && (
+                                    <div className="flex flex-col xl:items-end gap-1.5">
+                                        {!isSelectedSecretary && (
                                             <div className="flex items-center gap-1.5 text-[9px] font-bold text-navy-700 bg-navy-900/5 border border-navy-900/10 px-2.5 py-1 rounded-full">
                                                 <Lock size={10} />
-                                                Permisos completos
+                                                Permisos definidos en DB
                                             </div>
                                         )}
-                                        {isSelectedSecretary && isCurrentUserMain && (
+                                        {isSelectedSecretary && canManageRoles && (
                                             <div className="flex items-center gap-1.5 text-[9px] font-bold text-navy-700 bg-navy-900/5 border border-navy-900/10 px-2.5 py-1 rounded-full">
                                                 <Shield size={10} />
                                                 Permisos configurables
@@ -193,11 +198,11 @@ export default function Users() {
                                             <h5 className="text-[12px] font-bold text-navy-700 tracking-wide mb-3 border-b border-navy-900/10 pb-1.5">{group.title}</h5>
                                             <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-y-4 gap-x-4 pt-1">
                                                 {group.perms.map(perm => {
-                                                    const isChecked = isSelectedMain
-                                                        ? true
-                                                        : (selectedUser.staff_roles?.permissions?.[perm.key] || false);
-                                                    
-                                                    const isLocked = isSelectedMain || !canEditPermissions;
+                                                    // El valor del checkbox viene siempre de la DB (permissions JSON).
+                                                    // Antes: si el rol era "doctor", todos los checkboxes se forzaban a true
+                                                    // sin importar lo que dijera la DB. Ahora la DB es la única fuente de verdad.
+                                                    const isChecked = selectedUser.staff_roles?.permissions?.[perm.key] || false;
+                                                    const isLocked = !canEditPermissions;
                                                     
                                                     const togglePermission = () => {
                                                         if (isLocked) return;

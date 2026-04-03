@@ -38,7 +38,13 @@ export default function App() {
     const { canViewStats, canManageRoles } = usePermissions();
 
     useEffect(() => {
-        initializeAuth(setAuth, setLoading, clearAuth);
+        let subscription;
+        initializeAuth(setAuth, setLoading, clearAuth).then(sub => {
+            subscription = sub;
+        });
+        return () => {
+            if (subscription) subscription.unsubscribe();
+        };
     }, []);
 
     return (

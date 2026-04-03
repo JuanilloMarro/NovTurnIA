@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Send, MessageCircle, Bot, User as UserIcon, ShieldAlert } from 'lucide-react';
+import { Search, MessageCircle, Bot, ShieldAlert } from 'lucide-react';
 import AIStar from '../components/Icons/AIStar';
 import { usePatients } from '../hooks/usePatients';
-import { getPatientHistory } from '../services/supabaseService';
-import { supabase } from '../config/supabase';
+import { usePermissions } from '../hooks/usePermissions';
+import { getPatientHistory, setHumanTakeover } from '../services/supabaseService';
+import { showErrorToast } from '../store/useToastStore';
 import { formatPhone } from '../utils/format';
 
 function getInitials(name) {
@@ -17,6 +18,7 @@ export default function Conversations() {
     const patientIdFromUrl = searchParams.get('patient');
 
     const { patients, search, handleSearch } = usePatients();
+    const { canToggleAi } = usePermissions();
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [history, setHistory] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
@@ -50,15 +52,26 @@ export default function Conversations() {
 
     async function handleReactivateIA() {
         if (!selectedPatient) return;
+
+        // Verificar permiso antes de ejecutar — la ruta /conversations no verifica canToggleAi,
+        // por lo que cualquier staff con acceso a esta página podría reactivar la IA
+        // aunque su rol tenga toggle_ai: false. Esta comprobación es la defensa real.
+        if (!canToggleAi) return;
+
         try {
-            const { data } = await supabase.rpc('reactivate_bot', {
-                p_patient_id: selectedPatient.id
-            });
-            if (data?.ok !== false) {
-                setSelectedPatient({ ...selectedPatient, human_takeover: false });
-            }
+            // Usar setHumanTakeover(false) del service layer en lugar de llamar
+            // supabase.rpc directamente desde el componente.
+            // El llamado directo: (1) viola la arquitectura documentada,
+            // (2) duplicaba lógica que ya existía en supabaseService.js,
+            // (3) expone err.message via alert() que puede contener detalles internos de Supabase.
+            await setHumanTakeover(selectedPatient.id, false);
+            setSelectedPatient({ ...selectedPatient, human_takeover: false });
         } catch (err) {
-            alert('Error al reactivar IA: ' + err.message);
+            // Usar el sistema de toasts en lugar de alert():
+            // alert() es bloqueante, inconsistente con el resto de la UI, y concatena
+            // err.message directamente, potencialmente exponiendo stack traces o detalles
+            // internos de la API al usuario final.
+            showErrorToast('Error al reactivar IA', 'No se pudo reactivar el bot. Intenta nuevamente.');
         }
     }
 
@@ -137,7 +150,7 @@ export default function Conversations() {
                                     </div>
                                 </div>
 
-                                {selectedPatient.human_takeover && (
+                                {selectedPatient.human_takeover && canToggleAi && (
                                     <button
                                         onClick={handleReactivateIA}
                                         className="flex items-center gap-2 px-3.5 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-[11px] font-bold shadow-sm hover:bg-amber-100 transition-all group/btn"

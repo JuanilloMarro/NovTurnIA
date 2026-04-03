@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { getPatients } from '../services/supabaseService';
 import { useRealtimePatients } from './useRealtime';
 import { useAppStore } from '../store/useAppStore';
@@ -9,24 +9,35 @@ export function usePatients() {
     const [search, setSearch] = useState('');
     const [sortOrder, setSortOrder] = useState('recent');
 
+    // useRef en lugar de rawPatients.length como dependencia:
+    // Tener rawPatients.length en el array de deps de useCallback recrea la función cada vez
+    // que la lista cambia de tamaño. Esto causaba que el callback de realtime llamara load(),
+    // que actualizaba rawPatients, que recreaba load(), creando un ciclo potencial.
+    // Con un ref, la función es estable y solo se recrea si cambia `search`.
+    const hasDataRef = useRef(false);
+
+    // useRef para el debounce del buscador en lugar de window._patientSearchTimeout:
+    // Usar window contamina el namespace global y no se limpia al desmontar el componente.
+    // Si hay múltiples instancias montadas a la vez, comparten el mismo timeout.
+    // Un ref es privado a la instancia del hook y se limpia correctamente.
+    const searchTimeoutRef = useRef(null);
+
     const load = useCallback(async (q = search, forceRefresh = false) => {
         const cache = useAppStore.getState()._patientsCache;
         const STALE_MS = 60_000; // 1 minuto
 
-        // Usar caché solo si no hay búsqueda, no se fuerza el refresco, y la caché está fresca
         if (!q && !forceRefresh && cache.data.length > 0 && Date.now() - cache.fetchedAt < STALE_MS) {
             setRawPatients(cache.data);
             setLoading(false);
             return;
         }
 
-        // Solo mostrar loading si es la carga inicial o si no hay datos en caché válidos
-        if (rawPatients.length === 0) setLoading(true);
+        if (!hasDataRef.current) setLoading(true);
         try {
             const data = await getPatients(q);
             setRawPatients(data);
-            
-            // Guardar en caché solo la lista completa (sin búsqueda)
+            hasDataRef.current = true;
+
             if (!q) {
                 useAppStore.getState().setPatientsCache(data);
             }
@@ -34,18 +45,22 @@ export function usePatients() {
         } finally {
             setLoading(false);
         }
-    }, [search, rawPatients.length]);
+    }, [search]); // rawPatients.length removido de las dependencias
 
     useEffect(() => {
         load('');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Búsqueda con debounce
+    // Limpieza del debounce al desmontar — evita que el timeout dispare después del unmount
+    useEffect(() => {
+        return () => clearTimeout(searchTimeoutRef.current);
+    }, []);
+
     function handleSearch(q) {
         setSearch(q);
-        clearTimeout(window._patientSearchTimeout);
-        window._patientSearchTimeout = setTimeout(() => load(q), 300);
+        clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = setTimeout(() => load(q), 300);
     }
 
     // Realtime Sync (Optimized: only re-fetch on Insert/Delete, Update locally)

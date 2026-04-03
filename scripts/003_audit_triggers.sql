@@ -5,42 +5,63 @@
 
 CREATE OR REPLACE FUNCTION handle_audit_log()
 RETURNS trigger AS $$
+DECLARE
+    computed_business_id INTEGER;
+    computed_record_id UUID;
+    computed_old_data JSON;
+    computed_new_data JSON;
 BEGIN
+    IF TG_OP = 'DELETE' THEN
+        computed_business_id := OLD.business_id;
+        computed_record_id := OLD.id;
+        computed_old_data := row_to_json(OLD);
+    ELSIF TG_OP = 'INSERT' THEN
+        computed_business_id := NEW.business_id;
+        computed_record_id := NEW.id;
+        computed_new_data := row_to_json(NEW);
+    ELSE
+        computed_business_id := NEW.business_id;
+        computed_record_id := NEW.id;
+        computed_old_data := row_to_json(OLD);
+        computed_new_data := row_to_json(NEW);
+    END IF;
+
     INSERT INTO audit_log (
         business_id,
         table_name,
+        record_id,
         action,
         old_data,
         new_data,
         changed_by
     ) VALUES (
-        COALESCE(NEW.business_id, OLD.business_id),
+        computed_business_id,
         TG_TABLE_NAME,
-        TG_OP,
-        CASE WHEN TG_OP IN ('UPDATE', 'DELETE') THEN row_to_json(OLD) ELSE NULL END,
-        CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN row_to_json(NEW) ELSE NULL END,
+        computed_record_id,
+        TG_OP::audit_action,
+        computed_old_data,
+        computed_new_data,
         auth.uid()
     );
-    RETURN COALESCE(NEW, OLD);
+    
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Disparadores para Turnos
+-- 1. LIMPIAR TODOS LOS TRIGGERS (Incluso los problemáticos)
+DROP TRIGGER IF EXISTS trg_audit_patient_phones ON patient_phones;
 DROP TRIGGER IF EXISTS trg_audit_appointments ON appointments;
+DROP TRIGGER IF EXISTS trg_audit_patients ON patients;
+
+-- 2. DISPARADORES LIMPIOS SOLO A TABLAS MAESTRAS
 CREATE TRIGGER trg_audit_appointments
     AFTER INSERT OR UPDATE OR DELETE ON appointments
     FOR EACH ROW EXECUTE FUNCTION handle_audit_log();
 
--- Disparadores para Pacientes
-DROP TRIGGER IF EXISTS trg_audit_patients ON patients;
 CREATE TRIGGER trg_audit_patients
     AFTER INSERT OR UPDATE OR DELETE ON patients
     FOR EACH ROW EXECUTE FUNCTION handle_audit_log();
-
--- Disparadores para Teléfonos
-DROP TRIGGER IF EXISTS trg_audit_patient_phones ON patient_phones;
-CREATE TRIGGER trg_audit_patient_phones
-    AFTER INSERT OR UPDATE OR DELETE ON patient_phones
-    FOR EACH ROW EXECUTE FUNCTION handle_audit_log();
-
--- Info: Asegúrate de que las políticas RLS sobre audit_log sigan activadas.

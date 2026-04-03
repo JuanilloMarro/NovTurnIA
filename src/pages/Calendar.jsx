@@ -73,7 +73,7 @@ export default function Calendar() {
                     </button>
                     <div className="flex items-center gap-2 px-3 text-navy-900 font-bold">
                         <CalendarIcon size={14} className="text-navy-900" />
-                        <span className="capitalize text-[13px] tracking-tight whitespace-nowrap">{monthName}</span>
+                        <span className="capitalize text-[11px] font-bold tracking-tight whitespace-nowrap">{monthName}</span>
                     </div>
                     <button onClick={handleNext} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
                         <ChevronRight size={16} />

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePatients } from '../hooks/usePatients';
-import { supabase, BUSINESS_ID } from '../config/supabase';
+import { getPatientHistory } from '../services/supabaseService';
 
 function getInitials(name) {
     if (!name) return '?';
@@ -30,16 +30,26 @@ export default function PatientHistory() {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [history]);
 
-    async function loadHistory(userId) {
+    async function loadHistory(patientId) {
+        // Validar que el id sea un UUID válido antes de hacer el query.
+        // El patientId viene de useParams() — directamente del URL — y nunca fue
+        // validado. Sin esta comprobación, cualquier string arbitrario (incluyendo
+        // strings con caracteres especiales) se enviaba directamente a Supabase.
+        // RLS lo bloquea en DB, pero la request inútil igual se hace y queda en logs.
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(patientId)) return;
+
         setLoadingHistory(true);
         try {
-            const { data } = await supabase
-                .from('history')
-                .select('*')
-                .eq('business_id', BUSINESS_ID)
-                .eq('patient_id', userId)
-                .order('created_at', { ascending: true });
+            // Usar getPatientHistory() del service layer en lugar de llamar
+            // supabase directamente desde el componente.
+            // CLAUDE.md es explícito: "never call the Supabase client directly
+            // from components or pages". La función ya existía en supabaseService.js
+            // y no se estaba usando.
+            const data = await getPatientHistory(patientId);
             setHistory(data || []);
+        } catch {
+            setHistory([]);
         } finally {
             setLoadingHistory(false);
         }
@@ -93,7 +103,13 @@ export default function PatientHistory() {
                             </div>
                         </div>
 
-                        <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-gray-50/50" style={{ backgroundImage: "url('https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg')", backgroundBlendMode: 'overlay' }}>
+                        {/* Fondo eliminado: antes apuntaba a una URL de Pinterest CDN.
+                            Problemas: (1) rompía el CSP que solo permite img-src 'self',
+                            (2) cada visita enviaba una request a servers de Pinterest con el
+                            Referer de la app, filtrando actividad de usuarios,
+                            (3) dependencia externa frágil (si Pinterest cambia la URL, se rompe).
+                            Reemplazado por un patrón CSS puro equivalente. */}
+                        <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-gray-50/50" style={{ backgroundImage: 'radial-gradient(circle, #e5e7eb 1px, transparent 1px)', backgroundSize: '20px 20px', backgroundBlendMode: 'overlay' }}>
                             {loadingHistory ? (
                                 <div className="flex justify-center p-8 opacity-50 font-medium">Cargando mensajes...</div>
                             ) : history.length === 0 ? (

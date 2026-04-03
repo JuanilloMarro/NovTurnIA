@@ -125,13 +125,22 @@ function getLogSummary(log, oldP, newP, ctxPaciente) {
             const pName = ctxPaciente || (newP || []).find(e => e?.label === 'Nombre' || e?.label === 'Nombre completo')?.value || 'un paciente';
             
             if (isInsert) return `registró a ${pName} como nuevo paciente`;
-            if (isDelete) return `eliminó el registro del paciente ${pName}`;
+            if (isDelete) return `eliminó el registro de ${pName}`;
             if (isUpdate) {
+                // Verificar si fue un Soft Delete
+                if (!log.old_data?.deleted_at && log.new_data?.deleted_at) {
+                    return `eliminó el registro del paciente ${pName}`;
+                }
+                // Verificar si fue una restauración (opcional)
+                if (log.old_data?.deleted_at && !log.new_data?.deleted_at) {
+                    return `restauró el registro del paciente ${pName}`;
+                }
+
                 const changedFields = (newP || []).filter(e => {
                     const oldVal = (oldP || []).find(o => o?.label === e?.label)?.value;
                     return oldVal !== e?.value;
                 }).map(e => e?.label).filter(Boolean).join(', ');
-                return `actualizó información del paciente ${pName}${changedFields ? ` (${String(changedFields).toLowerCase()})` : ''}`;
+                return `actualizó información de ${pName}${changedFields ? ` (${String(changedFields).toLowerCase()})` : ''}`;
             }
         }
         
@@ -173,7 +182,21 @@ export default function AuditLog() {
                     }; 
                 });
 
-                setLogs(logData || []);
+                const finalLogs = (logData || [])
+                    .filter(l => l.table_name !== 'patient_phones')
+                    .reduce((acc, current) => {
+                        // Deduplicar si existe un log en la misma tabla, misma accion, mismo record en un rango de 5 segundos
+                        const isDuplicate = acc.find(item => 
+                            item.table_name === current.table_name && 
+                            item.action === current.action && 
+                            item.record_id === current.record_id &&
+                            Math.abs(new Date(item.created_at) - new Date(current.created_at)) < 5000
+                        );
+                        if (!isDuplicate) acc.push(current);
+                        return acc;
+                    }, []);
+                
+                setLogs(finalLogs);
                 setStaffMap(sMap);
                 setPatientMap(pMap);
             } catch (err) {
@@ -198,10 +221,15 @@ export default function AuditLog() {
     const hasActiveFilters = filterAction || filterUser;
 
     const filtered = logs.filter(log => {
-        if (filterAction && log.action !== filterAction) return false;
+        // Evaluar la acción efectiva (Visual) para el filtro
+        const isSoftDelete = log.action === 'UPDATE' && !log.old_data?.deleted_at && log.new_data?.deleted_at;
+        const isCancellation = log.action === 'UPDATE' && log.table_name === 'appointments' && log.new_data?.status === 'cancelled' && log.old_data?.status !== 'cancelled';
+        const effectiveAction = (log.action === 'DELETE' || isSoftDelete || isCancellation) ? 'DELETE' : log.action;
+
+        if (filterAction && effectiveAction !== filterAction) return false;
         if (filterUser && log.changed_by !== filterUser) return false;
         if (search) {
-            const t = `${MODULES[log.table_name] || log.table_name} ${ACTIONS[log.action] || log.action} ${userName(log.changed_by)}`.toLowerCase();
+            const t = `${MODULES[log.table_name] || log.table_name} ${ACTIONS[effectiveAction] || effectiveAction} ${userName(log.changed_by)}`.toLowerCase();
             if (!t.includes(search.toLowerCase())) return false;
         }
         return true;
@@ -233,7 +261,7 @@ export default function AuditLog() {
                         <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`w-8 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 ${hasActiveFilters ? 'ring-1 ring-navy-400/30' : ''}`}
+                                className={`w-8 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 outline-none ${hasActiveFilters ? 'ring-1 ring-navy-400/30' : ''}`}
                             >
                                 <SlidersHorizontal size={14} />
                             </button>
@@ -292,7 +320,6 @@ export default function AuditLog() {
                             const modRaw = MODULES[log.table_name] || log.table_name || '—';
                             const mod = modRaw.charAt(0).toUpperCase() + modRaw.slice(1).toLowerCase();
                             const act = ACTIONS[log.action] || log.action || '—';
-                            const actStyle = ACTION_STYLES[log.action] || 'bg-gray-100 text-gray-600 border-gray-200';
                             
                             // Title Case User
                             const whoRaw = userName(log.changed_by);
@@ -301,9 +328,13 @@ export default function AuditLog() {
                             const d = log.created_at ? new Date(log.created_at) : null;
 
                             const isInsert = log.action === 'INSERT';
-                            const isUpdate = log.action === 'UPDATE';
-                            const isDelete = log.action === 'DELETE';
-
+                            
+                            // Detect Soft Deletes or Cancellations
+                            const isSoftDelete = log.action === 'UPDATE' && !log.old_data?.deleted_at && log.new_data?.deleted_at;
+                            const isCancellation = log.action === 'UPDATE' && log.table_name === 'appointments' && log.new_data?.status === 'cancelled' && log.old_data?.status !== 'cancelled';
+                            
+                            const isEffectivelyDelete = log.action === 'DELETE' || isSoftDelete || isCancellation;
+                            
                             const oldPRaw = parseData(log.old_data, log.table_name, patientMap);
                             const newPRaw = parseData(log.new_data, log.table_name, patientMap);
 
@@ -316,12 +347,13 @@ export default function AuditLog() {
                             const newP = newPRaw?.filter(e => e.label !== 'Paciente' && e.label !== 'Teléfono');
 
                             const summary = getLogSummary(log, oldP, newP, ctxPaciente);
+                            const actStyle = ACTION_STYLES[isEffectivelyDelete ? 'DELETE' : log.action] || 'bg-gray-100 text-gray-600 border-gray-200';
 
                             return (
                                 <div key={log.id} className="bg-white/40 hover:bg-white/60 border border-white/50 rounded-2xl px-5 py-4 transition-all">
                                     <div className="flex items-center gap-3.5">
                                         <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${actStyle}`}>
-                                            {isInsert ? <Plus size={16} strokeWidth={2.5} /> : isDelete ? <Trash2 size={16} strokeWidth={2.5} /> : <Edit2 size={16} strokeWidth={2.5} />}
+                                            {isInsert ? <Plus size={16} strokeWidth={2.5} /> : isEffectivelyDelete ? <Trash2 size={16} strokeWidth={2.5} /> : <Edit2 size={16} strokeWidth={2.5} />}
                                         </div>
                                         
                                         <div className="flex-1">
