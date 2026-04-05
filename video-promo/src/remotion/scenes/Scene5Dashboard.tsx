@@ -405,7 +405,7 @@ export const Scene5Dashboard: React.FC = () => {
                       María López
                     </div>
                     <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "#10B981" }}>
-                      9:10 AM · Confirmado ✅
+                      9:00 AM · Confirmado ✅
                     </div>
                   </div>
 
@@ -437,7 +437,7 @@ export const Scene5Dashboard: React.FC = () => {
                           }}>IA ✨</span>
                         </div>
                         <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "#10B981", marginTop: 2 }}>
-                          10:15 AM · Confirmado
+                          10:00 AM · Confirmado
                         </div>
                       </div>
                     );
