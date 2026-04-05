@@ -39,6 +39,34 @@ export const Scene3Solution: React.FC = () => {
   const msg4Opacity = interpolate(msg4Spring, [0, 1], [0, 1]);
   const msg4X = interpolate(msg4Spring, [0, 1], [60, 0]);
 
+  // ── CHECKS (aparecen ~1s después del mensaje) ──────────────────
+  const check1Pop = spring({ frame: frame - 130, fps, config: { damping: 10, stiffness: 200 } });
+  const check2Pop = spring({ frame: frame - 260, fps, config: { damping: 10, stiffness: 200 } });
+  const check3Pop = spring({ frame: frame - 390, fps, config: { damping: 10, stiffness: 200 } });
+  const check4Pop = spring({ frame: frame - 530, fps, config: { damping: 10, stiffness: 200 } });
+
+  const DoubleCheck = ({ scale }: { scale: number }) => (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      transform: `scale(${scale})`,
+      transformOrigin: "right center",
+      marginLeft: 4,
+      position: "relative",
+      width: 16,
+      height: 10
+    }}>
+      {/* Primer Check (atrás) */}
+      <svg width="12" height="10" viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 0 }}>
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+      {/* Segundo Check (adelante) */}
+      <svg width="12" height="10" viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 4 }}>
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    </div>
+  );
+
   // ── PUSH-UP CENTRADO ─────────────────────────────────────────
   const PUSH_M1 = 160;
   const PUSH_M2 = 105;
@@ -83,7 +111,7 @@ export const Scene3Solution: React.FC = () => {
             boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
           }}>
             <span style={{ fontFamily: "Inter", fontSize: 12.5, fontWeight: 700, color: "rgba(0,0,0,0.45)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-              ⚡ Inteligencia Artificial de NovTurnIA
+              Inteligencia Artificial
             </span>
           </div>
 
@@ -101,8 +129,9 @@ export const Scene3Solution: React.FC = () => {
               <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>
                 ¡Hola! Sí, claro ✨ Tengo disponibilidad para mañana. ¿Prefieres a las <b>10:00 AM</b> o a las <b>4:30 PM</b>?
               </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 6 }}>
                 <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.3)" }}>2:20 AM</span>
+                <DoubleCheck scale={interpolate(check1Pop, [0, 1], [0, 1])} />
               </div>
             </div>
           </div>
@@ -113,11 +142,7 @@ export const Scene3Solution: React.FC = () => {
               <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>Mañana a las 10 AM porfa! 🙏</div>
               <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 4 }}>
                 <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.4)" }}>2:21 AM</span>
-                {/* WhatsApp-style double check — consistente con Msg 4 */}
-                <svg width="19" height="11" viewBox="0 0 19 11" fill="none">
-                  <path d="M1 5.5L4 8.5L9.5 2" stroke="rgba(0,0,0,0.38)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M5.5 5.5L8.5 8.5L14 2" stroke="rgba(0,0,0,0.38)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <DoubleCheck scale={interpolate(check2Pop, [0, 1], [0, 1])} />
               </div>
             </div>
           </div>
@@ -128,10 +153,10 @@ export const Scene3Solution: React.FC = () => {
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <div style={{ width: 24, height: 24, borderRadius: "50%", background: COLORS.navy900, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M9 13v2" /><path d="M15 13v2" />
                   </svg>
                 </div>
-                <span style={{ fontFamily: "Inter", fontSize: 13, fontWeight: 700, color: COLORS.green500 }}>Turno Confirmado</span>
+                <span style={{ fontFamily: "Inter", fontSize: 13, fontWeight: 700, color: COLORS.navy700 }}>Asistente NovTurnIA</span>
               </div>
               <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45, marginBottom: 12 }}>
                 ¡Listo! Tu turno está confirmado ✅ Nos vemos mañana.
@@ -160,8 +185,9 @@ export const Scene3Solution: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 8 }}>
                 <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.3)" }}>2:21 AM</span>
+                <DoubleCheck scale={interpolate(check3Pop, [0, 1], [0, 1])} />
               </div>
             </div>
           </div>
@@ -172,11 +198,7 @@ export const Scene3Solution: React.FC = () => {
               <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>¡Gracias por la excelente atención! 🙌</div>
               <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 4 }}>
                 <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.4)" }}>2:22 AM</span>
-                {/* WhatsApp-style double check — dos ticks delgados superpuestos */}
-                <svg width="19" height="11" viewBox="0 0 19 11" fill="none">
-                  <path d="M1 5.5L4 8.5L9.5 2" stroke="rgba(0,0,0,0.38)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M5.5 5.5L8.5 8.5L14 2" stroke="rgba(0,0,0,0.38)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <DoubleCheck scale={interpolate(check4Pop, [0, 1], [0, 1])} />
               </div>
             </div>
           </div>

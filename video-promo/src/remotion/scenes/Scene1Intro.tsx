@@ -204,7 +204,7 @@ export const Scene1Intro: React.FC = () => {
               letterSpacing: "0.01em",
             }}
           >
-            Clínicas · Barberías · Salones · y más
+            Clínicas · Barberías · Salones y más
           </span>
         </div>
       </AbsoluteFill>

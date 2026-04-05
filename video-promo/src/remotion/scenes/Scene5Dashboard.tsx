@@ -155,16 +155,16 @@ export const Scene5Dashboard: React.FC = () => {
 
           {/* ── SIDEBAR ── */}
           <aside style={{
-            width: 210,
+            width: 220,
             flexShrink: 0,
             height: "100%",
-            padding: "32px 18px",
+            padding: "32px 24px",
             display: "flex",
             flexDirection: "column",
             borderRight: "1px solid rgba(255,255,255,0.35)",
           }}>
             {/* Logo */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 36 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 36, paddingLeft: 6 }}>
               <div style={{
                 width: 32, height: 32, borderRadius: 9, background: COLORS.navy900,
                 display: "flex", alignItems: "center", justifyContent: "center", position: "relative",
@@ -172,13 +172,13 @@ export const Scene5Dashboard: React.FC = () => {
                 <BotIcon size={16} />
               </div>
               <span style={{
-                fontFamily: "Inter", fontSize: 15, fontWeight: 800,
+                fontFamily: "Inter", fontSize: 16, fontWeight: 800,
                 color: COLORS.navy900, letterSpacing: "-0.03em",
               }}>NovTurnIA</span>
             </div>
 
             {/* Nav */}
-            <nav style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <nav style={{ display: "flex", flexDirection: "column", gap: 3, paddingLeft: 6 }}>
               {NAV_ITEMS.map(({ label, Icon, active }) => (
                 <div key={label}>
                   <div

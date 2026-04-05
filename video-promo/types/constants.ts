@@ -10,8 +10,8 @@ export const defaultMyCompProps: z.infer<typeof CompositionProps> = {
   title: "NovTurnIA",
 };
 
-// ~48 seconds × 60fps ≈ 2940 frames (TransitionSeries subtracts overlaps)
-export const DURATION_IN_FRAMES = 3000;
+// ~75 seconds × 60fps ≈ 4500 frames (TransitionSeries subtracts overlaps)
+export const DURATION_IN_FRAMES = 4500;
 export const VIDEO_WIDTH = 1080;
 export const VIDEO_HEIGHT = 1350;
 export const VIDEO_FPS = 60;

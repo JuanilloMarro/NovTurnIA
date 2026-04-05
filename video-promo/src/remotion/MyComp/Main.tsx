@@ -5,9 +5,12 @@ import { fade } from "@remotion/transitions/fade";
 import { Scene1Intro } from "../scenes/Scene1Intro";
 import { Scene2Problem } from "../scenes/Scene2Problem";
 import { Scene3Solution } from "../scenes/Scene3Solution";
-import { Scene4Scale } from "../scenes/Scene4Scale";
 import { Scene5Dashboard } from "../scenes/Scene5Dashboard";
-import { Scene6CTA } from "../scenes/Scene6CTA";
+import { Scene4Scale } from "../scenes/Scene4Scale";
+import { Scene10Conversation } from "../scenes/Scene10Conversation";
+import { Scene7HumanControl } from "../scenes/Scene7HumanControl";
+import { Scene8PaperPlane } from "../scenes/Scene8PaperPlane";
+import { Scene11Outro } from "../scenes/Scene11Outro";
 import { OrbBackground } from "../components/OrbBackground";
 
 loadFont("normal", {
@@ -20,15 +23,17 @@ const S1 = 360;  //  6s — Intro
 const S2 = 600;  // 10s — El Problema
 const S3 = 600;  // 10s — La Solución
 const S4 = 440;  //  7.3s — Dashboard (sale cuando termina el toast)
-const S5 = 540;  //  9s — Dashboard
-const S6 = 300;  //  5s — CTA
+const S5 = 540;  //  5s — Escalabilidad (Scene4Scale)
+const S10 = 600; // 10s — Conversaciones (Intervención Humana)
+const S11 = 660; // 11s — Outro mascot + nombre del sistema
+const S7 = 600;  //  4s — Control Humano (Círculos)
+const S8 = 600;  //  10s — Datos en sobre volando
 
 // Transición entre escenas
 const FADE = 40; // frames de crossfade
 
 /**
  * Composición principal de NovTurnIA promo video.
- * Se construye escena a escena; actualmente: Escena 1 a 3.
  */
 export const NovTurnVideo: React.FC = () => {
   return (
@@ -76,7 +81,7 @@ export const NovTurnVideo: React.FC = () => {
           timing={linearTiming({ durationInFrames: FADE })}
         />
 
-        {/* ── Escena 5: Escalabilidad ── */}
+        {/* ── Escena 5: Escalabilidad (Scene4Scale) ── */}
         <TransitionSeries.Sequence durationInFrames={S5}>
           <Scene4Scale />
         </TransitionSeries.Sequence>
@@ -86,11 +91,42 @@ export const NovTurnVideo: React.FC = () => {
           timing={linearTiming({ durationInFrames: FADE })}
         />
 
-        {/* ── Escena 6: CTA ── */}
-        <TransitionSeries.Sequence durationInFrames={S6}>
-          <Scene6CTA />
+        {/* ── Escena 7: Control Humano (Nodos y Círculos) ── */}
+        <TransitionSeries.Sequence durationInFrames={S7}>
+          <Scene7HumanControl />
+        </TransitionSeries.Sequence>
+
+        <TransitionSeries.Transition
+          presentation={fade()}
+          timing={linearTiming({ durationInFrames: FADE })}
+        />
+
+        {/* ── Escena 8: Datos en avión de papel (Entrega) ── */}
+        <TransitionSeries.Sequence durationInFrames={S8}>
+          <Scene8PaperPlane />
+        </TransitionSeries.Sequence>
+
+        <TransitionSeries.Transition
+          presentation={fade()}
+          timing={linearTiming({ durationInFrames: FADE })}
+        />
+
+        {/* ── Escena 10: Conversaciones ── */}
+        <TransitionSeries.Sequence durationInFrames={S10}>
+          <Scene10Conversation />
+        </TransitionSeries.Sequence>
+
+        <TransitionSeries.Transition
+          presentation={fade()}
+          timing={linearTiming({ durationInFrames: FADE })}
+        />
+
+        {/* ── Escena 11: Outro Mascot + Nombre ── */}
+        <TransitionSeries.Sequence durationInFrames={S11}>
+          <Scene11Outro />
         </TransitionSeries.Sequence>
       </TransitionSeries>
     </AbsoluteFill>
   );
 };
+

@@ -55,22 +55,22 @@ export const Scene2Problem: React.FC = () => {
   const finalClockScale = interpolate(clockPopIn, [0, 1], [0, 1]) * exitScale;
 
   // ── MENSAJES (espaciados ~1.5s entre cada uno) ─────────────────
-  const pillPop  = spring({ frame: frame - 165, fps, config: { damping: 20, stiffness: 160 } });
+  const pillPop = spring({ frame: frame - 165, fps, config: { damping: 20, stiffness: 160 } });
 
-  const msg1Pop  = spring({ frame: frame - 210, fps, config: { damping: 20, stiffness: 180 } });
+  const msg1Pop = spring({ frame: frame - 210, fps, config: { damping: 20, stiffness: 180 } });
   const check1Pop = spring({ frame: frame - 265, fps, config: { damping: 10, stiffness: 200 } });
 
-  const msg2Pop  = spring({ frame: frame - 305, fps, config: { damping: 20, stiffness: 180 } });
+  const msg2Pop = spring({ frame: frame - 305, fps, config: { damping: 20, stiffness: 180 } });
   const check2Pop = spring({ frame: frame - 360, fps, config: { damping: 10, stiffness: 200 } });
 
-  const msg3Pop  = spring({ frame: frame - 390, fps, config: { damping: 20, stiffness: 180 } });
+  const msg3Pop = spring({ frame: frame - 390, fps, config: { damping: 20, stiffness: 180 } });
   const check3Pop = spring({ frame: frame - 440, fps, config: { damping: 10, stiffness: 200 } });
 
-  const msg4Pop  = spring({ frame: frame - 475, fps, config: { damping: 20, stiffness: 180 } });
+  const msg4Pop = spring({ frame: frame - 475, fps, config: { damping: 20, stiffness: 180 } });
 
   // Push-up centrado
   const PUSH_MSG_RIGHT = 94;
-  const PUSH_MSG_LEFT  = 114;
+  const PUSH_MSG_LEFT = 114;
 
   const push1 = interpolate(msg1Pop, [0, 1], [0, -PUSH_MSG_RIGHT]);
   const push2 = interpolate(msg2Pop, [0, 1], [0, -PUSH_MSG_RIGHT]);
@@ -120,7 +120,7 @@ export const Scene2Problem: React.FC = () => {
               }}>
                 <h2 style={{
                   fontFamily: "Inter, -apple-system, sans-serif",
-                  fontSize: 54,
+                  fontSize: 47,
                   fontWeight: 800,
                   color: COLORS.navy900,
                   letterSpacing: "-0.03em",
@@ -142,7 +142,7 @@ export const Scene2Problem: React.FC = () => {
               transform: `translateX(${clockTranslateX}px) scale(${finalClockScale})`,
             }}>
               <div style={{
-                width: 180, height: 180, borderRadius: 48, background: COLORS.navy900,
+                width: 170, height: 170, borderRadius: 48, background: COLORS.navy900,
                 border: "2px solid rgba(255,255,255,0.12)", boxShadow: "0 12px 60px rgba(15,32,68,0.26)",
                 display: "flex", alignItems: "center", justifyContent: "center", position: "relative",
               }}>

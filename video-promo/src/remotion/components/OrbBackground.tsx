@@ -6,9 +6,9 @@ import { COLORS } from "../../../types/constants";
  * replica exacta del body::before + .lg-orb del sistema NovTurnIA.
  * Todas las animaciones via useCurrentFrame(), CERO CSS animations.
  */
-export const OrbBackground: React.FC<{ 
+export const OrbBackground: React.FC<{
   opacityMultiplier?: number;
-  staticMode?: boolean; 
+  staticMode?: boolean;
 }> = ({ opacityMultiplier = 1, staticMode = false }) => {
   const frame = useCurrentFrame();
 
