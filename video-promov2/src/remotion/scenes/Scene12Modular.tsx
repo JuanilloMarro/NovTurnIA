@@ -5,14 +5,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
-  staticFile,
 } from "remotion";
-import { Audio } from "@remotion/media";
-import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
-
-preloadAudio(staticFile("voiceover/voiceover scene 9.mp3"));
 
 /**
  * Escena 12 — Modular a la Medida (400 frames / ~6.7s @60fps)
@@ -141,14 +136,11 @@ export const Scene12Modular: React.FC = () => {
   const badgeOp = interpolate(spBadge, [0, 0.4], [0, 1], { extrapolateRight: "clamp" });
 
   // ── SALIDA: tarjetas salen hacia la DERECHA ───────────────────
-  const sceneExit = useDirectionalExit('right', 358, 22, 1000);
+  const sceneExit = useDirectionalExit('right', 433, 22, 1000);
 
 
   return (
     <AbsoluteFill style={{ ...sceneExit.style, overflow: "hidden" }}>
-      {/* ── VOICEOVER ── */}
-      <Audio src={staticFile("voiceover/voiceover scene 9.mp3")} volume={1} />
-
       <div style={{
         position: "absolute",
         left: "50%",

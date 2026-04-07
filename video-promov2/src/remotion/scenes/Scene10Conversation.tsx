@@ -5,14 +5,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
-  staticFile,
 } from "remotion";
-import { Audio } from "@remotion/media";
-import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
-
-preloadAudio(staticFile("voiceover/voiceover scene 8.mp3"));
 
 // ─── ICONOS SVG (Lucide React) ───────────
 
@@ -121,9 +116,6 @@ export const Scene10Conversation: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ overflow: "hidden", ...sceneExit.style }}>
-      {/* ── VOICEOVER ── */}
-      <Audio src={staticFile("voiceover/voiceover scene 8.mp3")} volume={1} />
-
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
 
         {/* PANEL DASHBOARD MACRO */}

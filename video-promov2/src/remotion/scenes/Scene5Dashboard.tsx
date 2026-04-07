@@ -5,13 +5,8 @@ import {
   useVideoConfig,
   spring,
   interpolate,
-  staticFile,
 } from "remotion";
-import { Audio } from "@remotion/media";
-import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
-
-preloadAudio(staticFile("voiceover/voiceover scene 4.mp3"));
 
 
 // ─── ICONOS SVG — Replicando Lucide React (mismos del sistema real) ───────────
@@ -140,10 +135,6 @@ export const Scene5Dashboard: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ overflow: "hidden", opacity: exitOpacity }}>
-      {/* ── VOICEOVER ── */}
-      <Audio src={staticFile("voiceover/voiceover scene 4.mp3")} volume={1} />
-
-
       {/* PANEL MACRO — 920px ancho para respirar en 1080px canvas */}
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{

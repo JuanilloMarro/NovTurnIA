@@ -5,14 +5,8 @@ import {
   spring,
   interpolate,
   Easing,
-  Sequence,
-  staticFile,
 } from "remotion";
-import { Audio } from "@remotion/media";
-import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
-
-preloadAudio(staticFile("voiceover/voiceover scene one.mp3"));
 
 /**
  * Escena 1 — Intro (360 frames / 6s @60fps)
@@ -147,10 +141,6 @@ export const Scene1Intro: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ opacity: exitOpacity }}>
-      {/* ── VOICEOVER — empieza en 1s para dar tiempo al pop-in del robot ── */}
-      <Sequence from={0}>
-        <Audio src={staticFile("voiceover/voiceover scene one.mp3")} volume={1} />
-      </Sequence>
       {/* ── CAPA 2: Texto (siempre detrás del box) ── */}
       <AbsoluteFill
         style={{

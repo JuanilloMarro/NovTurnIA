@@ -6,13 +6,8 @@ import {
   spring,
   interpolate,
   Easing,
-  staticFile,
 } from "remotion";
-import { Audio } from "@remotion/media";
-import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
-
-preloadAudio(staticFile("voiceover/voiceover scene 10.mp3"));
 
 /**
  * Escena 11 — Outro (660 frames / 11s @60fps)
@@ -99,16 +94,13 @@ export const Scene11Outro: React.FC = () => {
   const gapSize = interpolate(spLogo, [0, 1], [0, 28]);
 
   // ── SALIDA ──────────────────────────────────────────────────────
-  const exitOp = interpolate(frame, [476, 518], [1, 0], {
+  const exitOp = interpolate(frame, [438, 465], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
   return (
     <AbsoluteFill style={{ overflow: "hidden", opacity: exitOp }}>
-      {/* ── VOICEOVER ── */}
-      <Audio src={staticFile("voiceover/voiceover scene 10.mp3")} volume={1} />
-
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
 
         {/* ── CONTENEDOR PRINCIPAL ── */}

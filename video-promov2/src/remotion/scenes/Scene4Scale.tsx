@@ -4,14 +4,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
-  staticFile,
 } from "remotion";
-import { Audio } from "@remotion/media";
-import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
-
-preloadAudio(staticFile("voiceover/voiceover scene 5.mp3"));
 
 const ChatGroup: React.FC<{
   x: number;
@@ -88,14 +83,11 @@ export const Scene4Scale: React.FC = () => {
   const pop = spring({ frame: frame - 20, fps, config: { damping: 20, stiffness: 120 } });
 
   // ── SALIDA: grupos de chat se disuelven hacia abajo ───────────
-  const sceneExit = useDirectionalExit('down', 225, 22, 800);
+  const sceneExit = useDirectionalExit('down', 270, 22, 800);
 
 
   return (
     <AbsoluteFill style={{ overflow: "hidden", ...sceneExit.style }}>
-      {/* ── VOICEOVER ── */}
-      <Audio src={staticFile("voiceover/voiceover scene 5.mp3")} volume={1} trimBefore={6} />
-
       {/*
         Nodos aparecen de a uno cada ~20 frames en orden radial (comprimido):
         1. Arriba centro    (25)

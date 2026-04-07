@@ -4,19 +4,12 @@ import {
   useVideoConfig,
   spring,
   interpolate,
-  staticFile,
 } from "remotion";
-import { Audio } from "@remotion/media";
-import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
 
-preloadAudio(staticFile("voiceover/voiceover scene 3.mp3"));
-preloadAudio(staticFile("sfx-pop.mp3"));
-preloadAudio(staticFile("sfx-message.mp3"));
-
 /**
- * Escena 3 — La Solución (600 frames / 10s @60fps)
+ * Escena 3 — La Solución (511 frames / 8.51s @60fps)
  *
  * Cada mensaje aparece con ~2s de separación para poder leer.
  */
@@ -90,15 +83,11 @@ export const Scene3Solution: React.FC = () => {
   const containerY = INITIAL_OFFSET + pushMsg1 + pushMsg2 + pushMsg3 + pushMsg4;
 
   // ── SALIDA: contenido de chat sube ────────────────────────────
-  const sceneExit = useDirectionalExit('up', 515, 22, 950);
+  const sceneExit = useDirectionalExit('up', 482, 22, 950);
 
 
   return (
     <AbsoluteFill style={{ ...sceneExit.style }}>
-      {/* ── VOICEOVER ── */}
-      <Audio src={staticFile("voiceover/voiceover scene 3.mp3")} volume={1} />
-
-
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{
           position: "absolute",

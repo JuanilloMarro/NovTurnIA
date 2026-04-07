@@ -4,14 +4,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
-  staticFile,
 } from "remotion";
-import { Audio } from "@remotion/media";
-import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
-
-preloadAudio(staticFile("voiceover/voiceover scene 7.mp3"));
 
 /**
  * Escena 8 — Datos orbitando el icono de correo en círculo (Más compactos)
@@ -82,9 +77,6 @@ export const Scene8PaperPlane: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ ...sceneExit.style }}>
-      {/* ── VOICEOVER ── */}
-      <Audio src={staticFile("voiceover/voiceover scene 7.mp3")} volume={1} />
-
       {/* ── ÓRBITA DE DATOS COMPACTA ── */}
       <DataCard
         angle={-90} radius={R + 50} delay={10}

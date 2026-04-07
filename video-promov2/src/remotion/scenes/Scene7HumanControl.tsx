@@ -5,16 +5,9 @@ import {
   spring,
   interpolate,
   Sequence,
-  staticFile,
 } from "remotion";
-import { Audio } from "@remotion/media";
-import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
-
-preloadAudio(staticFile("voiceover/voiceover scene 6.mp3"));
-preloadAudio(staticFile("sfx-message.mp3"));
-preloadAudio(staticFile("sfx-pop.mp3"));
 
 /**
  * Escena 7 — Control Humano (600 frames / 10s @60fps)
@@ -91,7 +84,7 @@ export const Scene7HumanControl: React.FC = () => {
   const msg4X = interpolate(msg4Pop, [0, 1], [-60, 0]);
 
   // ── SALIDA: escena de chat/control humano sube ────────────────
-  const sceneExit = useDirectionalExit('up', 435, 22, 950);
+  const sceneExit = useDirectionalExit('up', 465, 22, 950);
 
 
   // ── ✓✓ doble check ─────────────────────────────────────────────
@@ -117,10 +110,6 @@ export const Scene7HumanControl: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ ...sceneExit.style }}>
-      {/* ── VOICEOVER ── */}
-      <Audio src={staticFile("voiceover/voiceover scene 6.mp3")} volume={1} />
-
-
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
 
         {/* ── AMBULANCIA + PREGUNTA ── */}

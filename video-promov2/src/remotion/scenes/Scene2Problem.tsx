@@ -4,17 +4,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
-  staticFile,
   Easing,
 } from "remotion";
-import { Audio } from "@remotion/media";
-import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
-
-preloadAudio(staticFile("sfx-message.mp3"));
-preloadAudio(staticFile("sfx-pop.mp3"));
-
-preloadAudio(staticFile("voiceover/voiceover scene 2.mp3"));
 import { useDirectionalExit } from "../components/SceneMotion";
 
 /**
@@ -101,7 +93,7 @@ export const Scene2Problem: React.FC = () => {
 
 
   // ── SALIDA: el chat sube → abre paso al siguiente chat (Scene3)
-  const sceneExit = useDirectionalExit('up', 555, 22, 950);
+  const sceneExit = useDirectionalExit('up', 545, 22, 950);
 
 
   const CheckIcon = ({ scale }: { scale: number }) => (
@@ -114,8 +106,7 @@ export const Scene2Problem: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ ...sceneExit.style }}>
-      {/* ── VOICEOVER ── */}
-      <Audio src={staticFile("voiceover/voiceover scene 2.mp3")} volume={1} />
+
 
 
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>

@@ -1,5 +1,5 @@
 import { fontFamily, loadFont } from "@remotion/google-fonts/Inter";
-import { AbsoluteFill, useVideoConfig, interpolate, staticFile } from "remotion";
+import { AbsoluteFill, useVideoConfig, interpolate, staticFile, Sequence } from "remotion";
 import { Audio } from "@remotion/media";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
@@ -28,21 +28,19 @@ loadFont("normal", {
 
 // Duración de cada escena en frames (60fps)
 const S1 = 420;  //  7s — Intro (+1s para que vo-01 no solape con vo-02)
-const S2 = 600;  // 10s — El Problema
-const S3 = 555;  //  9.25s — La Solución
+const S2 = 570;  //  9.5s — El Problema
+const S3 = 511;  //  8.51s — La Solución
 const S4 = 440;  //  7.3s — Dashboard
-const S5 = 270;  //  4.5s — Escalabilidad (+0.5s buffer voiceover)
+const S5 = 315;  //  5.25s — Escalabilidad
 const S10 = 360; //  6s — Conversaciones
-const S12 = 400; //  6.7s — Modular a la medida
-const S11 = 540; //  9s — Outro (+1.3s para que audio termine limpio)
-const S7 = 480;  //  8s — Control Humano (-2s ajuste voiceover)
-const S8 = 350;  //  5.8s — Datos en sobre (-0.5s ajuste)
+const S12 = 475; //  7.9s — Modular a la medida
+const S11 = 465; //  7.75s — Outro
+const S7 = 510;  //  8.5s — Control Humano
+const S8 = 320;  //  5.3s — Datos en sobre
 
 // Transición entre escenas
 const FADE = 40;
 
-// TEMPO: 120 BPM @60fps → 30 frames por beat
-const TEMPO = 30;
 
 /**
  * Composición principal de NovTurnIA promo video.
@@ -74,6 +72,14 @@ export const NovTurnVideo: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ fontFamily, backgroundColor: '#F4F8FE' }}>
+      {/* ── VOICEOVER UNIFICADO ── entra a los 0.15s (frame 9) ── */}
+      <Sequence from={9}>
+        <Audio
+          src={staticFile("voiceover/video voiceover.mp3")}
+          volume={1}
+        />
+      </Sequence>
+
       {/* ── MÚSICA DE FONDO ── */}
       {/* <Audio
         src={staticFile("music.mp3")}
@@ -118,7 +124,6 @@ export const NovTurnVideo: React.FC = () => {
           width={500}
           height={32}
           color={COLORS.navy500}
-          tempoFrames={TEMPO}
           intensity={0.8}
         />
       </div>
