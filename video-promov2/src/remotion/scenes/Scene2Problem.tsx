@@ -4,9 +4,18 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  staticFile,
   Easing,
 } from "remotion";
+import { Audio } from "@remotion/media";
+import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
+
+preloadAudio(staticFile("sfx-message.mp3"));
+preloadAudio(staticFile("sfx-pop.mp3"));
+
+preloadAudio(staticFile("voiceover/voiceover scene 2.mp3"));
+import { useDirectionalExit } from "../components/SceneMotion";
 
 /**
  * Escena 2 — El Problema (600 frames / 10s @60fps)
@@ -54,30 +63,35 @@ export const Scene2Problem: React.FC = () => {
   const exitScale = interpolate(exitSpring, [0, 1], [1, 0]);
   const finalClockScale = interpolate(clockPopIn, [0, 1], [0, 1]) * exitScale;
 
+  // ── PULSO AZUL (igual que alarma roja de ambulancia) ──────────
+  const clockPulse = Math.sin(frame / 18) * 0.5 + 0.5;
+  const clockBorder = `rgba(29,95,173,${(clockPulse * 0.80 + 0.18).toFixed(2)})`;
+  const clockGlow = `0 12px 60px rgba(15,32,68,0.28), 0 0 ${Math.round(28 * clockPulse)}px rgba(29,95,173,0.95), 0 0 ${Math.round(90 * clockPulse)}px rgba(29,95,173,0.48)`;
+
   // ── MENSAJES (espaciados ~1.5s entre cada uno) ─────────────────
   const pillPop = spring({ frame: frame - 165, fps, config: { damping: 20, stiffness: 160 } });
 
-  const msg1Pop = spring({ frame: frame - 210, fps, config: { damping: 20, stiffness: 180 } });
-  const check1Pop = spring({ frame: frame - 265, fps, config: { damping: 10, stiffness: 200 } });
+  const msg1Pop = spring({ frame: frame - 200, fps, config: { damping: 20, stiffness: 180 } });
+  const check1Pop = spring({ frame: frame - 260, fps, config: { damping: 10, stiffness: 200 } });
 
-  const msg2Pop = spring({ frame: frame - 305, fps, config: { damping: 20, stiffness: 180 } });
-  const check2Pop = spring({ frame: frame - 360, fps, config: { damping: 10, stiffness: 200 } });
+  const msg2Pop = spring({ frame: frame - 285, fps, config: { damping: 20, stiffness: 180 } });
+  const check2Pop = spring({ frame: frame - 345, fps, config: { damping: 10, stiffness: 200 } });
 
-  const msg3Pop = spring({ frame: frame - 390, fps, config: { damping: 20, stiffness: 180 } });
-  const check3Pop = spring({ frame: frame - 440, fps, config: { damping: 10, stiffness: 200 } });
+  const msg3Pop = spring({ frame: frame - 365, fps, config: { damping: 20, stiffness: 180 } });
+  const check3Pop = spring({ frame: frame - 425, fps, config: { damping: 10, stiffness: 200 } });
 
-  const msg4Pop = spring({ frame: frame - 475, fps, config: { damping: 20, stiffness: 180 } });
+  const msg4Pop = spring({ frame: frame - 435, fps, config: { damping: 20, stiffness: 180 } });
 
   // Push-up centrado
-  const PUSH_MSG_RIGHT = 94;
-  const PUSH_MSG_LEFT = 114;
+  const PUSH_MSG_RIGHT = 118;
+  const PUSH_MSG_LEFT = 140;
 
   const push1 = interpolate(msg1Pop, [0, 1], [0, -PUSH_MSG_RIGHT]);
   const push2 = interpolate(msg2Pop, [0, 1], [0, -PUSH_MSG_RIGHT]);
   const push3 = interpolate(msg3Pop, [0, 1], [0, -PUSH_MSG_RIGHT]);
   const push4 = interpolate(msg4Pop, [0, 1], [0, -PUSH_MSG_LEFT]);
 
-  const INITIAL_OFFSET = 173;
+  const INITIAL_OFFSET = 215;
   const containerY = INITIAL_OFFSET + push1 + push2 + push3 + push4;
 
   const msg1X = interpolate(msg1Pop, [0, 1], [60, 0]);
@@ -85,11 +99,10 @@ export const Scene2Problem: React.FC = () => {
   const msg3X = interpolate(msg3Pop, [0, 1], [60, 0]);
   const msg4X = interpolate(msg4Pop, [0, 1], [-60, 0]);
 
-  // ── SALIDA ────────────────────────────────────────────────────
-  const exitOpacity = interpolate(frame, [555, 595], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+
+  // ── SALIDA: el chat sube → abre paso al siguiente chat (Scene3)
+  const sceneExit = useDirectionalExit('up', 555, 22, 950);
+
 
   const CheckIcon = ({ scale }: { scale: number }) => (
     <div style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}>
@@ -100,7 +113,11 @@ export const Scene2Problem: React.FC = () => {
   );
 
   return (
-    <AbsoluteFill style={{ opacity: exitOpacity }}>
+    <AbsoluteFill style={{ ...sceneExit.style }}>
+      {/* ── VOICEOVER ── */}
+      <Audio src={staticFile("voiceover/voiceover scene 2.mp3")} volume={1} />
+
+
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
 
         {/* ── RELOJ Y PREGUNTA ── */}
@@ -143,7 +160,7 @@ export const Scene2Problem: React.FC = () => {
             }}>
               <div style={{
                 width: 170, height: 170, borderRadius: 48, background: COLORS.navy900,
-                border: "2px solid rgba(255,255,255,0.12)", boxShadow: "0 12px 60px rgba(15,32,68,0.26)",
+                border: `2px solid ${clockBorder}`, boxShadow: clockGlow,
                 display: "flex", alignItems: "center", justifyContent: "center", position: "relative",
               }}>
                 <svg width={96} height={96} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -173,10 +190,10 @@ export const Scene2Problem: React.FC = () => {
             position: "absolute",
             top: "50%",
             width: "100%",
-            maxWidth: 600,
+            maxWidth: 760,
             display: "flex",
             flexDirection: "column",
-            gap: 20,
+            gap: 24,
             transform: `translateY(${containerY}px)`,
           }}>
             {/* Pill */}
@@ -185,60 +202,60 @@ export const Scene2Problem: React.FC = () => {
               transform: `scale(${interpolate(pillPop, [0, 1], [0, 1])})`,
               opacity: interpolate(pillPop, [0, 1], [0, 1]),
               background: "rgba(255, 255, 255, 0.75)", backdropFilter: "blur(12px)",
-              border: "1px solid rgba(0, 0, 0, 0.04)", borderRadius: 12, padding: "6px 14px",
+              border: "1px solid rgba(0, 0, 0, 0.04)", borderRadius: 12, padding: "8px 18px",
               boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
             }}>
-              <span style={{ fontFamily: "Inter", fontSize: 12.5, fontWeight: 700, color: "rgba(0,0,0,0.45)", letterSpacing: "0.04em", textTransform: "uppercase" as const }}>
+              <span style={{ fontFamily: "Inter", fontSize: 15, fontWeight: 700, color: "rgba(0,0,0,0.45)", letterSpacing: "0.04em", textTransform: "uppercase" as const }}>
                 3 MENSAJES SIN LEER (FUERA DE LÍNEA)
               </span>
             </div>
 
             {/* Msg 1 */}
-            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg1X}px)`, opacity: interpolate(msg1Pop, [0, 1], [0, 1]), maxWidth: 380 }}>
-              <div style={{ background: "#DCF8C6", borderRadius: "18px 18px 4px 18px", padding: "14px 18px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
-                <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>Hola! Me gustaría agendar una cita 😊</div>
-                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 4 }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.4)" }}>2:14 AM</span>
+            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg1X}px) translateY(0px)`, opacity: interpolate(msg1Pop, [0, 1], [0, 1]), maxWidth: 500 }}>
+              <div style={{ background: "#DCF8C6", borderRadius: "20px 20px 4px 20px", padding: "18px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+                <div style={{ fontFamily: "Inter", fontSize: 24, color: "#111827", lineHeight: 1.45 }}>Hola! Me gustaría agendar una cita 😊</div>
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 6 }}>
+                  <span style={{ fontFamily: "Inter", fontSize: 14, color: "rgba(0,0,0,0.4)" }}>2:14 AM</span>
                   <CheckIcon scale={interpolate(check1Pop, [0, 1], [0, 1])} />
                 </div>
               </div>
             </div>
 
             {/* Msg 2 */}
-            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg2X}px)`, opacity: interpolate(msg2Pop, [0, 1], [0, 1]), maxWidth: 380 }}>
-              <div style={{ background: "#DCF8C6", borderRadius: "18px 18px 4px 18px", padding: "14px 18px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
-                <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>¿Hola?</div>
-                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 4 }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.4)" }}>2:17 AM</span>
+            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg2X}px) translateY(0px)`, opacity: interpolate(msg2Pop, [0, 1], [0, 1]), maxWidth: 500 }}>
+              <div style={{ background: "#DCF8C6", borderRadius: "20px 20px 4px 20px", padding: "18px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+                <div style={{ fontFamily: "Inter", fontSize: 24, color: "#111827", lineHeight: 1.45 }}>¿Hola?</div>
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 6 }}>
+                  <span style={{ fontFamily: "Inter", fontSize: 14, color: "rgba(0,0,0,0.4)" }}>2:17 AM</span>
                   <CheckIcon scale={interpolate(check2Pop, [0, 1], [0, 1])} />
                 </div>
               </div>
             </div>
 
             {/* Msg 3 */}
-            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg3X}px)`, opacity: interpolate(msg3Pop, [0, 1], [0, 1]), maxWidth: 380 }}>
-              <div style={{ background: "#DCF8C6", borderRadius: "18px 18px 4px 18px", padding: "14px 18px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>🥺🥺🥺</div>
-                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 4 }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.4)" }}>2:19 AM</span>
+            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg3X}px) translateY(0px)`, opacity: interpolate(msg3Pop, [0, 1], [0, 1]), maxWidth: 500 }}>
+              <div style={{ background: "#DCF8C6", borderRadius: "20px 20px 4px 20px", padding: "18px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                <div style={{ fontFamily: "Inter", fontSize: 24, color: "#111827", lineHeight: 1.45 }}>🥺🥺🥺</div>
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 6 }}>
+                  <span style={{ fontFamily: "Inter", fontSize: 14, color: "rgba(0,0,0,0.4)" }}>2:19 AM</span>
                   <CheckIcon scale={interpolate(check3Pop, [0, 1], [0, 1])} />
                 </div>
               </div>
             </div>
 
             {/* Msg 4 — IA */}
-            <div style={{ alignSelf: "flex-start", transform: `translateX(${msg4X}px)`, opacity: interpolate(msg4Pop, [0, 1], [0, 1]), maxWidth: 420 }}>
-              <div style={{ background: "#FFFFFF", borderRadius: "4px 18px 18px 18px", padding: "16px 20px", boxShadow: "0 4px 20px rgba(15,32,68,0.06)", border: "1px solid rgba(255,255,255,0.6)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: COLORS.navy900, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <div style={{ alignSelf: "flex-start", transform: `translateX(${msg4X}px) translateY(0px)`, opacity: interpolate(msg4Pop, [0, 1], [0, 1]), maxWidth: 540 }}>
+              <div style={{ background: "#FFFFFF", borderRadius: "4px 20px 20px 20px", padding: "20px 26px", boxShadow: "0 4px 20px rgba(15,32,68,0.06)", border: "1px solid rgba(255,255,255,0.6)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: COLORS.navy900, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" />
                       <path d="M2 14h2" /><path d="M20 14h2" /><path d="M9 13v2" /><path d="M15 13v2" />
                     </svg>
                   </div>
-                  <span style={{ fontFamily: "Inter", fontSize: 13, fontWeight: 700, color: COLORS.navy700 }}>Asistente NovTurnIA</span>
+                  <span style={{ fontFamily: "Inter", fontSize: 16, fontWeight: 700, color: COLORS.navy700 }}>Asistente NovTurnIA</span>
                 </div>
-                <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>
+                <div style={{ fontFamily: "Inter", fontSize: 24, color: "#111827", lineHeight: 1.45 }}>
                   Mientras tú descansas, tus clientes buscan opciones 📉
                 </div>
               </div>

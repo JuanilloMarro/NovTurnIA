@@ -4,8 +4,14 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  staticFile,
 } from "remotion";
+import { Audio } from "@remotion/media";
+import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
+import { useDirectionalExit } from "../components/SceneMotion";
+
+preloadAudio(staticFile("voiceover/voiceover scene 7.mp3"));
 
 /**
  * Escena 8 — Datos orbitando el icono de correo en círculo (Más compactos)
@@ -25,8 +31,8 @@ export const Scene8PaperPlane: React.FC = () => {
   const tilt = Math.sin(frame / 40) * 3;
   const roll = Math.cos(frame / 50) * 1.5;
 
-  // ── SALIDA FINAL ──────────────────
-  const exitOpacity = interpolate(frame, [550, 595], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // ── SALIDA: el avión y los datos salen hacia la DERECHA (volando)
+  const sceneExit = useDirectionalExit('right', 245, 22, 1100);
 
   // ── SISTEMA DE DATOS CIRCULAR COMPACTO (8 FICHAS) ──────────────
   const DataCard = ({
@@ -75,55 +81,57 @@ export const Scene8PaperPlane: React.FC = () => {
   const R = 300; // Radio más compacto para estar más cerca del icono
 
   return (
-    <AbsoluteFill style={{ opacity: exitOpacity }}>
+    <AbsoluteFill style={{ ...sceneExit.style }}>
+      {/* ── VOICEOVER ── */}
+      <Audio src={staticFile("voiceover/voiceover scene 7.mp3")} volume={1} />
 
       {/* ── ÓRBITA DE DATOS COMPACTA ── */}
       <DataCard
-        angle={-90} radius={R + 50} delay={20}
+        angle={-90} radius={R + 50} delay={10}
         icon={<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>}
-        label="Registro" value="05 Abr · 14:30" 
+        label="Registro" value="05 Abr · 14:30"
       />
 
       <DataCard
-        angle={-45} radius={R} delay={60}
+        angle={-45} radius={R} delay={40}
         icon={<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>}
-        label="Intervención Humana" value="IA Pausada" 
+        label="Intervención Humana" value="IA Pausada"
       />
 
       <DataCard
-        angle={0} radius={R + 30} delay={100}
+        angle={0} radius={R + 30} delay={70}
         icon={<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>}
-        label="Paciente" value="Maggie Marroquín" 
+        label="Paciente" value="Maggie Marroquín"
       />
 
       <DataCard
-        angle={45} radius={R} delay={140}
+        angle={45} radius={R} delay={105}
         icon={<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>}
-        label="Edad" value="22 años" 
+        label="Edad" value="22 años"
       />
 
       <DataCard
-        angle={90} radius={R + 40} delay={180}
+        angle={90} radius={R + 40} delay={135}
         icon={<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.31-2.31a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 13.92z" /></svg>}
-        label="Celular" value="+502 4798-9357" 
+        label="Celular" value="+502 4798-9357"
       />
 
       <DataCard
-        angle={135} radius={R} delay={220}
+        angle={135} radius={R} delay={165}
         icon={<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>}
-        label="Motivo" value="Control Post-Op" 
+        label="Motivo" value="Control Post-Op"
       />
 
       <DataCard
-        angle={180} radius={R + 30} delay={260}
+        angle={180} radius={R + 30} delay={195}
         icon={<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>}
-        label="Prioridad" value="Prioridad Alta (1)" 
+        label="Prioridad" value="Prioridad Alta (1)"
       />
 
       <DataCard
-        angle={225} radius={R} delay={300}
+        angle={225} radius={R} delay={225}
         icon={<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={COLORS.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>}
-        label="Estado" value="Entregado con éxito" 
+        label="Estado" value="Entregado con éxito"
       />
 
       {/* ── ICONO MAIL SEND CENTRADO ── */}

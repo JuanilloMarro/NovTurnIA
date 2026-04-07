@@ -4,8 +4,14 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  staticFile,
 } from "remotion";
+import { Audio } from "@remotion/media";
+import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
+import { useDirectionalExit } from "../components/SceneMotion";
+
+preloadAudio(staticFile("voiceover/voiceover scene 5.mp3"));
 
 const ChatGroup: React.FC<{
   x: number;
@@ -79,40 +85,40 @@ export const Scene4Scale: React.FC = () => {
   const { fps } = useVideoConfig();
 
   // Bloque central aparece primero
-  const pop = spring({ frame: frame - 40, fps, config: { damping: 20, stiffness: 120 } });
+  const pop = spring({ frame: frame - 20, fps, config: { damping: 20, stiffness: 120 } });
 
-  // ── SALIDA DE ESCENA ────────────────────────────────────────────
-  const exitOpacity = interpolate(frame, [490, 535], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  // ── SALIDA: grupos de chat se disuelven hacia abajo ───────────
+  const sceneExit = useDirectionalExit('down', 225, 22, 800);
+
 
   return (
-    <AbsoluteFill style={{ overflow: "hidden", opacity: exitOpacity }}>
+    <AbsoluteFill style={{ overflow: "hidden", ...sceneExit.style }}>
+      {/* ── VOICEOVER ── */}
+      <Audio src={staticFile("voiceover/voiceover scene 5.mp3")} volume={1} trimBefore={6} />
 
       {/*
-        Nodos aparecen de a uno cada ~60 frames (1s) en orden radial:
-        1. Arriba centro    (60)
-        2. Izq arriba       (120)
-        3. Der arriba       (180)
-        4. Izq centro       (240)
-        5. Der centro       (300)
-        6. Izq abajo        (360)
-        7. Der abajo        (420)
-        8. Abajo centro     (450)
+        Nodos aparecen de a uno cada ~20 frames en orden radial (comprimido):
+        1. Arriba centro    (25)
+        2. Izq arriba       (45)
+        3. Der arriba       (65)
+        4. Izq centro       (85)
+        5. Der centro       (105)
+        6. Izq abajo        (125)
+        7. Der abajo        (145)
+        8. Abajo centro     (160)
       */}
-      <ChatGroup x={540} y={320}  delay={60}  scale={0.78} rotation={1}  />
+      <ChatGroup x={540} y={320}  delay={25}  scale={0.78} rotation={1}  />
 
-      <ChatGroup x={180} y={410}  delay={120} scale={0.85} rotation={2}  />
-      <ChatGroup x={900} y={410}  delay={180} scale={0.7}  rotation={-2} />
+      <ChatGroup x={180} y={410}  delay={45}  scale={0.85} rotation={2}  />
+      <ChatGroup x={900} y={410}  delay={65}  scale={0.7}  rotation={-2} />
 
-      <ChatGroup x={260} y={670}  delay={240} scale={0.75} rotation={-4} />
-      <ChatGroup x={820} y={670}  delay={300} scale={0.85} rotation={5}  />
+      <ChatGroup x={260} y={670}  delay={85}  scale={0.75} rotation={-4} />
+      <ChatGroup x={820} y={670}  delay={105} scale={0.85} rotation={5}  />
 
-      <ChatGroup x={200} y={930}  delay={360} scale={0.8}  rotation={3}  />
-      <ChatGroup x={880} y={930}  delay={420} scale={0.75} rotation={-4} />
+      <ChatGroup x={200} y={930}  delay={125} scale={0.8}  rotation={3}  />
+      <ChatGroup x={880} y={930}  delay={145} scale={0.75} rotation={-4} />
 
-      <ChatGroup x={540} y={1050} delay={450} scale={0.78} rotation={-1} />
+      <ChatGroup x={540} y={1050} delay={160} scale={0.78} rotation={-1} />
 
       {/* BLOQUE CENTRAL */}
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>

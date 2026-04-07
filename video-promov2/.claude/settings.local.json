@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p '/c/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/video-promo-v2/src/remotion/MyComp')",
+      "Bash(mkdir -p '/c/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/video-promo-v2/public')",
+      "Bash(mkdir -p '/c/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/video-promo-v2/types')",
+      "Bash(cp '/c/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/video-promo/remotion.config.ts' '/c/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/video-promo-v2/')",
+      "Bash(cp '/c/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/video-promo/tsconfig.json' '/c/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/video-promo-v2/')",
+      "Bash(cp '/c/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/video-promo/types/constants.ts' '/c/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/video-promo-v2/types/')",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node:*)",
+      "Bash(npx remotion:*)",
+      "Bash(kill %1)"
+    ]
+  }
+}

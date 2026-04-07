@@ -4,8 +4,17 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  Sequence,
+  staticFile,
 } from "remotion";
+import { Audio } from "@remotion/media";
+import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
+import { useDirectionalExit } from "../components/SceneMotion";
+
+preloadAudio(staticFile("voiceover/voiceover scene 6.mp3"));
+preloadAudio(staticFile("sfx-message.mp3"));
+preloadAudio(staticFile("sfx-pop.mp3"));
 
 /**
  * Escena 7 — Control Humano (600 frames / 10s @60fps)
@@ -28,9 +37,10 @@ export const Scene7HumanControl: React.FC = () => {
   // Carrocería rebota suavemente (conduciendo)
   const bounceY = Math.sin(frame / 5) * 1.4;
   // Luz cuadrada de emergencia — parpadeo ~3 veces/s a 60fps
-  const alarmPulse = Math.sin(frame / 10) * 0.5 + 0.5;  // 0 a 1
-  const alarmFill = `rgba(239,68,68,${(alarmPulse * 0.85 + 0.15).toFixed(2)})`;
-  const alarmGlow = `0 12px 60px rgba(15,32,68,0.26), 0 0 ${Math.round(36 * alarmPulse)}px rgba(239,68,68,${(alarmPulse * 0.45).toFixed(2)})`;
+  const alarmPulse = Math.sin(frame / 18) * 0.5 + 0.5;  // 0 a 1
+  const alarmFill = `rgba(239,68,68,${(alarmPulse * 0.9 + 0.1).toFixed(2)})`;
+  const alarmBorder = `rgba(239,68,68,${(alarmPulse * 0.80 + 0.18).toFixed(2)})`;
+  const alarmGlow = `0 12px 60px rgba(15,32,68,0.28), 0 0 ${Math.round(28 * alarmPulse)}px rgba(239,68,68,0.95), 0 0 ${Math.round(90 * alarmPulse)}px rgba(239,68,68,0.48)`;
 
   // ── SLIDE icono ← pregunta → ───────────────────────────────────
   const slideSpring = spring({
@@ -52,27 +62,27 @@ export const Scene7HumanControl: React.FC = () => {
   // ── MENSAJES ────────────────────────────────────────────────────
   const pillPop = spring({ frame: frame - 205, fps, config: { damping: 20, stiffness: 160 } });
 
-  const msg1Pop = spring({ frame: frame - 240, fps, config: { damping: 20, stiffness: 180 } });
-  const check1Pop = spring({ frame: frame - 290, fps, config: { damping: 10, stiffness: 200 } });
+  const msg1Pop = spring({ frame: frame - 220, fps, config: { damping: 20, stiffness: 180 } });
+  const check1Pop = spring({ frame: frame - 260, fps, config: { damping: 10, stiffness: 200 } });
 
-  const msg2Pop = spring({ frame: frame - 325, fps, config: { damping: 20, stiffness: 180 } });
-  const check2Pop = spring({ frame: frame - 370, fps, config: { damping: 10, stiffness: 200 } });
+  const msg2Pop = spring({ frame: frame - 285, fps, config: { damping: 20, stiffness: 180 } });
+  const check2Pop = spring({ frame: frame - 310, fps, config: { damping: 10, stiffness: 200 } });
 
-  const msg3Pop = spring({ frame: frame - 405, fps, config: { damping: 20, stiffness: 180 } });
-  const check3Pop = spring({ frame: frame - 450, fps, config: { damping: 10, stiffness: 200 } });
+  const msg3Pop = spring({ frame: frame - 335, fps, config: { damping: 20, stiffness: 180 } });
+  const check3Pop = spring({ frame: frame - 360, fps, config: { damping: 10, stiffness: 200 } });
 
-  const msg4Pop = spring({ frame: frame - 475, fps, config: { damping: 20, stiffness: 180 } });
-  const check4Pop = spring({ frame: frame - 525, fps, config: { damping: 10, stiffness: 200 } });
+  const msg4Pop = spring({ frame: frame - 385, fps, config: { damping: 20, stiffness: 180 } });
+  const check4Pop = spring({ frame: frame - 415, fps, config: { damping: 10, stiffness: 200 } });
 
   // Push-up
-  const PUSH_RIGHT = 94;
-  const PUSH_LEFT = 114;
+  const PUSH_RIGHT = 118;
+  const PUSH_LEFT = 160;
   const push1 = interpolate(msg1Pop, [0, 1], [0, -PUSH_RIGHT]);
   const push2 = interpolate(msg2Pop, [0, 1], [0, -PUSH_RIGHT]);
   const push3 = interpolate(msg3Pop, [0, 1], [0, -PUSH_RIGHT]);
   const push4 = interpolate(msg4Pop, [0, 1], [0, -PUSH_LEFT]);
 
-  const INITIAL_OFFSET = 173;
+  const INITIAL_OFFSET = 200;
   const containerY = INITIAL_OFFSET + push1 + push2 + push3 + push4;
 
   const msg1X = interpolate(msg1Pop, [0, 1], [60, 0]);
@@ -80,11 +90,9 @@ export const Scene7HumanControl: React.FC = () => {
   const msg3X = interpolate(msg3Pop, [0, 1], [60, 0]);
   const msg4X = interpolate(msg4Pop, [0, 1], [-60, 0]);
 
-  // ── SALIDA ──────────────────────────────────────────────────────
-  const exitOpacity = interpolate(frame, [555, 595], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  // ── SALIDA: escena de chat/control humano sube ────────────────
+  const sceneExit = useDirectionalExit('up', 435, 22, 950);
+
 
   // ── ✓✓ doble check ─────────────────────────────────────────────
   const DoubleCheck = ({ scale }: { scale: number }) => (
@@ -108,7 +116,11 @@ export const Scene7HumanControl: React.FC = () => {
   );
 
   return (
-    <AbsoluteFill style={{ opacity: exitOpacity }}>
+    <AbsoluteFill style={{ ...sceneExit.style }}>
+      {/* ── VOICEOVER ── */}
+      <Audio src={staticFile("voiceover/voiceover scene 6.mp3")} volume={1} />
+
+
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
 
         {/* ── AMBULANCIA + PREGUNTA ── */}
@@ -154,7 +166,7 @@ export const Scene7HumanControl: React.FC = () => {
               <div style={{
                 width: 180, height: 180, borderRadius: 48,
                 background: COLORS.navy900,
-                border: "2px solid rgba(255,255,255,0.12)",
+                border: `2px solid ${alarmBorder}`,
                 boxShadow: alarmGlow,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
@@ -195,10 +207,10 @@ export const Scene7HumanControl: React.FC = () => {
             position: "absolute",
             top: "50%",
             width: "100%",
-            maxWidth: 600,
+            maxWidth: 760,
             display: "flex",
             flexDirection: "column",
-            gap: 20,
+            gap: 24,
             transform: `translateY(${containerY}px)`,
           }}>
             {/* Pill */}
@@ -207,70 +219,70 @@ export const Scene7HumanControl: React.FC = () => {
               transform: `scale(${interpolate(pillPop, [0, 1], [0, 1])})`,
               opacity: interpolate(pillPop, [0, 1], [0, 1]),
               background: "rgba(255,255,255,0.75)", backdropFilter: "blur(12px)",
-              border: "1px solid rgba(0,0,0,0.04)", borderRadius: 12, padding: "6px 14px",
+              border: "1px solid rgba(0,0,0,0.04)", borderRadius: 12, padding: "8px 18px",
               boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
             }}>
-              <span style={{ fontFamily: "Inter", fontSize: 12.5, fontWeight: 700, color: "rgba(0,0,0,0.45)", letterSpacing: "0.04em", textTransform: "uppercase" as const }}>
+              <span style={{ fontFamily: "Inter", fontSize: 15, fontWeight: 700, color: "rgba(0,0,0,0.45)", letterSpacing: "0.04em", textTransform: "uppercase" as const }}>
                 1 CASO URGENTE
               </span>
             </div>
 
             {/* Msg 1 */}
-            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg1X}px)`, opacity: interpolate(msg1Pop, [0, 1], [0, 1]), maxWidth: 400 }}>
-              <div style={{ background: "#DCF8C6", borderRadius: "18px 18px 4px 18px", padding: "14px 18px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
-                <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>
+            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg1X}px) translateY(0px)`, opacity: interpolate(msg1Pop, [0, 1], [0, 1]), maxWidth: 500 }}>
+              <div style={{ background: "#DCF8C6", borderRadius: "20px 20px 4px 20px", padding: "18px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+                <div style={{ fontFamily: "Inter", fontSize: 24, color: "#111827", lineHeight: 1.45 }}>
                   Tengo mucho dolor, necesito ver al doctor HOY 🆘
                 </div>
-                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 4 }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.4)" }}>11:53 PM</span>
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 6 }}>
+                  <span style={{ fontFamily: "Inter", fontSize: 14, color: "rgba(0,0,0,0.4)" }}>11:53 PM</span>
                   <DoubleCheck scale={interpolate(check1Pop, [0, 1], [0, 1])} />
                 </div>
               </div>
             </div>
 
             {/* Msg 2 */}
-            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg2X}px)`, opacity: interpolate(msg2Pop, [0, 1], [0, 1]), maxWidth: 400 }}>
-              <div style={{ background: "#DCF8C6", borderRadius: "18px 18px 4px 18px", padding: "14px 18px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
-                <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>
+            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg2X}px) translateY(0px)`, opacity: interpolate(msg2Pop, [0, 1], [0, 1]), maxWidth: 500 }}>
+              <div style={{ background: "#DCF8C6", borderRadius: "20px 20px 4px 20px", padding: "18px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+                <div style={{ fontFamily: "Inter", fontSize: 24, color: "#111827", lineHeight: 1.45 }}>
                   Es urgente, por favor 🥺
                 </div>
-                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 4 }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.4)" }}>11:53 PM</span>
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 6 }}>
+                  <span style={{ fontFamily: "Inter", fontSize: 14, color: "rgba(0,0,0,0.4)" }}>11:53 PM</span>
                   <DoubleCheck scale={interpolate(check2Pop, [0, 1], [0, 1])} />
                 </div>
               </div>
             </div>
 
             {/* Msg 3 */}
-            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg3X}px)`, opacity: interpolate(msg3Pop, [0, 1], [0, 1]), maxWidth: 400 }}>
-              <div style={{ background: "#DCF8C6", borderRadius: "18px 18px 4px 18px", padding: "14px 18px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
-                <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>
+            <div style={{ alignSelf: "flex-end", transform: `translateX(${msg3X}px) translateY(0px)`, opacity: interpolate(msg3Pop, [0, 1], [0, 1]), maxWidth: 500 }}>
+              <div style={{ background: "#DCF8C6", borderRadius: "20px 20px 4px 20px", padding: "18px 24px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+                <div style={{ fontFamily: "Inter", fontSize: 24, color: "#111827", lineHeight: 1.45 }}>
                   ¿Hay alguien disponible? 😰
                 </div>
-                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 4 }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.4)" }}>11:53 PM</span>
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 6 }}>
+                  <span style={{ fontFamily: "Inter", fontSize: 14, color: "rgba(0,0,0,0.4)" }}>11:53 PM</span>
                   <DoubleCheck scale={interpolate(check3Pop, [0, 1], [0, 1])} />
                 </div>
               </div>
             </div>
 
             {/* Msg 4 — IA responde */}
-            <div style={{ alignSelf: "flex-start", transform: `translateX(${msg4X}px)`, opacity: interpolate(msg4Pop, [0, 1], [0, 1]), maxWidth: 420 }}>
-              <div style={{ background: "#FFFFFF", borderRadius: "4px 18px 18px 18px", padding: "16px 20px", boxShadow: "0 4px 20px rgba(15,32,68,0.06)", border: "1px solid rgba(255,255,255,0.6)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: COLORS.navy900, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <div style={{ alignSelf: "flex-start", transform: `translateX(${msg4X}px) translateY(0px)`, opacity: interpolate(msg4Pop, [0, 1], [0, 1]), maxWidth: 540 }}>
+              <div style={{ background: "#FFFFFF", borderRadius: "4px 20px 20px 20px", padding: "20px 26px", boxShadow: "0 4px 20px rgba(15,32,68,0.06)", border: "1px solid rgba(255,255,255,0.6)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: COLORS.navy900, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" />
                       <path d="M2 14h2" /><path d="M20 14h2" /><path d="M9 13v2" /><path d="M15 13v2" />
                     </svg>
                   </div>
-                  <span style={{ fontFamily: "Inter", fontSize: 13, fontWeight: 700, color: COLORS.navy700 }}>Asistente NovTurnIA</span>
+                  <span style={{ fontFamily: "Inter", fontSize: 16, fontWeight: 700, color: COLORS.navy700 }}>Asistente NovTurnIA</span>
                 </div>
-                <div style={{ fontFamily: "Inter", fontSize: 19, color: "#111827", lineHeight: 1.45 }}>
+                <div style={{ fontFamily: "Inter", fontSize: 24, color: "#111827", lineHeight: 1.45 }}>
                   Entendido. He notificado al equipo médico de tu caso urgente. 🏥
                 </div>
-                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 6 }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 12, color: "rgba(0,0,0,0.4)" }}>11:53 PM</span>
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 8 }}>
+                  <span style={{ fontFamily: "Inter", fontSize: 14, color: "rgba(0,0,0,0.4)" }}>11:53 PM</span>
                   <DoubleCheck scale={interpolate(check4Pop, [0, 1], [0, 1])} />
                 </div>
               </div>

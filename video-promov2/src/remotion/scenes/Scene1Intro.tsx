@@ -5,8 +5,14 @@ import {
   spring,
   interpolate,
   Easing,
+  Sequence,
+  staticFile,
 } from "remotion";
+import { Audio } from "@remotion/media";
+import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
+
+preloadAudio(staticFile("voiceover/voiceover scene one.mp3"));
 
 /**
  * Escena 1 — Intro (360 frames / 6s @60fps)
@@ -83,7 +89,7 @@ export const Scene1Intro: React.FC = () => {
 
   // ─── BOX ─────────────────────────────────────────────────────
   const BOX_LARGE = 400;
-  const BOX_SMALL = 50;
+  const BOX_SMALL = 72;
 
   const shrinkSpring = spring({
     frame: frame - 190,
@@ -97,14 +103,18 @@ export const Scene1Intro: React.FC = () => {
     ? interpolate(shrinkSpring, [0, 1], [BOX_LARGE, BOX_SMALL])
     : BOX_LARGE;
   const currentBoxRadius = hasLanded
-    ? interpolate(shrinkSpring, [0, 1], [110, 11])
+    ? interpolate(shrinkSpring, [0, 1], [110, 16])
     : 110;
 
   const currentRobotSize = currentBoxSize * 0.45;
   const currentStarSize = currentRobotSize * 0.28;
 
-  const boxTranslateX = interpolate(shrinkSpring, [0, 1], [0, -128]);
-  const boxTranslateY = interpolate(shrinkSpring, [0, 1], [0, -51.5]);
+  // boxTranslateX: -(rowWidth/2 - BOX_SMALL/2)
+  // rowWidth ≈ BOX_SMALL(72) + gap(20) + nameWidth(~390) = ~482
+  // icon center X from screen center = -482/2 + 72/2 = -241 + 36 = -205
+  const boxTranslateX = interpolate(shrinkSpring, [0, 1], [0, -185]);
+  // boxTranslateY: first row center from screen center ≈ -58
+  const boxTranslateY = interpolate(shrinkSpring, [0, 1], [0, -70]);
 
   // ─── TEXTO ───────────────────────────────────────────────────
   const textReveal = spring({
@@ -126,7 +136,7 @@ export const Scene1Intro: React.FC = () => {
   const subOpacity = interpolate(subReveal, [0, 1], [0, 1]);
   const subY = interpolate(subReveal, [0, 1], [16, 0]);
 
-  // Micro-float (frecuencia /44 para mantener velocidad visual a 60fps)
+  // Micro-float
   const floatY = frame > 260 ? Math.sin((frame - 260) / 44) * 4 : 0;
 
   // ─── SALIDA DE ESCENA ─────────────────────────────────────────
@@ -137,6 +147,10 @@ export const Scene1Intro: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ opacity: exitOpacity }}>
+      {/* ── VOICEOVER — empieza en 1s para dar tiempo al pop-in del robot ── */}
+      <Sequence from={0}>
+        <Audio src={staticFile("voiceover/voiceover scene one.mp3")} volume={1} />
+      </Sequence>
       {/* ── CAPA 2: Texto (siempre detrás del box) ── */}
       <AbsoluteFill
         style={{
@@ -147,19 +161,20 @@ export const Scene1Intro: React.FC = () => {
           pointerEvents: "none",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 44, height: 44, flexShrink: 0 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div style={{ width: 72, height: 72, flexShrink: 0 }} />
           <span
             style={{
               fontFamily: "Inter, -apple-system, sans-serif",
-              fontSize: 48,
-              fontWeight: 700,
+              fontSize: 72,
+              fontWeight: 800,
               color: COLORS.navy900,
-              letterSpacing: "-0.03em",
+              letterSpacing: "-0.04em",
               whiteSpace: "nowrap",
               opacity: textOpacity,
               transform: `translateX(${nameX}px)`,
               display: "inline-block",
+              lineHeight: 1,
             }}
           >
             NovTurnIA
@@ -168,7 +183,7 @@ export const Scene1Intro: React.FC = () => {
 
         <div
           style={{
-            marginTop: 16,
+            marginTop: 20,
             opacity: textOpacity,
             transform: `translateY(${taglineY}px)`,
             textAlign: "center",
@@ -177,10 +192,10 @@ export const Scene1Intro: React.FC = () => {
           <span
             style={{
               fontFamily: "Inter, -apple-system, sans-serif",
-              fontSize: 28,
+              fontSize: 38,
               fontWeight: 500,
               color: COLORS.navy700,
-              letterSpacing: "-0.01em",
+              letterSpacing: "-0.02em",
             }}
           >
             Agenda tu negocio con IA, 24/7
@@ -189,7 +204,7 @@ export const Scene1Intro: React.FC = () => {
 
         <div
           style={{
-            marginTop: 16,
+            marginTop: 20,
             opacity: subOpacity,
             transform: `translateY(${subY}px)`,
             textAlign: "center",
@@ -198,7 +213,7 @@ export const Scene1Intro: React.FC = () => {
           <span
             style={{
               fontFamily: "Inter, -apple-system, sans-serif",
-              fontSize: 18,
+              fontSize: 24,
               fontWeight: 400,
               color: `${COLORS.navy500}bb`,
               letterSpacing: "0.01em",

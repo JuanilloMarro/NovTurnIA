@@ -5,8 +5,14 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  staticFile,
 } from "remotion";
+import { Audio } from "@remotion/media";
+import { preloadAudio } from "@remotion/preload";
 import { COLORS } from "../../../types/constants";
+import { useDirectionalExit } from "../components/SceneMotion";
+
+preloadAudio(staticFile("voiceover/voiceover scene 8.mp3"));
 
 // ─── ICONOS SVG (Lucide React) ───────────
 
@@ -86,22 +92,38 @@ export const Scene10Conversation: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const typingStart = 100;
-  const messageSentTime = 320;
-  const iaReactivedTime = 460;
+  const typingStart = 60;
+  const messageSentTime = 180;
+  const iaReactivedTime = 270;
 
   const pop = spring({ frame: frame, fps, config: { damping: 25, stiffness: 140 } });
   const macroScale = interpolate(pop, [0, 1], [0.88, 1]);
   const macroOpacity = interpolate(pop, [0, 1], [0, 1]);
   const macroY = interpolate(pop, [0, 1], [40, 0]);
-  const exitOpacity = interpolate(frame, [560, 600], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // ── SALIDA: el dashboard sale hacia ARRIBA ──────────────────────
+  // Continuidad: la siguiente escena entra desde abajo → sensación de
+  // que el contenido "fluye" hacia arriba de forma continua
+  const sceneExit = useDirectionalExit('up', 320, 22, 900);
+
 
   // El mensaje nuevo crece desde abajo empujando los anteriores hacia arriba
   const msg5Spring = spring({ frame: frame - messageSentTime, fps, config: { damping: 20, stiffness: 120 } });
   const MSG5_H = 130;
 
+  // ── MOTION AMBIENTE ──────────────────────────────────────────────
+  // Punto naranja Maggie: pulsa suavemente
+  const dotPulse = 1 + Math.sin(frame * 0.07) * 0.18;
+  // Notificación campana: pulsa más rápido, como alerta
+  const notifPulse = 1 + Math.sin(frame * 0.12) * 0.10;
+  // Badge IA: pop de escala cuando cambia de estado en iaReactivedTime
+  const badgePop = spring({ frame: frame - iaReactivedTime, fps, config: { damping: 8, stiffness: 220 } });
+  const badgeScale = frame >= iaReactivedTime ? interpolate(badgePop, [0, 0.4, 1], [1, 1.18, 1]) : 1;
+
   return (
-    <AbsoluteFill style={{ overflow: "hidden", opacity: exitOpacity }}>
+    <AbsoluteFill style={{ overflow: "hidden", ...sceneExit.style }}>
+      {/* ── VOICEOVER ── */}
+      <Audio src={staticFile("voiceover/voiceover scene 8.mp3")} volume={1} />
+
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
 
         {/* PANEL DASHBOARD MACRO */}
@@ -141,7 +163,7 @@ export const Scene10Conversation: React.FC = () => {
             <div style={{ height: 78, padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 14 }}>
               <div style={{ width: 42, height: 42, background: "rgba(255,255,255,0.75)", backdropFilter: "blur(6px)", borderRadius: 14, border: "1.2px solid rgba(255,255,255,0.8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 5px 15px rgba(0,0,0,0.05)", position: "relative" }}>
                 <BellIcon size={18} color={COLORS.navy900} />
-                <div style={{ position: "absolute", top: -2, right: -2, background: "#EF4444", width: 13, height: 13, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "white", border: "1.8px solid white" }}>1</div>
+                <div style={{ position: "absolute", top: -2, right: -2, background: "#EF4444", width: 13, height: 13, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "white", border: "1.8px solid white", transform: `scale(${notifPulse})` }}>1</div>
               </div>
               <div style={{ width: 42, height: 42, borderRadius: 14, background: COLORS.navy900, color: "white", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 0 1px 0", boxShadow: "0 6px 18px rgba(15,32,104,0.2)" }}>
                 <span style={{ fontFamily: "Inter", fontWeight: 800, fontSize: 14, lineHeight: "1em", height: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>JD</span>
@@ -172,7 +194,7 @@ export const Scene10Conversation: React.FC = () => {
                         <div style={{ fontFamily: "Inter", fontSize: 12.5, fontWeight: 800, color: COLORS.navy900 }}>{p.name}</div>
                         <div style={{ fontSize: 10.5, color: "rgba(0,0,0,0.3)", fontWeight: 600 }}>+502 4798</div>
                       </div>
-                      {p.human && <div style={{ width: 6.5, height: 6.5, borderRadius: "50%", background: "#F59E0B" }} />}
+                      {p.human && <div style={{ width: 6.5, height: 6.5, borderRadius: "50%", background: "#F59E0B", transform: `scale(${dotPulse})` }} />}
                     </div>
                   ))}
                 </div>
@@ -185,7 +207,7 @@ export const Scene10Conversation: React.FC = () => {
                     <div style={{ width: 35, height: 35, borderRadius: "50%", background: "#F8FAFC", color: COLORS.navy900, border: "1px solid rgba(0,0,0,0.05)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 11.5 }}>MM</div>
                     <span style={{ fontFamily: "Inter", fontSize: 14, fontWeight: 800, color: COLORS.navy900 }}>Maggie Marroquín</span>
                   </div>
-                  <div style={{ padding: "7px 16px", borderRadius: 100, border: "1.2px solid #FEF3C7", background: frame >= iaReactivedTime ? "#DCFCE7" : "#FFFBEB", color: frame >= iaReactivedTime ? "#065F46" : "#B45309", fontFamily: "Inter", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ padding: "7px 16px", borderRadius: 100, border: "1.2px solid #FEF3C7", background: frame >= iaReactivedTime ? "#DCFCE7" : "#FFFBEB", color: frame >= iaReactivedTime ? "#065F46" : "#B45309", fontFamily: "Inter", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", gap: 6, transform: `scale(${badgeScale})`, transformOrigin: "right center" }}>
                     <BotIcon size={12} color={frame >= iaReactivedTime ? "#065F46" : "#B45309"} /> {frame >= iaReactivedTime ? "IA Reactivada" : "Reactivar IA"}
                   </div>
                 </div>
