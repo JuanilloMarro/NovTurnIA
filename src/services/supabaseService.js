@@ -1,11 +1,43 @@
 import { supabase, BUSINESS_ID } from '../config/supabase';
 
-// Helper for dates
-function toISO(date, time) {
+// Caché de timezone del negocio — se carga una vez por sesión
+let _businessTimezone = null;
+
+async function getBusinessTimezone() {
+    if (_businessTimezone) return _businessTimezone;
+    const { data } = await supabase
+        .from('businesses')
+        .select('timezone')
+        .eq('id', BUSINESS_ID)
+        .single();
+    _businessTimezone = data?.timezone || 'America/Guatemala';
+    return _businessTimezone;
+}
+
+// Obtiene el offset UTC de una IANA timezone en una fecha concreta (respeta DST)
+function getUTCOffset(timezone, date) {
+    const parts = new Intl.DateTimeFormat('en', {
+        timeZone: timezone,
+        timeZoneName: 'shortOffset',
+    }).formatToParts(date);
+    const offsetStr = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT-6';
+    const match = offsetStr.match(/GMT([+-])(\d+)(?::(\d+))?/);
+    if (!match) return '-06:00';
+    const sign = match[1];
+    const hours = match[2].padStart(2, '0');
+    const minutes = (match[3] || '0').padStart(2, '0');
+    return `${sign}${hours}:${minutes}`;
+}
+
+// Helper for dates — usa la timezone real del negocio
+async function toISO(date, time) {
+    const timezone = await getBusinessTimezone();
     const d = date instanceof Date ? date : new Date(date + 'T12:00:00');
     const [h, m] = time.split(':').map(Number);
     const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(h)}:${pad(m)}:00-06:00`;
+    const targetDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0);
+    const offset = getUTCOffset(timezone, targetDate);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(h)}:${pad(m)}:00${offset}`;
 }
 
 // ── Appointments ──────────────────────────────────────────
@@ -29,8 +61,8 @@ export async function createAppointment({ patientId, serviceId, date, startTime,
             business_id: BUSINESS_ID,
             patient_id: patientId,
             service_id: serviceId || null,
-            date_start: toISO(date, startTime),
-            date_end: toISO(date, endTime),
+            date_start: await toISO(date, startTime),
+            date_end: await toISO(date, endTime),
             status: 'scheduled',
             created_by: 'dashboard',
             confirmed: false
@@ -53,8 +85,8 @@ export async function updateAppointment(id, { date, startTime, endTime }) {
     const { data, error } = await supabase
         .from('appointments')
         .update({
-            date_start: toISO(date, startTime),
-            date_end: toISO(date, endTime),
+            date_start: await toISO(date, startTime),
+            date_end: await toISO(date, endTime),
         })
         .eq('id', id)
         .eq('business_id', BUSINESS_ID)
@@ -220,29 +252,15 @@ export async function createPatient({ display_name, phone, email, notes }) {
 }
 
 export async function updatePatient(patientId, { display_name, phone }) {
-    const promises = [
-        supabase
-            .from('patients')
-            .update({ display_name })
-            .eq('id', patientId)
-            .eq('business_id', BUSINESS_ID)
-    ];
+    const { error: patientError } = await supabase
+        .from('patients')
+        .update({ display_name })
+        .eq('id', patientId)
+        .eq('business_id', BUSINESS_ID);
 
-    if (phone) {
-        promises.push(
-            supabase
-                .from('patient_phones')
-                .upsert({ patient_id: patientId, phone, is_primary: true }, { onConflict: 'patient_id,is_primary' })
-        );
-    }
-
-    const results = await Promise.all(promises);
-
-    const patientError = results[0]?.error;
     if (patientError) throw new Error('No se pudo actualizar el paciente.');
 
     if (phone) {
-        // Try update first
         const { data: existing, error: updateError } = await supabase
             .from('patient_phones')
             .update({ phone })
@@ -250,14 +268,13 @@ export async function updatePatient(patientId, { display_name, phone }) {
             .eq('is_primary', true)
             .select();
 
-        // If no rows were updated, it means there's no primary phone yet, so we insert it
+        if (updateError) throw new Error('Paciente actualizado pero error al guardar teléfono.');
+
         if (!existing || existing.length === 0) {
             const { error: insertError } = await supabase
                 .from('patient_phones')
                 .insert({ patient_id: patientId, phone, is_primary: true });
             if (insertError) throw new Error('Paciente actualizado pero error al guardar teléfono.');
-        } else if (updateError) {
-            throw new Error('Paciente actualizado pero error al guardar teléfono.');
         }
     }
 }
@@ -274,20 +291,22 @@ export async function deletePatient(patientId) {
 // ── Stats ─────────────────────────────────────────────────
 export async function getStatsOverview() {
     const [{ data: apptStats, error: e1 }, { data: patientStats, error: e2 }] = await Promise.all([
-        supabase.from('mv_business_stats')
-            .select('*')
-            .eq('business_id', BUSINESS_ID)
-            .order('month', { ascending: false })
-            .limit(6),
-        supabase.from('mv_patient_stats')
-            .select('*')
-            .eq('business_id', BUSINESS_ID)
-            .single()
+        supabase.rpc('get_business_stats'),
+        supabase.rpc('get_patient_stats')
     ]);
 
     if (e1) throw e1;
-    // e2 puede ser PGRST116 (no rows) si no hay datos aún
-    return { apptStats: apptStats || [], patientStats: patientStats || null };
+    // PGRST116 = "no rows returned" — esperado cuando aún no hay datos
+    if (e2 && e2.code !== 'PGRST116') throw e2;
+
+    // get_patient_stats puede retornar un array (SETOF) o un record escalar
+    // dependiendo de cómo esté declarada la función en Supabase.
+    // Normalizamos ambos casos para no acoplarnos a la firma de retorno.
+    const normalizedPatientStats = Array.isArray(patientStats)
+        ? (patientStats[0] ?? null)
+        : (patientStats ?? null);
+
+    return { apptStats: apptStats || [], patientStats: normalizedPatientStats };
 }
 
 // ── Business Info ────────────────────────────────────────
