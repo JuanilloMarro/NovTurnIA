@@ -11,7 +11,8 @@
       "Bash(npx tsc:*)",
       "Bash(node:*)",
       "Bash(npx remotion:*)",
-      "Bash(kill %1)"
+      "Bash(kill %1)",
+      "Bash(cd:*)"
     ]
   }
 }

@@ -5,6 +5,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  Audio,
+  Sequence,
+  staticFile,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
@@ -50,51 +53,51 @@ const BizCard: React.FC<{
   const frame = useCurrentFrame();
   const breathe = 1 + Math.sin(frame * 0.035 + phase) * 0.004;
   return (
-  <div style={{
-    transform: `translateX(${entryX}px) scale(${breathe})`,
-    opacity,
-    background: "rgba(255,255,255,0.74)",
-    backdropFilter: "blur(24px)",
-    WebkitBackdropFilter: "blur(24px)",
-    border: "1px solid rgba(255,255,255,0.88)",
-    borderRadius: 26,
-    padding: "18px 24px",
-    display: "flex",
-    alignItems: "center",
-    gap: 18,
-    boxShadow: "0 10px 36px rgba(15,32,68,0.07)",
-  }}>
     <div style={{
-      width: 52, height: 52, borderRadius: 16,
-      background: accentBg, flexShrink: 0,
-      display: "flex", alignItems: "center", justifyContent: "center",
+      transform: `translateX(${entryX}px) scale(${breathe})`,
+      opacity,
+      background: "rgba(255,255,255,0.74)",
+      backdropFilter: "blur(24px)",
+      WebkitBackdropFilter: "blur(24px)",
+      border: "1px solid rgba(255,255,255,0.88)",
+      borderRadius: 26,
+      padding: "18px 24px",
+      display: "flex",
+      alignItems: "center",
+      gap: 18,
+      boxShadow: "0 10px 36px rgba(15,32,68,0.07)",
     }}>
-      {icon}
-    </div>
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
-        <span style={{
-          fontFamily: "Inter", fontSize: 15.5, fontWeight: 800,
-          color: COLORS.navy900, letterSpacing: "-0.02em", lineHeight: 1,
-        }}>{title}</span>
-        <div style={{
-          background: accentBg, borderRadius: 100, padding: "5px 12px", flexShrink: 0,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          transform: `translateY(${badgeOffsetY}px)`,
-        }}>
-          <span style={{
-            fontFamily: "Inter", fontSize: 9.5, fontWeight: 800,
-            color: accentText, textTransform: "uppercase" as const, letterSpacing: "0.07em",
-            lineHeight: 1,
-          }}>{moduleName}</span>
-        </div>
+      <div style={{
+        width: 52, height: 52, borderRadius: 16,
+        background: accentBg, flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        {icon}
       </div>
-      <p style={{
-        fontFamily: "Inter", fontSize: 12, fontWeight: 500,
-        color: "rgba(15,32,68,0.50)", margin: 0, lineHeight: 1.5,
-      }}>{description}</p>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
+          <span style={{
+            fontFamily: "Inter", fontSize: 15.5, fontWeight: 800,
+            color: COLORS.navy900, letterSpacing: "-0.02em", lineHeight: 1,
+          }}>{title}</span>
+          <div style={{
+            background: accentBg, borderRadius: 100, padding: "5px 12px", flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transform: `translateY(${badgeOffsetY}px)`,
+          }}>
+            <span style={{
+              fontFamily: "Inter", fontSize: 9.5, fontWeight: 800,
+              color: accentText, textTransform: "uppercase" as const, letterSpacing: "0.07em",
+              lineHeight: 1,
+            }}>{moduleName}</span>
+          </div>
+        </div>
+        <p style={{
+          fontFamily: "Inter", fontSize: 12, fontWeight: 500,
+          color: "rgba(15,32,68,0.50)", margin: 0, lineHeight: 1.5,
+        }}>{description}</p>
+      </div>
     </div>
-  </div>
   );
 };
 
@@ -141,6 +144,18 @@ export const Scene12Modular: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ ...sceneExit.style, overflow: "hidden" }}>
+
+      {/* ── DING: cada tarjeta entra ── */}
+      {[52, 92, 132, 172].map((delay) => (
+        <Sequence key={delay} from={delay} durationInFrames={90}>
+          <Audio src={staticFile("sounds/notification.mp3")} volume={0.325} />
+        </Sequence>
+      ))}
+
+      {/* ── SUCCESS: badge final "Modular · Adaptable · A tu medida" ── */}
+      <Sequence from={212} durationInFrames={150}>
+        <Audio src={staticFile("sounds/succes.mp3")} volume={0.65} />
+      </Sequence>
       <div style={{
         position: "absolute",
         left: "50%",

@@ -12,7 +12,6 @@
     "@remotion/cli": "4.0.445",
     "@remotion/google-fonts": "4.0.445",
     "@remotion/lambda": "4.0.445",
-    "@remotion/media": "^4.0.446",
     "@remotion/paths": "4.0.445",
     "@remotion/player": "4.0.445",
     "@remotion/preload": "^4.0.445",
@@ -54,8 +53,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "remotion": "remotion studio",
-    "render": "remotion render",
+    "remotion": "remotion studio src/remotion/index.ts",
+    "render": "remotion render src/remotion/index.ts",
     "deploy": "node deploy.mjs",
     "voiceover": "node --strip-types generate-voiceover.ts"
   }

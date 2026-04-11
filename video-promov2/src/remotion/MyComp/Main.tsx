@@ -1,6 +1,5 @@
 import { fontFamily, loadFont } from "@remotion/google-fonts/Inter";
-import { AbsoluteFill, useVideoConfig, interpolate, staticFile, Sequence } from "remotion";
-import { Audio } from "@remotion/media";
+import { AbsoluteFill, useVideoConfig, interpolate, staticFile, Sequence, Audio } from "remotion";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { Scene1Intro } from "../scenes/Scene1Intro";
@@ -115,7 +114,7 @@ export const NovTurnVideo: React.FC = () => {
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: 5,
-          opacity: 0.35,
+          opacity: 0.2,
           pointerEvents: "none",
         }}
       >

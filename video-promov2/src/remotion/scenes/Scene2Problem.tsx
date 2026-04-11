@@ -5,6 +5,9 @@ import {
   spring,
   interpolate,
   Easing,
+  Audio,
+  Sequence,
+  staticFile,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
@@ -107,7 +110,16 @@ export const Scene2Problem: React.FC = () => {
   return (
     <AbsoluteFill style={{ ...sceneExit.style }}>
 
+      {/* ── CLOCK TICK: suena mientras el reloj está visible (frames 0–220 ≈ 3.7s) ── */}
+      <Sequence from={0} durationInFrames={110}><Audio src={staticFile("sounds/alert.mp3")} volume={0.65} /></Sequence>
 
+      {/* ── DING 2: mensajes del cliente ── */}
+      <Sequence from={200} durationInFrames={90}><Audio src={staticFile("sounds/ding3.mp3")} volume={0.65} /></Sequence>
+      <Sequence from={285} durationInFrames={90}><Audio src={staticFile("sounds/ding3.mp3")} volume={0.65} /></Sequence>
+      <Sequence from={365} durationInFrames={90}><Audio src={staticFile("sounds/ding3.mp3")} volume={0.65} /></Sequence>
+
+      {/* ── DING 3: respuesta de la IA ── */}
+      <Sequence from={435} durationInFrames={90}><Audio src={staticFile("sounds/ding2.mp3")} volume={0.65} /></Sequence>
 
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
 

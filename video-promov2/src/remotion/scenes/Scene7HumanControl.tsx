@@ -5,6 +5,8 @@ import {
   spring,
   interpolate,
   Sequence,
+  Audio,
+  staticFile,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
@@ -110,6 +112,18 @@ export const Scene7HumanControl: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ ...sceneExit.style }}>
+
+      {/* ── ALERT: ambulancia visible frames 0–240 ── */}
+      <Sequence from={0} durationInFrames={240}><Audio src={staticFile("sounds/alert.mp3")} volume={0.65} /></Sequence>
+
+      {/* ── DING 2: mensajes urgentes del cliente ── */}
+      <Sequence from={220} durationInFrames={90}><Audio src={staticFile("sounds/ding3.mp3")} volume={0.65} /></Sequence>
+      <Sequence from={285} durationInFrames={90}><Audio src={staticFile("sounds/ding3.mp3")} volume={0.65} /></Sequence>
+      <Sequence from={335} durationInFrames={90}><Audio src={staticFile("sounds/ding3.mp3")} volume={0.65} /></Sequence>
+
+      {/* ── DING 3: respuesta de la IA ── */}
+      <Sequence from={385} durationInFrames={90}><Audio src={staticFile("sounds/ding2.mp3")} volume={0.65} /></Sequence>
+
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
 
         {/* ── AMBULANCIA + PREGUNTA ── */}

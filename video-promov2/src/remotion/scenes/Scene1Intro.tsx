@@ -5,6 +5,9 @@ import {
   spring,
   interpolate,
   Easing,
+  Audio,
+  Sequence,
+  staticFile,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 
@@ -141,6 +144,17 @@ export const Scene1Intro: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ opacity: exitOpacity }}>
+
+      {/* ── SPARKLES: estrella brilla frames 44–104 ── */}
+      <Sequence from={44} durationInFrames={60}>
+        <Audio src={staticFile("sounds/sparkles.mp3")} volume={0.65} />
+      </Sequence>
+
+      {/* ── SWOOSH: robot hace el brinco ── */}
+      <Sequence from={168} durationInFrames={60}>
+        <Audio src={staticFile("sounds/swoosh.mp3")} volume={0.65} />
+      </Sequence>
+
       {/* ── CAPA 2: Texto (siempre detrás del box) ── */}
       <AbsoluteFill
         style={{

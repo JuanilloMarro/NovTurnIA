@@ -6,6 +6,9 @@ import {
   spring,
   interpolate,
   Easing,
+  Audio,
+  Sequence,
+  staticFile,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 
@@ -101,6 +104,17 @@ export const Scene11Outro: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ overflow: "hidden", opacity: exitOp }}>
+
+      {/* ── SPARKLES: estrella brilla frames 50–82 ── */}
+      <Sequence from={50} durationInFrames={32}>
+        <Audio src={staticFile("sounds/sparkles.mp3")} volume={0.65} />
+      </Sequence>
+
+      {/* ── SWOOSH: robot hace el brinco ── */}
+      <Sequence from={85} durationInFrames={60}>
+        <Audio src={staticFile("sounds/swoosh.mp3")} volume={0.65} />
+      </Sequence>
+
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
 
         {/* ── CONTENEDOR PRINCIPAL ── */}

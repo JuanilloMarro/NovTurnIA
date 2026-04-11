@@ -5,6 +5,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  Audio,
+  Sequence,
+  staticFile,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
@@ -116,6 +119,17 @@ export const Scene10Conversation: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ overflow: "hidden", ...sceneExit.style }}>
+
+      {/* ── DING: doctor envía mensaje al paciente ── */}
+      <Sequence from={messageSentTime} durationInFrames={150}>
+        <Audio src={staticFile("sounds/ding3.mp3")} volume={0.65} />
+      </Sequence>
+
+      {/* ── NOTIFICATION: IA se reactiva ── */}
+      <Sequence from={iaReactivedTime} durationInFrames={150}>
+        <Audio src={staticFile("sounds/succes.mp3")} volume={0.65} />
+      </Sequence>
+
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
 
         {/* PANEL DASHBOARD MACRO */}

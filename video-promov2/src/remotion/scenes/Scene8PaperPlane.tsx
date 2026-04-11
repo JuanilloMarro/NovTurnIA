@@ -4,6 +4,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  Audio,
+  Sequence,
+  staticFile,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
@@ -37,7 +40,7 @@ export const Scene8PaperPlane: React.FC = () => {
   }) => {
     const opacity = interpolate(frame, [delay, delay + 30], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
     const scale = spring({ frame: frame - delay, fps, config: { damping: 18, stiffness: 140 } });
-    
+
     const rad = (angle * Math.PI) / 180;
     const x = Math.cos(rad) * radius;
     const y = Math.sin(rad) * radius;
@@ -53,17 +56,17 @@ export const Scene8PaperPlane: React.FC = () => {
           scale(${scale})
           rotate(${tilt + roll}deg)
         `,
-        transformOrigin: "center center", 
-        background: "rgba(255,255,255,0.85)", backdropFilter: "blur(20px)", 
+        transformOrigin: "center center",
+        background: "rgba(255,255,255,0.85)", backdropFilter: "blur(20px)",
         border: "1px solid rgba(255,255,255,0.7)", borderRadius: 18,
-        padding: "10px 18px", display: "flex", alignItems: "center", gap: 12, 
+        padding: "10px 18px", display: "flex", alignItems: "center", gap: 12,
         boxShadow: "0 10px 35px rgba(15,32,68,0.1)", whiteSpace: "nowrap",
         zIndex: 10,
       }}>
-        <div style={{ 
-          width: 36, height: 36, borderRadius: 10, 
-          background: "rgba(29,95,173,0.08)", 
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: "rgba(29,95,173,0.08)",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
         }}>{icon}</div>
         <div>
           <div style={{ fontFamily: "Inter", fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.45)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 1 }}>{label}</div>
@@ -77,6 +80,19 @@ export const Scene8PaperPlane: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ ...sceneExit.style }}>
+
+      {/* ── POP: un sonido por cada DataCard que aparece ── */}
+      {[10, 40, 70, 105, 135, 165, 195, 225].map((delay) => (
+        <Sequence key={delay} from={delay} durationInFrames={60}>
+          <Audio src={staticFile("sounds/pop.mp3")} volume={0.65} />
+        </Sequence>
+      ))}
+
+      {/* ── SWOOSH: mail sale volando a la derecha ── */}
+      <Sequence from={235} durationInFrames={60}>
+        <Audio src={staticFile("sounds/swoosh.mp3")} volume={0.65} />
+      </Sequence>
+
       {/* ── ÓRBITA DE DATOS COMPACTA ── */}
       <DataCard
         angle={-90} radius={R + 50} delay={10}

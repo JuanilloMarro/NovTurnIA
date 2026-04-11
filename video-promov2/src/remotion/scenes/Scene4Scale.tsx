@@ -4,6 +4,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  Audio,
+  Sequence,
+  staticFile,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
@@ -88,6 +91,14 @@ export const Scene4Scale: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ overflow: "hidden", ...sceneExit.style }}>
+
+      {/* ── POP: un sonido por cada ChatGroup que aparece ── */}
+      {[25, 45, 65, 85, 105, 125, 145, 160].map((delay) => (
+        <Sequence key={delay} from={delay} durationInFrames={60}>
+          <Audio src={staticFile("sounds/pop1.mp3")} volume={0.65} />
+        </Sequence>
+      ))}
+
       {/*
         Nodos aparecen de a uno cada ~20 frames en orden radial (comprimido):
         1. Arriba centro    (25)
@@ -99,16 +110,16 @@ export const Scene4Scale: React.FC = () => {
         7. Der abajo        (145)
         8. Abajo centro     (160)
       */}
-      <ChatGroup x={540} y={320}  delay={25}  scale={0.78} rotation={1}  />
+      <ChatGroup x={540} y={320} delay={25} scale={0.78} rotation={1} />
 
-      <ChatGroup x={180} y={410}  delay={45}  scale={0.85} rotation={2}  />
-      <ChatGroup x={900} y={410}  delay={65}  scale={0.7}  rotation={-2} />
+      <ChatGroup x={180} y={410} delay={45} scale={0.85} rotation={2} />
+      <ChatGroup x={900} y={410} delay={65} scale={0.7} rotation={-2} />
 
-      <ChatGroup x={260} y={670}  delay={85}  scale={0.75} rotation={-4} />
-      <ChatGroup x={820} y={670}  delay={105} scale={0.85} rotation={5}  />
+      <ChatGroup x={260} y={670} delay={85} scale={0.75} rotation={-4} />
+      <ChatGroup x={820} y={670} delay={105} scale={0.85} rotation={5} />
 
-      <ChatGroup x={200} y={930}  delay={125} scale={0.8}  rotation={3}  />
-      <ChatGroup x={880} y={930}  delay={145} scale={0.75} rotation={-4} />
+      <ChatGroup x={200} y={930} delay={125} scale={0.8} rotation={3} />
+      <ChatGroup x={880} y={930} delay={145} scale={0.75} rotation={-4} />
 
       <ChatGroup x={540} y={1050} delay={160} scale={0.78} rotation={-1} />
 

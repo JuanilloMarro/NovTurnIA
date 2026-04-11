@@ -5,6 +5,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  Audio,
+  Sequence,
+  staticFile,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 
@@ -98,11 +101,11 @@ const BotIcon = ({ size = 16, color = "white" }) => (
 
 // Sidebar nav items — matches real system exactly
 const NAV_ITEMS = [
-  { label: "Turnos",         Icon: CalendarIcon,      active: true  },
-  { label: "Pacientes",      Icon: UsersIcon,         active: false },
+  { label: "Turnos", Icon: CalendarIcon, active: true },
+  { label: "Pacientes", Icon: UsersIcon, active: false },
   { label: "Conversaciones", Icon: MessageCircleIcon, active: false },
-  { label: "Estadísticas",   Icon: BarChart2Icon,     active: false },
-  { label: "Configuración",  Icon: SettingsIcon,      active: false },
+  { label: "Estadísticas", Icon: BarChart2Icon, active: false },
+  { label: "Configuración", Icon: SettingsIcon, active: false },
 ];
 
 /**
@@ -135,6 +138,10 @@ export const Scene5Dashboard: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ overflow: "hidden", opacity: exitOpacity }}>
+
+      {/* ── SUCCESS: turno agendado por IA entra al calendario ── */}
+      <Sequence from={eventTime} durationInFrames={150}><Audio src={staticFile("sounds/succes.mp3")} volume={0.65} /></Sequence>
+
       {/* PANEL MACRO — 920px ancho para respirar en 1080px canvas */}
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{
@@ -204,10 +211,10 @@ export const Scene5Dashboard: React.FC = () => {
                         { sub: "Usuarios", SubIcon: UsersIcon },
                         { sub: "Actividad", SubIcon: HistoryIcon },
                       ].map(({ sub, SubIcon }) => (
-                        <div key={sub} style={{ 
+                        <div key={sub} style={{
                           display: "flex", alignItems: "center", gap: 8,
-                          padding: "6px 0", fontFamily: "Inter", fontSize: 11.5, 
-                          fontWeight: 600, color: "rgba(15,32,104,0.32)" 
+                          padding: "6px 0", fontFamily: "Inter", fontSize: 11.5,
+                          fontWeight: 600, color: "rgba(15,32,104,0.32)"
                         }}>
                           <SubIcon size={12} color="rgba(15,32,104,0.25)" />
                           {sub}

@@ -4,6 +4,9 @@ import {
   useVideoConfig,
   spring,
   interpolate,
+  Audio,
+  Sequence,
+  staticFile,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 import { useDirectionalExit } from "../components/SceneMotion";
@@ -88,6 +91,18 @@ export const Scene3Solution: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ ...sceneExit.style }}>
+
+      {/* ── DING 3: respuestas de la IA ── */}
+      <Sequence from={70} durationInFrames={90}><Audio src={staticFile("sounds/ding2.mp3")} volume={0.65} /></Sequence>
+      <Sequence from={240} durationInFrames={90}><Audio src={staticFile("sounds/ding2.mp3")} volume={0.65} /></Sequence>
+
+      {/* ── DING 2: mensajes del cliente ── */}
+      <Sequence from={155} durationInFrames={90}><Audio src={staticFile("sounds/ding3.mp3")} volume={0.65} /></Sequence>
+      <Sequence from={360} durationInFrames={90}><Audio src={staticFile("sounds/ding3.mp3")} volume={0.65} /></Sequence>
+
+      {/* ── SUCCESS: card de turno confirmado con hora aparece ── */}
+      <Sequence from={295} durationInFrames={150}><Audio src={staticFile("sounds/succes.mp3")} volume={0.65} /></Sequence>
+
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{
           position: "absolute",
