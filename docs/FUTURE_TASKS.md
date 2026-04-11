@@ -79,84 +79,55 @@ CREATE POLICY "Staff can view patient phones" ON patient_phones
 
 ---
 
-### 1.3 🟡 Mover queries de `useStats.js` a una función RPC/View
+### 1.3 🟡 ~~[PARCIAL]~~ Consolidar queries de `useStats.js` en una sola RPC
 
-**Problema:** `useStats.js` hace **7 queries paralelas** al montar la página Stats:
-1. Turnos del mes actual
-2. Turnos del mes pasado
-3. Total pacientes (count)
-4. Nuevos este mes (count)
-5. Mensajes enviados (count)
-6. Mensajes recibidos (count)
-7. Tendencia últimos 6 meses
+**Estado:** Parcialmente completado (2026-04-10). Las vistas materializadas ahora se consultan via `get_business_stats()` y `get_patient_stats()` (SECURITY DEFINER, acceso directo revocado). Quedan 3 queries directas: turnos del mes actual, conteos de mensajes, y tendencia de 6 meses.
 
-Cada query pasa por RLS individualmente + network roundtrip.
+**Problema original:** `useStats.js` hacía **7 queries paralelas**. Ahora son **4** (7→4 reducido). La mejora pendiente es consolidar las 3 restantes en una sola RPC:
 
-**Solución:** Crear una función RPC en PostgreSQL:
 ```sql
-CREATE OR REPLACE FUNCTION get_dashboard_stats(p_business_id INTEGER)
-RETURNS JSON LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
-  -- Una sola query con CTEs que retorna todo el JSON
+CREATE OR REPLACE FUNCTION public.get_dashboard_stats()
+RETURNS JSON LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = ''
+AS $$
+  -- Una sola query con CTEs que retorna todo el JSON:
+  -- current_month_apts + message_counts + trend_6m
 $$;
 ```
 
-**Beneficios:**
-- 7 roundtrips → 1 roundtrip
-- Las CTEs pueden reutilizar scans
-- RLS se evalúa una vez (SECURITY DEFINER)
+**Beneficios adicionales al completar:**
+- 4 roundtrips → 1 roundtrip
+- RLS evaluada una sola vez
 
-**Esfuerzo:** Medio (escribir la función SQL, adaptar `useStats.js`)
-
----
-
-### 1.4 🟢 Agregar índice parcial para pacientes activos
-
-**Problema:** Casi todas las queries de pacientes filtran `deleted_at IS NULL`, pero el índice actual incluye pacientes borrados.
-
-**Solución:**
-```sql
-CREATE INDEX idx_patients_active
-ON patients(business_id, display_name)
-WHERE deleted_at IS NULL;
-```
-
-**Cuándo actuar:** Cuando haya un volumen significativo de pacientes soft-deleted.
-
-**Esfuerzo:** Bajo (1 línea SQL)
+**Esfuerzo:** Medio (escribir la función SQL con CTEs, adaptar `useStats.js`)
 
 ---
 
-### 1.5 🟠 Auditar y crear índices faltantes en tablas de alto tráfico
+### 1.4 ✅ ~~Agregar índice parcial para pacientes activos~~ (YA EXISTÍA)
 
-**Problema:** No hay un inventario de índices actuales. Las queries más frecuentes del sistema probablemente están haciendo sequential scans:
-
-| Query | Columnas filtradas | Índice esperado |
-|---|---|---|
-| `getAppointmentsByWeek` | `(business_id, date_start)` | Compuesto |
-| `getPatientAppointments` | `(patient_id, business_id)` | Compuesto |
-| `getNotifications` | `(business_id, created_at)` | Compuesto |
-| `markNotificationsRead` | `(business_id, read)` | Compuesto |
-| `getAuditLog` | `(business_id, created_at)` | Compuesto |
-
-**Solución:** Verificar con `pg_stat_user_indexes` y crear los faltantes:
+**Verificado (2026-04-10):** El índice `idx_patients_business` ya existe con `WHERE (deleted_at IS NULL)`:
 ```sql
--- Verificar índices existentes
-SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'appointments';
-
--- Crear los faltantes
-CREATE INDEX IF NOT EXISTS idx_appointments_business_date
-  ON appointments(business_id, date_start);
-
-CREATE INDEX IF NOT EXISTS idx_appointments_patient
-  ON appointments(patient_id, business_id);
-
-CREATE INDEX IF NOT EXISTS idx_notifications_business_read
-  ON notifications(business_id, read) WHERE read = false;
+CREATE INDEX idx_patients_business ON public.patients USING btree (business_id)
+WHERE (deleted_at IS NULL);
 ```
+No requiere acción.
 
-**Cuándo actuar:** Antes de lanzar a producción real — los índices correctos son fundamentales y baratos de crear antes de tener datos.
+---
 
-**Esfuerzo:** Bajo (verificar + ejecutar SQL)
+### 1.5 ✅ ~~Auditar índices faltantes en tablas de alto tráfico~~ (COMPLETADO — YA EXISTÍAN)
+
+**Verificado (2026-04-10):** Todos los índices críticos ya existían. Inventario actual:
+
+| Tabla | Índices relevantes |
+|---|---|
+| `appointments` | `idx_appt_business_date (business_id, date_start, status)`, `idx_appt_patient (patient_id, status)`, `no_overlapping_appointments` (GIST exclusion) |
+| `patients` | `idx_patients_business (business_id) WHERE deleted_at IS NULL`, `idx_patients_name_trgm` (GIN trigram), `idx_patients_takeover` |
+| `notifications` | `idx_notifications_business_created`, `idx_notifications_unread WHERE read = false` |
+| `audit_log` | `idx_audit_business (business_id, created_at DESC)`, `idx_audit_record` |
+| `history` | `idx_history_lookup (business_id, patient_id, created_at DESC) INCLUDE (role, content)` |
+| `staff_users` | `idx_staff_users_business WHERE active = true` |
+
+No requiere acción adicional.
 
 ---
 
@@ -232,7 +203,59 @@ Agregar `.env` a `.gitignore` y crear `.env.example` con placeholders.
 
 ---
 
-### 2.7 🟠 Refactorizar fuente de `BUSINESS_ID` — eliminar filtro `?bid=` redundante del frontend
+### 2.7 ✅ ~~RLS deshabilitado en `message_buffer` y `api_rate_limits`~~ (COMPLETADO 2026-04-10)
+
+**Resuelto:** Ambas tablas tenían RLS deshabilitado, exponiéndolas a cualquier usuario autenticado via PostgREST. Habilitado RLS sin policies (deny all para `authenticated`/`anon`). Las funciones `SECURITY DEFINER` (`reactivate_bot`, triggers) siguen accediendo normalmente al bypassear RLS.
+
+---
+
+### 2.8 ✅ ~~Materialized views expuestas sin control de tenant~~ (COMPLETADO 2026-04-10)
+
+**Resuelto:** `mv_business_stats` y `mv_patient_stats` eran accesibles por cualquier usuario autenticado (las MV no soportan RLS). Se revocó `SELECT` de `anon` y `authenticated`, y se crearon dos RPCs `SECURITY DEFINER`:
+- `get_business_stats()` → reemplaza acceso directo a `mv_business_stats`
+- `get_patient_stats()` → reemplaza acceso directo a `mv_patient_stats`
+
+El frontend (`getStatsOverview`) migrado a `.rpc()`.
+
+---
+
+### 2.9 ✅ ~~Políticas RLS duplicadas con dos funciones distintas~~ (COMPLETADO 2026-04-10)
+
+**Resuelto:** Cada tabla tenía dos sets de políticas PERMISSIVE usando `get_user_business_id()` y `get_my_business_id()` respectivamente — Postgres las combina con OR, duplicando el costo de evaluación. Se eliminaron las 8 políticas `*_own_business` (las que usaban `get_my_business_id()`). Ahora cada tabla tiene una sola política canónica por operación.
+
+---
+
+### 2.10 ✅ ~~`SET search_path` faltante en todas las funciones~~ (COMPLETADO 2026-04-10)
+
+**Resuelto:** Las 6 funciones flaggeadas por el security advisor fueron actualizadas con `SET search_path = ''` y nombres de tabla schema-qualified (`public.staff_users`, `public.appointments`, etc.): `get_user_business_id`, `get_my_business_id`, `reactivate_bot`, `handle_audit_log`, `trigger_add_notification`, `trigger_set_updated_at`, `prevent_mass_delete`.
+
+---
+
+### 2.11 ✅ ~~Unicidad de teléfono cross-tenant~~ (COMPLETADO 2026-04-10)
+
+**Resuelto:** `patient_phones.phone` tenía dos índices únicos globales (`uq_phone` constraint + `idx_phones_phone`), impidiendo que el mismo número de teléfono existiera en dos negocios distintos. Se eliminaron ambos y se reemplazaron por `uq_phone_per_patient UNIQUE(patient_id, phone)` — la unicidad es ahora por paciente, no global.
+
+---
+
+### 2.12 ✅ ~~`get_user_business_id` sin `active = true` y recursión RLS~~ (COMPLETADO 2026-04-10)
+
+**Resuelto:** La función no filtraba `active = true`, permitiendo que usuarios desactivados pudieran pasar el check de RLS. Corregido. Además, al cambiar a `SECURITY INVOKER` se generó recursión infinita (la función consultaba `staff_users` desde dentro de una policy de `staff_users`). Corrección: ambas funciones helper de RLS (`get_user_business_id`, `get_my_business_id`) son ahora `SECURITY DEFINER` — estándar recomendado por Supabase para este patrón.
+
+---
+
+### 2.13 ✅ ~~Timezone hardcodeado en frontend y trigger~~ (COMPLETADO 2026-04-10)
+
+**Resuelto:** `toISO()` en `supabaseService.js` hardcodeaba `-06:00` (Guatemala) para todos los negocios. Reemplazado por una función que cachea el timezone IANA del negocio desde la DB y usa `Intl.DateTimeFormat` para calcular el offset UTC real (con soporte de DST). El trigger `trigger_add_notification` también hardcodeaba `'America/Guatemala'`; ahora lee el campo `timezone` de la tabla `businesses`.
+
+---
+
+### 2.14 ✅ ~~Double-write en `updatePatient`~~ (COMPLETADO 2026-04-10)
+
+**Resuelto:** La función hacía un `upsert` de teléfono dentro de `Promise.all` y luego volvía a hacer `update` + posible `insert` del mismo teléfono. Eliminado el upsert del `Promise.all`. La lógica es ahora secuencial y sin duplicación: actualizar paciente → update teléfono → insert si no existía.
+
+---
+
+### 2.15 🟠 Refactorizar fuente de `BUSINESS_ID` — eliminar filtro `?bid=` redundante del frontend
 
 **Problema:** Casi TODAS las queries en `supabaseService.js` tienen `.eq('business_id', BUSINESS_ID)` — se encontraron **27 ocurrencias**. Pero RLS ya filtra por `business_id` en el servidor.
 
@@ -257,7 +280,81 @@ const BUSINESS_ID = profile?.business_id;
 
 ---
 
-### 2.3 🟡 Rate limiting en `createStaffUser`
+### 2.16 🔴 Migrar `businesses.id` de INTEGER a UUID
+
+**Problema:** El ID de tenant es un entero secuencial (`1`, `2`, `3`...) expuesto en la URL como `?bid=1`. Esto permite:
+- **Enumeración de tenants**: un competidor puede inferir cuántos clientes tiene el SaaS y en qué orden se registraron
+- **Fuzzing dirigido**: aunque RLS protege los datos, el parámetro enumerable facilita ataques de fuerza bruta a RLS
+
+**Solución:** Migrar `businesses.id` a UUID y actualizar todos los FK que dependen de él:
+
+```sql
+-- 1. Agregar columna UUID a businesses
+ALTER TABLE public.businesses ADD COLUMN uuid_id UUID DEFAULT gen_random_uuid() NOT NULL;
+
+-- 2. Agregar columnas uuid_id en cada tabla con FK
+ALTER TABLE public.appointments   ADD COLUMN business_uuid UUID;
+ALTER TABLE public.patients       ADD COLUMN business_uuid UUID;
+ALTER TABLE public.staff_users    ADD COLUMN business_uuid UUID;
+ALTER TABLE public.staff_roles    ADD COLUMN business_uuid UUID;
+ALTER TABLE public.services       ADD COLUMN business_uuid UUID;
+ALTER TABLE public.history        ADD COLUMN business_uuid UUID;
+ALTER TABLE public.notifications  ADD COLUMN business_uuid UUID;
+ALTER TABLE public.audit_log      ADD COLUMN business_uuid UUID;
+
+-- 3. Backfill desde businesses.uuid_id
+UPDATE public.appointments  a SET business_uuid = b.uuid_id FROM public.businesses b WHERE b.id = a.business_id;
+-- (repetir para cada tabla)
+
+-- 4. Agregar NOT NULL, FKs, y reemplazar columnas
+-- 5. Actualizar policies RLS y funciones helper
+-- 6. Actualizar frontend: setBusinessId() recibe UUID, URL usa UUID
+```
+
+**Consideraciones:**
+- Requiere staging/branching en Supabase para no afectar producción durante la migración
+- Las RLS policies y funciones `get_user_business_id()` / `get_my_business_id()` deben actualizarse para usar UUID
+- El frontend debe dejar de exponer el ID en la URL (derivar del perfil autenticado solamente)
+
+**Cuándo actuar:** Antes de onboarding masivo de clientes — más difícil de migrar con datos en producción.
+
+**Esfuerzo:** Alto (migración multi-tabla + frontend + validar RLS)
+
+---
+
+### 2.17 🟡 `createStaffUser`: polling sin rollback si el trigger falla
+
+**Problema:** La función `createStaffUser` en `supabaseService.js` crea un usuario en `auth.users` vía `supabase.auth.signUp()` y luego espera con backoff exponencial (hasta 5 reintentos) a que el trigger `handle_new_staff_user` cree el row en `staff_users`. Si el trigger falla silenciosamente (error en la función del trigger, constraint violation, etc.):
+- El usuario queda creado en `auth.users` (puede autenticarse)
+- Pero NO existe en `staff_users` (RLS lo bloquea todo → app completamente rota para ese usuario)
+- El polling agota el tiempo y lanza error al administrador, pero el usuario auth ya fue creado y no se revierte
+
+**Solución propuesta:**
+1. Reemplazar el trigger por una **Edge Function** `create-staff-user` que use el service role:
+   - Crea el usuario en `auth.users`
+   - Inmediatamente inserta en `staff_users` en la misma transacción lógica
+   - Si algo falla, hace rollback y retorna error limpio
+2. O bien, agregar una **función RPC SECURITY DEFINER** que haga ambas operaciones atómicamente y sea llamada por el dashboard en lugar de `supabase.auth.signUp()` directamente
+
+```sql
+-- Alternativa RPC (requiere service_role o privilegios elevados para insertar en auth.users)
+CREATE OR REPLACE FUNCTION public.create_staff_user(
+  p_email TEXT, p_full_name TEXT, p_role_id INTEGER, p_business_id INTEGER
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE v_user_id UUID;
+BEGIN
+  -- Insertar en auth.users via función de Supabase (disponible en versiones recientes)
+  -- Luego insertar en staff_users en la misma transacción
+  -- Si algo falla, todo hace rollback automáticamente
+END;
+$$;
+```
+
+**Esfuerzo:** Medio-Alto (requiere Edge Function o evaluar API de Supabase Auth admin)
+
+---
+
+### 2.18 🟡 Rate limiting en `createStaffUser`
 
 **Problema:** `createStaffUser` hace `supabase.auth.signUp()` sin throttling. Un usuario malicioso con acceso podría crear usuarios masivamente.
 
@@ -556,34 +653,28 @@ npx supabase db push  # Aplica a producción
 
 ## Resumen Ejecutivo
 
-| Categoría | 🔴 | 🟠 | 🟡 | 🟢 | Total |
-|-----------|---|---|---|---|-------|
-| Base de Datos | 0 | 2 | 2 | 2 | 6 |
-| Seguridad | 1 | 1 | 1 | 0 | 3 |
-| Arquitectura FE | 0 | 1 | 3 | 0 | 4 |
-| Rendimiento FE | 0 | 2 | 2 | 1 | 5 |
-| Calidad de Código | 0 | 0 | 2 | 1 | 3 |
-| Observabilidad | 0 | 0 | 1 | 1 | 2 |
-| UX & Accesibilidad | 0 | 0 | 1 | 1 | 2 |
-| Infra & DevOps | 0 | 1 | 1 | 0 | 2 |
-| **Total** | **1** | **7** | **13** | **6** | **27** |
+_Actualizado 2026-04-10_
 
-### Top 5 Acciones Inmediatas (Quick Wins)
+| Categoría | ✅ Hecho | 🔴 | 🟠 | 🟡 | 🟢 | Pendiente |
+|-----------|---------|---|---|---|---|-----------|
+| Base de Datos | 2 | 0 | 1 | 1 | 2 | 4 |
+| Seguridad | 12 | 1 | 1 | 2 | 0 | 4 |
+| Arquitectura FE | 1 | 0 | 1 | 2 | 0 | 3 |
+| Rendimiento FE | 4 | 0 | 0 | 1 | 1 | 2 |
+| Calidad de Código | 1 | 0 | 0 | 2 | 1 | 3 |
+| Observabilidad | 0 | 0 | 0 | 1 | 1 | 2 |
+| UX & Accesibilidad | 0 | 0 | 0 | 1 | 1 | 2 |
+| Infra & DevOps | 0 | 0 | 1 | 1 | 0 | 2 |
+| **Total** | **20** | **1** | **4** | **11** | **6** | **22** |
 
-| # | Tarea | Esfuerzo | Ref | Estado |
-|---|-------|----------|-----|--------|
-| 1 | Mover credenciales a `.env` | 10 min | §2.1 | ✅ |
-| 2 | Fix race condition `setTimeout` en `createStaffUser` | 10 min | §4.4 | ✅ |
-| 3 | Limitar appointments en `getPatients` | 5 min | §4.3 | ✅ |
-| 4 | Limpiar console.logs | 15 min | §5.1 | ✅ |
-| 5 | Fix dependencias `useCallback` | 10 min | §4.2 | ✅ |
+### Tareas que requieren mayor cambio de infraestructura
 
-### Top 5 Alto Impacto (Requieren Planificación)
-
-| # | Tarea | Impacto | Ref |
-|---|-------|---------|-----|
-| 1 | Auditar e implementar índices faltantes | Rendimiento base | §1.5 |
-| 2 | Completar migraciones versionadas | Estabilidad + desbloqueador | §8.1 |
-| 3 | React Query / cache global | Rendimiento + DX | §3.1 |
-| 4 | Stats RPC function | 7 queries → 1 | §1.3 |
-| 5 | UUID v7 en appointments | Rendimiento a escala | §1.1 |
+| # | Tarea | Impacto | Esfuerzo | Ref |
+|---|-------|---------|----------|-----|
+| 1 | **`businesses.id` INTEGER → UUID** | Seguridad SaaS (enumeración de tenants) | Alto — migración de PK + 8 FKs + RLS + frontend | §2.16 |
+| 2 | **`createStaffUser` sin rollback atómico** | Usuarios huérfanos en auth sin perfil | Medio-Alto — Edge Function o RPC con service_role | §2.17 |
+| 3 | **Migraciones versionadas** | Todos los cambios de schema aplicados manualmente sin historial | Bajo por cambio, desbloqueador para el resto | §8.1 |
+| 4 | **UUID v7 en `appointments`** | Rendimiento a escala (50k+ filas) | Medio — validar extensión, solo afecta rows nuevos | §1.1 |
+| 5 | **Particionar `history` y `audit_log`** | Queries se degradan sin particionamiento (500k+ filas) | Alto — recrear tablas, migrar datos | §1.6 |
+| 6 | **TanStack Query / cache global** | Elimina ~60% del boilerplate de hooks, cache coherente | Alto — refactor de todos los hooks | §3.1 |
+| 7 | **Consolidar stats en una sola RPC** | 4 queries → 1 por carga de `/stats` | Medio — CTEs en SQL + adaptar `useStats.js` | §1.3 |
