@@ -1012,3 +1012,9 @@ T-45 (Audit trail permisos)
 T-14, T-15, T-16                ← Escalabilidad: cuando el volumen lo pida
 T-36, T-37, T-48, T-49         ← Features + UX adicional
 ```
+## Deployment
+- Vercel (ya lo tienes)
+- Es la opción ideal para este stack. Lo que te permite hacer cambios en producción de forma segura:
+  - Preview Deployments — cada PR o branch genera una URL única (proyecto-git-feature-x.vercel.app). Puedes testear en "producción real" antes de mergear a main.
+  - Rollbacks — si algo rompe, vuelves a la versión anterior en segundos.
+  - Integración con Supabase — funciona perfecto con el sistema de variables de entorno y el dashboard de Supabase.
