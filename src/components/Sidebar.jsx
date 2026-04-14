@@ -44,8 +44,8 @@ export default function Sidebar() {
                     <div className="relative">
                         <Bot size={18} strokeWidth={2.5} className="transition-transform duration-500 group-hover/logo:rotate-12" />
                         <AIStar
-                            size={10}
-                            className="absolute -top-1.5 -left-1.5 text-white animate-pulse transition-all duration-500 group-hover/logo:scale-125"
+                            size={8}
+                            className="absolute -top-1 -left-1 text-white transition-all duration-500 group-hover/logo:scale-125"
                             strokeWidth={2.5}
                         />
                     </div>
@@ -99,8 +99,7 @@ export default function Sidebar() {
             </nav>
 
             <div className="mt-auto pt-6 px-5 border-t border-white/20">
-                <div className="font-bold text-navy-900/60 truncate tracking-tight text-[12px]">{businessName || 'Cargando...'}
-                </div>
+                <div className="font-bold text-navy-900/60 truncate tracking-tight text-[12px]">{businessName || 'Cargando...'}</div>
             </div>
         </aside>
     );

@@ -1,10 +1,29 @@
 // supabase/functions/manage-staff/index.ts
-// Edge Function: Staff user management (create, delete, change role)
-// Only accessible by users with manage_users permission
+// Edge Function: Staff user management (create, delete, update-role)
+// Auth: Supabase JWT via Authorization header (supabase.functions.invoke passes it automatically)
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
-import { supabaseAdmin, getStaffSession } from '../_shared/auth.ts';
+import { supabaseAdmin } from '../_shared/auth.ts';
+
+// ── Verify caller and load their staff profile ───────────────────────────────
+async function getCallerProfile(req: Request) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+
+  const token = authHeader.slice(7);
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !user) return null;
+
+  const { data: profile } = await supabaseAdmin
+    .from('staff_users')
+    .select('id, business_id, role_id, staff_roles(permissions)')
+    .eq('id', user.id)
+    .eq('active', true)
+    .single();
+
+  return profile ?? null;
+}
 
 serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -18,17 +37,18 @@ serve(async (req) => {
       );
     }
 
-    // ── Authenticate ─────────────────────────────────
-    const session = await getStaffSession(req);
-    if (!session) {
+    // ── Authenticate ─────────────────────────────────────────────────────────
+    const caller = await getCallerProfile(req);
+    if (!caller) {
       return new Response(
-        JSON.stringify({ error: 'No autorizado. Inicie sesión nuevamente.' }),
+        JSON.stringify({ error: 'No autorizado.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // ── Check manage_users permission ────────────────
-    if (!session.permissions?.manage_users) {
+    // ── Check manage_users permission ─────────────────────────────────────────
+    const permissions = (caller.staff_roles as any)?.permissions ?? {};
+    if (!permissions?.manage_users) {
       return new Response(
         JSON.stringify({ error: 'No tiene permisos para gestionar usuarios.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -37,14 +57,10 @@ serve(async (req) => {
 
     const { action, ...payload } = await req.json();
 
-    // ── Route by action ──────────────────────────────
     switch (action) {
-      case 'create':
-        return await handleCreate(session, payload);
-      case 'delete':
-        return await handleDelete(session, payload);
-      case 'update-role':
-        return await handleUpdateRole(session, payload);
+      case 'create':      return await handleCreate(caller, payload);
+      case 'delete':      return await handleDelete(caller, payload);
+      case 'update-role': return await handleUpdateRole(caller, payload);
       default:
         return new Response(
           JSON.stringify({ error: `Acción no reconocida: ${action}` }),
@@ -61,14 +77,14 @@ serve(async (req) => {
   }
 });
 
-// ── Create Staff User ────────────────────────────────
+// ── Create Staff User ─────────────────────────────────────────────────────────
+// T-26 fix: usar auth.admin.createUser() en lugar de INSERT directo con campo password
 async function handleCreate(
-  session: { business_id: number },
+  caller: { business_id: number },
   payload: Record<string, unknown>
 ): Promise<Response> {
-  const { email, password, display_name, role_id } = payload;
+  const { email, password, full_name, role_id } = payload;
 
-  // Validate required fields
   if (!email || typeof email !== 'string') {
     return new Response(
       JSON.stringify({ error: 'El email es requerido.' }),
@@ -76,14 +92,13 @@ async function handleCreate(
     );
   }
 
-  if (!password || typeof password !== 'string' || (password as string).length < 4) {
+  if (!password || typeof password !== 'string' || (password as string).length < 6) {
     return new Response(
-      JSON.stringify({ error: 'La contraseña debe tener al menos 4 caracteres.' }),
+      JSON.stringify({ error: 'La contraseña debe tener al menos 6 caracteres.' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  // Email format validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email as string)) {
     return new Response(
@@ -92,79 +107,98 @@ async function handleCreate(
     );
   }
 
-  // Insert (the trigger will validate uniqueness and role ownership)
-  const { data, error } = await supabaseAdmin
+  // 1. Crear en auth.users (email_confirm: true = sin email de verificación)
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: (email as string).trim().toLowerCase(),
+    password: password as string,
+    email_confirm: true,
+  });
+
+  if (authError) {
+    const isDuplicate = authError.message?.toLowerCase().includes('already') ||
+                        authError.message?.toLowerCase().includes('exists');
+    return new Response(
+      JSON.stringify({ error: isDuplicate ? 'Ya existe un usuario con ese email.' : authError.message }),
+      { status: isDuplicate ? 409 : 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // 2. Insertar en staff_users (sin campo password — no existe en la tabla)
+  const { data, error: insertError } = await supabaseAdmin
     .from('staff_users')
     .insert({
+      id: authData.user.id,
       email: (email as string).trim().toLowerCase(),
-      password,
-      display_name: display_name || email,
-      role_id: role_id || null,
-      business_id: session.business_id,
+      full_name: (full_name as string) || (email as string),
+      role_id: role_id ?? null,
+      business_id: caller.business_id,
       active: true,
     })
     .select('*, staff_roles(*)')
     .single();
 
-  if (error) {
-    if (error.message?.includes('Ya existe un usuario')) {
-      return new Response(
-        JSON.stringify({ error: error.message }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    throw error;
+  if (insertError) {
+    // Rollback: eliminar el auth user si falla el insert
+    await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+    throw insertError;
   }
 
-  // Never return the password
-  const { password: _, ...safeData } = data;
-
   return new Response(
-    JSON.stringify({ data: safeData }),
+    JSON.stringify({ data }),
     { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
 
-// ── Delete Staff User ────────────────────────────────
+// ── Delete Staff User ─────────────────────────────────────────────────────────
+// T-04 fix: soft-delete en staff_users + hard-delete en auth.users
 async function handleDelete(
-  session: { business_id: number; staff_id: number },
+  caller: { id: string; business_id: number },
   payload: Record<string, unknown>
 ): Promise<Response> {
   const { id } = payload;
 
-  if (!id) {
+  if (!id || typeof id !== 'string') {
     return new Response(
       JSON.stringify({ error: 'El ID del usuario es requerido.' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  // Prevent self-deletion
-  if (id === session.staff_id) {
+  // Prevenir auto-eliminación
+  if (id === caller.id) {
     return new Response(
       JSON.stringify({ error: 'No puede eliminarse a sí mismo.' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  // Try hard delete first
-  const { error, count } = await supabaseAdmin
+  // 1. Verificar que el usuario pertenece al mismo negocio
+  const { data: target } = await supabaseAdmin
     .from('staff_users')
-    .delete({ count: 'exact' })
+    .select('id')
     .eq('id', id)
-    .eq('business_id', session.business_id);
+    .eq('business_id', caller.business_id)
+    .single();
 
-  if (error) throw error;
+  if (!target) {
+    return new Response(
+      JSON.stringify({ error: 'Usuario no encontrado en este negocio.' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 
-  // Fallback: deactivate if delete was blocked
-  if (count === 0) {
-    const { error: updateError } = await supabaseAdmin
-      .from('staff_users')
-      .update({ active: false })
-      .eq('id', id)
-      .eq('business_id', session.business_id);
+  // 2. Soft-delete en staff_users (preserva historial de turnos/auditoría)
+  await supabaseAdmin
+    .from('staff_users')
+    .update({ active: false })
+    .eq('id', id)
+    .eq('business_id', caller.business_id);
 
-    if (updateError) throw updateError;
+  // 3. Hard-delete en auth.users (elimina credenciales — ya no puede autenticarse)
+  const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(id as string);
+  if (authDeleteError) {
+    console.error('auth.admin.deleteUser failed:', authDeleteError.message);
+    // No lanzar — el soft-delete ya fue aplicado, el usuario no puede operar
   }
 
   return new Response(
@@ -173,9 +207,9 @@ async function handleDelete(
   );
 }
 
-// ── Update Staff Role ────────────────────────────────
+// ── Update Staff Role ─────────────────────────────────────────────────────────
 async function handleUpdateRole(
-  session: { business_id: number },
+  caller: { business_id: number },
   payload: Record<string, unknown>
 ): Promise<Response> {
   const { userId, roleId } = payload;
@@ -187,21 +221,17 @@ async function handleUpdateRole(
     );
   }
 
-  // The trigger validates that the role belongs to the business
   const { error } = await supabaseAdmin
     .from('staff_users')
     .update({ role_id: roleId })
     .eq('id', userId)
-    .eq('business_id', session.business_id);
+    .eq('business_id', caller.business_id);
 
   if (error) {
-    if (error.message?.includes('no pertenece')) {
-      return new Response(
-        JSON.stringify({ error: error.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    throw error;
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   return new Response(

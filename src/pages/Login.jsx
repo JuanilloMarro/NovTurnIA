@@ -55,9 +55,9 @@ export default function Login() {
                         <div className="w-14 h-14 rounded-[22px] bg-white border border-navy-50 flex items-center justify-center shadow-[0_10px_30px_rgba(26,58,107,0.12)] group/bot cursor-pointer">
                             <div className="relative">
                                 <Bot size={28} className="text-navy-900 transition-transform group-hover/bot:rotate-12 duration-500" strokeWidth={2.2} />
-                                <AIStar 
-                                    size={14} 
-                                    className="absolute -top-1.5 -left-1.5 text-navy-900 animate-pulse" 
+                                <AIStar
+                                    size={11}
+                                    className="absolute -top-1 -left-1 text-navy-900"
                                     strokeWidth={2.5}
                                 />
                             </div>
@@ -112,7 +112,7 @@ export default function Login() {
                                         onChange={e => setPassword(e.target.value)}
                                         required
                                         placeholder="••••••••"
-                                        className="w-full glass-input rounded-[20px] pl-12 pr-12 py-4 text-[13px] outline-none placeholder:text-gray-400 font-semibold relative z-0"
+                                        className="w-full glass-input rounded-[20px] pl-12 pr-12 py-4 text-[13px] outline-none placeholder:text-gray-400 font-semibold relative z-0 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                                     />
                                     <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-gray-500/80 group-focus-within/input:text-navy-900 transition-colors duration-500 z-10">
                                         <Lock size={15} strokeWidth={2.5} />

@@ -6,8 +6,12 @@ import { useAppStore } from '../store/useAppStore';
 export function usePatients() {
     const [rawPatients, setRawPatients] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [search, setSearch] = useState('');
     const [sortOrder, setSortOrder] = useState('recent');
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(false);
+    const [totalCount, setTotalCount] = useState(0);
 
     // useRef en lugar de rawPatients.length como dependencia:
     // Tener rawPatients.length en el array de deps de useCallback recrea la función cada vez
@@ -22,23 +26,30 @@ export function usePatients() {
     // Un ref es privado a la instancia del hook y se limpia correctamente.
     const searchTimeoutRef = useRef(null);
 
-    const load = useCallback(async (q = search, forceRefresh = false) => {
+    const load = useCallback(async (q = search, forceRefresh = false, pageNum = 0) => {
         const cache = useAppStore.getState()._patientsCache;
         const STALE_MS = 60_000; // 1 minuto
 
-        if (!q && !forceRefresh && cache.data.length > 0 && Date.now() - cache.fetchedAt < STALE_MS) {
+        if (!q && !forceRefresh && pageNum === 0 && cache.data.length > 0 && Date.now() - cache.fetchedAt < STALE_MS) {
             setRawPatients(cache.data);
             setLoading(false);
-            return;
+            return cache.data;
         }
 
         if (!hasDataRef.current) setLoading(true);
         try {
-            const data = await getPatients(q);
-            setRawPatients(data);
+            const { data, count, hasMore: more } = await getPatients(q, { page: pageNum });
+            if (pageNum === 0) {
+                setRawPatients(data);
+            } else {
+                setRawPatients(prev => [...prev, ...data]);
+            }
+            setHasMore(more);
+            setTotalCount(count);
+            setPage(pageNum);
             hasDataRef.current = true;
 
-            if (!q) {
+            if (!q && pageNum === 0) {
                 useAppStore.getState().setPatientsCache(data);
             }
             return data;
@@ -46,6 +57,20 @@ export function usePatients() {
             setLoading(false);
         }
     }, [search]); // rawPatients.length removido de las dependencias
+
+    const loadMore = useCallback(async () => {
+        if (!hasMore || loadingMore) return;
+        setLoadingMore(true);
+        try {
+            const nextPage = page + 1;
+            const { data, hasMore: more } = await getPatients(search, { page: nextPage });
+            setRawPatients(prev => [...prev, ...data]);
+            setHasMore(more);
+            setPage(nextPage);
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [hasMore, loadingMore, page, search]);
 
     useEffect(() => {
         load('');
@@ -59,8 +84,10 @@ export function usePatients() {
 
     function handleSearch(q) {
         setSearch(q);
+        setPage(0);
+        setHasMore(false);
         clearTimeout(searchTimeoutRef.current);
-        searchTimeoutRef.current = setTimeout(() => load(q), 300);
+        searchTimeoutRef.current = setTimeout(() => load(q, false, 0), 300);
     }
 
     // Realtime Sync (Optimized: only re-fetch on Insert/Delete, Update locally)
@@ -76,7 +103,8 @@ export function usePatients() {
         } else {
             // Re-fetch everything for Insert/Delete to keep consistency
             useAppStore.getState().invalidatePatientsCache();
-            load('', true); // Force refresh
+            setPage(0);
+            load('', true, 0); // Force refresh from page 0
         }
     });
 
@@ -91,5 +119,5 @@ export function usePatients() {
         });
     }, [rawPatients, sortOrder]);
 
-    return { patients, loading, search, handleSearch, sortOrder, setSortOrder, reload: load };
+    return { patients, loading, loadingMore, hasMore, totalCount, search, handleSearch, sortOrder, setSortOrder, reload: load, loadMore };
 }

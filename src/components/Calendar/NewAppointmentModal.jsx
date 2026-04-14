@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { createAppointment, getPatients } from '../../services/supabaseService';
+import { createAppointment, getPatients, getOccupiedSlotsForDate } from '../../services/supabaseService';
 import { X, Search, Calendar, ChevronDown, Save } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
@@ -26,6 +26,17 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
     const [endTime, setEndTime] = useState('10:00');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [occupiedRanges, setOccupiedRanges] = useState([]);
+
+    // Fetch occupied slots whenever the selected date (or open state) changes
+    useEffect(() => {
+        if (!isOpen || !date) return;
+        let cancelled = false;
+        getOccupiedSlotsForDate(date)
+            .then(slots => { if (!cancelled) setOccupiedRanges(slots); })
+            .catch(() => { if (!cancelled) setOccupiedRanges([]); });
+        return () => { cancelled = true; };
+    }, [date, isOpen]);
 
     // Debounce ref para el buscador de pacientes.
     // Sin debounce, cada carácter escrito dispara una query a Supabase:
@@ -41,7 +52,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
         clearTimeout(searchDebounceRef.current);
         if (q.length < 2) return;
         searchDebounceRef.current = setTimeout(async () => {
-            const data = await getPatients(q);
+            const { data } = await getPatients(q);
             setPatients(data);
         }, 300);
     }
@@ -81,6 +92,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
 
     // Helper para obtener teléfono del paciente
     const getPhone = (p) => p.patient_phones?.[0]?.phone || '';
+
+    // Returns true if a slot time (HH:MM) falls within any occupied appointment range
+    const isOccupied = (t) => occupiedRanges.some(({ start, end }) => t >= start && t < end);
 
     return createPortal(
         <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
@@ -183,7 +197,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                                         setEndTime(autoEnd);
                                     }}
                                         className="w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-10 py-2 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm">
-                                        {TIME_SLOTS.filter(t => t !== '18:00').map(t => <option key={t}>{t}</option>)}
+                                        {TIME_SLOTS.filter(t => t !== '18:00').map(t => {
+                                            const occ = isOccupied(t);
+                                            return <option key={t} value={t} disabled={occ}>{t}{occ ? ' — ocupado' : ''}</option>;
+                                        })}
                                     </select>
                                     <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-navy-800">
                                         <ChevronDown size={16} />

@@ -3,13 +3,29 @@ import { usePatients } from '../hooks/usePatients';
 import PatientCard from '../components/Patients/PatientCard';
 import PatientDrawer from '../components/Patients/PatientDrawer';
 import NewPatientModal from '../components/Patients/NewPatientModal';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal, Download } from 'lucide-react';
+import { exportAllPatients } from '../services/supabaseService';
+import { downloadCSV } from '../utils/export';
 
 export default function Patients() {
-    const { patients, loading, search, handleSearch, sortOrder, setSortOrder, reload } = usePatients();
+    const { patients, loading, loadingMore, hasMore, search, handleSearch, sortOrder, setSortOrder, reload, loadMore } = usePatients();
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [showSort, setShowSort] = useState(false);
     const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
+    const [exporting, setExporting] = useState(false);
+
+    async function handleExport() {
+        setExporting(true);
+        try {
+            const rows = await exportAllPatients();
+            const date = new Date().toISOString().split('T')[0];
+            downloadCSV(rows, `pacientes_${date}.csv`);
+        } catch (err) {
+            console.error('Export error:', err);
+        } finally {
+            setExporting(false);
+        }
+    }
 
     const sortOptions = [
         { id: 'recent', label: 'Más reciente' },
@@ -48,6 +64,18 @@ export default function Patients() {
                             className="px-4 h-full rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-navy-900 text-[11px] font-bold"
                         >
                             <span className="text-[14px]">+</span> Agregar Paciente
+                        </button>
+                    </div>
+
+                    {/* Export CSV */}
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                        <button
+                            onClick={handleExport}
+                            disabled={exporting}
+                            className="w-8 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 disabled:opacity-50"
+                            title="Exportar CSV"
+                        >
+                            <Download size={14} />
                         </button>
                     </div>
 
@@ -95,6 +123,17 @@ export default function Patients() {
                     {patients.map((p, i) => (
                         <PatientCard key={p.id} patient={p} index={i} onClick={setSelectedPatient} />
                     ))}
+                    {hasMore && (
+                        <div className="flex justify-center pt-2 pb-4">
+                            <button
+                                onClick={loadMore}
+                                disabled={loadingMore}
+                                className="px-6 py-2 bg-white/50 border border-white/70 rounded-full text-xs font-bold text-navy-800 hover:bg-white/70 transition-colors shadow-sm disabled:opacity-50"
+                            >
+                                {loadingMore ? 'Cargando...' : 'Cargar más'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 

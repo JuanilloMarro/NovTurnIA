@@ -11,7 +11,7 @@
 
 | Fase | Tareas | Bloqueante para |
 |------|--------|----------------|
-| 🔴 Pre-lanzamiento | 7 | Cobrar, operar y lanzar sin riesgos críticos |
+| 🔴 Pre-lanzamiento | 3 | Cobrar, operar y lanzar sin riesgos críticos |
 | 🟠 Primer mes | 15 | Visibilidad en producción, onboarding, features clave |
 | 🟡 Segundo mes | 14 | Compliance médico, resiliencia, calidad de datos |
 | 🟢 Escalabilidad | 8 | Crecimiento a 10k+ usuarios |
@@ -69,42 +69,6 @@ const { canAddStaff, canAddPatient, currentPlan, limitsReached } = usePlanLimits
 
 ---
 
-### T-02 🔴 Ciclo de vida del tenant — suspender y cancelar cuentas 🔲
-
-**Problema:** No hay forma de suspender o cancelar una cuenta. Si un cliente no paga, el sistema sigue funcionando. No existe flujo de offboarding ni recuperación de datos.
-
-**Solución:**
-
-1. **Estados del tenant** (depende de T-01):
-   - `active` → acceso normal
-   - `suspended` → login posible, lectura posible, escritura bloqueada, banner de aviso
-   - `cancelled` → login bloqueado, datos en retención 30 días, luego purga automática
-
-2. **Middleware en `useAuth.js`:**
-```js
-if (business.plan_status === 'suspended') {
-  // Mostrar SuspendedBanner, bloquear mutaciones
-}
-if (business.plan_status === 'cancelled') {
-  // Cerrar sesión, mostrar mensaje de cuenta cancelada
-}
-```
-
-3. **RLS policy de suspensión** en cada tabla de escritura:
-```sql
-AND EXISTS (
-  SELECT 1 FROM public.businesses b
-  WHERE b.id = business_id AND b.plan_status = 'active'
-)
-```
-
-4. **Componente `<SuspendedBanner>`** con link a reactivación/pago.
-
-5. **RPC `suspend_tenant(business_id, reason)`** protegida con service_role.
-
-**Esfuerzo:** Medio-Alto
-**Depende de:** T-01
-
 ---
 
 ### T-03 🔴 Billing integration — Stripe/Paddle actualiza `businesses.plan` 🔲
@@ -141,73 +105,6 @@ switch (event.type) {
 **Depende de:** T-01, T-02
 
 ---
-
-### T-04 🔴 `deleteStaffUser` completo — eliminar de `auth.users` 🔲
-
-**Problema:** `deleteStaffUser` solo hace soft delete en `staff_users` (`.update({ active: false })`), pero el usuario sigue existiendo en `auth.users` con credenciales válidas. Puede intentar autenticarse — RLS lo bloquea, pero es un estado inconsistente y un riesgo de seguridad real.
-
-**Solución:**
-```typescript
-// supabase/functions/delete-staff-user/index.ts
-Deno.serve(async (req) => {
-  const { userId } = await req.json();
-  // 1. Verificar que el caller tiene permiso (manage_users)
-  // 2. Soft delete en staff_users
-  await supabaseAdmin.from('staff_users').update({ active: false }).eq('id', userId);
-  // 3. Eliminar de auth.users definitivamente
-  await supabaseAdmin.auth.admin.deleteUser(userId);
-});
-```
-
-**Esfuerzo:** Medio
-**Archivos impactados:** nuevo `supabase/functions/delete-staff-user/`, `supabaseService.js`
-
----
-
-### T-25 🔴 BUG CRÍTICO: Trigger `validate_appointment` nunca se ejecuta 🔲
-
-**Archivo:** `supabase/migrations/002_triggers.sql:58-63`
-
-**Problema:** El trigger de validación de turnos tiene una condición incorrecta:
-```sql
-WHEN (NEW.status = 'active')   -- ← 'active' NUNCA existe en el sistema
-```
-El app usa `status = 'scheduled'`, `'confirmed'` y `'cancelled'`. El valor `'active'` no existe en ningún flujo. Resultado: **la validación de solapamiento de horarios y restricción de horario laboral nunca se ejecuta**. Solo el constraint GIST previene el doble booking.
-
-**Solución:**
-```sql
-DROP TRIGGER IF EXISTS trg_validate_appointment ON appointments;
-CREATE TRIGGER trg_validate_appointment
-    BEFORE INSERT OR UPDATE ON appointments
-    FOR EACH ROW
-    WHEN (NEW.status IN ('scheduled', 'confirmed'))
-    EXECUTE FUNCTION validate_appointment();
-```
-También corregir la función `validate_appointment()` que internamente filtra `status = 'active'` → cambiar a `status NOT IN ('cancelled')`.
-
-**Esfuerzo:** Bajo (1 migración SQL)
-
----
-
-### T-26 🔴 `manage-staff` Edge Function desconectada y con bug grave 🔲
-
-**Archivos:** `supabase/functions/manage-staff/index.ts`, `src/services/supabaseService.js:393-422`
-
-**Problema (doble):**
-1. La Edge Function `manage-staff` **existe pero nunca es llamada** por el frontend. `createStaffUser` sigue usando `supabase.auth.signUp()` directamente + polling — la Edge Function fue creada pero nunca conectada.
-2. La Edge Function tiene un **bug grave**: en `handleCreate()` intenta hacer `INSERT INTO staff_users` con un campo `password` — `staff_users` no tiene columna `password`. Si se llamara, fallaría siempre.
-
-**Solución:**
-1. Corregir la Edge Function: usar `supabaseAdmin.auth.admin.createUser()` + insertar en `staff_users` sin campo `password`
-2. Conectar `createStaffUser` en el service a llamar la Edge Function:
-```js
-await supabase.functions.invoke('manage-staff', {
-  body: { action: 'create', email, full_name, role_id, business_id }
-});
-```
-3. Eliminar el flujo de `signUp()` + polling del frontend
-
-**Esfuerzo:** Medio (se puede resolver junto con T-13)
 
 ---
 
@@ -282,30 +179,6 @@ Sentry.setUser({ id: user.id, business_id: profile.business_id });
 + Página `/admin/new-tenant` (solo super-admin) con formulario de alta.
 
 **Esfuerzo:** Medio-Alto
-
----
-
-### T-07 🟠 Paginación real en `getPatients` y `getAuditLog` 🔲
-
-**Problema:** `getAuditLog` no tiene límite. Un negocio con 1 año de actividad puede tener 50k+ rows que se traen completos al cliente, bloqueando el navegador. `getPatients` tiene búsqueda pero sin paginación de página 2+.
-
-**Solución:**
-```js
-export async function getAuditLog(businessId, { page = 0, pageSize = 50 } = {}) {
-  const from = page * pageSize;
-  const to = from + pageSize - 1;
-  const { data, error, count } = await supabase
-    .from('audit_log')
-    .select('*', { count: 'exact' })
-    .eq('business_id', businessId)
-    .order('created_at', { ascending: false })
-    .range(from, to);
-  return { data, count, hasMore: to < count - 1 };
-}
-```
-Aplicar el mismo patrón a `getPatients`. Actualizar `useAuditLog.js` con `loadMore()`.
-
-**Esfuerzo:** Bajo-Medio
 
 ---
 
@@ -493,28 +366,6 @@ WHERE status IN ('scheduled', 'confirmed')
 
 ---
 
-### T-40 🟠 Detección de conflictos en UI antes de crear turno 🔲
-
-**Problema:** El modal "Nuevo Turno" muestra todos los slots sin indicar cuáles ya están ocupados. El usuario puede intentar crear un turno en un horario tomado, la DB lo rechaza con un error de constraint GIST, y el usuario ve un mensaje de error confuso. La validación ocurre demasiado tarde.
-
-**Solución:**
-```js
-// Al abrir el modal o al seleccionar fecha, traer slots ocupados del día:
-const { data: occupied } = await supabase
-  .from('appointments')
-  .select('date_start, date_end')
-  .eq('business_id', BUSINESS_ID)
-  .eq('date', selectedDate)
-  .in('status', ['scheduled', 'confirmed']);
-
-// En el selector de hora, deshabilitar/marcar visualmente slots ocupados
-```
-
-**Esfuerzo:** Medio
-**Archivos impactados:** `NewAppointmentModal.jsx`, `supabaseService.js`
-
----
-
 ### T-41 🟠 Tracking de no-shows (pacientes que no se presentaron) 🔲
 
 **Problema:** No existe el estado `no_show` en los turnos. No es posible saber cuántos pacientes faltan sin avisar, qué pacientes tienen historial de ausencias, ni calcular el costo real de los no-shows para la clínica.
@@ -533,22 +384,6 @@ ALTER TABLE public.appointments
 
 **Esfuerzo:** Medio
 **Archivos impactados:** `AppointmentDrawer.jsx`, `supabaseService.js`, `mv_business_stats`
-
----
-
-### T-42 🟠 Export CSV / Excel de datos (compliance GDPR) 🔲
-
-**Problema:** No hay forma de exportar los datos del negocio. GDPR (Art. 20) requiere que los pacientes puedan solicitar portabilidad de sus datos. Los negocios tampoco pueden hacer backups locales ni migrar a otro sistema.
-
-**Solución:**
-1. **Edge Function `export-data`** protegida con `manage_users`:
-   - Exportar citas del mes seleccionado → CSV
-   - Exportar pacientes activos → CSV
-   - Exportar historial de conversaciones → JSON
-2. **Botón de descarga** en `/audit-log` y en `/patients`
-3. Para GDPR: endpoint `export-patient-data/{patientId}` que devuelva todos los datos de un paciente específico en JSON.
-
-**Esfuerzo:** Medio
 
 ---
 
@@ -977,6 +812,7 @@ Actualizar el flujo de cancelación en el frontend para setear `cancelled_at` en
 
 ## Orden de ejecución recomendado
 
+
 ```
 T-09 (CI/CD + Branch)           ← Habilita hacer todo lo demás con seguridad
     ↓
@@ -995,14 +831,11 @@ T-02 (Ciclo de vida tenant)     ← Depende de T-01
 T-03 (Billing — Stripe)         ← Depende de T-01 + T-02
     ↓
 T-13 (createStaffUser atómico)  ← Se puede resolver con T-26
-T-07 (Paginación real)
 T-06 (Onboarding automatizado)
 T-08 (businesses.id → UUID)     ← Depende de T-09 (staging seguro)
     ↓
 T-39 (Recordatorios)
-T-40 (Conflictos UI)
 T-41 (No-shows)
-T-42 (Export CSV/GDPR)
     ↓
 T-10 (Retención/GDPR)
 T-11 (Reconexión Realtime)
@@ -1012,6 +845,7 @@ T-45 (Audit trail permisos)
 T-14, T-15, T-16                ← Escalabilidad: cuando el volumen lo pida
 T-36, T-37, T-48, T-49         ← Features + UX adicional
 ```
+
 ## Deployment
 - Vercel (ya lo tienes)
 - Es la opción ideal para este stack. Lo que te permite hacer cambios en producción de forma segura:

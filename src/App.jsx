@@ -5,6 +5,7 @@ import { useAppStore } from './store/useAppStore';
 import { usePermissions } from './hooks/usePermissions';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
+import AccountStatusModal from './components/AccountStatusModal';
 import Calendar from './pages/Calendar';
 import Patients from './pages/Patients';
 import Conversations from './pages/Conversations';
@@ -34,12 +35,12 @@ function ProtectedRoute({ children }) {
 }
 
 export default function App() {
-    const { setAuth, setLoading, clearAuth } = useAppStore();
+    const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus } = useAppStore();
     const { canViewStats, canManageRoles } = usePermissions();
 
     useEffect(() => {
         let subscription;
-        initializeAuth(setAuth, setLoading, clearAuth).then(sub => {
+        initializeAuth(setAuth, setLoading, clearAuth, setBusinessStatus).then(sub => {
             subscription = sub;
         });
         return () => {
@@ -74,6 +75,9 @@ export default function App() {
                                     </Routes>
                                 </main>
                             </div>
+                            {(businessStatus === 'suspended' || businessStatus === 'cancelled') && (
+                                <AccountStatusModal status={businessStatus} />
+                            )}
                         </div>
                     </div>
                 </ProtectedRoute>

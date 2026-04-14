@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getAuditLog, getStaffUsers, getPatients } from '../services/supabaseService';
-import { Search, Database, ArrowRight, SlidersHorizontal, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Search, Database, SlidersHorizontal, Plus, Edit2, Trash2, X, Download } from 'lucide-react';
 import { formatPhone } from '../utils/format';
+import { downloadCSV } from '../utils/export';
 
 // ── Módulos ──
 const MODULES = {
@@ -155,48 +156,55 @@ function getLogSummary(log, oldP, newP, ctxPaciente) {
 export default function AuditLog() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [auditPage, setAuditPage] = useState(0);
+    const [auditHasMore, setAuditHasMore] = useState(false);
     const [search, setSearch] = useState('');
     const [staffMap, setStaffMap] = useState({});
     const [patientMap, setPatientMap] = useState({});
     const [filterAction, setFilterAction] = useState('');
     const [filterUser, setFilterUser] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+    const [exporting, setExporting] = useState(false);
+
+    function deduplicateLogs(raw) {
+        return raw
+            .filter(l => l.table_name !== 'patient_phones')
+            .reduce((acc, current) => {
+                const isDuplicate = acc.find(item =>
+                    item.table_name === current.table_name &&
+                    item.action === current.action &&
+                    item.record_id === current.record_id &&
+                    Math.abs(new Date(item.created_at) - new Date(current.created_at)) < 5000
+                );
+                if (!isDuplicate) acc.push(current);
+                return acc;
+            }, []);
+    }
 
     useEffect(() => {
         async function fetchData() {
             try {
-                const [logData, staffData, patientsData] = await Promise.all([
-                    getAuditLog(200), 
+                const [{ data: logData, hasMore: more }, staffData, { data: patientsData }] = await Promise.all([
+                    getAuditLog({ page: 0 }),
                     getStaffUsers(),
                     getPatients()
                 ]);
-                
+
                 const sMap = {};
                 (staffData || []).forEach(u => { sMap[u.id] = u.full_name || u.email || 'Staff'; });
-                
+
                 const pMap = {};
-                (patientsData || []).forEach(p => { 
-                    pMap[p.id] = { 
-                        name: p.display_name, 
-                        phone: p.patient_phones?.[0]?.phone 
-                    }; 
+                (patientsData || []).forEach(p => {
+                    pMap[p.id] = {
+                        name: p.display_name,
+                        phone: p.patient_phones?.[0]?.phone
+                    };
                 });
 
-                const finalLogs = (logData || [])
-                    .filter(l => l.table_name !== 'patient_phones')
-                    .reduce((acc, current) => {
-                        // Deduplicar si existe un log en la misma tabla, misma accion, mismo record en un rango de 5 segundos
-                        const isDuplicate = acc.find(item => 
-                            item.table_name === current.table_name && 
-                            item.action === current.action && 
-                            item.record_id === current.record_id &&
-                            Math.abs(new Date(item.created_at) - new Date(current.created_at)) < 5000
-                        );
-                        if (!isDuplicate) acc.push(current);
-                        return acc;
-                    }, []);
-                
-                setLogs(finalLogs);
+                setLogs(deduplicateLogs(logData || []));
+                setAuditHasMore(more);
+                setAuditPage(0);
                 setStaffMap(sMap);
                 setPatientMap(pMap);
             } catch (err) {
@@ -207,6 +215,38 @@ export default function AuditLog() {
         }
         fetchData();
     }, []);
+
+    function handleExport() {
+        setExporting(true);
+        try {
+            const rows = filtered.map(log => ({
+                fecha: log.created_at ? new Date(log.created_at).toLocaleString('es-GT') : '',
+                usuario: userName(log.changed_by),
+                modulo: MODULES[log.table_name] || log.table_name || '',
+                accion: ACTIONS[log.action] || log.action || '',
+            }));
+            const date = new Date().toISOString().split('T')[0];
+            downloadCSV(rows, `actividad_${date}.csv`);
+        } finally {
+            setExporting(false);
+        }
+    }
+
+    async function loadMoreLogs() {
+        if (!auditHasMore || loadingMore) return;
+        setLoadingMore(true);
+        try {
+            const nextPage = auditPage + 1;
+            const { data, hasMore: more } = await getAuditLog({ page: nextPage });
+            setLogs(prev => deduplicateLogs([...prev, ...(data || [])]));
+            setAuditHasMore(more);
+            setAuditPage(nextPage);
+        } catch (err) {
+            console.error('Error loading more audit log:', err);
+        } finally {
+            setLoadingMore(false);
+        }
+    }
 
     function userName(uuid) {
         if (!uuid) return 'Sistema';
@@ -254,6 +294,18 @@ export default function AuditLog() {
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
+                    </div>
+
+                    {/* Export CSV */}
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
+                        <button
+                            onClick={handleExport}
+                            disabled={exporting || filtered.length === 0}
+                            className="w-8 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 disabled:opacity-50"
+                            title="Exportar CSV"
+                        >
+                            <Download size={14} />
+                        </button>
                     </div>
 
                     {/* Filter funnel button */}
@@ -315,7 +367,7 @@ export default function AuditLog() {
                         <p className="text-sm font-semibold text-navy-700/60">Sin registros de auditoría.</p>
                     </div>
                 ) : (
-                    <div className="space-y-2 pt-1">
+                    <div className="space-y-2 pt-1 pb-4">
                         {filtered.map(log => {
                             const modRaw = MODULES[log.table_name] || log.table_name || '—';
                             const mod = modRaw.charAt(0).toUpperCase() + modRaw.slice(1).toLowerCase();
@@ -376,6 +428,17 @@ export default function AuditLog() {
                                 </div>
                             );
                         })}
+                        {auditHasMore && (
+                            <div className="flex justify-center pt-2">
+                                <button
+                                    onClick={loadMoreLogs}
+                                    disabled={loadingMore}
+                                    className="px-6 py-2 bg-white/50 border border-white/70 rounded-full text-xs font-bold text-navy-800 hover:bg-white/70 transition-colors shadow-sm disabled:opacity-50"
+                                >
+                                    {loadingMore ? 'Cargando...' : 'Cargar más'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

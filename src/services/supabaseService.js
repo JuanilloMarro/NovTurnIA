@@ -41,6 +41,34 @@ async function toISO(date, time) {
 }
 
 // ── Appointments ──────────────────────────────────────────
+
+/**
+ * Returns occupied time ranges for a given date as { start: 'HH:MM', end: 'HH:MM' }[].
+ * Used by NewAppointmentModal to grey-out already-booked slots before the user submits.
+ */
+export async function getOccupiedSlotsForDate(date) {
+    const [dayStart, dayEnd] = await Promise.all([
+        toISO(date, '00:00'),
+        toISO(date, '23:59'),
+    ]);
+
+    const { data, error } = await supabase
+        .from('appointments')
+        .select('date_start, date_end')
+        .eq('business_id', BUSINESS_ID)
+        .gte('date_start', dayStart)
+        .lte('date_start', dayEnd)
+        .in('status', ['scheduled', 'confirmed']);
+
+    if (error) throw error;
+
+    // The stored ISO strings carry the local offset, so the T-portion IS the local time.
+    return (data || []).map(appt => ({
+        start: appt.date_start.match(/T(\d{2}:\d{2})/)?.[1] || '',
+        end:   appt.date_end.match(/T(\d{2}:\d{2})/)?.[1] || '',
+    }));
+}
+
 export async function getAppointmentsByWeek(weekStart, weekEnd) {
     const { data, error } = await supabase
         .from('appointments')
@@ -133,19 +161,23 @@ export async function scheduledAppointment(id) {
 }
 
 // ── Patients ──────────────────────────────────────────────
-export async function getPatients(search = '') {
+export async function getPatients(search = '', { page = 0, pageSize = 50 } = {}) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
     let query = supabase
         .from('patients')
         .select(`
             *,
             patient_phones(phone, is_primary),
             appointments(id, date_start, status, confirmed)
-        `)
+        `, { count: 'exact' })
         .eq('business_id', BUSINESS_ID)
         .is('deleted_at', null)
         .order('display_name', { ascending: true })
         .order('date_start', { referencedTable: 'appointments', ascending: false })
-        .limit(5, { referencedTable: 'appointments' });
+        .limit(5, { referencedTable: 'appointments' })
+        .range(from, to);
 
     if (search) {
         // Escapar caracteres especiales de PostgREST antes de interpolar en el filtro.
@@ -159,9 +191,9 @@ export async function getPatients(search = '') {
         query = query.or(`display_name.ilike.%${safe}%`);
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
     if (error) throw error;
-    return data || [];
+    return { data: data || [], count: count || 0, hasMore: to < (count || 0) - 1 };
 }
 
 export async function getPatientAppointments(patientId) {
@@ -176,16 +208,19 @@ export async function getPatientAppointments(patientId) {
     return data || [];
 }
 
-export async function getAuditLog(limit = 100) {
-    const { data, error } = await supabase
+export async function getAuditLog({ page = 0, pageSize = 50 } = {}) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error, count } = await supabase
         .from('audit_log')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('business_id', BUSINESS_ID)
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .range(from, to);
 
     if (error) throw error;
-    return data || [];
+    return { data: data || [], count: count || 0, hasMore: to < (count || 0) - 1 };
 }
 
 export async function getPatientHistory(patientId) {
@@ -391,45 +426,44 @@ export async function clearNotifications() {
 
 // ── Staff Management ──────────────────────────────────────
 export async function createStaffUser({ email, password, full_name, role_id }) {
-    // 1. Crear usuario en auth.users (con anon key funciona si sign-ups está habilitado)
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-            data: {
-                full_name,
-                business_id: BUSINESS_ID,
-                role_id: parseInt(role_id)
-            }
-        }
+    const { data, error } = await supabase.functions.invoke('manage-staff', {
+        body: { action: 'create', email, password, full_name, role_id },
     });
-    if (authError) throw authError;
-
-    // 2. El trigger handle_new_staff_user crea automáticamente el row en staff_users
-    // Retry con backoff exponencial para esperar al trigger
-    let staffUser = null;
-    for (let i = 0; i < 5; i++) {
-        await new Promise(r => setTimeout(r, 200 * (i + 1)));
-        const { data } = await supabase
-            .from('staff_users')
-            .select('*, staff_roles(*)')
-            .eq('id', authData.user.id)
-            .single();
-        if (data) { staffUser = data; break; }
-    }
-    if (!staffUser) throw new Error('Timeout esperando creación de staff user. Intenta recargar la página.');
-    return staffUser;
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data.data;
 }
 
 export async function deleteStaffUser(userId) {
-    // Desactivar en lugar de borrar (soft delete)
-    const { error } = await supabase
-        .from('staff_users')
-        .update({ active: false })
-        .eq('id', userId)
-        .eq('business_id', BUSINESS_ID);
+    const { data, error } = await supabase.functions.invoke('manage-staff', {
+        body: { action: 'delete', id: userId },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+}
+
+// ── Export ────────────────────────────────────────────────
+
+/**
+ * Fetches all active patients (no pagination) for CSV export.
+ * Returns flat objects ready for downloadCSV().
+ */
+export async function exportAllPatients() {
+    const { data, error } = await supabase
+        .from('patients')
+        .select('display_name, patient_phones(phone, is_primary)')
+        .eq('business_id', BUSINESS_ID)
+        .is('deleted_at', null)
+        .order('display_name', { ascending: true });
 
     if (error) throw error;
+
+    return (data || []).map(p => ({
+        nombre: p.display_name || '',
+        telefono: p.patient_phones?.find(ph => ph.is_primary)?.phone
+            || p.patient_phones?.[0]?.phone
+            || '',
+    }));
 }
 
 export async function updateStaffUserRole(userId, roleId) {

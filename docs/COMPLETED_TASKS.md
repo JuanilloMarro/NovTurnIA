@@ -13,7 +13,113 @@
 | 2026-04-02 | 5 | Seguridad crítica + estabilidad de hooks |
 | 2026-04-03 | 6 | Seguridad, RLS, soft delete, suscripciones |
 | 2026-04-10 | 9 | DB, RLS, performance, timezone, doble-escritura |
-| **Total** | **20** | |
+| 2026-04-14 | 7 | Ciclo de vida del tenant, trigger, staff management, paginación, conflictos UI, export CSV |
+| **Total** | **27** | |
+
+---
+
+## 2026-04-14
+
+---
+
+### ✅ T-42 — Export CSV de pacientes y registro de actividad
+
+**Problema:** No había forma de exportar datos del negocio. Los negocios no podían hacer backups locales, migrar a otro sistema ni responder solicitudes de portabilidad de datos (GDPR Art. 20).
+
+**Solución:**
+
+`src/utils/export.js` (nuevo): utilidad `downloadCSV(rows, filename)` que genera un blob CSV con BOM UTF-8 (para compatibilidad con Excel), escapa correctamente valores con comas y comillas, y dispara la descarga con un `<a>` temporal.
+
+`supabaseService.js`: nueva función `exportAllPatients()` que trae todos los pacientes activos (sin paginación) con su teléfono primario y los normaliza como objetos planos listos para `downloadCSV`.
+
+`Patients.jsx`: botón con icono `Download` en la barra de herramientas. Llama `exportAllPatients()` y genera `pacientes_YYYY-MM-DD.csv`.
+
+`AuditLog.jsx`: botón `Download` que exporta los registros actualmente filtrados (respeta los filtros de acción/usuario/búsqueda activos) como `actividad_YYYY-MM-DD.csv`. Deshabilitado cuando no hay registros cargados.
+
+**Impacto:** Los negocios pueden descargar sus datos en CSV abribles directamente en Excel/Google Sheets. El export de audit log es consciente de los filtros, por lo que se puede exportar solo "acciones de un usuario específico" seleccionando el filtro correspondiente antes de descargar.
+
+---
+
+### ✅ T-40 — Detección de conflictos en UI antes de crear turno
+
+**Problema:** El modal "Nuevo Turno" mostraba todos los horarios sin indicar cuáles ya estaban ocupados. El usuario podía seleccionar un slot tomado, intentar guardar, y recibir un error de constraint de DB — una experiencia confusa porque el rechazo llegaba tardío y con un mensaje genérico.
+
+**Solución:**
+
+`supabaseService.js`: nueva función `getOccupiedSlotsForDate(date)` que consulta todos los turnos `scheduled` o `confirmed` del día seleccionado usando `toISO()` para los límites de rango (respeta timezone del negocio). Retorna `{ start: 'HH:MM', end: 'HH:MM' }[]` extrayendo el tiempo local directamente del offset embebido en el ISO string almacenado.
+
+`NewAppointmentModal.jsx`: se agrega `useEffect([date, isOpen])` que llama `getOccupiedSlotsForDate` cada vez que el usuario cambia la fecha. Los rangos ocupados se almacenan en estado `occupiedRanges`. El helper `isOccupied(t)` verifica si un slot `HH:MM` cae dentro de algún rango. En el selector de "Inicio", las opciones ocupadas se renderizan con `disabled` y el texto `"HH:MM — ocupado"` para que el usuario las identifique visualmente sin poder seleccionarlas.
+
+**Impacto:** El usuario ve en tiempo real qué horarios están tomados antes de intentar guardar. Se elimina el round-trip innecesario a la DB para turnos que de todos modos serían rechazados, y se mejora la experiencia en turnos con alta demanda donde muchos slots están ocupados.
+
+---
+
+### ✅ T-07 — Paginación real en `getPatients` y `getAuditLog`
+
+**Problema:** `getAuditLog` cargaba hasta 200 filas en una sola query sin límite de páginas. `getPatients` tenía búsqueda pero traía hasta 50 resultados sin forma de cargar más. En negocios con historial de 1+ año (50k+ rows de audit log) el navegador podía bloquearse.
+
+**Solución:**
+
+`getPatients` y `getAuditLog` en `supabaseService.js` migrados al patrón `{ page = 0, pageSize = 50 }` con `.range(from, to)` y `count: 'exact'`. Ambas funciones retornan `{ data, count, hasMore }` en lugar de un array plano.
+
+`usePatients.js` actualizado: agrega `page`, `hasMore`, `totalCount`, `loadingMore` al estado. Nuevo método `loadMore()` que incrementa la página y _append_ los resultados al listado existente. `handleSearch` resetea a `page = 0` al cambiar la búsqueda. Los realtime events de INSERT/DELETE también resetean a `page = 0` antes del re-fetch.
+
+`Patients.jsx`: expone `loadMore` / `hasMore` del hook y renderiza un botón "Cargar más" al final del listado cuando `hasMore === true`.
+
+`AuditLog.jsx`: migrado a estado `auditPage` / `auditHasMore` / `loadingMore` con función `loadMoreLogs()`. Botón "Cargar más" visible al final de la lista filtrada cuando hay más páginas disponibles.
+
+`NewAppointmentModal.jsx`: fix del desestructurado `const { data } = await getPatients(q)` (antes usaba el objeto como array, rompiendo el dropdown de búsqueda de pacientes).
+
+**Impacto:** El initial load de audit log pasó de potencialmente cientos de KB a exactamente 50 registros. La paginación es transparente al usuario vía botón "Cargar más". El dropdown de búsqueda de pacientes en el modal de nuevo turno vuelve a funcionar correctamente.
+
+---
+
+### ✅ T-02 — Ciclo de vida del tenant: suspender y cancelar cuentas
+
+**Problema:** No existía ningún mecanismo para suspender o cancelar una cuenta de cliente. Si un tenant dejaba de pagar, el sistema seguía operando con acceso completo. No había flujo de offboarding ni retención de datos previo a una purga.
+
+**Solución:**
+
+1. **Migración `tenant_lifecycle_plan_status`:** Se agregó la columna `businesses.plan_status TEXT CHECK ('active' | 'suspended' | 'cancelled')` con default `'active'`. Se creó la helper function `is_business_active()` (`SECURITY DEFINER`) que verifica el estado del negocio del usuario actual. Las políticas INSERT y UPDATE de `appointments`, `patients` y `staff_users` fueron actualizadas con `AND is_business_active()`, bloqueando mutaciones a nivel de base de datos para cuentas no activas. Se creó la RPC `suspend_tenant(p_business_id, p_new_status, p_reason)` con acceso revocado a `anon` y `authenticated` — solo invocable vía service_role (Admin API).
+
+2. **`useAuth.js` + `useAppStore.js`:** Se agregó `businessStatus` al store de Zustand. En cada login y al restaurar sesión, se consulta `businesses.plan_status` y se persiste en el store. Las tres rutas (login, `initializeAuth`, `onAuthStateChange`) aplican la misma lógica.
+
+3. **`AccountStatusModal.jsx`:** Modal con `createPortal` montado en `document.body`, usando el mismo patrón de blur/glass que los modales de turno y paciente (`fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200]` + `bg-white/30 backdrop-blur-2xl`). Muestra el estado correspondiente con CTAs de "Regularizar pagos" (preparado para Stripe), "Contactar soporte" y "Cerrar sesión". Para `suspended` incluye botón X para cerrar el modal y operar en modo lectura. Para `cancelled` muestra el modal sin opción de cerrar y un countdown de días hasta el borrado de datos.
+
+**Impacto:** Los tenants con cuenta suspendida pueden leer sus datos pero no escribir (bloqueado tanto en RLS como en UI). Los tenants cancelados ven el modal sin poder acceder al dashboard. La operación de suspensión/cancelación es atómica vía RPC protegida. El campo `plan_status` queda preparado para la integración de Stripe (T-03).
+
+---
+
+### ✅ T-04 + T-26 — `deleteStaffUser` completo y `manage-staff` Edge Function reconectada
+
+**Problema (triple):**
+1. **T-04:** `deleteStaffUser` solo hacía soft delete en `staff_users` (`active = false`). El usuario seguía existiendo en `auth.users` con credenciales válidas — podía intentar autenticarse (RLS lo bloqueaba, pero el estado era inconsistente y representaba un riesgo real).
+2. **T-26a:** La Edge Function `manage-staff` existía pero nunca era llamada. `createStaffUser` usaba `supabase.auth.signUp()` + polling con backoff exponencial — flujo frágil, dependiente de confirmación de email y sujeto a race conditions.
+3. **T-26b:** `handleCreate()` en la edge function intentaba `INSERT INTO staff_users` con un campo `password` (columna inexistente) y nunca llamaba `auth.admin.createUser()`. Adicionalmente usaba `display_name` en lugar de `full_name` (el nombre real de la columna). La función habría fallado siempre si se hubiera invocado.
+
+**Solución:**
+
+`manage-staff/index.ts` fue reescrita:
+- Auth: reemplazó el sistema de JWT custom (`getStaffSession` con HMAC-SHA256) por `supabaseAdmin.auth.getUser(token)` estándar + lookup del perfil de staff, compatible con `supabase.functions.invoke()`.
+- `handleCreate`: llama `supabaseAdmin.auth.admin.createUser({ email_confirm: true })` para crear en `auth.users`, luego inserta en `staff_users` con `id = authData.user.id`, `full_name` correcto, sin campo `password`. Rollback automático: si el INSERT falla, hace `auth.admin.deleteUser()` para mantener consistencia.
+- `handleDelete`: soft delete en `staff_users` (`active = false`) seguido de `auth.admin.deleteUser()` para eliminar las credenciales. Si el hard delete en auth falla, lo logea pero no lanza — el soft delete ya fue aplicado y el usuario no puede operar.
+- Validación de `business_id` en delete para prevenir eliminaciones cross-tenant.
+
+`supabaseService.js`: `createStaffUser` y `deleteStaffUser` reemplazados para llamar `supabase.functions.invoke('manage-staff')`. Se eliminaron ~30 líneas de `signUp()` + polling loop.
+
+La edge function fue desplegada a producción (ACTIVE).
+
+**Impacto:** Los usuarios eliminados ya no tienen credenciales activas en `auth.users`. La creación de staff es atómica y controlada por la edge function con permisos verificados. Se elimina la dependencia de `auth.signUp()` que requería que los sign-ups públicos estuvieran habilitados.
+
+---
+
+### ✅ T-25 — BUG CRÍTICO: Trigger `validate_appointment` nunca se ejecutaba
+
+**Problema:** La función `validate_appointment()` y su trigger `trg_validate_appointment` nunca existieron en la base de datos en producción — la migración `002_triggers.sql` no había sido aplicada. Adicionalmente, el trigger original tenía dos bugs superpuestos: (1) la condición `WHEN (NEW.status = 'active')` usaba un valor que nunca existió en el enum `appt_status` (cuyos valores reales son `scheduled`, `confirmed`, `completed`, `cancelled`, `no_show`), por lo que el trigger nunca habría disparado incluso si existiera; (2) el check de solapamiento dentro de la función filtraba `status = 'active'`, igualmente inerte, dejando que turnos solapados pudieran insertarse pasando el constraint GIST como única barrera.
+
+**Solución:** Migración `fix_validate_appointment_trigger` que crea la función `public.validate_appointment()` con `SECURITY DEFINER SET search_path = ''` y referencias a tablas calificadas con `public.`. El check de solapamiento ahora filtra correctamente `status NOT IN ('cancelled'::public.appt_status, 'no_show'::public.appt_status)`, bloqueando solapamientos con turnos `scheduled`, `confirmed` y `completed`. El trigger `trg_validate_appointment` se recrea con `WHEN (NEW.status IN ('scheduled'::public.appt_status, 'confirmed'::public.appt_status))` — dispara en INSERT y UPDATE de turnos activos, no al cancelar ni marcar no-show.
+
+**Impacto:** La validación de horario laboral y solapamiento de turnos ahora se ejecuta a nivel de base de datos y no puede ser bypasseada desde el frontend. Cierra el vector donde un cliente podía reservar dos turnos superpuestos si el constraint GIST fallaba o era eludido.
 
 ---
 

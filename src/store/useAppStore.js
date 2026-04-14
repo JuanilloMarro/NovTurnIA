@@ -15,9 +15,11 @@ export const useAppStore = create((set) => ({
     user: null,
     profile: null,
     loading: true,
+    businessStatus: 'active', // 'active' | 'suspended' | 'cancelled'
     setAuth: (user, profile) => set({ user, profile, loading: false }),
     setLoading: (loading) => set({ loading }),
-    clearAuth: () => set({ user: null, profile: null, loading: false }),
+    setBusinessStatus: (status) => set({ businessStatus: status }),
+    clearAuth: () => set({ user: null, profile: null, loading: false, businessStatus: 'active' }),
 
     // Cache de pacientes (1 minuto)
     _patientsCache: { data: [], fetchedAt: 0 },

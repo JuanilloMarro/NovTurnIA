@@ -1,8 +1,18 @@
 import { useAppStore } from '../store/useAppStore';
 import { supabase, setBusinessId } from '../config/supabase';
+import * as Sentry from '@sentry/react';
+
+async function fetchBusinessStatus(businessId) {
+    const { data } = await supabase
+        .from('businesses')
+        .select('plan_status')
+        .eq('id', businessId)
+        .single();
+    return data?.plan_status || 'active';
+}
 
 export function useAuth() {
-    const { user, profile, loading, setAuth, setLoading, clearAuth } = useAppStore();
+    const { user, profile, loading, setAuth, setLoading, clearAuth, setBusinessStatus } = useAppStore();
 
     async function login(email, password) {
         setLoading(true);
@@ -26,8 +36,10 @@ export function useAuth() {
 
             // Auto-detect: establecer el business_id desde el perfil
             setBusinessId(staffProfile.business_id);
-
+            const planStatus = await fetchBusinessStatus(staffProfile.business_id);
+            setBusinessStatus(planStatus);
             setAuth(staffProfile, staffProfile);
+            Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
         } catch (err) {
             throw err;
         } finally {
@@ -39,6 +51,7 @@ export function useAuth() {
         await supabase.auth.signOut();
         setBusinessId(0);
         clearAuth();
+        Sentry.setUser(null);
     }
 
     return {
@@ -50,7 +63,7 @@ export function useAuth() {
     };
 }
 
-export async function initializeAuth(setAuth, setLoading, clearAuth) {
+export async function initializeAuth(setAuth, setLoading, clearAuth, setBusinessStatus) {
     try {
         const { data: { session } } = await supabase.auth.getSession();
 
@@ -63,9 +76,11 @@ export async function initializeAuth(setAuth, setLoading, clearAuth) {
                 .single();
 
             if (staffProfile) {
-                // Auto-detect: establecer el business_id desde el perfil
+                const planStatus = await fetchBusinessStatus(staffProfile.business_id);
                 setBusinessId(staffProfile.business_id);
+                setBusinessStatus(planStatus);
                 setAuth(staffProfile, staffProfile);
+                Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
             } else {
                 await supabase.auth.signOut();
                 clearAuth();
@@ -84,7 +99,6 @@ export async function initializeAuth(setAuth, setLoading, clearAuth) {
             setBusinessId(0);
             clearAuth();
         } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-             // Si hay sesión y aún no tenemos el perfil o algo falló, volvemos a checkear
             if (currentSession && currentSession.user) {
                 try {
                     const { data: profile } = await supabase
@@ -93,9 +107,11 @@ export async function initializeAuth(setAuth, setLoading, clearAuth) {
                         .eq('id', currentSession.user.id)
                         .eq('active', true)
                         .single();
-                        
+
                     if (profile) {
+                        const planStatus = await fetchBusinessStatus(profile.business_id);
                         setBusinessId(profile.business_id);
+                        setBusinessStatus(planStatus);
                         setAuth(profile, profile);
                     }
                 } catch (e) {
@@ -104,6 +120,6 @@ export async function initializeAuth(setAuth, setLoading, clearAuth) {
             }
         }
     });
-    
+
     return subscription;
 }

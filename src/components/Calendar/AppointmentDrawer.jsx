@@ -193,8 +193,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                             <div className="relative shrink-0 w-3.5 h-3.5 flex items-center justify-center">
                                 <Bot size={13} />
                                 <AIStar
-                                    size={7}
-                                    className={`absolute -top-1 -left-1 animate-pulse ${botPaused ? 'text-amber-500' : 'text-navy-900'}`}
+                                    size={5}
+                                    className={`absolute -top-1 -left-1 ${botPaused ? 'text-amber-500' : 'text-navy-900'}`}
                                     strokeWidth={2.5}
                                 />
                             </div>
