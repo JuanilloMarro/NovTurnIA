@@ -11,7 +11,7 @@
 
 | Fase | Tareas | Bloqueante para |
 |------|--------|----------------|
-| 🔴 Pre-lanzamiento | 3 | Cobrar, operar y lanzar sin riesgos críticos |
+| 🔴 Pre-lanzamiento | 2 | Cobrar, operar y lanzar sin riesgos críticos |
 | 🟠 Primer mes | 8 | Visibilidad en producción, features clave |
 | 🟡 Segundo mes | 12 | Compliance médico, resiliencia, calidad de datos |
 | 🟢 Escalabilidad | 8 | Crecimiento a 10k+ usuarios |
@@ -23,7 +23,6 @@
 
 > Sin estas tareas el sistema no puede cobrar, tiene bugs críticos de seguridad o expone datos de otros tenants.
 
----
 
 ### T-01 🔴 Plan enforcement — límites por suscripción 🔲
 
@@ -108,34 +107,13 @@ switch (event.type) {
 
 ---
 
-### T-38 🔴 TIME_SLOTS hardcodeados — modal ignora horario del negocio 🔲
+### ✅ T-38 — TIME_SLOTS dinámicos desde horario del negocio — COMPLETADO
 
-**Archivo:** `src/components/NewAppointmentModal.jsx`
-
-**Problema:** Los slots horarios disponibles en el modal "Nuevo Turno" están hardcodeados (probablemente 09:00–17:00). La tabla `businesses` tiene campos `schedule_start` y `schedule_end` que definen el horario real de cada clínica, pero el modal nunca los lee. Resultado: todas las clínicas muestran los mismos horarios independientemente de su configuración real.
-
-**Solución:**
-```js
-// En useAuth.js al cargar el perfil, leer schedule_start/schedule_end
-// Exponer businessHours desde el store
-
-// En NewAppointmentModal.jsx
-const { businessHours } = useAppStore();
-const TIME_SLOTS = generateTimeSlots(businessHours.start, businessHours.end, 30);
-
-function generateTimeSlots(start, end, stepMinutes) {
-  // Genera slots de 'start' a 'end' con paso 'stepMinutes'
-}
-```
-
-**Esfuerzo:** Bajo-Medio
-**Archivos impactados:** `NewAppointmentModal.jsx`, `useAuth.js`, `useAppStore.js`
+> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 4 del 2026-04-14.
 
 ---
 
 ## FASE 2 — 🟠 Primer mes (necesario para operar en producción)
-
----
 
 ### T-05 🟠 Error tracking — Sentry 🔲
 
@@ -227,12 +205,6 @@ ALTER TABLE public.appointments
 
 ---
 
-### ✅ T-50 — COUNT de mensajes acotado al mes — COMPLETADO
-
-> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
-
----
-
 ### T-51 🟠 `useStats` — trendRaw trae filas individuales sin límite para un gráfico 🔲
 
 **Archivo:** `src/hooks/useStats.js:63-67`
@@ -263,21 +235,7 @@ Retorna 6 filas en lugar de 3.000. `MainChart` recibe `{ period, total }[]` dire
 
 ---
 
-### ✅ T-52 — `handoff_at` desde servidor — COMPLETADO
-
-> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
-
----
-
-### ✅ T-53 — `setAuth` user/profile separados — COMPLETADO
-
-> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
-
----
-
 ## FASE 3 — 🟡 Segundo mes (compliance médico y resiliencia)
-
----
 
 ### T-10 🟡 Política de retención de datos + GDPR 🔲
 
@@ -356,11 +314,7 @@ Deno.serve(async (req) => {
 
 ---
 
-### ✅ T-31 — `Conversations.jsx` usa query liviana — COMPLETADO
 
-> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
-
----
 
 ### T-32 🟡 `getPatientHistory` sin paginación — conversaciones largas colapsan el tab 🔲
 
@@ -414,11 +368,7 @@ useEffect(() => {
 
 ---
 
-### ✅ T-34 — `isSecretaryRole` hardcodeado — COMPLETADO
 
-> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
-
----
 
 ### T-35 🟡 AuditLog deduplica en cliente — O(n²) en JavaScript 🔲
 
@@ -613,17 +563,6 @@ await supabase.from('audit_log').insert({
 
 ---
 
-### ✅ T-57 — `useRealtime` hook genérico — COMPLETADO
-
-> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
-
----
-
-### ✅ T-58 — `getRange` memoizado con `useMemo` — COMPLETADO
-
-> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
-
----
 
 ## FASE 4 — 🟢 Escalabilidad (cuando el volumen lo requiera)
 
@@ -765,8 +704,8 @@ Actualizar el flujo de cancelación en el frontend para setear `cancelled_at` en
 ✅ T-53 (setAuth user/profile)  ← COMPLETADO
 ✅ T-57 (useRealtime genérico)  ← COMPLETADO
 ✅ T-58 (getRange memoizado)    ← COMPLETADO
+✅ T-38 (TIME_SLOTS dinámicos) ← COMPLETADO
     ↓
-T-38 (TIME_SLOTS desde DB)      ← Crítico para multi-tenant real
 T-05 (Sentry)                   ← Visibilidad desde el día 1 en prod
 T-51 (trendRaw → RPC agrupado)  ← Performance: elimina 3k filas por carga
     ↓

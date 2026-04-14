@@ -4,13 +4,10 @@ import { createAppointment, getPatients, getOccupiedSlotsForDate } from '../../s
 import { X, Search, Calendar, ChevronDown, Save } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
+import { useAppStore, generateTimeSlots } from '../../store/useAppStore';
 
-const TIME_SLOTS = [];
-for (let h = 9; h <= 17; h++) {
-    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
-    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
-}
-TIME_SLOTS.push('18:00'); // Allow ending at 18:00
+// T-38: TIME_SLOTS ya no se hardcodea — se genera en el cuerpo del componente
+// a partir de businessHours del store (poblado al login desde businesses.schedule_*).
 
 function getInitials(name) {
     if (!name) return '?';
@@ -18,12 +15,22 @@ function getInitials(name) {
 }
 
 export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
+    const { schedule_start, schedule_end } = useAppStore((s) => s.businessHours);
+
+    // T-38: generado dinámicamente desde el horario real del negocio (DB)
+    const TIME_SLOTS = generateTimeSlots(schedule_start, schedule_end, 30);
+
     const [patientObj, setPatientObj] = useState(null);
     const [patientQ, setPatientQ] = useState('');
     const [patients, setPatients] = useState([]);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [startTime, setStartTime] = useState('09:00');
-    const [endTime, setEndTime] = useState('10:00');
+    const [startTime, setStartTime] = useState(schedule_start || '09:00');
+    const [endTime, setEndTime] = useState(() => {
+        // Default end = start + 1 hora
+        const [h, m] = (schedule_start || '09:00').split(':').map(Number);
+        const em = h * 60 + m + 60;
+        return `${String(Math.floor(em / 60)).padStart(2, '0')}:${String(em % 60).padStart(2, '0')}`;
+    });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [occupiedRanges, setOccupiedRanges] = useState([]);
@@ -197,7 +204,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
                                         setEndTime(autoEnd);
                                     }}
                                         className="w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-10 py-2 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm">
-                                        {TIME_SLOTS.filter(t => t !== '18:00').map(t => {
+                                        {TIME_SLOTS.filter(t => t !== schedule_end).map(t => {
                                             const occ = isOccupied(t);
                                             return <option key={t} value={t} disabled={occ}>{t}{occ ? ' — ocupado' : ''}</option>;
                                         })}

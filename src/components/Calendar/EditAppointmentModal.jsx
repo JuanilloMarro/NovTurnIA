@@ -4,13 +4,9 @@ import { updateAppointment } from '../../services/supabaseService';
 import { X, Calendar, ChevronDown, Save } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
 import { showWarningToast, showErrorToast } from '../../store/useToastStore';
+import { useAppStore, generateTimeSlots } from '../../store/useAppStore';
 
-const TIME_SLOTS = [];
-for (let h = 9; h <= 17; h++) {
-    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
-    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
-}
-TIME_SLOTS.push('18:00');
+// T-38: TIME_SLOTS generado desde el horario real del negocio (no hardcodeado).
 
 function getInitials(name) {
     if (!name) return '?';
@@ -18,6 +14,11 @@ function getInitials(name) {
 }
 
 export default function EditAppointmentModal({ appointment, onClose, onUpdated }) {
+    const { schedule_start, schedule_end } = useAppStore((s) => s.businessHours);
+
+    // T-38: slots dinámicos del horario real del negocio
+    const TIME_SLOTS = generateTimeSlots(schedule_start, schedule_end, 30);
+
     const rawDate = appointment.date_start ? new Date(appointment.date_start).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
     
     let rawStartTime = '09:00';

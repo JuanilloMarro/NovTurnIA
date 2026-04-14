@@ -1,10 +1,19 @@
 import { useAppStore } from '../store/useAppStore';
 import { supabase } from '../config/supabase';
-import { getBusinessStatus } from '../services/supabaseService';
+import { getBusinessStatus, getBusinessInfo } from '../services/supabaseService';
 import * as Sentry from '@sentry/react';
 
 // T-20: setBusinessId leído del store en lugar de config/supabase.js
-const setBusinessId = (id) => useAppStore.getState().setBusinessId(id);
+const setBusinessId    = (id) => useAppStore.getState().setBusinessId(id);
+// T-38: helper para poblar businessHours desde la info del negocio
+function applyBusinessHours(info) {
+    if (!info) return;
+    useAppStore.getState().setBusinessHours({
+        schedule_start: info.schedule_start || '09:00',
+        schedule_end:   info.schedule_end   || '18:00',
+        schedule_days:  Array.isArray(info.schedule_days) ? info.schedule_days : [1,2,3,4,5],
+    });
+}
 
 export function useAuth() {
     const { user, profile, loading, setAuth, setLoading, clearAuth, setBusinessStatus } = useAppStore();
@@ -31,8 +40,13 @@ export function useAuth() {
 
             // Auto-detect: establecer el business_id desde el perfil
             setBusinessId(staffProfile.business_id);
-            const planStatus = await getBusinessStatus(staffProfile.business_id);
+            // T-38: leer horario del negocio de una sola query (getBusinessInfo ya trae schedule_*)
+            const [planStatus, businessInfo] = await Promise.all([
+                getBusinessStatus(staffProfile.business_id),
+                getBusinessInfo(),
+            ]);
             setBusinessStatus(planStatus);
+            applyBusinessHours(businessInfo);
             setAuth(data.user, staffProfile);
             Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
         } finally {
@@ -69,9 +83,14 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
                 .single();
 
             if (staffProfile) {
-                const planStatus = await getBusinessStatus(staffProfile.business_id);
                 setBusinessId(staffProfile.business_id);
+                // T-38: leer horario del negocio (getBID ya está seteado arriba)
+                const [planStatus, businessInfo] = await Promise.all([
+                    getBusinessStatus(staffProfile.business_id),
+                    getBusinessInfo(),
+                ]);
                 setBusinessStatus(planStatus);
+                applyBusinessHours(businessInfo);
                 setAuth(session.user, staffProfile);
                 Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
             } else {
@@ -102,9 +121,13 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
                         .single();
 
                     if (profile) {
-                        const planStatus = await getBusinessStatus(profile.business_id);
                         setBusinessId(profile.business_id);
+                        const [planStatus, businessInfo] = await Promise.all([
+                            getBusinessStatus(profile.business_id),
+                            getBusinessInfo(),
+                        ]);
                         setBusinessStatus(planStatus);
+                        applyBusinessHours(businessInfo);
                         setAuth(currentSession.user, profile);
                     }
                 } catch (e) {

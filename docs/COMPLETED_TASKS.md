@@ -16,7 +16,30 @@
 | 2026-04-14 | 7 | Ciclo de vida del tenant, trigger, staff management, paginación, conflictos UI, export CSV |
 | 2026-04-14 (sesión 2) | 8 | Seguridad, arquitectura, performance, CI/CD, onboarding |
 | 2026-04-14 (sesión 3) | 7 | Performance de queries, arquitectura, deuda técnica, realtime, permisos |
-| **Total** | **42** | |
+| 2026-04-14 (sesión 4) | 1 | Bug funcional crítico — TIME_SLOTS hardcodeados |
+| **Total** | **43** | |
+
+---
+
+## 2026-04-14 (sesión 4)
+
+---
+
+### ✅ T-38 — TIME_SLOTS dinámicos desde horario del negocio
+
+**Problema:** Los selectores de hora en `NewAppointmentModal.jsx` y `EditAppointmentModal.jsx` tenían los slots hardcodeados con un loop de 09:00 a 18:00 fijo. La tabla `businesses` tiene columnas `schedule_start`, `schedule_end` y `schedule_days` que definen el horario real de cada clínica, pero los modales nunca las leían. Resultado: todas las clínicas veían los mismos horarios (09:00–18:00) independientemente de si atendían 7am–1pm, 14:00–20:00, etc.
+
+**Solución:**
+
+1. **`useAppStore.js`:** Nueva función `generateTimeSlots(startTime, end, stepMin)` exportada desde el store que genera un array `['HH:MM', ...]` usando aritmética de minutos. Nuevo slice de estado `businessHours { schedule_start, schedule_end, schedule_days }` con defaults seguros (`09:00`/`18:00`/`[1-5]`). `clearAuth()` lo resetea al cerrar sesión.
+
+2. **`useAuth.js`:** En cada ruta de auth (login, `initializeAuth`, `onAuthStateChange`), se llama `getBusinessInfo()` en paralelo con `getBusinessStatus()` (sin query adicional — `getBusinessInfo` ya existía). Los campos `schedule_start/end/days` se pasan a `applyBusinessHours()` que los persiste en el store.
+
+3. **`NewAppointmentModal.jsx`:** Lee `businessHours` del store con `useAppStore(s => s.businessHours)`. Reemplaza el loop hardcodeado por `generateTimeSlots(schedule_start, schedule_end, 30)`. El slot inicial de `startTime` ahora usa `schedule_start` del negocio. El filtro de "no mostrar la última hora como inicio" usa `schedule_end` en lugar del literal `'18:00'`.
+
+4. **`EditAppointmentModal.jsx`:** Mismo patrón. El dropdown de horas ahora refleja el horario real del negocio.
+
+**Impacto:** Una clínica configurada con horario `08:00`–`14:00` ahora ve solo slots de 8am a 2pm en ambos modales. El primer slot seleccionado por defecto al abrir el modal es `schedule_start`, no siempre `09:00`. Zero queries adicionales a la DB — reutiliza `getBusinessInfo()` que ya se llamaba al login.
 
 ---
 
