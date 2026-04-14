@@ -1,6 +1,6 @@
 # NovTurnAI — Tareas Pendientes & Plan de Ejecución
 
-> Actualizado: 2026-04-13
+> Actualizado: 2026-04-14
 > Prioridades: 🔴 Pre-lanzamiento · 🟠 Primer mes · 🟡 Segundo mes · 🟢 Escalabilidad
 > Estado: 🔲 Pendiente · 🔄 En progreso · 🚫 Bloqueada por dependencia
 > Completadas → ver [COMPLETED_TASKS.md](./COMPLETED_TASKS.md)
@@ -12,10 +12,10 @@
 | Fase | Tareas | Bloqueante para |
 |------|--------|----------------|
 | 🔴 Pre-lanzamiento | 3 | Cobrar, operar y lanzar sin riesgos críticos |
-| 🟠 Primer mes | 15 | Visibilidad en producción, onboarding, features clave |
-| 🟡 Segundo mes | 14 | Compliance médico, resiliencia, calidad de datos |
+| 🟠 Primer mes | 8 | Visibilidad en producción, features clave |
+| 🟡 Segundo mes | 12 | Compliance médico, resiliencia, calidad de datos |
 | 🟢 Escalabilidad | 8 | Crecimiento a 10k+ usuarios |
-| Técnicas de apoyo | 6 | Sin ventana fija, soportan las demás |
+| Técnicas de apoyo | 10 | Sin ventana fija, soportan las demás |
 
 ---
 
@@ -162,27 +162,8 @@ Sentry.setUser({ id: user.id, business_id: profile.business_id });
 
 ---
 
-### T-06 🟠 Onboarding automatizado de tenants 🔲
 
-**Problema:** Crear un nuevo cliente (tenant) es completamente manual: insertar en `businesses`, crear usuario admin en Supabase Auth, asignar rol, etc. No escala y es propenso a errores humanos.
-
-**Solución:**
-```typescript
-// Edge Function onboard-tenant
-// Recibe: business_name, admin_email, admin_name, plan
-// 1. INSERT INTO businesses (name, plan, ...)
-// 2. INSERT INTO staff_roles (roles por defecto del negocio)
-// 3. auth.admin.createUser({ email, password: tempPassword })
-// 4. INSERT INTO staff_users (user_id, business_id, role_id, ...)
-// 5. Enviar email de bienvenida con contraseña temporal
-```
-+ Página `/admin/new-tenant` (solo super-admin) con formulario de alta.
-
-**Esfuerzo:** Medio-Alto
-
----
-
-### T-08 🟠 Migrar `businesses.id` de INTEGER a UUID 🔲
+### T-08  Migrar `businesses.id` de INTEGER a UUID 🔲
 
 **Problema:** El ID de tenant es un entero secuencial (`1`, `2`, `3`) visible en la URL `?bid=1`. Permite enumerar cuántos clientes tiene el SaaS y en qué orden se registraron — información sensible competitivamente.
 
@@ -198,153 +179,12 @@ ALTER TABLE public.businesses ADD COLUMN uuid_id UUID DEFAULT gen_random_uuid() 
 ```
 
 **Esfuerzo:** Alto (migración multi-tabla + frontend + validar RLS)
-**Depende de:** T-09
+**Depende de:** T-09 ✅ (CI/CD ya configurado)
 
 ---
 
-### T-09 🟠 CI/CD + Supabase Branch para staging 🔲
 
-**Problema:** Todos los cambios de schema se aplican pegando SQL directamente en producción. No hay staging, no hay rollback fácil. Un error en una migración afecta directamente a clientes reales.
-
-**Solución:**
-1. Activar **Supabase Branching** (rama `main` = prod, rama `staging` = DB propia)
-2. Mover scripts SQL a **migraciones versionadas** con `supabase migration new`
-3. **GitHub Actions** que ejecute `supabase db push` antes del deploy a Vercel
-
-```yaml
-# .github/workflows/deploy.yml
-on:
-  push:
-    branches: [main]
-jobs:
-  migrate:
-    steps:
-      - run: supabase db push --db-url ${{ secrets.SUPABASE_DB_URL }}
-  deploy:
-    needs: migrate
-    uses: vercel deploy
-```
-
-**Esfuerzo:** Medio (setup inicial, luego Bajo por ejecución)
-
----
-
-### T-20 🟠 Refactorizar fuente de `BUSINESS_ID` — leer del store en lugar del `export let` mutable 🔲
-
-**Archivo:** `src/config/supabase.js`
-
-**Problema:** `BUSINESS_ID` es una variable `export let` mutable a nivel de módulo. Múltiples lugares del código la importan y `setBusinessId()` la muta directamente. Es difícil rastrear cambios y puede causar condiciones de carrera si el perfil carga tarde.
-
-**Solución:** Mover `businessId` al store de Zustand. Los hooks lo leen desde `useAppStore.getState().businessId`. `setBusinessId` despacha una acción al store.
-
-**Esfuerzo:** Medio
-
----
-
-### T-21 🟠 Error boundary global en `App.jsx` 🔲
-
-**Problema:** Si un componente lanza un error de React no capturado, toda la app colapsa con pantalla en blanco. No hay fallback, no hay mensaje al usuario, Sentry no lo captura (hasta instalar T-05).
-
-**Solución:**
-```jsx
-// src/components/ErrorBoundary.jsx
-class ErrorBoundary extends React.Component {
-  componentDidCatch(error, info) {
-    Sentry.captureException(error);
-  }
-  render() {
-    if (this.state.hasError)
-      return <ErrorFallback onRetry={() => window.location.reload()} />;
-    return this.props.children;
-  }
-}
-// App.jsx: envolver <RouterProvider> con <ErrorBoundary>
-```
-
-**Esfuerzo:** Bajo
-
----
-
-### T-27 🟠 Contraseña mínima de 4 caracteres en `manage-staff` 🔲
-
-**Archivo:** `supabase/functions/manage-staff/index.ts:80`
-
-**Problema:**
-```typescript
-if (!password || password.length < 4) { // ← 4 no cumple ningún estándar
-```
-NIST 800-63B recomienda mínimo 8 caracteres. Una contraseña de 4 caracteres es trivialmente vulnerable a fuerza bruta, especialmente en una app médica.
-
-**Solución:** Cambiar a mínimo 8 caracteres + validación de complejidad básica (al menos 1 número o símbolo). También validar en el formulario del frontend.
-
-**Esfuerzo:** Bajo
-
----
-
-### T-28 🟠 `createPatient` no es atómica — paciente puede quedar sin teléfono 🔲
-
-**Archivo:** `src/services/supabaseService.js:230-252`
-
-**Problema:** `createPatient` hace dos operaciones separadas: 1) INSERT en `patients`, 2) INSERT en `patient_phones`. Si el segundo falla (error de red, constraint), el paciente queda en DB sin número de teléfono. El bot de WhatsApp necesita el teléfono — ese paciente queda en estado inválido permanentemente.
-
-**Solución:** RPC `SECURITY DEFINER` que ejecute ambos INSERTs en la misma transacción Postgres:
-```sql
-CREATE OR REPLACE FUNCTION public.create_patient_with_phone(
-  p_business_id INTEGER, p_display_name TEXT, p_phone TEXT
-) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
-DECLARE v_patient_id UUID;
-BEGIN
-  INSERT INTO public.patients (business_id, display_name)
-  VALUES (p_business_id, p_display_name) RETURNING id INTO v_patient_id;
-
-  INSERT INTO public.patient_phones (patient_id, phone, is_primary)
-  VALUES (v_patient_id, p_phone, true);
-
-  RETURN v_patient_id;
-END;
-$$;
-```
-
-**Esfuerzo:** Bajo-Medio
-
----
-
-### T-29 🟠 `useStats.js` y `useNotifications.js` llaman a Supabase directamente 🔲
-
-**Archivos:** `src/hooks/useStats.js:53-68`, `src/hooks/useNotifications.js:21-58`
-
-**Problema:** La arquitectura define que todo acceso a DB debe ir por `supabaseService.js`. Sin embargo `useStats.js` llama `supabase.from('appointments')` directamente y `useNotifications.js` crea un canal Realtime directamente. Esto rompe la capa de servicio, duplica lógica y hace las queries imposibles de testear de forma aislada.
-
-**Solución:**
-- Mover las 3 queries directas de `useStats.js` a `supabaseService.js` (`getCurrentMonthAppointments`, `getMessageCounts`, `getAppointmentTrend`)
-- El canal realtime de notificaciones puede quedar en el hook pero debe recibir `businessId` como parámetro
-
-**Esfuerzo:** Bajo-Medio
-
----
-
-### T-30 🟠 `AuditLog.jsx` carga todos los pacientes para enriquecer logs 🔲
-
-**Archivo:** `src/pages/AuditLog.jsx:167-208`
-
-**Problema:** Al abrir `/audit-log` se ejecutan 3 queries en paralelo, incluyendo `getPatients()` que trae el listado completo con citas anidadas — solo para obtener los nombres de los pacientes en los logs. Con 1.000+ pacientes es una query muy cara que se repite en cada apertura.
-
-**Solución rápida:**
-```js
-// Query liviana solo id + nombre, sin joins a appointments
-const { data } = await supabase
-  .from('patients')
-  .select('id, display_name')
-  .eq('business_id', BUSINESS_ID)
-  .is('deleted_at', null);
-```
-**Solución correcta:** El trigger `handle_audit_log` ya guarda `new_data` como JSONB. Incluir `_patient_name` en el momento de escribir el log, no al leerlo.
-
-**Esfuerzo:** Bajo (solución rápida) / Medio (solución con trigger)
-
----
-
-### T-39 🟠 Sistema de recordatorios de citas 🔲
+### T-39  Sistema de recordatorios de citas 🔲
 
 **Problema:** No existe ningún sistema de recordatorios. Los pacientes no reciben avisos antes de sus turnos, lo que genera alto índice de ausencias (no-shows). Para una clínica médica, los recordatorios son críticos para la operación diaria.
 
@@ -366,7 +206,7 @@ WHERE status IN ('scheduled', 'confirmed')
 
 ---
 
-### T-41 🟠 Tracking de no-shows (pacientes que no se presentaron) 🔲
+### T-41  Tracking de no-shows (pacientes que no se presentaron) 🔲
 
 **Problema:** No existe el estado `no_show` en los turnos. No es posible saber cuántos pacientes faltan sin avisar, qué pacientes tienen historial de ausencias, ni calcular el costo real de los no-shows para la clínica.
 
@@ -384,6 +224,54 @@ ALTER TABLE public.appointments
 
 **Esfuerzo:** Medio
 **Archivos impactados:** `AppointmentDrawer.jsx`, `supabaseService.js`, `mv_business_stats`
+
+---
+
+### ✅ T-50 — COUNT de mensajes acotado al mes — COMPLETADO
+
+> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
+
+---
+
+### T-51 🟠 `useStats` — trendRaw trae filas individuales sin límite para un gráfico 🔲
+
+**Archivo:** `src/hooks/useStats.js:63-67`
+
+**Problema:** La query de tendencia trae todos los turnos de los últimos 6 meses sin `.limit()`. Con 500 turnos/mes × 6 = 3.000 filas transferidas solo para renderizar una línea en un gráfico. El componente `MainChart` necesita datos agrupados por semana/mes, no filas individuales.
+
+**Solución:** Mover la agregación al servidor con una RPC:
+```sql
+CREATE OR REPLACE FUNCTION public.get_appointment_trend(
+  p_business_id INTEGER, p_months INTEGER DEFAULT 6
+) RETURNS TABLE (period TEXT, total INTEGER, confirmed INTEGER, cancelled INTEGER)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT
+    TO_CHAR(DATE_TRUNC('month', date_start), 'YYYY-MM') AS period,
+    COUNT(*)::INTEGER AS total,
+    COUNT(*) FILTER (WHERE status = 'confirmed')::INTEGER AS confirmed,
+    COUNT(*) FILTER (WHERE status = 'cancelled')::INTEGER AS cancelled
+  FROM public.appointments
+  WHERE business_id = p_business_id
+    AND date_start >= NOW() - (p_months || ' months')::INTERVAL
+  GROUP BY period ORDER BY period;
+$$;
+```
+Retorna 6 filas en lugar de 3.000. `MainChart` recibe `{ period, total }[]` directamente.
+
+**Esfuerzo:** Bajo-Medio
+**Archivos impactados:** `supabaseService.js` (nueva función), `useStats.js`, `MainChart.jsx`
+
+---
+
+### ✅ T-52 — `handoff_at` desde servidor — COMPLETADO
+
+> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
+
+---
+
+### ✅ T-53 — `setAuth` user/profile separados — COMPLETADO
+
+> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
 
 ---
 
@@ -468,27 +356,9 @@ Deno.serve(async (req) => {
 
 ---
 
-### T-31 🟡 `Conversations.jsx` usa `usePatients` completo — carga citas innecesarias 🔲
+### ✅ T-31 — `Conversations.jsx` usa query liviana — COMPLETADO
 
-**Archivo:** `src/pages/Conversations.jsx:20`
-
-**Problema:** La página de Conversaciones llama a `usePatients()` que trae por cada paciente: datos completos + teléfonos + últimos 5 citas. Conversations solo necesita `display_name`, `phone` y `human_takeover`. Con 500 pacientes se traen potencialmente 2.500 filas de citas que nunca se muestran.
-
-**Solución:**
-```js
-// supabaseService.js — query liviana específica para conversaciones
-export async function getPatientsForConversations() {
-  return supabase
-    .from('patients')
-    .select('id, display_name, human_takeover, patient_phones(phone, is_primary)')
-    .eq('business_id', BUSINESS_ID)
-    .is('deleted_at', null)
-    .order('display_name');
-}
-```
-+ Hook liviano `useConversationPatients`.
-
-**Esfuerzo:** Bajo
+> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
 
 ---
 
@@ -544,26 +414,9 @@ useEffect(() => {
 
 ---
 
-### T-34 🟡 `isSecretaryRole` hardcodeado — permisos solo editables para 'secretary' 🔲
+### ✅ T-34 — `isSecretaryRole` hardcodeado — COMPLETADO
 
-**Archivo:** `src/pages/Users.jsx:23-27`
-
-**Problema:**
-```js
-function isSecretaryRole(roleName) {
-  return (roleName || '').toLowerCase() === 'secretary';
-}
-```
-Solo los roles con nombre exacto `'secretary'` tienen sus permisos configurables en la UI. Cualquier otro rol (doctor, admin, staff, o roles personalizados) muestra los checkboxes bloqueados. La lógica no debería depender del nombre del rol.
-
-**Solución:**
-```js
-// Un rol es editable si tiene permisos JSONB en la DB
-const isEditableRole = (role) => role?.permissions !== null;
-// O agregar campo explícito: is_configurable BOOLEAN en staff_roles
-```
-
-**Esfuerzo:** Bajo (cambio de lógica) / Medio (con campo en DB)
+> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
 
 ---
 
@@ -693,6 +546,85 @@ Agregar funciones `invalidatePatientsCache()` e `invalidateStatsCache()` al stor
 
 ---
 
+### T-54 🟡 `activePatients` y `totalPatients` usan el mismo valor — posible bug 🔲
+
+**Archivo:** `src/hooks/useStats.js:100-101`
+
+**Problema:**
+```js
+totalPatients:  patientStats?.total_patients ?? 0,
+activePatients: patientStats?.total_patients ?? 0, // ← mismo campo
+```
+`activePatients` nunca difiere de `totalPatients`. O `mv_patient_stats` no expone un campo `active_patients` (distintos de los soft-deleted), o la asignación es incorrecta. El campo `activePatients` se exporta desde el hook pero al tener siempre el mismo valor que `totalPatients` no aporta información real.
+
+**Solución:**
+1. Verificar si `mv_patient_stats` expone `active_patients` separado de `total_patients`.
+2. Si no lo hace, agregar la columna a la vista materializada:
+```sql
+-- En mv_patient_stats o en get_patient_stats():
+COUNT(*) FILTER (WHERE deleted_at IS NULL) AS active_patients,
+COUNT(*) AS total_patients -- incluyendo soft-deleted históricamente
+```
+3. Si la distinción no es relevante, eliminar `activePatients` del hook para evitar confusión.
+
+**Esfuerzo:** Bajo
+
+---
+
+### T-55 🟡 `updatePatient` — actualización de `patient_phones` sin verificar `business_id` 🔲
+
+**Archivo:** `src/services/supabaseService.js:299-313`
+
+**Problema:** Al actualizar el teléfono de un paciente, el UPDATE y el INSERT sobre `patient_phones` solo filtran por `patient_id` e `is_primary`. No se verifica `business_id` sobre la tabla de teléfonos. Aunque `patient_id` es FK de un paciente ya verificado por `business_id`, la ausencia de la guarda en `patient_phones` rompe el principio de defensa en profundidad — si RLS no está configurado correctamente sobre esa tabla, podría actualizar un teléfono de otro tenant.
+
+**Solución:**
+```js
+// Opción A: agregar .eq('business_id', BUSINESS_ID) si patient_phones tiene la columna
+// Opción B (recomendada): verificar en T-19 que patient_phones tiene business_id denormalizado
+// y entonces agregar la guarda aquí
+```
+Revisar RLS de la tabla `patient_phones` y verificar que T-19 cubre este caso.
+
+**Esfuerzo:** Muy Bajo (verificación + 1 línea de código)
+**Depende de:** T-19
+
+---
+
+### T-56 🟡 `clearNotifications` borra todo sin audit trail ni permiso elevado 🔲
+
+**Archivo:** `src/services/supabaseService.js:418-424`
+
+**Problema:** `clearNotifications()` ejecuta un `DELETE` masivo de todas las notificaciones del negocio sin dejar registro de quién ejecutó la acción. Cualquier usuario con acceso al panel puede silenciosamente borrar el historial de actividad de toda la clínica. Para una app médica con audit trail, este es un gap de compliance.
+
+**Solución:**
+1. Registrar la acción en `audit_log` antes de borrar:
+```js
+await supabase.from('audit_log').insert({
+    business_id: BUSINESS_ID,
+    action: 'DELETE',
+    table_name: 'notifications',
+    actor_id: getCurrentUserId(), // desde el store
+    new_data: { count: notificationCount }
+});
+```
+2. Opcionalmente, requerir permiso `manage_users` (o un permiso dedicado) para esta operación.
+
+**Esfuerzo:** Bajo
+
+---
+
+### ✅ T-57 — `useRealtime` hook genérico — COMPLETADO
+
+> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
+
+---
+
+### ✅ T-58 — `getRange` memoizado con `useMemo` — COMPLETADO
+
+> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 3 del 2026-04-14.
+
+---
+
 ## FASE 4 — 🟢 Escalabilidad (cuando el volumen lo requiera)
 
 ---
@@ -807,6 +739,10 @@ Actualizar el flujo de cancelación en el frontend para setear `cancelled_at` en
 | T-22 | Lazy loading de rutas con `React.lazy()` | 🟡 | — | Bajo | 🔲 |
 | T-23 | Unificar error handling en `supabaseService.js` | 🟡 | — | Bajo-Medio | 🔲 |
 | T-24 | Rate limiting en `createStaffUser` | 🟡 | T-13 | Bajo | 🔲 |
+| T-59 | `loadMore` en `usePatients` duplica la lógica de estado de `load` — unificar | 🟡 | — | Bajo | 🔲 |
+| T-60 | `getBusinessInfo` y `getBusinessTimezone` hacen 2 queries a la misma tabla — unificar | 🟡 | — | Muy Bajo | 🔲 |
+| T-61 | `fetchBusinessStatus` en `useAuth.js` viola arquitectura — mover a `supabaseService.js` | 🟡 | T-29 | Muy Bajo | 🔲 |
+| T-62 | Catch-rethrow vacío en `login()` de `useAuth.js` — eliminar bloque catch innecesario | 🟡 | — | Muy Bajo | 🔲 |
 
 ---
 
@@ -814,33 +750,43 @@ Actualizar el flujo de cancelación en el frontend para setear `cancelled_at` en
 
 
 ```
-T-09 (CI/CD + Branch)           ← Habilita hacer todo lo demás con seguridad
+✅ T-09 (CI/CD + Branch)        ← COMPLETADO
+✅ T-21 (Error boundary)        ← COMPLETADO
+✅ T-27 (Password mínimo 8)     ← COMPLETADO
+✅ T-28 (createPatient atómico) ← COMPLETADO — RPC en producción
+✅ T-29 (queries al service)    ← COMPLETADO
+✅ T-30 (AuditLog optimizado)   ← COMPLETADO
+✅ T-20 (BUSINESS_ID al store)  ← COMPLETADO
+✅ T-06 (Onboarding tenants)    ← COMPLETADO
+✅ T-31 (Conversations liviana) ← COMPLETADO
+✅ T-34 (isEditableRole por DB) ← COMPLETADO
+✅ T-50 (COUNT mensajes + mes)  ← COMPLETADO
+✅ T-52 (handoff_at servidor)   ← COMPLETADO
+✅ T-53 (setAuth user/profile)  ← COMPLETADO
+✅ T-57 (useRealtime genérico)  ← COMPLETADO
+✅ T-58 (getRange memoizado)    ← COMPLETADO
     ↓
-T-25 (Bug trigger status)       ← Fix crítico, 1 migración SQL, bajo esfuerzo
-T-26 (Edge Function conectar)   ← Security + arquitectura
-T-04 (deleteStaffUser)          ← Bajo esfuerzo, alto impacto de seguridad
-T-21 (Error boundary)           ← Bajo esfuerzo, necesario antes de prod
 T-38 (TIME_SLOTS desde DB)      ← Crítico para multi-tenant real
-    ↓
 T-05 (Sentry)                   ← Visibilidad desde el día 1 en prod
-T-28 (createPatient atómico)    ← Fix data integrity, bajo esfuerzo
-T-27 (Password mínimo 8)        ← Security fix trivial
+T-51 (trendRaw → RPC agrupado)  ← Performance: elimina 3k filas por carga
     ↓
 T-01 (Plan enforcement)         ← Base de todo el modelo de negocio
 T-02 (Ciclo de vida tenant)     ← Depende de T-01
 T-03 (Billing — Stripe)         ← Depende de T-01 + T-02
     ↓
-T-13 (createStaffUser atómico)  ← Se puede resolver con T-26
-T-06 (Onboarding automatizado)
-T-08 (businesses.id → UUID)     ← Depende de T-09 (staging seguro)
+T-13 (createStaffUser atómico)
+T-08 (businesses.id → UUID)     ← CI/CD ya está ✅
     ↓
 T-39 (Recordatorios)
 T-41 (No-shows)
     ↓
 T-10 (Retención/GDPR)
-T-11 (Reconexión Realtime)
+T-11 (Reconexión Realtime)      ← T-57 ya hecho ✅
 T-12 (Backup verificado)
 T-45 (Audit trail permisos)
+T-54 (activePatients bug)
+T-55 (phones sin business_id)   ← Tras T-19
+T-56 (clearNotifications audit)
     ↓
 T-14, T-15, T-16                ← Escalabilidad: cuando el volumen lo pida
 T-36, T-37, T-48, T-49         ← Features + UX adicional

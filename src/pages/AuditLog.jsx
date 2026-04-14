@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAuditLog, getStaffUsers, getPatients } from '../services/supabaseService';
+import { getAuditLog, getStaffUsers, getPatientsForAuditLog } from '../services/supabaseService';
 import { Search, Database, SlidersHorizontal, Plus, Edit2, Trash2, X, Download } from 'lucide-react';
 import { formatPhone } from '../utils/format';
 import { downloadCSV } from '../utils/export';
@@ -185,10 +185,10 @@ export default function AuditLog() {
     useEffect(() => {
         async function fetchData() {
             try {
-                const [{ data: logData, hasMore: more }, staffData, { data: patientsData }] = await Promise.all([
+                const [{ data: logData, hasMore: more }, staffData, patientsData] = await Promise.all([
                     getAuditLog({ page: 0 }),
                     getStaffUsers(),
-                    getPatients()
+                    getPatientsForAuditLog()
                 ]);
 
                 const sMap = {};
@@ -198,7 +198,7 @@ export default function AuditLog() {
                 (patientsData || []).forEach(p => {
                     pMap[p.id] = {
                         name: p.display_name,
-                        phone: p.patient_phones?.[0]?.phone
+                        phone: p.patient_phones?.find(ph => ph.is_primary)?.phone || p.patient_phones?.[0]?.phone
                     };
                 });
 

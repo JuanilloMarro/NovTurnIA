@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useAppStore } from '../store/useAppStore';
 import { getAppointmentsByWeek } from '../services/supabaseService';
 import { useRealtimeAppointments } from './useRealtime';
 
@@ -43,7 +44,12 @@ export function useAppointments() {
         return { start, end };
     };
 
-    const { start: rangeStart, end: rangeEnd } = getRange(anchorDate, viewMode);
+    // T-58: memoizado para evitar recalcular en cada render cuando anchorDate/viewMode no cambian
+    const { start: rangeStart, end: rangeEnd } = useMemo(
+        () => getRange(anchorDate, viewMode),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [anchorDate.getTime(), viewMode]
+    );
     const hasLoadedRef = useRef(false);
 
     const load = useCallback(async () => {
@@ -67,10 +73,12 @@ export function useAppointments() {
     // Realtime Sync (Optimized: only re-fetch on Insert/Delete, Update locally)
     useRealtimeAppointments((payload) => {
         if (payload.eventType === 'UPDATE') {
-            setAppointments(current => 
+            setAppointments(current =>
                 current.map(a => a.id === payload.new.id ? { ...a, ...payload.new } : a)
             );
         } else {
+            // T-47: invalidar cache de stats al crear/borrar citas — datos cambian
+            useAppStore.getState().invalidateStatsCache();
             load();
         }
     });

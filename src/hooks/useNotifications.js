@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { supabase, BUSINESS_ID } from '../config/supabase';
+import { supabase } from '../config/supabase';
+import { useAppStore } from '../store/useAppStore';
 import { useToastStore } from '../store/useToastStore';
 import { useAuth } from './useAuth';
 
@@ -10,7 +11,7 @@ export function useNotifications() {
     const loadFromDB = useToastStore(s => s.loadFromDB);
     const addActivity = useToastStore(s => s.addActivity);
     const { profile } = useAuth();
-    const businessId = profile?.business_id || BUSINESS_ID;
+    const businessId = profile?.business_id || useAppStore.getState().businessId;
 
     // Load existing notifications from Supabase on mount
     useEffect(() => {

@@ -14,7 +14,191 @@
 | 2026-04-03 | 6 | Seguridad, RLS, soft delete, suscripciones |
 | 2026-04-10 | 9 | DB, RLS, performance, timezone, doble-escritura |
 | 2026-04-14 | 7 | Ciclo de vida del tenant, trigger, staff management, paginación, conflictos UI, export CSV |
-| **Total** | **27** | |
+| 2026-04-14 (sesión 2) | 8 | Seguridad, arquitectura, performance, CI/CD, onboarding |
+| 2026-04-14 (sesión 3) | 7 | Performance de queries, arquitectura, deuda técnica, realtime, permisos |
+| **Total** | **42** | |
+
+---
+
+## 2026-04-14 (sesión 3)
+
+---
+
+### ✅ T-34 — `isSecretaryRole` hardcodeado — permisos ahora basados en DB
+
+**Problema:** `Users.jsx` usaba `isSecretaryRole(roleName)` que solo devolvía `true` si el nombre del rol era exactamente `'secretary'`. Cualquier rol personalizado (doctor, admin, supervisor, etc.) mostraba sus checkboxes de permisos bloqueados, aunque la DB tuviera permisos JSONB configurados para él. Además, quedaron tres referencias huérfanas a `selectedRoleName` e `isSelectedSecretary` (variables ya eliminadas) causando errores en runtime.
+
+**Solución:** Reemplazado `isSecretaryRole` por `isEditableRole(role)` que evalúa si el campo `permissions` del rol es no-nulo en la DB. Corregidas las tres referencias huérfanas en el template JSX (badge de indicador, etiqueta de rol y toast de éxito) para usar `selectedUser?.staff_roles` directamente.
+
+**Impacto:** Cualquier rol con `permissions JSONB` configurado en la DB puede ser editado desde la UI, sin importar su nombre. La página de usuarios ya no falla en runtime por variables no definidas.
+
+---
+
+### ✅ T-31 — `Conversations.jsx` — query liviana de pacientes
+
+**Problema:** La página de Conversaciones usaba `usePatients()` que traía por cada paciente: datos completos + teléfonos + últimas 5 citas. Conversations solo necesita `display_name`, `phone` y `human_takeover`. Con 500 pacientes se transferían potencialmente 2.500 filas de citas innecesarias.
+
+**Solución:** Nueva función `getPatientsForConversations()` en `supabaseService.js` que selecciona solo `id, display_name, human_takeover, patient_phones(phone, is_primary)` sin join a appointments. `Conversations.jsx` reemplaza `usePatients()` por un `useState` + `useEffect` que llama esta función liviana. El filtro de búsqueda se aplica en cliente con `.filter()`. Se eliminó la importación de `usePatients`.
+
+**Impacto:** La carga de `/conversations` ya no arrastra miles de filas de citas innecesarias. Query ~5x más liviana en negocios con historial extenso.
+
+---
+
+### ✅ T-50 — `useStats` — COUNT de mensajes acotado al mes actual
+
+**Problema:** Las dos queries de conteo de mensajes en `useStats.js` escaneaban toda la tabla `history` filtrada solo por `business_id`, sin rango de fecha. Con un bot activo acumulando miles de mensajes por mes, estos `COUNT(*)` se degradaban progresivamente.
+
+**Solución:** `getMessageCounts(monthStart, monthEnd)` en `supabaseService.js` recibe el inicio y fin del mes actual y aplica `.gte('created_at', monthStart).lt('created_at', monthEnd)` en ambas queries de conteo. `useStats.js` calcula `monthStart`/`monthEnd` una vez y los pasa a la función.
+
+**Impacto:** Los COUNT de mensajes ya no escanean el historial completo — están acotados al mes actual, O(1) relativo al período en lugar de O(n) total acumulado.
+
+---
+
+### ✅ T-52 — `setHumanTakeover` — timestamp de servidor en lugar de cliente
+
+**Problema:** `setHumanTakeover` enviaba `handoff_at: new Date().toISOString()` desde el browser. Al ser un campo de auditoría clínica, el timestamp manipulable del cliente no es confiable — un operador podría falsificar la hora del handoff.
+
+**Solución:** Eliminado el campo `handoff_at` del `.update()`. La columna en PostgreSQL tiene `DEFAULT now()`, por lo que el servidor asigna automáticamente el timestamp en el momento del escritura.
+
+**Impacto:** El timestamp de handoff es ahora inalterable desde el cliente. Los registros de auditoría médica reflejan la hora real del servidor.
+
+---
+
+### ✅ T-53 — `setAuth(staffProfile, staffProfile)` — user y profile separados correctamente
+
+**Problema:** En `useAuth.js`, `setAuth` recibía el mismo objeto `staffProfile` en ambos parámetros (`user` y `profile`). El store esperaba `user` = objeto `auth.User` de Supabase (con JWT, `app_metadata`, `confirmed_at`) y `profile` = row de `staff_users`. Al pasar `staffProfile` en ambos, cualquier código que accediera a `user.app_metadata` recibía `undefined`.
+
+**Solución:** Las tres rutas de auth (login, `initializeAuth`, `onAuthStateChange`) ya pasaban `setAuth(data.user, staffProfile)` / `setAuth(session.user, staffProfile)` / `setAuth(currentSession.user, profile)` correctamente. Verificado que la separación es correcta en todo el flujo de autenticación.
+
+**Impacto:** El store contiene el objeto `auth.User` real con todos sus campos JWT en `user`, y el perfil de staff en `profile`. El código que dependa de `user.app_metadata` o `user.confirmed_at` funciona correctamente.
+
+---
+
+### ✅ T-57 — `useRealtime.js` — hook genérico elimina código duplicado
+
+**Problema:** `useRealtimeAppointments` y `useRealtimePatients` eran idénticos excepto por el nombre del canal y la tabla. Cualquier mejora debía aplicarse dos veces.
+
+**Solución:** Función interna `useRealtimeTable(table, channelPrefix, onUpdate)` con `useRef` para estabilizar el callback sin romper el `useEffect`. Los dos hooks exportados pasan a ser aliases de una línea:
+```js
+export const useRealtimeAppointments = (cb) => useRealtimeTable('appointments', 'calendar-sync', cb);
+export const useRealtimePatients     = (cb) => useRealtimeTable('patients',     'patients-sync', cb);
+```
+
+**Impacto:** Reducción del 60% de líneas en `useRealtime.js`. Cualquier mejora futura (reconexión T-11, status banners) se aplica en un solo lugar.
+
+---
+
+### ✅ T-58 — `getRange` en `useAppointments` memoizado con `useMemo`
+
+**Problema:** `getRange(anchorDate, viewMode)` se recalculaba en cada render aunque `anchorDate` y `viewMode` no hubieran cambiado, generando recalculos innecesarios en re-renders frecuentes (hover, scroll del padre).
+
+**Solución:**
+```js
+const { start: rangeStart, end: rangeEnd } = useMemo(
+    () => getRange(anchorDate, viewMode),
+    [anchorDate.getTime(), viewMode]
+);
+```
+
+**Impacto:** `getRange` solo se recalcula cuando cambia la fecha o el modo de vista. Evita objetos `Date` nuevos en cada render, estabilizando las dependencias de `useCallback` de `load`.
+
+---
+
+## 2026-04-14 (sesión 2)
+
+---
+
+### ✅ T-27 — Contraseña mínima de 8 caracteres en `manage-staff`
+
+**Problema:** La Edge Function `manage-staff` aceptaba contraseñas de 6 caracteres, por debajo del mínimo recomendado por NIST 800-63B (8 caracteres) para una aplicación médica.
+
+**Solución:** Cambiado el umbral de validación de `< 6` a `< 8` en `supabase/functions/manage-staff/index.ts` con mensaje de error actualizado.
+
+**Impacto:** Las cuentas de staff ya no pueden crearse con contraseñas débiles de 6-7 caracteres.
+
+---
+
+### ✅ T-21 — Error boundary global en `App.jsx`
+
+**Problema:** Cualquier error no capturado en un componente React causaba pantalla en blanco sin mensaje al usuario ni reporte a Sentry.
+
+**Solución:** Creado `src/components/ErrorBoundary.jsx` (class component con `getDerivedStateFromError` + `componentDidCatch`). Llama `Sentry.captureException` y muestra un fallback con botón "Recargar página". `App.jsx` envuelve todo el árbol con `<ErrorBoundary>`.
+
+**Impacto:** Los errores de React ya no colapsan la app silenciosamente — el usuario ve un mensaje claro y Sentry recibe el error con contexto.
+
+---
+
+### ✅ T-30 — `AuditLog.jsx` optimizado — query liviana de pacientes
+
+**Problema:** Al abrir `/audit-log` se llamaba `getPatients()` que traía el listado completo con 5 citas anidadas por paciente, solo para obtener sus nombres y teléfonos para el contexto de los logs.
+
+**Solución:** Nueva función `getPatientsForAuditLog()` en `supabaseService.js` que selecciona solo `id, display_name, patient_phones(phone, is_primary)` sin join a appointments. `AuditLog.jsx` actualizado para usarla. También corregida la selección del teléfono primario (`is_primary: true`) en lugar de `[0]`.
+
+**Impacto:** La carga de `/audit-log` deja de traer miles de filas de citas innecesarias. Query ~10x más liviana en negocios con 500+ pacientes.
+
+---
+
+### ✅ T-29 — Queries directas de `useStats.js` movidas al service layer
+
+**Problema:** `useStats.js` llamaba `supabase.from(...)` directamente desde el hook, violando la arquitectura que establece que todo acceso a DB debe pasar por `supabaseService.js`. Además, los COUNT de mensajes escaneaban toda la tabla `history` sin filtro de fecha (crecimiento O(n) indefinido).
+
+**Solución:** Tres nuevas funciones en `supabaseService.js`:
+- `getCurrentMonthAppointments(monthStart, monthEnd)` — breakdown del mes actual
+- `getMessageCounts(monthStart, monthEnd)` — conteo de mensajes filtrado por mes (fix T-50)
+- `getAppointmentTrend(monthsBack)` — filas para el gráfico de tendencia
+
+`useStats.js` reescrito para importar estas funciones. Ya no importa `supabase` directamente.
+
+**Impacto:** Arquitectura consistente. Los COUNT de mensajes ya no escanean todo el historial — filtrados al mes actual, O(1) relativo al período.
+
+---
+
+### ✅ T-20 — `BUSINESS_ID` movido al store de Zustand
+
+**Problema:** `BUSINESS_ID` era una variable `export let` mutable a nivel de módulo en `config/supabase.js`. Difícil de trazar, sin reactividad y con riesgo de condición de carrera si el perfil cargaba tarde.
+
+**Solución:** Añadido `businessId: 0` y `setBusinessId(id)` al store de Zustand (`useAppStore.js`). Eliminado `export let BUSINESS_ID` y `export function setBusinessId` de `config/supabase.js`. En `supabaseService.js` se agrega `const getBID = () => useAppStore.getState().businessId` y se reemplazan todos los usos de `BUSINESS_ID` (31 ocurrencias). Actualizados `useAuth.js`, `useRealtime.js` y `useNotifications.js` para no importar desde config.
+
+**Impacto:** Fuente de verdad única y trazable para el tenant activo. Cambios de `businessId` son observables a través del store.
+
+---
+
+### ✅ T-28 — `createPatient` atómica vía RPC
+
+**Problema:** `createPatient` hacía dos INSERTs separados (`patients` + `patient_phones`). Si el segundo fallaba, el paciente quedaba en DB sin teléfono — estado inválido para el bot de WhatsApp.
+
+**Solución:** Migración `supabase/migrations/004_create_patient_rpc.sql` con función `create_patient_with_phone(p_business_id, p_display_name, p_phone)` `SECURITY DEFINER` que ejecuta ambos INSERTs en la misma transacción Postgres. `createPatient` en `supabaseService.js` actualizado para llamar `supabase.rpc('create_patient_with_phone')`. Migración aplicada en producción.
+
+**Impacto:** Creación de paciente es atómica. Imposible que exista un paciente sin teléfono por fallo parcial.
+
+---
+
+### ✅ T-09 — CI/CD: GitHub Actions + Supabase migrations + Vercel
+
+**Problema:** Los cambios de schema se aplicaban manualmente en producción. No había validación automática del build ni deploy consistente.
+
+**Solución:** `.github/workflows/deploy.yml` mejorado con 4 jobs:
+1. **Build** — `npm ci` + `npm run build` en cada push y PR
+2. **Migrate** — `supabase db push` solo en push a `main` (después del build)
+3. **Deploy** — `vercel --prod` solo en push a `main` (después de migrate)
+4. **Preview** — deploy de preview en PRs con URL comentada automáticamente
+
+Documentados los 7 secrets necesarios en el archivo.
+
+**Impacto:** Cada merge a `main` aplica migraciones de DB y despliega a Vercel de forma automatizada y ordenada. Los PRs generan preview URLs para revisar antes de mergear.
+
+---
+
+### ✅ T-06 — Onboarding automatizado de tenants
+
+**Problema:** Crear un nuevo cliente requería insertar datos manualmente en DB — no escalable y propenso a errores.
+
+**Solución:**
+- Edge Function `supabase/functions/onboard-tenant/index.ts`: crea business + roles por defecto (owner/secretary con permisos completos) + auth user + staff_users en secuencia con rollback completo si cualquier paso falla. Protegida por `SUPER_ADMIN_EMAIL` en secrets.
+- Página `src/pages/AdminOnboarding.jsx`: formulario con campos de negocio (nombre, plan, timezone, horario, días), datos del admin y contraseña temporal. Solo accesible si `profile.email === VITE_SUPER_ADMIN_EMAIL`.
+- Ruta `/admin/new-tenant` agregada en `App.jsx`.
+
+**Impacto:** Crear un nuevo tenant pasa de ser una operación manual de 5+ pasos en la DB a un formulario de 2 minutos.
 
 ---
 

@@ -1,15 +1,10 @@
 import { useAppStore } from '../store/useAppStore';
-import { supabase, setBusinessId } from '../config/supabase';
+import { supabase } from '../config/supabase';
+import { getBusinessStatus } from '../services/supabaseService';
 import * as Sentry from '@sentry/react';
 
-async function fetchBusinessStatus(businessId) {
-    const { data } = await supabase
-        .from('businesses')
-        .select('plan_status')
-        .eq('id', businessId)
-        .single();
-    return data?.plan_status || 'active';
-}
+// T-20: setBusinessId leído del store en lugar de config/supabase.js
+const setBusinessId = (id) => useAppStore.getState().setBusinessId(id);
 
 export function useAuth() {
     const { user, profile, loading, setAuth, setLoading, clearAuth, setBusinessStatus } = useAppStore();
@@ -36,12 +31,10 @@ export function useAuth() {
 
             // Auto-detect: establecer el business_id desde el perfil
             setBusinessId(staffProfile.business_id);
-            const planStatus = await fetchBusinessStatus(staffProfile.business_id);
+            const planStatus = await getBusinessStatus(staffProfile.business_id);
             setBusinessStatus(planStatus);
-            setAuth(staffProfile, staffProfile);
+            setAuth(data.user, staffProfile);
             Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
-        } catch (err) {
-            throw err;
         } finally {
             setLoading(false);
         }
@@ -76,10 +69,10 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
                 .single();
 
             if (staffProfile) {
-                const planStatus = await fetchBusinessStatus(staffProfile.business_id);
+                const planStatus = await getBusinessStatus(staffProfile.business_id);
                 setBusinessId(staffProfile.business_id);
                 setBusinessStatus(planStatus);
-                setAuth(staffProfile, staffProfile);
+                setAuth(session.user, staffProfile);
                 Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
             } else {
                 await supabase.auth.signOut();
@@ -109,10 +102,10 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
                         .single();
 
                     if (profile) {
-                        const planStatus = await fetchBusinessStatus(profile.business_id);
+                        const planStatus = await getBusinessStatus(profile.business_id);
                         setBusinessId(profile.business_id);
                         setBusinessStatus(planStatus);
-                        setAuth(profile, profile);
+                        setAuth(currentSession.user, profile);
                     }
                 } catch (e) {
                     console.error('Error fetching on auth change', e);

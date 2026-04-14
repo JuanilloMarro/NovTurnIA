@@ -4,6 +4,12 @@ export const useAppStore = create((set) => ({
     isSidebarOpen: true,
     toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 
+    // Multi-tenant: business ID derivado del perfil del usuario autenticado.
+    // T-20: movido de 'export let BUSINESS_ID' en config/supabase.js al store
+    // para tener una fuente de verdad trazable y evitar condiciones de carrera.
+    businessId: 0,
+    setBusinessId: (id) => set({ businessId: id }),
+
     // Theme
     theme: localStorage.getItem('theme') || 'system',
     setTheme: (theme) => {

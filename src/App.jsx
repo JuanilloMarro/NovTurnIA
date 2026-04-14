@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth, initializeAuth } from './hooks/useAuth';
 import { useAppStore } from './store/useAppStore';
+import ErrorBoundary from './components/ErrorBoundary';
 import { usePermissions } from './hooks/usePermissions';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
@@ -13,6 +14,7 @@ import PatientHistory from './pages/PatientHistory';
 import Stats from './pages/Stats';
 import Users from './pages/Users';
 import AuditLog from './pages/AuditLog';
+import AdminOnboarding from './pages/AdminOnboarding';
 import Login from './pages/Login';
 import ToastContainer from './components/ToastContainer';
 
@@ -34,9 +36,13 @@ function ProtectedRoute({ children }) {
     return children;
 }
 
+// Super-admin: identificado por variable de entorno (no almacena rol en DB)
+const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
+
 export default function App() {
-    const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus } = useAppStore();
+    const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus, profile } = useAppStore();
     const { canViewStats, canManageRoles } = usePermissions();
+    const isSuperAdmin = SUPER_ADMIN_EMAIL && profile?.email === SUPER_ADMIN_EMAIL;
 
     useEffect(() => {
         let subscription;
@@ -49,7 +55,7 @@ export default function App() {
     }, []);
 
     return (
-        <>
+        <ErrorBoundary>
         <ToastContainer />
         <Routes>
             <Route path="/login" element={<Login />} />
@@ -71,6 +77,7 @@ export default function App() {
                                         <Route path="/stats" element={canViewStats ? <Stats /> : <Navigate to="/" replace />} />
                                         <Route path="/users" element={canManageRoles ? <Users /> : <Navigate to="/" replace />} />
                                         <Route path="/audit-log" element={canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
+                                        <Route path="/admin/new-tenant" element={isSuperAdmin ? <AdminOnboarding /> : <Navigate to="/" replace />} />
                                         <Route path="*" element={<Navigate to="/" replace />} />
                                     </Routes>
                                 </main>
@@ -83,6 +90,6 @@ export default function App() {
                 </ProtectedRoute>
             } />
         </Routes>
-        </>
+        </ErrorBoundary>
     );
 }

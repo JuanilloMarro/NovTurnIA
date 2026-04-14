@@ -14,7 +14,9 @@
       "Bash(node -e \"const d=[];process.stdin.on\\('data',c=>d.push\\(c\\)\\);process.stdin.on\\('end',\\(\\)=>{const files=JSON.parse\\(d.join\\(''\\)\\).filter\\(f=>f.type==='file'\\);console.log\\(files.length+' archivos en assets'\\);files.forEach\\(f=>console.log\\(f.name\\)\\)}\\)\")",
       "Bash(npm run:*)",
       "mcp__supabase__deploy_edge_function",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(find '/c/Users/Juan Diego/OneDrive/Documentos/Antigravity Projects/NovTurnAI/NovTurnIA/src/components' -type f -name *.jsx -o -name *.js)",
+      "Bash(grep:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

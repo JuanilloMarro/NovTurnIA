@@ -11,32 +11,14 @@
 
 | Prioridad | Tareas | Estado |
 |-----------|--------|--------|
-| 🔴 Crítico | 3 | Pendiente |
-| 🟠 Alto | 3 | Pendiente |
-| 🟡 Medio | 2 | Pendiente |
+| 🔴 Crítico | 1 | Pendiente |
+| 🟠 Alto | 2 | Pendiente |
+| 🟡 Medio | 1 | Pendiente |
 | ⏭ Decisión tomada | 4 | No aplica |
 
 ---
 
 ## 🔴 Críticos
-
----
-
-### N-01 🔴 Get Business sin protección de resultado vacío
-
-**Problema:** `Get Business` tiene `alwaysOutputData: true`. Si un número de WhatsApp no pertenece a ningún negocio registrado, devuelve `{}` vacío. En JavaScript `undefined !== null` evalúa `true`, por lo que el nodo **They pay?** pasa aunque no exista ningún negocio — la IA correría sin negocio válido y sin control de pago.
-
-**Solución:** Agregar un nodo IF inmediatamente después de `Get Business`, antes de `They pay?`:
-
-```
-Condición TRUE (negocio existe):
-={{ $('Get Business').first().json.id !== undefined && $('Get Business').first().json.id !== null }}
-
-TRUE  → continúa a They pay?
-FALSE → nodo WhatsApp: "Este número no está registrado." → STOP
-```
-
-**Esfuerzo:** Bajo (1 nodo IF + 1 nodo WhatsApp response)
 
 ---
 
@@ -60,36 +42,9 @@ Riesgos: cualquier persona con acceso al JSON tiene las credenciales. Billing de
 
 ---
 
-### N-03 🔴 Loop batchSize sin guardar — aparece como None
 
-**Problema:** El nodo `Loop Over Items` (splitInBatches) del flujo de cancelación automática tiene `"parameters": { "options": {} }` — sin batchSize definido. Comportamiento no garantizado: puede procesar 0 items, todos a la vez causando timeout, o saltarse batches.
-
-**Solución:** Abrir el nodo en n8n → escribir `1` en el campo `Batch Size` → Ctrl+S.
-
-**Esfuerzo:** Mínimo (30 segundos)
-**Nota:** Es el único fix que requiere UI de n8n, no edición de JSON.
-
----
 
 ## 🟠 Altos
-
----
-
-### N-04b 🟠 Error de AI Agent no se guarda en historial
-
-**Problema:** Cuando Gemini falla, el usuario recibe la respuesta de `Response Error S/B/O` pero el nodo `Add History Response` no registra nada — solo está conectado al output exitoso del agente. La conversación queda con el mensaje del usuario sin respuesta del asistente:
-
-```
-U: quiero agendar
-A: (sin registro — Gemini falló)
-U: siguiente mensaje
-```
-
-En el siguiente mensaje el agente ve el historial incompleto y puede repetir preguntas o perder contexto de la conversación.
-
-**Solución:** Conectar los 3 nodos `Response Error S/B/O` al nodo `Add History Response`, guardando el mensaje de error como respuesta del asistente.
-
-**Esfuerzo:** Bajo (3 conexiones en n8n)
 
 ---
 
@@ -122,24 +77,6 @@ En el siguiente mensaje el agente ve el historial incompleto y puede repetir pre
 ---
 
 ## 🟡 Medio
-
----
-
-### N-07 🟡 Tipos de mensaje no reconocidos caen al path de texto
-
-**Problema:** El switch `Message Type` solo maneja `text`, `audio`, `button` e `interactive`. Mensajes de imagen, video, documento, ubicación, sticker, etc. caen al fallback (output 0 = path de texto). En ese path `$messages[0].text.body` es `undefined`, por lo que el mensaje llega al buffer y al AI Agent como el string `"undefined"`.
-
-El sistema no crashea — `esValido` o el AI Agent lo manejan — pero el usuario recibe una respuesta confusa en lugar de un mensaje claro.
-
-**Solución:** Agregar una rama en `Message Type` para tipos no reconocidos:
-
-```
-Condición: ninguna de las anteriores (fallback explícito)
-→ nodo WhatsApp: "Solo proceso mensajes de texto y audio por ahora 😊"
-→ STOP
-```
-
-**Esfuerzo:** Bajo (1 rama en el switch + 1 nodo WhatsApp response)
 
 ---
 

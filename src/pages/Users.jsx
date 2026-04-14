@@ -20,10 +20,10 @@ function getInitials(name) {
 //   3. Los checkboxes mostraban todos en true para "doctor" sin consultar la DB.
 // Ahora: un usuario puede editar si canManageRoles (del hook, derivado de DB).
 // Un rol tiene permisos "fijos" si la DB no permite edición (rol no-secretary).
-function isSecretaryRole(roleName) {
-    // La única categoría de rol con permisos configurables en este sistema.
-    // Los roles principales deben tener sus permisos seteados directamente en DB.
-    return (roleName || '').toLowerCase() === 'secretary';
+// T-34: un rol es editable si tiene permisos JSONB en la DB,
+// sin importar su nombre. Antes solo 'secretary' podía editarse.
+function isEditableRole(role) {
+    return role?.permissions !== null && role?.permissions !== undefined;
 }
 
 // ── Traducciones de roles a español ──
@@ -49,8 +49,8 @@ export default function Users() {
     const getRoleBadge = (user) => {
         const roleName = user.staff_roles?.name || 'Personal';
         const label = translateRole(roleName);
-        const isSecretary = isSecretaryRole(roleName);
-        if (!isSecretary) return { label, classes: 'bg-navy-900 text-white shadow-navy-100' };
+        const isEditable = isEditableRole(user.staff_roles);
+        if (!isEditable) return { label, classes: 'bg-navy-900 text-white shadow-navy-100' };
         return { label, classes: 'bg-white border border-gray-200 text-gray-600 shadow-sm' };
     };
 
@@ -61,12 +61,8 @@ export default function Users() {
     );
 
     // ── Determine permission editability for selected user ──
-    const selectedRoleName = selectedUser?.staff_roles?.name || '';
-    const isSelectedSecretary = isSecretaryRole(selectedRoleName);
-    // canEditPermissions usa canManageRoles del hook (derivado 100% de la DB),
-    // no del array MAIN_ROLES hardcodeado. Antes un "supervisor" con manage_roles:true
-    // no podía editar porque su nombre no estaba en la lista.
-    const canEditPermissions = canManageRoles && isSelectedSecretary;
+    // T-34: editabilidad basada en si el rol tiene permissions JSONB, no en el nombre del rol
+    const canEditPermissions = canManageRoles && isEditableRole(selectedUser?.staff_roles);
 
     return (
         <div className="h-full flex flex-col mx-auto w-full max-w-4xl pt-2 px-0">
@@ -138,7 +134,7 @@ export default function Users() {
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-1 h-1 rounded-full shadow-[0_0_8px] bg-navy-700 shadow-navy-700/50" />
                                                     <span className="text-[10px] font-bold text-navy-400 pt-[1px]">
-                                                        {translateRole(selectedRoleName)}
+                                                        {translateRole(selectedUser?.staff_roles?.name)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -146,13 +142,13 @@ export default function Users() {
                                     </div>
 
                                     <div className="flex flex-col xl:items-end gap-1.5">
-                                        {!isSelectedSecretary && (
+                                        {!isEditableRole(selectedUser?.staff_roles) && (
                                             <div className="flex items-center gap-1.5 text-[9px] font-bold text-navy-700 bg-navy-900/5 border border-navy-900/10 px-2.5 py-1 rounded-full">
                                                 <Lock size={10} />
                                                 Permisos definidos en DB
                                             </div>
                                         )}
-                                        {isSelectedSecretary && canManageRoles && (
+                                        {isEditableRole(selectedUser?.staff_roles) && canManageRoles && (
                                             <div className="flex items-center gap-1.5 text-[9px] font-bold text-navy-700 bg-navy-900/5 border border-navy-900/10 px-2.5 py-1 rounded-full">
                                                 <Shield size={10} />
                                                 Permisos configurables
@@ -259,7 +255,7 @@ export default function Users() {
                                             if (!selectedUser) return;
                                             try {
                                                 await changeRolePermissions(selectedUser.role_id, selectedUser.staff_roles?.permissions || {});
-                                                showSuccessToast('Permisos Guardados', `Se han actualizado los permisos de ${translateRole(selectedRoleName)}`, 'staff');
+                                                showSuccessToast('Permisos Guardados', `Se han actualizado los permisos de ${translateRole(selectedUser?.staff_roles?.name)}`, 'staff');
                                             } catch (err) {
                                                 showErrorToast('Error al Guardar', err.message);
                                             }

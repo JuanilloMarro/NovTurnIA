@@ -92,9 +92,9 @@ async function handleCreate(
     );
   }
 
-  if (!password || typeof password !== 'string' || (password as string).length < 6) {
+  if (!password || typeof password !== 'string' || (password as string).length < 8) {
     return new Response(
-      JSON.stringify({ error: 'La contraseña debe tener al menos 6 caracteres.' }),
+      JSON.stringify({ error: 'La contraseña debe tener al menos 8 caracteres.' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, MessageCircle, Bot, ShieldAlert } from 'lucide-react';
 import AIStar from '../components/Icons/AIStar';
-import { usePatients } from '../hooks/usePatients';
 import { usePermissions } from '../hooks/usePermissions';
-import { getPatientHistory, setHumanTakeover } from '../services/supabaseService';
+import { getPatientHistory, setHumanTakeover, getPatientsForConversations } from '../services/supabaseService';
 import { showErrorToast } from '../store/useToastStore';
 import { formatPhone } from '../utils/format';
 
@@ -17,8 +16,17 @@ export default function Conversations() {
     const [searchParams, setSearchParams] = useSearchParams();
     const patientIdFromUrl = searchParams.get('patient');
 
-    const { patients, search, handleSearch } = usePatients();
+    // T-31: query liviana — solo id, display_name, human_takeover y teléfono
+    // Reemplaza usePatients() que traía 5 citas por paciente innecesariamente
+    const [patients, setPatients] = useState([]);
+    const [search, setSearch] = useState('');
     const { canToggleAi } = usePermissions();
+
+    useEffect(() => {
+        getPatientsForConversations().then(setPatients).catch(() => {});
+    }, []);
+
+    function handleSearch(q) { setSearch(q); }
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [history, setHistory] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
@@ -107,7 +115,7 @@ export default function Conversations() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pt-0 space-y-1">
-                        {patients.map(p => {
+                        {patients.filter(p => !search || p.display_name?.toLowerCase().includes(search.toLowerCase())).map(p => {
                             const isSelected = selectedPatient?.id === p.id;
                             const name = p.display_name || 'Sin nombre';
                             return (

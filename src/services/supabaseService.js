@@ -1,16 +1,18 @@
-import { supabase, BUSINESS_ID } from '../config/supabase';
+import { supabase } from '../config/supabase';
+import { useAppStore } from '../store/useAppStore';
+
+// T-20: getBID() movido al store. Usar getBID() en cada función de servicio
+// para leer el valor actual en el momento de la llamada (no en el momento de importar).
+const getBID = () => useAppStore.getState().businessId;
 
 // Caché de timezone del negocio — se carga una vez por sesión
+// T-60: getBusinessTimezone reutiliza getBusinessInfo en lugar de hacer una query separada
 let _businessTimezone = null;
 
 async function getBusinessTimezone() {
     if (_businessTimezone) return _businessTimezone;
-    const { data } = await supabase
-        .from('businesses')
-        .select('timezone')
-        .eq('id', BUSINESS_ID)
-        .single();
-    _businessTimezone = data?.timezone || 'America/Guatemala';
+    const info = await getBusinessInfo();
+    _businessTimezone = info?.timezone || 'America/Guatemala';
     return _businessTimezone;
 }
 
@@ -55,7 +57,7 @@ export async function getOccupiedSlotsForDate(date) {
     const { data, error } = await supabase
         .from('appointments')
         .select('date_start, date_end')
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .gte('date_start', dayStart)
         .lte('date_start', dayEnd)
         .in('status', ['scheduled', 'confirmed']);
@@ -73,7 +75,7 @@ export async function getAppointmentsByWeek(weekStart, weekEnd) {
     const { data, error } = await supabase
         .from('appointments')
         .select('*, patients(display_name, patient_phones(phone))')
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .gte('date_start', weekStart)
         .lt('date_start', weekEnd)
         .order('date_start', { ascending: true });
@@ -86,7 +88,7 @@ export async function createAppointment({ patientId, serviceId, date, startTime,
     const { data, error } = await supabase
         .from('appointments')
         .insert({
-            business_id: BUSINESS_ID,
+            business_id: getBID(),
             patient_id: patientId,
             service_id: serviceId || null,
             date_start: await toISO(date, startTime),
@@ -117,7 +119,7 @@ export async function updateAppointment(id, { date, startTime, endTime }) {
             date_end: await toISO(date, endTime),
         })
         .eq('id', id)
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .select()
         .single();
 
@@ -135,7 +137,7 @@ export async function cancelAppointment(id) {
         .from('appointments')
         .update({ status: 'cancelled' })
         .eq('id', id)
-        .eq('business_id', BUSINESS_ID);
+        .eq('business_id', getBID());
 
     if (error) throw error;
 }
@@ -145,7 +147,7 @@ export async function confirmAppointment(id) {
         .from('appointments')
         .update({ confirmed: true, status: 'confirmed' })
         .eq('id', id)
-        .eq('business_id', BUSINESS_ID);
+        .eq('business_id', getBID());
 
     if (error) throw error;
 }
@@ -155,7 +157,7 @@ export async function scheduledAppointment(id) {
         .from('appointments')
         .update({ confirmed: false, status: 'scheduled' })
         .eq('id', id)
-        .eq('business_id', BUSINESS_ID);
+        .eq('business_id', getBID());
 
     if (error) throw error;
 }
@@ -172,7 +174,7 @@ export async function getPatients(search = '', { page = 0, pageSize = 50 } = {})
             patient_phones(phone, is_primary),
             appointments(id, date_start, status, confirmed)
         `, { count: 'exact' })
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .is('deleted_at', null)
         .order('display_name', { ascending: true })
         .order('date_start', { referencedTable: 'appointments', ascending: false })
@@ -201,7 +203,7 @@ export async function getPatientAppointments(patientId) {
         .from('appointments')
         .select('id, date_start, date_end, status, confirmed')
         .eq('patient_id', patientId)
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .order('date_start', { ascending: false });
 
     if (error) throw error;
@@ -215,7 +217,7 @@ export async function getAuditLog({ page = 0, pageSize = 50 } = {}) {
     const { data, error, count } = await supabase
         .from('audit_log')
         .select('*', { count: 'exact' })
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -227,7 +229,7 @@ export async function getPatientHistory(patientId) {
     const { data, error } = await supabase
         .from('history')
         .select('*')
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .eq('patient_id', patientId)
         .order('created_at', { ascending: true });
 
@@ -249,40 +251,42 @@ export async function setHumanTakeover(patientId, value) {
         return reactivateBot(patientId);
     }
     // Activar takeover manual
+    // T-52: handoff_at omitido — Postgres usa DEFAULT now() del servidor (timestamp confiable)
     const { error } = await supabase
         .from('patients')
         .update({
             human_takeover: true,
             handoff_reason: 'manual',
-            handoff_at: new Date().toISOString()
         })
         .eq('id', patientId)
-        .eq('business_id', BUSINESS_ID);
+        .eq('business_id', getBID());
 
     if (error) throw error;
 }
 
-export async function createPatient({ display_name, phone, email, notes }) {
-    // 1. Crear paciente
-    const { data: patient, error: patientError } = await supabase
-        .from('patients')
-        .insert({ business_id: BUSINESS_ID, display_name })
-        .select()
-        .single();
-    if (patientError) {
-        console.error('Create Patient Error:', patientError);
+export async function createPatient({ display_name, phone }) {
+    // T-28: RPC atómica — patient + patient_phones en una sola transacción Postgres.
+    // Si el INSERT de patient_phones falla, el INSERT de patients se revierte automáticamente.
+    const { data: patientId, error } = await supabase.rpc('create_patient_with_phone', {
+        p_business_id: getBID(),
+        p_display_name: display_name,
+        p_phone: phone,
+    });
+
+    if (error) {
+        console.error('create_patient_with_phone RPC Error:', error);
+        if (error.code === '23505') throw new Error('Ya existe un paciente con ese teléfono.');
         throw new Error('No se pudo registrar al paciente.');
     }
 
-    // 2. Agregar teléfono
-    const { error: phoneError } = await supabase
-        .from('patient_phones')
-        .insert({ patient_id: patient.id, phone, is_primary: true });
-    if (phoneError) {
-        console.error('Create Phone Error — code:', phoneError.code, '| msg:', phoneError.message, '| hint:', phoneError.hint);
-        throw new Error('Paciente creado pero error al guardar teléfono.');
-    }
+    // Devolver el paciente completo para mantener compatibilidad con el hook
+    const { data: patient, error: fetchError } = await supabase
+        .from('patients')
+        .select('*, patient_phones(phone, is_primary)')
+        .eq('id', patientId)
+        .single();
 
+    if (fetchError) throw new Error('Paciente creado pero error al recuperar datos.');
     return patient;
 }
 
@@ -291,7 +295,7 @@ export async function updatePatient(patientId, { display_name, phone }) {
         .from('patients')
         .update({ display_name })
         .eq('id', patientId)
-        .eq('business_id', BUSINESS_ID);
+        .eq('business_id', getBID());
 
     if (patientError) throw new Error('No se pudo actualizar el paciente.');
 
@@ -319,7 +323,7 @@ export async function deletePatient(patientId) {
         .from('patients')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', patientId)
-        .eq('business_id', BUSINESS_ID);
+        .eq('business_id', getBID());
     if (error) throw new Error('No se pudo eliminar al paciente.');
 }
 
@@ -345,15 +349,26 @@ export async function getStatsOverview() {
 }
 
 // ── Business Info ────────────────────────────────────────
+// T-60: incluye timezone para que getBusinessTimezone() reutilice esta query
 export async function getBusinessInfo() {
     const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, plan, schedule_start, schedule_end, schedule_days')
-        .eq('id', BUSINESS_ID)
+        .select('id, name, plan, timezone, schedule_start, schedule_end, schedule_days')
+        .eq('id', getBID())
         .single();
 
     if (error) throw error;
     return data;
+}
+
+// T-61: movido desde useAuth.js — todo acceso a DB pasa por el service layer
+export async function getBusinessStatus(businessId) {
+    const { data } = await supabase
+        .from('businesses')
+        .select('plan_status')
+        .eq('id', businessId)
+        .single();
+    return data?.plan_status || 'active';
 }
 
 // ── Staff & Roles ─────────────────────────────────────────
@@ -364,7 +379,7 @@ export async function getStaffUsers() {
             *,
             staff_roles (*)
         `)
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .eq('active', true)
         .order('created_at', { ascending: true });
 
@@ -376,7 +391,7 @@ export async function getStaffRoles() {
     const { data, error } = await supabase
         .from('staff_roles')
         .select('*')
-        .eq('business_id', BUSINESS_ID);
+        .eq('business_id', getBID());
 
     if (error) throw error;
     return data || [];
@@ -387,7 +402,7 @@ export async function updateRolePermissions(roleId, permissions) {
         .from('staff_roles')
         .update({ permissions })
         .eq('id', roleId)
-        .eq('business_id', BUSINESS_ID);
+        .eq('business_id', getBID());
 
     if (error) throw error;
 }
@@ -397,7 +412,7 @@ export async function getNotifications() {
     const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .order('created_at', { ascending: false })
         .limit(30);
 
@@ -409,17 +424,28 @@ export async function markNotificationsRead() {
     const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .eq('read', false);
 
     if (error) throw error;
 }
 
 export async function clearNotifications() {
+    const actorId = useAppStore.getState().profile?.id ?? null;
+
+    // T-56: registrar en audit_log quién borró todas las notificaciones
+    await supabase.from('audit_log').insert({
+        business_id: getBID(),
+        action: 'DELETE',
+        table_name: 'notifications',
+        actor_id: actorId,
+        new_data: { cleared_all: true },
+    });
+
     const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('business_id', BUSINESS_ID);
+        .eq('business_id', getBID());
 
     if (error) throw error;
 }
@@ -442,6 +468,105 @@ export async function deleteStaffUser(userId) {
     if (data?.error) throw new Error(data.error);
 }
 
+// ── Stats queries (T-29: moved from useStats.js) ──────────
+
+/**
+ * Appointments for the current month — detail breakdown (confirmed/bot/staff).
+ * Not in mv_business_stats because MVs only store monthly aggregates, not individual rows.
+ */
+export async function getCurrentMonthAppointments(monthStart, monthEnd) {
+    const { data, error } = await supabase
+        .from('appointments')
+        .select('id, status, confirmed, created_by, date_start, created_at')
+        .eq('business_id', getBID())
+        .gte('date_start', monthStart)
+        .lt('date_start', monthEnd);
+
+    if (error) throw error;
+    return data || [];
+}
+
+/**
+ * Sent + received message counts for the current month.
+ * T-50: filtered by month so the COUNT doesn't scan the full history table.
+ */
+export async function getMessageCounts(monthStart, monthEnd) {
+    const [{ count: sent, error: e1 }, { count: received, error: e2 }] = await Promise.all([
+        supabase
+            .from('history')
+            .select('*', { count: 'exact', head: true })
+            .eq('business_id', getBID())
+            .eq('role', 'assistant')
+            .gte('created_at', monthStart)
+            .lt('created_at', monthEnd),
+        supabase
+            .from('history')
+            .select('*', { count: 'exact', head: true })
+            .eq('business_id', getBID())
+            .eq('role', 'user')
+            .gte('created_at', monthStart)
+            .lt('created_at', monthEnd),
+    ]);
+
+    if (e1) throw e1;
+    if (e2) throw e2;
+    return { sent: sent || 0, received: received || 0 };
+}
+
+/**
+ * Individual appointment rows for the trend chart (last N months).
+ * MainChart needs date_start + status per row to group by week/month on the client.
+ */
+export async function getAppointmentTrend(monthsBack = 6) {
+    const since = new Date();
+    since.setMonth(since.getMonth() - monthsBack);
+    since.setDate(1);
+
+    const { data, error } = await supabase
+        .from('appointments')
+        .select('date_start, status')
+        .eq('business_id', getBID())
+        .gte('date_start', since.toISOString())
+        .order('date_start', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+}
+
+// ── AuditLog helpers ──────────────────────────────────────
+
+/**
+ * Lightweight patient list for AuditLog context enrichment.
+ * Only fetches id + display_name + primary phone — no appointments join.
+ * T-30: Replaces the full getPatients() call that pulled 5 appointments per patient.
+ */
+export async function getPatientsForAuditLog() {
+    const { data, error } = await supabase
+        .from('patients')
+        .select('id, display_name, patient_phones(phone, is_primary)')
+        .eq('business_id', getBID())
+        .is('deleted_at', null);
+
+    if (error) throw error;
+    return data || [];
+}
+
+/**
+ * T-31: Lightweight patient query for Conversations page.
+ * Only fetches id, display_name, human_takeover, and primary phone — no appointments join.
+ */
+export async function getPatientsForConversations() {
+    const { data, error } = await supabase
+        .from('patients')
+        .select('id, display_name, human_takeover, patient_phones(phone, is_primary)')
+        .eq('business_id', getBID())
+        .is('deleted_at', null)
+        .order('display_name');
+
+    if (error) throw error;
+    return data || [];
+}
+
 // ── Export ────────────────────────────────────────────────
 
 /**
@@ -452,7 +577,7 @@ export async function exportAllPatients() {
     const { data, error } = await supabase
         .from('patients')
         .select('display_name, patient_phones(phone, is_primary)')
-        .eq('business_id', BUSINESS_ID)
+        .eq('business_id', getBID())
         .is('deleted_at', null)
         .order('display_name', { ascending: true });
 
@@ -471,7 +596,7 @@ export async function updateStaffUserRole(userId, roleId) {
         .from('staff_users')
         .update({ role_id: roleId })
         .eq('id', userId)
-        .eq('business_id', BUSINESS_ID);
+        .eq('business_id', getBID());
 
     if (error) throw error;
 }
