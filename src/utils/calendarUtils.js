@@ -1,7 +1,4 @@
-const BASE_HOUR = 9;
-const TOTAL_HOURS = 9; // 9 to 17 (9 hours shown)
-
-export function getEventStyle(dateStart, dateEnd, pxPerHour = 48) {
+export function getEventStyle(dateStart, dateEnd, baseHour = 9, totalHours = 9, pxPerHour = 48) {
     const toDecimal = iso => {
         const d = new Date(iso);
         const h = parseInt(d.toLocaleTimeString('es-GT', { hour: '2-digit', hour12: false, timeZone: 'America/Guatemala' }));
@@ -12,8 +9,8 @@ export function getEventStyle(dateStart, dateEnd, pxPerHour = 48) {
     const end = toDecimal(dateEnd);
 
     if (pxPerHour === 'percent') {
-        const top = ((start - BASE_HOUR) / TOTAL_HOURS) * 100;
-        const height = ((end - start) / TOTAL_HOURS) * 100;
+        const top = ((start - baseHour) / totalHours) * 100;
+        const height = ((end - start) / totalHours) * 100;
         return {
             top: `${Math.max(top, 0)}%`,
             height: `${Math.max(height, 2)}%`,
@@ -23,7 +20,7 @@ export function getEventStyle(dateStart, dateEnd, pxPerHour = 48) {
         };
     }
 
-    const top = (start - BASE_HOUR) * pxPerHour;
+    const top = (start - baseHour) * pxPerHour;
     const height = (end - start) * pxPerHour;
 
     return {
@@ -112,7 +109,7 @@ export function layoutOverlappingEvents(dayAppointments) {
 /**
  * Get event style with column-aware positioning for overlapping events
  */
-export function getEventStyleWithColumns(dateStart, dateEnd, column, totalColumns) {
+export function getEventStyleWithColumns(dateStart, dateEnd, column, totalColumns, baseHour = 9, totalHours = 9) {
     const toDecimal = iso => {
         const d = new Date(iso);
         const h = parseInt(d.toLocaleTimeString('es-GT', { hour: '2-digit', hour12: false, timeZone: 'America/Guatemala' }));
@@ -121,8 +118,8 @@ export function getEventStyleWithColumns(dateStart, dateEnd, column, totalColumn
 
     const start = toDecimal(dateStart);
     const end = toDecimal(dateEnd);
-    const top = ((start - BASE_HOUR) / TOTAL_HOURS) * 100;
-    const height = ((end - start) / TOTAL_HOURS) * 100;
+    const top = ((start - baseHour) / totalHours) * 100;
+    const height = ((end - start) / totalHours) * 100;
 
     const widthPercent = 100 / totalColumns;
     const leftPercent = column * widthPercent;

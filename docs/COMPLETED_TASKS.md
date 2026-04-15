@@ -17,7 +17,137 @@
 | 2026-04-14 (sesión 2) | 8 | Seguridad, arquitectura, performance, CI/CD, onboarding |
 | 2026-04-14 (sesión 3) | 7 | Performance de queries, arquitectura, deuda técnica, realtime, permisos |
 | 2026-04-14 (sesión 4) | 1 | Bug funcional crítico — TIME_SLOTS hardcodeados |
-| **Total** | **43** | |
+| 2026-04-14 (sesión 5) | 6 | Arquitectura, cache realtime, audit trail, timezone hardcodeada, Calendar dinámico |
+| 2026-04-14 (sesión 6) | 5 | Bugs críticos — prop mutation, alert, null guard, parseInt radix, try/catch |
+| **Total** | **54** | |
+
+---
+
+## 2026-04-14 (sesión 6)
+
+---
+
+### ✅ Bug — `AppointmentDrawer` mutación directa de prop eliminada
+
+**Problema:** Al activar/desactivar el bot, la línea `appointment.patients.human_takeover = newValue` mutaba directamente el objeto prop recibido desde el componente padre. En React, mutar props causa inconsistencias silenciosas entre el estado del padre y lo que renderiza el hijo — el componente podría mostrar un valor desactualizado si el padre re-renderiza.
+
+**Solución:** Eliminada la línea. `setBotPaused(newValue)` ya actualizaba el estado local de la UI correctamente. `onUpdated?.()` notifica al padre para que recargue datos frescos desde la DB.
+
+**Impacto:** El toggle del bot es ahora una operación pura — no toca el árbol de props, solo actualiza estado local y notifica al padre.
+
+---
+
+### ✅ Bug — `alert()` reemplazado por `showErrorToast` en AppointmentDrawer
+
+**Problema:** El catch del toggle bot usaba `alert('Error al actualizar bot: ' + err.message)` — un diálogo bloqueante del navegador que interrumpe toda la UI, no sigue el design system y es inusable en mobile.
+
+**Solución:** Reemplazado por `showErrorToast('Error al actualizar bot', err.message)`, consistente con el resto del sistema de notificaciones.
+
+**Impacto:** Los errores del toggle bot se muestran como toast no bloqueante, igual que el resto de la app.
+
+---
+
+### ✅ Bug — `toISO()` null guard para el parámetro `time`
+
+**Archivo:** `src/services/supabaseService.js`
+
+**Problema:** `const [h, m] = time.split(':').map(Number)` lanzaba `TypeError: Cannot read properties of null (reading 'split')` si `time` era `null` o `undefined`. Esto podía ocurrir si un slot de hora llegaba vacío desde un selector mal inicializado, generando un error críptico sin contexto.
+
+**Solución:** Añadida la guarda `if (!time) throw new Error('toISO: time is required')` antes del split. El error resultante es claro y traza directamente a la causa.
+
+**Impacto:** Fallo rápido y mensaje claro en lugar de error críptico difícil de depurar.
+
+---
+
+### ✅ Bug — `parseInt` sin radix en CalendarWeek y CalendarDay
+
+**Archivos:** `src/components/Calendar/CalendarWeek.jsx`, `src/components/Calendar/CalendarDay.jsx`
+
+**Problema:** `parseInt(str)` sin segundo argumento puede interpretar strings con cero inicial (como `'08:00'` → `'08'`) como octal en entornos legacy, produciendo valores incorrectos. Aunque los navegadores modernos definen base 10 por defecto para strings decimales, la ausencia de radix es un antipatrón que lint tools marcan como error.
+
+**Solución:** Añadido radix 10 explícito: `parseInt(..., 10)` en ambos archivos para `startH` y `endH`.
+
+**Impacto:** Comportamiento correcto y explícito en todos los entornos. Sin riesgo de interpretación octal en horas con cero inicial (08, 09).
+
+---
+
+### ✅ Bug — try/catch faltante en debounce de búsqueda de pacientes
+
+**Archivo:** `src/components/Calendar/NewAppointmentModal.jsx`
+
+**Problema:** El `setTimeout` async que ejecuta `getPatients(q)` no tenía try/catch. Cualquier error de red o de Supabase lanzaba una Promise rechazada sin capturar, causando un `UnhandledPromiseRejection` silencioso — el usuario no veía error y la lista de pacientes quedaba vacía sin explicación.
+
+**Solución:** Envuelto en try/catch. El catch no hace nada (la búsqueda es best-effort). También añadido `?? []` como fallback cuando `data` es null.
+
+**Impacto:** Los errores de búsqueda no colapsan la consola con Promise rechazadas. La lista simplemente queda vacía si falla la búsqueda, lo cual es el comportamiento esperado.
+
+---
+
+## 2026-04-14 (sesión 5)
+
+---
+
+### ✅ T-38 (completado) — Calendar y EditModal — horas dinámicas desde businessHours
+
+**Problema pendiente de sesión 4:** `CalendarWeek.jsx` y `CalendarDay.jsx` tenían `const HOURS = Array.from({ length: 9 }, (_, i) => i + 9)` — siempre 9 filas de 9 a 17, sin importar el horario del negocio. Además, `getEventStyleWithColumns` recibía `baseHour=9, totalHours=9` como defaults hardcodeados, desplazando visualmente todos los eventos si el horario empezaba a otra hora. `EditAppointmentModal` filtraba el selector de inicio con `t !== '18:00'` literal. `getBusinessSchedule()` no incluía `schedule_days` en la query y no aceptaba `businessId` explícito (potencial race condition).
+
+**Solución:**
+- `CalendarWeek.jsx` / `CalendarDay.jsx`: importan `useAppStore`, calculan `startH`/`endH` desde `businessHours`, generan `HOURS` dinámicamente y pasan `startH, HOURS.length` a `getEventStyleWithColumns`.
+- `EditAppointmentModal.jsx`: `t !== '18:00'` → `t !== schedule_end`.
+- `getBusinessSchedule()`: añadido `schedule_days` al SELECT, acepta `businessId` parámetro opcional para eliminar race condition de timing del store.
+- `useAuth.js`: los 3 puntos de llamada pasan `businessId` explícitamente.
+
+**Impacto:** El calendario ahora muestra filas desde `schedule_start` hasta `schedule_end` del negocio. Un negocio con horario 08:00–20:00 ve 13 filas, uno con 07:00–13:00 ve 7 filas. Los eventos se posicionan correctamente en cualquier rango horario.
+
+---
+
+### ✅ T-62 — Catch-rethrow vacío eliminado de `login()`
+
+**Problema:** El bloque `} catch (err) { throw err; }` en `login()` no hacía nada excepto propagar el error, añadiendo un stack frame extra innecesario y confundiendo la lectura del flujo.
+
+**Solución:** Eliminado el bloque catch. El `try/finally` es suficiente — el error burbujea naturalmente y `setLoading(false)` se ejecuta siempre.
+
+**Impacto:** Código más claro, stack traces más cortos.
+
+---
+
+### ✅ T-61 — `fetchBusinessStatus` movida al service layer
+
+**Problema:** `fetchBusinessStatus` era una función privada en `useAuth.js` que llamaba directamente `supabase.from('businesses')`, violando la arquitectura: todo acceso a DB debe pasar por `supabaseService.js`.
+
+**Solución:** Nueva función `getBusinessStatus(businessId)` exportada desde `supabaseService.js`. `useAuth.js` importa y usa esta función, eliminando la llamada directa a Supabase.
+
+**Impacto:** Arquitectura consistente. `getBusinessStatus` es ahora testeable y reutilizable desde cualquier hook.
+
+---
+
+### ✅ T-60 — `getBusinessTimezone` reutiliza `getBusinessInfo` — una sola query
+
+**Problema:** `getBusinessTimezone()` hacía una query separada a `businesses` para obtener solo `timezone`, aunque `getBusinessInfo()` ya traía los mismos datos. Dos queries al mismo endpoint por sesión.
+
+**Solución:** `getBusinessTimezone()` ahora llama `getBusinessInfo()` internamente y extrae el campo `timezone`. La query real se realiza solo una vez (y se cachea). Se añadió `timezone` al SELECT de `getBusinessInfo()`.
+
+**Impacto:** Una query menos en cada operación que necesita timezone. El cache de `_businessTimezone` sigue funcionando para no repetir incluso esta llamada.
+
+---
+
+### ✅ T-47 — Cache de stats invalidado al crear/borrar citas
+
+**Problema:** Al crear o borrar una cita (desde otra sesión via Realtime), el cache de stats (5 min) no se invalidaba. El panel de estadísticas podía mostrar totales incorrectos por hasta 5 minutos después de un cambio.
+
+**Solución:** En `useAppointments.js`, el callback de Realtime llama `useAppStore.getState().invalidateStatsCache()` antes de hacer el re-fetch cuando el evento es INSERT o DELETE.
+
+**Impacto:** Stats se invalidan inmediatamente al detectar cambios en citas via Realtime. La próxima visita a `/stats` obtiene datos frescos.
+
+---
+
+### ✅ T-56 — `clearNotifications` registra audit trail antes de borrar
+
+**Problema:** `clearNotifications()` ejecutaba un DELETE masivo sin dejar ningún registro. Cualquier usuario del panel podía silenciosamente borrar el historial de notificaciones de toda la clínica.
+
+**Solución:** Antes del DELETE, se inserta en `audit_log` con `action: 'DELETE'`, `table_name: 'notifications'`, el `actor_id` del usuario activo desde el store, y `new_data: { cleared_all: true }`.
+
+**Impacto:** Cada limpieza de notificaciones queda registrada con quién la ejecutó y cuándo. Trazabilidad completa para auditorías médicas.
 
 ---
 

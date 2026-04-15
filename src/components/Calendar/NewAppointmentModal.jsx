@@ -6,28 +6,30 @@ import { formatPhone } from '../../utils/format';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 import { useAppStore, generateTimeSlots } from '../../store/useAppStore';
 
-// T-38: TIME_SLOTS ya no se hardcodea — se genera en el cuerpo del componente
-// a partir de businessHours del store (poblado al login desde businesses.schedule_*).
+// T-38: TIME_SLOTS dinámicos según horario del negocio (leído de DB al login).
+// Usa defaults seguros si businessHours aún no se pobla.
 
 function getInitials(name) {
     if (!name) return '?';
     return name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
-    const { schedule_start, schedule_end } = useAppStore((s) => s.businessHours);
-
-    // T-38: generado dinámicamente desde el horario real del negocio (DB)
+export default function NewAppointmentModal({ isOpen, onClose, onCreated, initialPatient = null }) {
+    // T-38: leer horario del negocio desde el store usando full-state (más seguro con Zustand v5)
+    const businessHoursRaw = useAppStore((state) => state.businessHours);
+    const businessHours = businessHoursRaw ?? { schedule_start: '09:00', schedule_end: '18:00' };
+    const schedule_start = businessHours.schedule_start || '09:00';
+    const schedule_end   = businessHours.schedule_end   || '18:00';
     const TIME_SLOTS = generateTimeSlots(schedule_start, schedule_end, 30);
 
-    const [patientObj, setPatientObj] = useState(null);
+    const [patientObj, setPatientObj] = useState(initialPatient);
     const [patientQ, setPatientQ] = useState('');
     const [patients, setPatients] = useState([]);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [startTime, setStartTime] = useState(schedule_start || '09:00');
+    const [startTime, setStartTime] = useState(schedule_start);
     const [endTime, setEndTime] = useState(() => {
         // Default end = start + 1 hora
-        const [h, m] = (schedule_start || '09:00').split(':').map(Number);
+        const [h, m] = schedule_start.split(':').map(Number);
         const em = h * 60 + m + 60;
         return `${String(Math.floor(em / 60)).padStart(2, '0')}:${String(em % 60).padStart(2, '0')}`;
     });
@@ -59,8 +61,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated }) {
         clearTimeout(searchDebounceRef.current);
         if (q.length < 2) return;
         searchDebounceRef.current = setTimeout(async () => {
-            const { data } = await getPatients(q);
-            setPatients(data);
+            try {
+                const { data } = await getPatients(q);
+                setPatients(data ?? []);
+            } catch { /* silently ignore search errors */ }
         }, 300);
     }
 

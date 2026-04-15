@@ -1,0 +1,1963 @@
+ ▐▛███▜▌   Claude Code v2.1.81
+▝▜█████▛▘  Sonnet 4.6 · Claude Pro
+  ▘▘ ▝▝    ~\OneDrive\Documentos\Antigravity Projects\NovTurnAI\NovTurnIA
+
+✻ Conversation compacted (ctrl+o for history)
+
+  ⎿  Referenced file docs\FUTURE_TASKS.md
+  ⎿  Referenced file docs\COMPLETED_TASKS.md
+  ⎿  Read src\hooks\useAuth.js (164 lines)
+  ⎿  Referenced file src\services\supabaseService.js
+  ⎿  Read src\components\Calendar\EditAppointmentModal.jsx (173 lines)
+
+● Let me read the files needed for the immediate fixes.
+
+  Read 3 files (ctrl+o to expand)
+
+● Good. Now let me read the remaining files needed.
+
+  Read 3 files (ctrl+o to expand)
+
+● All the info I need. Applying all 5 fixes now.
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 1 line, removed 2 lines
+      179                                  try {
+      180                                      await setHumanTakeover(app
+           ointment.patient_id, newValue);
+      181                                      setBotPaused(newValue);
+      182 -                                    if (appointment.patients) 
+          -appointment.patients.human_takeover = newValue;               
+      182                                      onUpdated?.();
+      183                                  } catch (err) {
+      185 -                                    alert('Error al actualizar
+          - bot: ' + err.message);                                       
+      184 +                                    showErrorToast('Error al a
+          +ctualizar bot', err.message);                                 
+      185                                  }
+      186                              }}
+      187                              className={`group flex items-cente
+           r justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bo
+           rder text-[11px] font-bold rounded-full shadow-card transition
+           -all duration-300 overflow-hidden ${botPaused
+
+● Update(src\services\supabaseService.js)
+  ⎿  Added 1 line
+      35  async function toISO(date, time) {
+      36      const timezone = await getBusinessTimezone();
+      37      const d = date instanceof Date ? date : new Date(date + 'T1
+          2:00:00');
+      38 +    if (!time) throw new Error('toISO: time is required');     
+      39      const [h, m] = time.split(':').map(Number);
+      40      const pad = n => String(n).padStart(2, '0');
+      41      const targetDate = new Date(d.getFullYear(), d.getMonth(), 
+          d.getDate(), h, m, 0);
+
+● Update(src\components\Calendar\CalendarWeek.jsx)
+  ⎿  Added 2 lines, removed 2 lines
+       4  
+       5  export default function CalendarWeek({ appointments, weekStart,
+           loading, onEventClick }) {
+       6      const { businessHours } = useAppStore();
+       7 -    const startH = parseInt((businessHours.schedule_start || '0
+         -9:00').split(':')[0]);                                         
+       8 -    const endH   = parseInt((businessHours.schedule_end   || '1
+         -8:00').split(':')[0]);                                         
+       7 +    const startH = parseInt((businessHours.schedule_start || '0
+         +9:00').split(':')[0], 10);                                     
+       8 +    const endH   = parseInt((businessHours.schedule_end   || '1
+         +8:00').split(':')[0], 10);                                     
+       9      // incluye la hora de cierre para que el último slot quede 
+          visible en la grilla
+      10      const HOURS = Array.from({ length: endH - startH + 1 }, (_,
+           i) => i + startH);
+      11  
+
+● Update(src\components\Calendar\CalendarDay.jsx)
+  ⎿  Added 2 lines, removed 2 lines
+       4  
+       5  export default function CalendarDay({ appointments, selectedDat
+          e, loading, onEventClick }) {
+       6      const { businessHours } = useAppStore();
+       7 -    const startH = parseInt((businessHours.schedule_start || '0
+         -9:00').split(':')[0]);                                         
+       8 -    const endH   = parseInt((businessHours.schedule_end   || '1
+         -8:00').split(':')[0]);                                         
+       7 +    const startH = parseInt((businessHours.schedule_start || '0
+         +9:00').split(':')[0], 10);                                     
+       8 +    const endH   = parseInt((businessHours.schedule_end   || '1
+         +8:00').split(':')[0], 10);                                     
+       9      const HOURS  = Array.from({ length: endH - startH + 1 }, (_
+          , i) => i + startH);
+      10      const dayAppointments = appointments.filter(apt => isSameDa
+          y(new Date(apt.date_start), selectedDate));
+      11      const layoutEvents = layoutOverlappingEvents(dayAppointment
+          s);
+
+● Update(src\components\Calendar\NewAppointmentModal.jsx)
+  ⎿  Added 4 lines, removed 2 lines
+      61          clearTimeout(searchDebounceRef.current);
+      62          if (q.length < 2) return;
+      63          searchDebounceRef.current = setTimeout(async () => {
+      64 -            const { data } = await getPatients(q);             
+      65 -            setPatients(data);                                 
+      64 +            try {                                              
+      65 +                const { data } = await getPatients(q);         
+      66 +                setPatients(data ?? []);                       
+      67 +            } catch { /* silently ignore search errors */ }    
+      68          }, 300);
+      69      }
+      70  
+
+● All 5 fixes applied:
+
+  - AppointmentDrawer — removed direct prop mutation on
+  appointment.patients.human_takeover; replaced alert() with showErrorToast()
+  - supabaseService toISO() — added null guard: throws a clear error if time is
+  missing
+  - CalendarWeek + CalendarDay — added radix 10 to both parseInt calls
+  - NewAppointmentModal — wrapped debounce patient search in try/catch, also
+  added ?? [] fallback on null data
+
+  ---
+  Queda pendiente la decisión de timezone. ¿Quieres que arregle el timeZone: 
+  'America/Guatemala' hardcodeado en calendarUtils.js y demás archivos? Para
+  Guatemala-only no es bloqueante, pero si hay planes de expandir a otros países
+   sí es necesario. Dime y arranco con eso.
+
+✻ Baked for 3m 29s
+
+❯ no, por ahora solo sera aca en guatemala solo me gustaria que analises las    
+future tasks para solo dejar las tasks pendientes, las completadas pasemoslas a 
+ completed tasks                                                                
+
+  Read 2 files (ctrl+o to expand)
+
+● Análisis completo. En FUTURE_TASKS.md las secciones pendientes son
+  genuinamente pendientes. Lo que necesito hacer:
+
+  1. Quitar el stub de T-38 de FUTURE_TASKS (ya está en COMPLETED, el stub es
+  ruido)
+  2. Agregar sesión 6 a COMPLETED_TASKS con los 5 bugs arreglados hoy
+  3. Actualizar el resumen de ambos archivos
+
+● Update(docs\FUTURE_TASKS.md)
+  ⎿  Removed 8 lines
+      105  
+      106  ---
+      107  
+      108 ----                                                           
+      109 -                                                              
+      110 -### ✅ T-38 — TIME_SLOTS dinámicos desde horario del negocio —
+          - COMPLETADO                                                   
+      111 -                                                              
+      112 -> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión
+          - 4 del 2026-04-14.                                            
+      113 -                                                              
+      114 ----                                                           
+      115 -                                                              
+      108  ## FASE 2 — 🟠 Primer mes (necesario para operar en producción
+           )
+      109  
+      110  ### T-05 🟠 Error tracking — Sentry 🔲
+
+● Now also fix the double --- after T-01 and update the execution order section:
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(docs\FUTURE_TASKS.md)
+  ⎿  Removed 2 lines
+      68  
+      69  ---
+      70  
+      71 ----                                                            
+      72 -                                                               
+      71  ### T-03 🔴 Billing integration — Stripe/Paddle actualiza `busi
+          nesses.plan` 🔲
+      72  
+      73  **Problema:** No hay integración con ningún proveedor de pagos.
+           El campo `plan` en `businesses` se actualizaría manualmente. N
+          o hay forma automatizada de cobrar ni de actualizar el plan tra
+          s un pago.
+● Now update the execution order to add the session 6 fixes:
+
+● Update(docs\FUTURE_TASKS.md)
+  ⎿  Added 5 lines
+      654  ✅ T-60 (unificar business queries) ← COMPLETADO
+      655  ✅ T-61 (fetchBusinessStatus → service) ← COMPLETADO
+      656  ✅ T-62 (catch rethrow vacío) ← COMPLETADO
+      657 +✅ Bug: prop mutation AppointmentDrawer ← COMPLETADO          
+      658 +✅ Bug: alert() → showErrorToast ← COMPLETADO                 
+      659 +✅ Bug: toISO null guard ← COMPLETADO                         
+      660 +✅ Bug: parseInt radix CalendarWeek/Day ← COMPLETADO          
+      661 +✅ Bug: try/catch debounce NewAppointmentModal ← COMPLETADO   
+      662      ↓
+      663  T-05 (Sentry)                   ← Visibilidad desde el día 1 e
+           n prod
+      664  T-51 (trendRaw → RPC agrupado)  ← Performance: elimina 3k fila
+           s por carga
+
+● Now update the header date in FUTURE_TASKS.md and add sesión 6 to
+  COMPLETED_TASKS.md:
+
+● Update(docs\COMPLETED_TASKS.md)
+  ⎿  Added 62 lines, removed 1 line
+      18  | 2026-04-14 (sesión 3) | 7 | Performance de queries, arquitect
+          ura, deuda técnica, realtime, permisos |
+      19  | 2026-04-14 (sesión 4) | 1 | Bug funcional crítico — TIME_SLOT
+          S hardcodeados |
+      20  | 2026-04-14 (sesión 5) | 6 | Arquitectura, cache realtime, aud
+          it trail, timezone hardcodeada, Calendar dinámico |
+      21 -| **Total** | **49** | |                                       
+      21 +| 2026-04-14 (sesión 6) | 5 | Bugs críticos — prop mutation, al
+         +ert, null guard, parseInt radix, try/catch |                   
+      22 +| **Total** | **54** | |                                       
+      23  
+      24  ---
+      25  
+      26 +## 2026-04-14 (sesión 6)                                       
+      27 +                                                               
+      28 +---                                                            
+      29 +                                                               
+      30 +### ✅ Bug — `AppointmentDrawer` mutación directa de prop elimi
+         +nada                                                           
+      31 +                                                               
+      32 +**Problema:** Al activar/desactivar el bot, la línea `appointme
+         +nt.patients.human_takeover = newValue` mutaba directamente el o
+         +bjeto prop recibido desde el componente padre. En React, mutar 
+         +props causa inconsistencias silenciosas entre el estado del pad
+         +re y lo que renderiza el hijo — el componente podría mostrar un
+         + valor desactualizado si el padre re-renderiza.                
+      33 +                                                               
+      34 +**Solución:** Eliminada la línea. `setBotPaused(newValue)` ya a
+         +ctualizaba el estado local de la UI correctamente. `onUpdated?.
+         +()` notifica al padre para que recargue datos frescos desde la 
+         +DB.                                                            
+      35 +                                                               
+      36 +**Impacto:** El toggle del bot es ahora una operación pura — no
+         + toca el árbol de props, solo actualiza estado local y notifica
+         + al padre.                                                     
+      37 +                                                               
+      38 +---                                                            
+      39 +                                                               
+      40 +### ✅ Bug — `alert()` reemplazado por `showErrorToast` en Appo
+         +intmentDrawer                                                  
+      41 +                                                               
+      42 +**Problema:** El catch del toggle bot usaba `alert('Error al ac
+         +tualizar bot: ' + err.message)` — un diálogo bloqueante del nav
+         +egador que interrumpe toda la UI, no sigue el design system y e
+         +s inusable en mobile.                                          
+      43 +                                                               
+      44 +**Solución:** Reemplazado por `showErrorToast('Error al actuali
+         +zar bot', err.message)`, consistente con el resto del sistema d
+         +e notificaciones.                                              
+      45 +                                                               
+      46 +**Impacto:** Los errores del toggle bot se muestran como toast 
+         +no bloqueante, igual que el resto de la app.                   
+      47 +                                                               
+      48 +---                                                            
+      49 +                                                               
+      50 +### ✅ Bug — `toISO()` null guard para el parámetro `time`     
+      51 +                                                               
+      52 +**Archivo:** `src/services/supabaseService.js`                 
+      53 +                                                               
+      54 +**Problema:** `const [h, m] = time.split(':').map(Number)` lanz
+         +aba `TypeError: Cannot read properties of null (reading 'split'
+         +)` si `time` era `null` o `undefined`. Esto podía ocurrir si un
+         + slot de hora llegaba vacío desde un selector mal inicializado,
+         + generando un error críptico sin contexto.                     
+      55 +                                                               
+      56 +**Solución:** Añadida la guarda `if (!time) throw new Error('to
+         +ISO: time is required')` antes del split. El error resultante e
+         +s claro y traza directamente a la causa.                       
+      57 +                                                               
+      58 +**Impacto:** Fallo rápido y mensaje claro en lugar de error crí
+         +ptico difícil de depurar.                                      
+      59 +                                                               
+      60 +---                                                            
+      61 +                                                               
+      62 +### ✅ Bug — `parseInt` sin radix en CalendarWeek y CalendarDay
+      63 +                                                               
+      64 +**Archivos:** `src/components/Calendar/CalendarWeek.jsx`, `src/
+         +components/Calendar/CalendarDay.jsx`                           
+      65 +                                                               
+      66 +**Problema:** `parseInt(str)` sin segundo argumento puede inter
+         +pretar strings con cero inicial (como `'08:00'` → `'08'`) como 
+         +octal en entornos legacy, produciendo valores incorrectos. Aunq
+         +ue los navegadores modernos definen base 10 por defecto para st
+         +rings decimales, la ausencia de radix es un antipatrón que lint
+         + tools marcan como error.                                      
+      67 +                                                               
+      68 +**Solución:** Añadido radix 10 explícito: `parseInt(..., 10)` e
+         +n ambos archivos para `startH` y `endH`.                       
+      69 +                                                               
+      70 +**Impacto:** Comportamiento correcto y explícito en todos los e
+         +ntornos. Sin riesgo de interpretación octal en horas con cero i
+         +nicial (08, 09).                                               
+      71 +                                                               
+      72 +---                                                            
+      73 +                                                               
+      74 +### ✅ Bug — try/catch faltante en debounce de búsqueda de paci
+         +entes                                                          
+      75 +                                                               
+      76 +**Archivo:** `src/components/Calendar/NewAppointmentModal.jsx` 
+      77 +                                                               
+      78 +**Problema:** El `setTimeout` async que ejecuta `getPatients(q)
+         +` no tenía try/catch. Cualquier error de red o de Supabase lanz
+         +aba una Promise rechazada sin capturar, causando un `UnhandledP
+         +romiseRejection` silencioso — el usuario no veía error y la lis
+         +ta de pacientes quedaba vacía sin explicación.                 
+      79 +                                                               
+      80 +**Solución:** Envuelto en try/catch. El catch no hace nada (la 
+         +búsqueda es best-effort). También añadido `?? []` como fallback
+         + cuando `data` es null.                                        
+      81 +                                                               
+      82 +**Impacto:** Los errores de búsqueda no colapsan la consola con
+         + Promise rechazadas. La lista simplemente queda vacía si falla 
+         +la búsqueda, lo cual es el comportamiento esperado.            
+      83 +                                                               
+      84 +---                                                            
+      85 +                                                               
+      86  ## 2026-04-14 (sesión 5)
+      87  
+      88  ---
+
+● Listo. Resumen de lo que se hizo:
+
+  FUTURE_TASKS.md:
+  - Eliminado el stub residual de T-38 (ya estaba en COMPLETED)
+  - Eliminado el doble --- entre T-01 y T-03
+  - Agregados los 5 bugs de esta sesión como ✅ en el orden de ejecución
+
+  COMPLETED_TASKS.md:
+  - Agregada sesión 6 con los 5 bugs arreglados hoy, cada uno con su descripción
+   de problema, solución e impacto
+  - Total actualizado: 49 → 54
+
+  Las tareas que quedan en FUTURE_TASKS son genuinamente pendientes — ninguna
+  tenía implementación oculta que se haya colado.
+
+✻ Churned for 1m 53s
+
+❯ Podemos realizar el t-41 pero intentemoslo enfocar de otra manera, esta       
+exclente dentro de estadisticas pero me gustaria tambien añadirle un modulo     
+para que el dentista se pueda comunicar para reagendar para los que no se       
+presentaron a su cita y todo eso no se que te parezca o que solucion darle?     
+
+● Me parece muy buena dirección. Déjame presentarte cómo lo enfocaría antes de
+  arrancar a implementar.
+
+  ---
+  Propuesta: T-41 extendido — No-Shows + Flujo de Re-engagement
+
+  El problema real
+
+  El dentista nota que un paciente no vino. Hoy no puede hacer nada desde el
+  dashboard: no puede marcar la ausencia, no puede contactar al paciente, no
+  puede reagendar. Sale del sistema para llamar por teléfono o WhatsApp
+  manualmente.
+
+  ---
+  Flujo propuesto
+
+  1 — Marcar como no-show (en AppointmentDrawer)
+  - Botón "No se presentó" visible solo cuando date_start < ahora() y el turno
+  está en scheduled o confirmed
+  - Al hacer click: actualiza el estado a no_show en DB y muestra inmediatamente
+   un panel de acciones rápidas dentro del mismo drawer:
+
+  ✗ Paciente no se presentó
+  ─────────────────────────────
+  [ Reagendar ahora ]  [ Contactar por WhatsApp ]
+
+  2 — "Reagendar ahora"
+  - Abre NewAppointmentModal con el paciente pre-seleccionado
+  - La fecha sugerida sería el próximo día hábil del negocio
+  - Zero fricción: el dentista no tiene que buscar al paciente de nuevo
+
+  3 — "Contactar por WhatsApp"
+  - Navega a /conversations con ese paciente abierto directamente
+  - Si tiene bot activo, el dentista puede tomar control manual y escribirle
+  - Si no tiene bot, ve el historial y puede coordinar manualmente
+
+  4 — Visual en el calendario
+  - No-shows aparecen con color distinto (gris tachado o rojo suave) en
+  CalendarWeek/Day/Month
+  - No desaparecen del calendario — quedan como registro histórico del día
+
+  5 — Métrica en Stats
+  - KPI nuevo: "No se presentaron este mes" con porcentaje sobre total de turnos
+  - Se agrega a mv_business_stats o a la query existente
+
+  ---
+  Lo que NO necesita una página nueva
+
+  El módulo vive dentro de componentes existentes:
+  - AppointmentDrawer → acción + panel post-no-show
+  - NewAppointmentModal → acepta initialPatient prop (pre-selección)
+  - /conversations → ya existe, solo necesitamos navegar con params
+  - CalendarEvent → nuevo color para no_show
+
+  ---
+  Lo que sí requiere DB
+
+  ALTER TABLE public.appointments
+    DROP CONSTRAINT appointments_status_check;
+  ALTER TABLE public.appointments
+    ADD CONSTRAINT appointments_status_check
+    CHECK (status IN ('scheduled', 'confirmed', 'cancelled', 'completed',
+  'no_show'));
+
+  Esto es una migración en Supabase — la tenés que correr vos desde el dashboard
+   o SQL editor.
+
+  ---
+  ¿Estás de acuerdo con este enfoque? Si sí, arranco en este orden:
+
+  1. La migración DB (te la doy lista para ejecutar)
+  2. cancelAppointment → nueva función markNoShow() en supabaseService
+  3. AppointmentDrawer — botón + panel de acciones post-no-show
+  4. NewAppointmentModal — acepta initialPatient prop
+  5. CalendarEvent — color para no_show
+  6. Stats — KPI
+
+✻ Churned for 39s
+
+❯ Si continuemos, recuerda qeu en cuanto a estilos todo tiene que ser igual     
+
+● Voy a leer todos los archivos relevantes antes de tocar nada.
+
+  Read 3 files (ctrl+o to expand)
+
+● Ahora leo el service y los stats.
+
+  Searched for 2 patterns, read 1 file (ctrl+o to expand)
+
+● Ahora veo cómo se usa NewAppointmentModal en las páginas.
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Tengo todo lo que necesito. Primero la migración SQL que tenés que ejecutar en
+   Supabase, y luego implemento todo el código.
+
+  ---
+  Ejecutá esto en el SQL Editor de Supabase:
+  ALTER TABLE public.appointments
+    DROP CONSTRAINT IF EXISTS appointments_status_check;
+  ALTER TABLE public.appointments
+    ADD CONSTRAINT appointments_status_check
+    CHECK (status IN ('scheduled', 'confirmed', 'cancelled', 'completed',
+  'no_show'));
+
+  ---
+  Arranco con los cambios de código en paralelo:
+
+● Update(src\services\supabaseService.js)
+  ⎿  Added 10 lines
+      163      if (error) throw error;
+      164  }
+      165  
+      166 +export async function markNoShow(id) {                        
+      167 +    const { error } = await supabase                          
+      168 +        .from('appointments')                                 
+      169 +        .update({ status: 'no_show' })                        
+      170 +        .eq('id', id)                                         
+      171 +        .eq('business_id', getBID());                         
+      172 +                                                              
+      173 +    if (error) throw error;                                   
+      174 +}                                                             
+      175 +                                                              
+      176  // ── Patients ──────────────────────────────────────────────
+      177  export async function getPatients(search = '', { page = 0, pag
+           eSize = 50 } = {}) {
+      178      const from = page * pageSize;
+
+● Update(src\components\Calendar\CalendarEvent.jsx)
+  ⎿  Added 3 lines, removed 1 line
+       4      const borders = {
+       5          confirmed: 'border-l-emerald-500',
+       6          pending: 'border-l-navy-700',
+       7 -        cancelled: 'border-l-gray-300 opacity-60',             
+       7 +        cancelled: 'border-l-gray-300 opacity-50',             
+       8 +        no_show:   'border-l-gray-300 opacity-50',             
+       9      };
+      10  
+      11      const status = appointment.status === 'cancelled' ? 'cancel
+          led'
+      12 +        : appointment.status === 'no_show' ? 'no_show'         
+      13          : appointment.confirmed ? 'confirmed' : 'pending';
+      14  
+      15      const start = new Date(appointment.date_start);
+
+● Ahora el useStats.js — agrego el KPI de no-shows:
+
+● Update(src\hooks\useStats.js)
+  ⎿  Added 2 lines, removed 1 line
+      62              const confirmedThisMonth  = apts.filter(a => a.conf
+          irmed).length;
+      63              const scheduledThisMonth  = apts.filter(a => a.stat
+          us === 'scheduled' && !a.confirmed).length;
+      64              const cancelledThisMonth  = apts.filter(a => a.stat
+          us === 'cancelled').length;
+      65 +            const noShowThisMonth     = apts.filter(a => a.stat
+         +us === 'no_show').length;                                      
+      66              const createdByBot        = apts.filter(a => a.crea
+          ted_by === 'bot').length;
+      67              const createdByStaff      = apts.filter(a => a.crea
+          ted_by === 'dashboard').length;
+      68  
+      68 -            const totalForDonut = confirmedThisMonth + schedule
+         -dThisMonth + cancelledThisMonth;                               
+      69 +            const totalForDonut = confirmedThisMonth + schedule
+         +dThisMonth + cancelledThisMonth + noShowThisMonth;             
+      70              const confRate      = totalForDonut === 0 ? 0 : Mat
+          h.round((confirmedThisMonth / totalForDonut) * 100);
+      71  
+      72              const result = {
+
+● Update(src\hooks\useStats.js)
+  ⎿  Added 5 lines, removed 3 lines
+      79                      sentMessages:     messageCounts.sent,
+      80                      receivedMessages: messageCounts.received,
+      81                      confirmedThisMonth,
+      82 +                    noShowThisMonth,                           
+      83                      createdByBot,
+      84                      createdByStaff,
+      85                  },
+      86                  donut: {
+      87                      confRate,
+      88                      data: [
+      88 -                        { name: 'Confirmados', value: confirmed
+         -ThisMonth },                                                   
+      89 -                        { name: 'Pendientes',  value: Math.max(
+         -0, scheduledThisMonth) },                                      
+      90 -                        { name: 'Cancelados',  value: cancelled
+         -ThisMonth },                                                   
+      89 +                        { name: 'Confirmados',       value: con
+         +firmedThisMonth },                                             
+      90 +                        { name: 'Pendientes',         value: Ma
+         +th.max(0, scheduledThisMonth) },                               
+      91 +                        { name: 'Cancelados',         value: ca
+         +ncelledThisMonth },                                            
+      92 +                        { name: 'No se presentaron', value: noS
+         +howThisMonth },                                                
+      93                      ]
+      94                  },
+      95                  rawApts: (trendRaw || []).map(a => ({ date_star
+          t: a.date_start, status: a.status }))
+
+● Ahora NewAppointmentModal — acepta initialPatient:
+
+● Update(src\components\Calendar\NewAppointmentModal.jsx)
+  ⎿  Added 1 line, removed 1 line
+      14      return name.trim().split(/\s+/).map(w => w[0]).join('').sli
+          ce(0, 2).toUpperCase();
+      15  }
+      16  
+      17 -export default function NewAppointmentModal({ isOpen, onClose, 
+         -onCreated }) {                                                 
+      17 +export default function NewAppointmentModal({ isOpen, onClose, 
+         +onCreated, initialPatient = null }) {                          
+      18      // T-38: leer horario del negocio desde el store usando ful
+          l-state (más seguro con Zustand v5)
+      19      const businessHoursRaw = useAppStore((state) => state.busin
+          essHours);
+      20      const businessHours = businessHoursRaw ?? { schedule_start:
+           '09:00', schedule_end: '18:00' };
+
+● Update(src\components\Calendar\NewAppointmentModal.jsx)
+  ⎿  Added 1 line, removed 1 line
+      22      const schedule_end   = businessHours.schedule_end   || '18:
+          00';
+      23      const TIME_SLOTS = generateTimeSlots(schedule_start, schedu
+          le_end, 30);
+      24  
+      25 -    const [patientObj, setPatientObj] = useState(null);        
+      25 +    const [patientObj, setPatientObj] = useState(initialPatient
+         +);                                                             
+      26      const [patientQ, setPatientQ] = useState('');
+      27      const [patients, setPatients] = useState([]);
+      28      const [date, setDate] = useState(new Date().toISOString().s
+          plit('T')[0]);
+
+● Ahora el cambio más grande — AppointmentDrawer.jsx. Necesito actualizar el
+  título del modal cuando se reagenda desde un no-show:
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)  ⎿  Added 3 lines, removed 2 lines
+       1  import { useNavigate } from 'react-router-dom';
+       2 -import { setHumanTakeover, cancelAppointment, confirmAppointmen
+         -t, scheduledAppointment } from '../../services/supabaseService'
+         -;                                                              
+       3 -import { X, ChevronLeft, Calendar as CalendarIcon, Clock, Messa
+         -geCircle, Trash2, Bot, Check, Pencil, Circle, Phone } from 'luc
+         -ide-react';                                                    
+       2 +import { setHumanTakeover, cancelAppointment, confirmAppointmen
+         +t, scheduledAppointment, markNoShow } from '../../services/supa
+         +baseService';                                                  
+       3 +import { X, ChevronLeft, Calendar as CalendarIcon, Clock, Messa
+         +geCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, Rot
+         +ateCcw } from 'lucide-react';                                  
+       4  import { useState } from 'react';
+       5  import { createPortal } from 'react-dom';
+       6  import EditAppointmentModal from './EditAppointmentModal';
+       7 +import NewAppointmentModal from './NewAppointmentModal';       
+       8  import AIStar from '../Icons/AIStar';
+       9  import { formatPhone } from '../../utils/format';
+      10  import { showSuccessToast, showErrorToast, showBotToast } from 
+          '../../store/useToastStore';
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 3 lines, removed 1 line
+      20      const [showCancelConfirm, setShowCancelConfirm] = useState(
+          false);
+      21      const [canceling, setCanceling] = useState(false);
+      22      const [showEdit, setShowEdit] = useState(false);
+      23 +    const [showReschedule, setShowReschedule] = useState(false)
+         +;                                                              
+      24 +    const [markingNoShow, setMarkingNoShow] = useState(false); 
+      25      const [botPaused, setBotPaused] = useState(appointment?.pat
+          ients?.human_takeover || false);
+      24 -                                                               
+      26 +                                                               
+      27      const { canViewConversations, canToggleAi, canEditAppointme
+          nts, canConfirmAppointments, canDeleteAppointments } = usePermi
+          ssions();
+      28  
+      29      if (!appointment) return null;
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 16 lines, removed 1 line
+      29      if (!appointment) return null;
+      30      const { id, date_start, date_end, status, confirmed, patien
+          ts } = appointment;
+      31  
+      32 -    const statusLabel = status === 'cancelled' ? 'cancelled' : 
+         -confirmed ? 'confirmed' : 'pending';                           
+      32 +    const statusLabel = status === 'cancelled' ? 'cancelled' : 
+         +status === 'no_show' ? 'no_show' : confirmed ? 'confirmed' : 'p
+         +ending';                                                       
+      33 +    const isPast = new Date(date_start) < new Date();          
+      34 +    const canMarkNoShow = canConfirmAppointments && isPast && [
+         +'scheduled', 'confirmed'].includes(status);                    
+      35  
+      36 +    async function handleNoShow() {                            
+      37 +        setMarkingNoShow(true);                                
+      38 +        try {                                                  
+      39 +            await markNoShow(id);                              
+      40 +            showErrorToast('Paciente no se presentó', patients?
+         +.display_name || 'Paciente', 'appointment');                   
+      41 +            onUpdated?.();                                     
+      42 +        } catch (err) {                                        
+      43 +            showErrorToast('Error al registrar', err.message); 
+      44 +        } finally {                                            
+      45 +            setMarkingNoShow(false);                           
+      46 +        }                                                      
+      47 +    }                                                          
+      48 +                                                               
+      49      async function handleCancel() {
+      50          setCanceling(true);
+      51          try {
+
+● Ahora el badge de estado — agrego el caso no_show:
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 5 lines
+      115                                          <X size={10} strokeWid
+           th={3} />
+      116                                          Cancelado
+      117                                      </div>
+      118 +                                ) : status === 'no_show' ? (  
+      119 +                                    <div className="inline-fle
+          +x items-center gap-1 bg-gray-100 text-gray-500 border border-g
+          +ray-200 px-2 py-[2px] rounded-md text-[9px] font-bold">       
+      120 +                                        <UserX size={10} strok
+          +eWidth={3} />                                                 
+      121 +                                        No se presentó        
+      122 +                                    </div>                    
+      123                                  ) : confirmed ? (
+      124                                      <div className="inline-fle
+           x items-center gap-1 bg-emerald-50 text-emerald-700 border bor
+           der-emerald-200 px-2 py-[2px] rounded-md text-[9px] font-bold"
+           >
+      125                                          <Check size={10} strok
+           eWidth={3} />
+
+● Ahora el footer — reemplazo el bloque de acciones por la versión con el botón
+  no-show y el panel de re-engagement:
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 119 lines, removed 80 lines
+      180              </div>
+      181  
+      182              {/* Footer de Acciones fijo abajo */}
+      183 -            {/* Footer de Acciones fijo abajo */}             
+      183              <div className="p-4 mt-auto">
+      185 -                <div className="flex flex-wrap items-center ju
+          -stify-center gap-2">                                          
+      186 -                    {/* 1. Chat */}                           
+      187 -                    {canViewConversations && status !== 'cance
+          -lled' && (                                                    
+      188 -                        <button                               
+      189 -                            onClick={() => navigate(`/conversa
+          -tions?patient=${appointment.patient_id}`)}                    
+      190 -                            className="group flex items-center
+          - justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-
+          -white border border-white/80 text-navy-900 text-[11px] font-bo
+          -ld rounded-full shadow-card hover:bg-white/80 transition-all d
+          -uration-300 overflow-hidden"                                  
+      191 -                        >                                     
+      192 -                            <MessageCircle size={14} className
+          -="shrink-0" />                                                
+      193 -                            <span className="max-w-0 overflow-
+          -hidden group-hover:max-w-[80px] transition-all duration-300 wh
+          -itespace-nowrap">Chat</span>                                  
+      194 -                        </button>                             
+      195 -                    )}                                        
+      184 +                {/* Panel de re-engagement cuando el paciente 
+          +no se presentó */}                                            
+      185 +                {status === 'no_show' ? (                     
+      186 +                    <div className="rounded-2xl bg-white/40 bo
+          +rder border-white/60 p-4 space-y-3">                          
+      187 +                        <div className="flex items-center gap-
+          +2 text-gray-500">                                             
+      188 +                            <UserX size={14} className="shrink
+          +-0" />                                                        
+      189 +                            <span className="text-[11px] font-
+          +bold uppercase tracking-widest">Paciente no se presentó</span>
+      190 +                        </div>                                
+      191 +                        <div className="flex gap-2">          
+      192 +                            <button                           
+      193 +                                onClick={() => setShowReschedu
+          +le(true)}                                                     
+      194 +                                className="flex-1 flex items-c
+          +enter justify-center gap-1.5 px-3 py-2.5 bg-white border borde
+          +r-white/80 text-navy-900 text-[11px] font-bold rounded-full sh
+          +adow-card hover:bg-white/80 transition-all duration-300"      
+      195 +                            >                                 
+      196 +                                <RotateCcw size={13} className
+          +="shrink-0" />                                                
+      197 +                                Reagendar                     
+      198 +                            </button>                         
+      199 +                            {canViewConversations && (        
+      200 +                                <button                       
+      201 +                                    onClick={() => navigate(`/
+          +conversations?patient=${appointment.patient_id}`)}            
+      202 +                                    className="flex-1 flex ite
+          +ms-center justify-center gap-1.5 px-3 py-2.5 bg-white border b
+          +order-white/80 text-navy-900 text-[11px] font-bold rounded-ful
+          +l shadow-card hover:bg-white/80 transition-all duration-300"  
+      203 +                                >                             
+      204 +                                    <MessageCircle size={13} c
+          +lassName="shrink-0" />                                        
+      205 +                                    WhatsApp                  
+      206 +                                </button>                     
+      207 +                            )}                                
+      208 +                        </div>                                
+      209 +                    </div>                                    
+      210 +                ) : (                                         
+      211 +                    <div className="flex flex-wrap items-cente
+          +r justify-center gap-2">                                      
+      212 +                        {/* 1. Chat */}                       
+      213 +                        {canViewConversations && status !== 'c
+          +ancelled' && (                                                
+      214 +                            <button                           
+      215 +                                onClick={() => navigate(`/conv
+          +ersations?patient=${appointment.patient_id}`)}                
+      216 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-navy-900 text-[11px] fon
+          +t-bold rounded-full shadow-card hover:bg-white/80 transition-a
+          +ll duration-300 overflow-hidden"                              
+      217 +                            >                                 
+      218 +                                <MessageCircle size={14} class
+          +Name="shrink-0" />                                            
+      219 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[80px] transition-all duration-30
+          +0 whitespace-nowrap">Chat</span>                              
+      220 +                            </button>                         
+      221 +                        )}                                    
+      222  
+      197 -                    {/* 2. IA (Bot Toggle) */}                
+      198 -                    {canToggleAi && appointment.patients && st
+          -atus !== 'cancelled' && (                                     
+      199 -                        <button                               
+      200 -                            onClick={async () => {            
+      201 -                                const newValue = !appointment.
+          -patients.human_takeover;                                      
+      202 -                                try {                         
+      203 -                                    await setHumanTakeover(app
+          -ointment.patient_id, newValue);                               
+      204 -                                    setBotPaused(newValue);   
+      205 -                                    onUpdated?.();            
+      206 -                                } catch (err) {               
+      207 -                                    showErrorToast('Error al a
+          -ctualizar bot', err.message);                                 
+      208 -                                }                             
+      209 -                            }}                                
+      210 -                            className={`group flex items-cente
+          -r justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bo
+          -rder text-[11px] font-bold rounded-full shadow-card transition
+          --all duration-300 overflow-hidden ${botPaused                 
+      211 -                                ? 'bg-amber-50 border-amber-20
+          -0 text-amber-700 hover:bg-amber-100'                          
+      212 -                                : 'bg-white border-white/80 te
+          -xt-navy-900 hover:bg-white/80'                                
+      213 -                                }`}                           
+      214 -                        >                                     
+      215 -                            <div className="relative shrink-0 
+          -w-3.5 h-3.5 flex items-center justify-center">                
+      216 -                                <Bot size={13} />             
+      217 -                                <AIStar                       
+      218 -                                    size={5}                  
+      219 -                                    className={`absolute -top-
+          -1 -left-1 ${botPaused ? 'text-amber-500' : 'text-navy-900'}`} 
+      220 -                                    strokeWidth={2.5}         
+      221 -                                />                            
+      222 -                            </div>                            
+      223 -                            <span className="max-w-0 overflow-
+          -hidden group-hover:max-w-[80px] transition-all duration-300 wh
+          -itespace-nowrap ml-0 group-hover:ml-0">                       
+      224 -                                {botPaused ? 'Reactivar' : 'Pa
+          -usar IA'}                                                     
+      225 -                            </span>                           
+      226 -                        </button>                             
+      227 -                    )}                                        
+      223 +                        {/* 2. IA (Bot Toggle) */}            
+      224 +                        {canToggleAi && appointment.patients &
+          +& status !== 'cancelled' && (                                 
+      225 +                            <button                           
+      226 +                                onClick={async () => {        
+      227 +                                    const newValue = !appointm
+          +ent.patients.human_takeover;                                  
+      228 +                                    try {                     
+      229 +                                        await setHumanTakeover
+          +(appointment.patient_id, newValue);                           
+      230 +                                        setBotPaused(newValue)
+          +;                                                             
+      231 +                                        onUpdated?.();        
+      232 +                                    } catch (err) {           
+      233 +                                        showErrorToast('Error 
+          +al actualizar bot', err.message);                             
+      234 +                                    }                         
+      235 +                                }}                            
+      236 +                                className={`group flex items-c
+          +enter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.
+          +5 border text-[11px] font-bold rounded-full shadow-card transi
+          +tion-all duration-300 overflow-hidden ${botPaused             
+      237 +                                    ? 'bg-amber-50 border-ambe
+          +r-200 text-amber-700 hover:bg-amber-100'                      
+      238 +                                    : 'bg-white border-white/8
+          +0 text-navy-900 hover:bg-white/80'                            
+      239 +                                    }`}                       
+      240 +                            >                                 
+      241 +                                <div className="relative shrin
+          +k-0 w-3.5 h-3.5 flex items-center justify-center">            
+      242 +                                    <Bot size={13} />         
+      243 +                                    <AIStar                   
+      244 +                                        size={5}              
+      245 +                                        className={`absolute -
+          +top-1 -left-1 ${botPaused ? 'text-amber-500' : 'text-navy-900'
+          +}`}                                                           
+      246 +                                        strokeWidth={2.5}     
+      247 +                                    />                        
+      248 +                                </div>                        
+      249 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[80px] transition-all duration-30
+          +0 whitespace-nowrap ml-0 group-hover:ml-0">                   
+      250 +                                    {botPaused ? 'Reactivar' :
+          + 'Pausar IA'}                                                 
+      251 +                                </span>                       
+      252 +                            </button>                         
+      253 +                        )}                                    
+      254  
+      229 -                    {/* 3. Editar */}                         
+      230 -                    {canEditAppointments && status !== 'cancel
+          -led' && (                                                     
+      231 -                        <button onClick={() => setShowEdit(tru
+          -e)}                                                           
+      232 -                            className="group flex items-center
+          - justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-
+          -white border border-white/80 text-navy-900 text-[11px] font-bo
+          -ld rounded-full shadow-card hover:bg-white/80 transition-all d
+          -uration-300 overflow-hidden"                                  
+      233 -                        >                                     
+      234 -                            <Pencil size={14} className="shrin
+          -k-0" />                                                       
+      235 -                            <span className="max-w-0 overflow-
+          -hidden group-hover:max-w-[60px] transition-all duration-300 wh
+          -itespace-nowrap">Editar</span>                                
+      236 -                        </button>                             
+      237 -                    )}                                        
+      255 +                        {/* 3. Editar */}                     
+      256 +                        {canEditAppointments && status !== 'ca
+          +ncelled' && (                                                 
+      257 +                            <button onClick={() => setShowEdit
+          +(true)}                                                       
+      258 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-navy-900 text-[11px] fon
+          +t-bold rounded-full shadow-card hover:bg-white/80 transition-a
+          +ll duration-300 overflow-hidden"                              
+      259 +                            >                                 
+      260 +                                <Pencil size={14} className="s
+          +hrink-0" />                                                   
+      261 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[60px] transition-all duration-30
+          +0 whitespace-nowrap">Editar</span>                            
+      262 +                            </button>                         
+      263 +                        )}                                    
+      264  
+      239 -                    {/* 4. Pendiente (Amber Hover) */}        
+      240 -                    {canConfirmAppointments && status === 'con
+          -firmed' && (                                                  
+      241 -                        <button onClick={handleSetScheduled}  
+      242 -                            className="group flex items-center
+          - justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-
+          -white border border-white/80 text-amber-600 text-[11px] font-b
+          -old rounded-full shadow-card hover:bg-amber-50 hover:border-am
+          -ber-100/50 transition-all duration-300 overflow-hidden"       
+      243 -                        >                                     
+      244 -                            <Circle size={14} className="shrin
+          -k-0" />                                                       
+      245 -                            <span className="max-w-0 overflow-
+          -hidden group-hover:max-w-[80px] transition-all duration-300 wh
+          -itespace-nowrap">Pendiente</span>                             
+      246 -                        </button>                             
+      247 -                    )}                                        
+      265 +                        {/* 4. Pendiente (Amber Hover) */}    
+      266 +                        {canConfirmAppointments && status === 
+          +'confirmed' && (                                              
+      267 +                            <button onClick={handleSetSchedule
+          +d}                                                            
+      268 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-amber-600 text-[11px] fo
+          +nt-bold rounded-full shadow-card hover:bg-amber-50 hover:borde
+          +r-amber-100/50 transition-all duration-300 overflow-hidden"   
+      269 +                            >                                 
+      270 +                                <Circle size={14} className="s
+          +hrink-0" />                                                   
+      271 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[80px] transition-all duration-30
+          +0 whitespace-nowrap">Pendiente</span>                         
+      272 +                            </button>                         
+      273 +                        )}                                    
+      274  
+      249 -                    {/* 5. Confirmar (Emerald Hover) */}      
+      250 -                    {canConfirmAppointments && status === 'sch
+          -eduled' && !confirmed && (                                    
+      251 -                        <button onClick={handleConfirm}       
+      252 -                            className="group flex items-center
+          - justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-
+          -white border border-white/80 text-emerald-600 text-[11px] font
+          --bold rounded-full shadow-card hover:bg-emerald-50 hover:borde
+          -r-emerald-100/50 transition-all duration-300 overflow-hidden" 
+      253 -                        >                                     
+      254 -                            <Check size={14} className="shrink
+          --0" />                                                        
+      255 -                            <span className="max-w-0 overflow-
+          -hidden group-hover:max-w-[80px] transition-all duration-300 wh
+          -itespace-nowrap">Confirmar</span>                             
+      256 -                        </button>                             
+      257 -                    )}                                        
+      275 +                        {/* 5. Confirmar (Emerald Hover) */}  
+      276 +                        {canConfirmAppointments && status === 
+          +'scheduled' && !confirmed && (                                
+      277 +                            <button onClick={handleConfirm}   
+      278 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-emerald-600 text-[11px] 
+          +font-bold rounded-full shadow-card hover:bg-emerald-50 hover:b
+          +order-emerald-100/50 transition-all duration-300 overflow-hidd
+          +en"                                                           
+      279 +                            >                                 
+      280 +                                <Check size={14} className="sh
+          +rink-0" />                                                    
+      281 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[80px] transition-all duration-30
+          +0 whitespace-nowrap">Confirmar</span>                         
+      282 +                            </button>                         
+      283 +                        )}                                    
+      284  
+      259 -                    {/* 6. Eliminar (No red border) */}       
+      260 -                    {canDeleteAppointments && ['scheduled', 'c
+          -onfirmed'].includes(status) && (                              
+      261 -                        <button onClick={() => setShowCancelCo
+          -nfirm(true)}                                                  
+      262 -                            className="group flex items-center
+          - justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-
+          -white border border-white/80 text-rose-600 text-[11px] font-bo
+          -ld rounded-full shadow-card hover:bg-rose-50 transition-all du
+          -ration-300 overflow-hidden"                                   
+      263 -                        >                                     
+      264 -                            <Trash2 size={14} className="shrin
+          -k-0" />                                                       
+      265 -                            <span className="max-w-0 overflow-
+          -hidden group-hover:max-w-[70px] transition-all duration-300 wh
+          -itespace-nowrap">Eliminar</span>                              
+      266 -                        </button>                             
+      267 -                    )}                                        
+      268 -                </div>                                        
+      285 +                        {/* 6. No se presentó */}             
+      286 +                        {canMarkNoShow && (                   
+      287 +                            <button onClick={handleNoShow} dis
+          +abled={markingNoShow}                                         
+      288 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-gray-500 text-[11px] fon
+          +t-bold rounded-full shadow-card hover:bg-gray-50 hover:border-
+          +gray-200 transition-all duration-300 overflow-hidden disabled:
+          +opacity-50"                                                   
+      289 +                            >                                 
+      290 +                                <UserX size={14} className="sh
+          +rink-0" />                                                    
+      291 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[110px] transition-all duration-3
+          +00 whitespace-nowrap">                                        
+      292 +                                    {markingNoShow ? 'Marcando
+          +...' : 'No se presentó'}                                      
+      293 +                                </span>                       
+      294 +                            </button>                         
+      295 +                        )}                                    
+      296 +                                                              
+      297 +                        {/* 7. Eliminar */}                   
+      298 +                        {canDeleteAppointments && ['scheduled'
+          +, 'confirmed'].includes(status) && (                          
+      299 +                            <button onClick={() => setShowCanc
+          +elConfirm(true)}                                              
+      300 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-rose-600 text-[11px] fon
+          +t-bold rounded-full shadow-card hover:bg-rose-50 transition-al
+          +l duration-300 overflow-hidden"                               
+      301 +                            >                                 
+      302 +                                <Trash2 size={14} className="s
+          +hrink-0" />                                                   
+      303 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[70px] transition-all duration-30
+          +0 whitespace-nowrap">Eliminar</span>                          
+      304 +                            </button>                         
+      305 +                        )}                                    
+      306 +                    </div>                                    
+      307 +                )}                                            
+      308              </div>
+      309  
+      310              {/* Cancel Confirmation */}
+
+● Finalmente agrego el NewAppointmentModal para el reagendado justo antes del
+  cierre del componente:
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 17 lines
+      343                      }}
+      344                  />
+      345              )}
+      346 +                                                              
+      347 +            {showReschedule && (                              
+      348 +                <NewAppointmentModal                          
+      349 +                    isOpen={true}                             
+      350 +                    initialPatient={{                         
+      351 +                        id: appointment.patient_id,           
+      352 +                        display_name: patients?.display_name, 
+      353 +                        patient_phones: patients?.patient_phon
+          +es,                                                           
+      354 +                    }}                                        
+      355 +                    onClose={() => setShowReschedule(false)}  
+      356 +                    onCreated={() => {                        
+      357 +                        setShowReschedule(false);             
+      358 +                        onUpdated?.();                        
+      359 +                        onClose();                            
+      360 +                    }}                                        
+      361 +                />                                            
+      362 +            )}                                                
+      363          </div>
+      364      );
+      365  }
+
+● Listo. Acá está el resumen completo de todo lo implementado:
+
+  ---
+  DB (ejecutar en Supabase antes de desplegar):
+  ALTER TABLE public.appointments DROP CONSTRAINT IF EXISTS
+  appointments_status_check;
+  ALTER TABLE public.appointments ADD CONSTRAINT appointments_status_check
+    CHECK (status IN ('scheduled', 'confirmed', 'cancelled', 'completed',
+  'no_show'));
+
+  ---
+  Archivos modificados:
+
+  ┌─────────────────────────┬────────────────────────────────────────────────┐
+  │         Archivo         │                     Cambio                     │
+  ├─────────────────────────┼────────────────────────────────────────────────┤
+  │ supabaseService.js      │ Nueva función markNoShow(id)                   │
+  ├─────────────────────────┼────────────────────────────────────────────────┤
+  │ CalendarEvent.jsx       │ no_show → gris faded (igual que cancelado) en  │
+  │                         │ grilla                                         │
+  ├─────────────────────────┼────────────────────────────────────────────────┤
+  │ useStats.js             │ noShowThisMonth en KPI y nuevo slice en donut  │
+  ├─────────────────────────┼────────────────────────────────────────────────┤
+  │ NewAppointmentModal.jsx │ Acepta initialPatient prop — pre-selecciona    │
+  │                         │ paciente                                       │
+  ├─────────────────────────┼────────────────────────────────────────────────┤
+  │                         │ Botón "No se presentó" (visible solo en turnos │
+  │ AppointmentDrawer.jsx   │  pasados), badge de estado, panel de           │
+  │                         │ re-engagement con "Reagendar" + "WhatsApp"     │
+  └─────────────────────────┴────────────────────────────────────────────────┘
+
+  Flujo completo:
+  1. Dentista abre un turno del pasado → ve el botón "No se presentó" (icono
+  UserX)
+  2. Click → status cambia a no_show, aparece el panel con dos acciones
+  3. "Reagendar" → abre NewAppointmentModal con el paciente ya seleccionado,
+  listo para elegir nueva fecha/hora
+  4. "WhatsApp" → navega a /conversations con ese paciente
+  5. En el calendario, el evento queda visible pero con opacidad reducida (igual
+   que cancelados)
+  6. En Stats → nuevo slice en el donut y KPI noShowThisMonth
+
+✻ Baked for 4m 25s
+
+❯ hay errores cuando hago el hover no me deja y se queda trabado como si se     
+moviera muchas veces y parpadea                                                 
+
+● El problema es el patrón max-w-0 → group-hover:max-w-[x] en los botones:
+  cuando el botón se expande al hover, mueve su borde y el cursor queda fuera →
+  colapsa → cursor adentro → expande → bucle infinito de parpadeo.
+
+  La solución es eliminar esa animación y usar botones de tamaño fijo con ícono
+  + label siempre visibles, igual a los botones de los modales.
+
+  Read 1 file (ctrl+o to expand)
+
+● Veo todo. Reescribo el bloque entero del footer eliminando el patrón max-w-0 
+  group-hover:max-w de todos los botones:
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 16 lines, removed 20 lines
+      213                          {canViewConversations && status !== 'c
+           ancelled' && (
+      214                              <button
+      215                                  onClick={() => navigate(`/conv
+           ersations?patient=${appointment.patient_id}`)}
+      216 -                                className="group flex items-ce
+          -nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          - bg-white border border-white/80 text-navy-900 text-[11px] fon
+          -t-bold rounded-full shadow-card hover:bg-white/80 transition-a
+          -ll duration-300 overflow-hidden"                              
+      216 +                                className="flex items-center g
+          +ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-navy
+          +-900 text-[11px] font-bold rounded-full shadow-card hover:bg-w
+          +hite/80 transition-colors"                                    
+      217                              >
+      218                                  <MessageCircle size={14} class
+           Name="shrink-0" />
+      219 -                                <span className="max-w-0 overf
+          -low-hidden group-hover:max-w-[80px] transition-all duration-30
+          -0 whitespace-nowrap">Chat</span>                              
+      219 +                                Chat                          
+      220                              </button>
+      221                          )}
+      222  
+     ...
+      233                                          showErrorToast('Error 
+           al actualizar bot', err.message);
+      234                                      }
+      235                                  }}
+      236 -                                className={`group flex items-c
+          -enter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.
+          -5 border text-[11px] font-bold rounded-full shadow-card transi
+          -tion-all duration-300 overflow-hidden ${botPaused             
+      236 +                                className={`flex items-center 
+          +gap-1.5 px-3.5 py-2.5 border text-[11px] font-bold rounded-ful
+          +l shadow-card transition-colors ${botPaused                   
+      237                                      ? 'bg-amber-50 border-ambe
+           r-200 text-amber-700 hover:bg-amber-100'
+      238                                      : 'bg-white border-white/8
+           0 text-navy-900 hover:bg-white/80'
+      239                                      }`}
+     ...
+      246                                          strokeWidth={2.5}
+      247                                      />
+      248                                  </div>
+      249 -                                <span className="max-w-0 overf
+          -low-hidden group-hover:max-w-[80px] transition-all duration-30
+          -0 whitespace-nowrap ml-0 group-hover:ml-0">                   
+      250 -                                    {botPaused ? 'Reactivar' :
+          - 'Pausar IA'}                                                 
+      251 -                                </span>                       
+      249 +                                {botPaused ? 'Reactivar' : 'Pa
+          +usar IA'}                                                     
+      250                              </button>
+      251                          )}
+      252  
+      253                          {/* 3. Editar */}
+      254                          {canEditAppointments && status !== 'ca
+           ncelled' && (
+      255                              <button onClick={() => setShowEdit
+           (true)}
+      258 -                                className="group flex items-ce
+          -nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          - bg-white border border-white/80 text-navy-900 text-[11px] fon
+          -t-bold rounded-full shadow-card hover:bg-white/80 transition-a
+          -ll duration-300 overflow-hidden"                              
+      256 +                                className="flex items-center g
+          +ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-navy
+          +-900 text-[11px] font-bold rounded-full shadow-card hover:bg-w
+          +hite/80 transition-colors"                                    
+      257                              >
+      258                                  <Pencil size={14} className="s
+           hrink-0" />
+      261 -                                <span className="max-w-0 overf
+          -low-hidden group-hover:max-w-[60px] transition-all duration-30
+          -0 whitespace-nowrap">Editar</span>                            
+      259 +                                Editar                        
+      260                              </button>
+      261                          )}
+      262  
+      265 -                        {/* 4. Pendiente (Amber Hover) */}    
+      263 +                        {/* 4. Pendiente */}                  
+      264                          {canConfirmAppointments && status === 
+           'confirmed' && (
+      265                              <button onClick={handleSetSchedule
+           d}
+      268 -                                className="group flex items-ce
+          -nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          - bg-white border border-white/80 text-amber-600 text-[11px] fo
+          -nt-bold rounded-full shadow-card hover:bg-amber-50 hover:borde
+          -r-amber-100/50 transition-all duration-300 overflow-hidden"   
+      266 +                                className="flex items-center g
+          +ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-ambe
+          +r-600 text-[11px] font-bold rounded-full shadow-card hover:bg-
+          +amber-50 hover:border-amber-100/50 transition-colors"         
+      267                              >
+      268                                  <Circle size={14} className="s
+           hrink-0" />
+      271 -                                <span className="max-w-0 overf
+          -low-hidden group-hover:max-w-[80px] transition-all duration-30
+          -0 whitespace-nowrap">Pendiente</span>                         
+      269 +                                Pendiente                     
+      270                              </button>
+      271                          )}
+      272  
+      275 -                        {/* 5. Confirmar (Emerald Hover) */}  
+      273 +                        {/* 5. Confirmar */}                  
+      274                          {canConfirmAppointments && status === 
+           'scheduled' && !confirmed && (
+      275                              <button onClick={handleConfirm}
+      278 -                                className="group flex items-ce
+          -nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          - bg-white border border-white/80 text-emerald-600 text-[11px] 
+          -font-bold rounded-full shadow-card hover:bg-emerald-50 hover:b
+          -order-emerald-100/50 transition-all duration-300 overflow-hidd
+          -en"                                                           
+      276 +                                className="flex items-center g
+          +ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-emer
+          +ald-600 text-[11px] font-bold rounded-full shadow-card hover:b
+          +g-emerald-50 hover:border-emerald-100/50 transition-colors"   
+      277                              >
+      278                                  <Check size={14} className="sh
+           rink-0" />
+      281 -                                <span className="max-w-0 overf
+          -low-hidden group-hover:max-w-[80px] transition-all duration-30
+          -0 whitespace-nowrap">Confirmar</span>                         
+      279 +                                Confirmar                     
+      280                              </button>
+      281                          )}
+      282  
+      283                          {/* 6. No se presentó */}
+      284                          {canMarkNoShow && (
+      285                              <button onClick={handleNoShow} dis
+           abled={markingNoShow}
+      288 -                                className="group flex items-ce
+          -nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          - bg-white border border-white/80 text-gray-500 text-[11px] fon
+          -t-bold rounded-full shadow-card hover:bg-gray-50 hover:border-
+          -gray-200 transition-all duration-300 overflow-hidden disabled:
+          -opacity-50"                                                   
+      286 +                                className="flex items-center g
+          +ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-gray
+          +-500 text-[11px] font-bold rounded-full shadow-card hover:bg-g
+          +ray-50 hover:border-gray-200 transition-colors disabled:opacit
+          +y-50"                                                         
+      287                              >
+      288                                  <UserX size={14} className="sh
+           rink-0" />
+      291 -                                <span className="max-w-0 overf
+          -low-hidden group-hover:max-w-[110px] transition-all duration-3
+          -00 whitespace-nowrap">                                        
+      292 -                                    {markingNoShow ? 'Marcando
+          -...' : 'No se presentó'}                                      
+      293 -                                </span>                       
+      289 +                                {markingNoShow ? 'Marcando...'
+          + : 'No se presentó'}                                          
+      290                              </button>
+      291                          )}
+      292  
+      293                          {/* 7. Eliminar */}
+      294                          {canDeleteAppointments && ['scheduled'
+           , 'confirmed'].includes(status) && (
+      295                              <button onClick={() => setShowCanc
+           elConfirm(true)}
+      300 -                                className="group flex items-ce
+          -nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          - bg-white border border-white/80 text-rose-600 text-[11px] fon
+          -t-bold rounded-full shadow-card hover:bg-rose-50 transition-al
+          -l duration-300 overflow-hidden"                               
+      296 +                                className="flex items-center g
+          +ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-rose
+          +-600 text-[11px] font-bold rounded-full shadow-card hover:bg-r
+          +ose-50 transition-colors"                                     
+      297                              >
+      298                                  <Trash2 size={14} className="s
+           hrink-0" />
+      303 -                                <span className="max-w-0 overf
+          -low-hidden group-hover:max-w-[70px] transition-all duration-30
+          -0 whitespace-nowrap">Eliminar</span>                          
+      299 +                                Eliminar                      
+      300                              </button>
+      301                          )}
+      302                      </div>
+
+● Listo. Lo que se cambió:
+
+  Causa del bug: el patrón gap-0 hover:gap-1.5 px-3 hover:px-4 con max-w-0 
+  group-hover:max-w-[x] cambia el tamaño del botón mientras el mouse está encima
+   — el borde del botón se mueve, el cursor queda fuera, el botón colapsa, el
+  cursor vuelve a quedar adentro → bucle infinito de parpadeo.
+
+  Fix: todos los botones del footer ahora tienen tamaño fijo (px-3.5 py-2.5 
+  gap-1.5) con ícono + label siempre visibles. Solo cambia el color de fondo en
+  hover (transition-colors), sin ningún cambio de dimensiones. Esto elimina
+  completamente el feedback loop.
+
+✻ Worked for 1m 27s
+
+❯ noooo pero tiene que tener ese estilo del hover solo tenia como errores,      
+regresa a como estaban antes y ahora ya ni esta el boton de no se presento      
+recuerda qeu tiene que estar a la derecha de editar e izquierda de confirmar    
+
+● Entendido, restauro el estilo original y coloco "No se presentó" en el lugar
+  correcto.
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 28 lines, removed 24 lines
+      213                          {canViewConversations && status !== 'c
+           ancelled' && (
+      214                              <button
+      215                                  onClick={() => navigate(`/conv
+           ersations?patient=${appointment.patient_id}`)}
+      216 -                                className="flex items-center g
+          -ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-navy
+          --900 text-[11px] font-bold rounded-full shadow-card hover:bg-w
+          -hite/80 transition-colors"                                    
+      216 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-navy-900 text-[11px] fon
+          +t-bold rounded-full shadow-card hover:bg-white/80 transition-a
+          +ll duration-300 overflow-hidden"                              
+      217                              >
+      218                                  <MessageCircle size={14} class
+           Name="shrink-0" />
+      219 -                                Chat                          
+      219 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[80px] transition-all duration-30
+          +0 whitespace-nowrap">Chat</span>                              
+      220                              </button>
+      221                          )}
+      222  
+     ...
+      233                                          showErrorToast('Error 
+           al actualizar bot', err.message);
+      234                                      }
+      235                                  }}
+      236 -                                className={`flex items-center 
+          -gap-1.5 px-3.5 py-2.5 border text-[11px] font-bold rounded-ful
+          -l shadow-card transition-colors ${botPaused                   
+      236 +                                className={`group flex items-c
+          +enter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.
+          +5 border text-[11px] font-bold rounded-full shadow-card transi
+          +tion-all duration-300 overflow-hidden ${botPaused             
+      237                                      ? 'bg-amber-50 border-ambe
+           r-200 text-amber-700 hover:bg-amber-100'
+      238                                      : 'bg-white border-white/8
+           0 text-navy-900 hover:bg-white/80'
+      239                                      }`}
+     ...
+      246                                          strokeWidth={2.5}
+      247                                      />
+      248                                  </div>
+      249 -                                {botPaused ? 'Reactivar' : 'Pa
+          -usar IA'}                                                     
+      249 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[80px] transition-all duration-30
+          +0 whitespace-nowrap ml-0 group-hover:ml-0">                   
+      250 +                                    {botPaused ? 'Reactivar' :
+          + 'Pausar IA'}                                                 
+      251 +                                </span>                       
+      252                              </button>
+      253                          )}
+      254  
+      255                          {/* 3. Editar */}
+      256                          {canEditAppointments && status !== 'ca
+           ncelled' && (
+      257                              <button onClick={() => setShowEdit
+           (true)}
+      256 -                                className="flex items-center g
+          -ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-navy
+          --900 text-[11px] font-bold rounded-full shadow-card hover:bg-w
+          -hite/80 transition-colors"                                    
+      258 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-navy-900 text-[11px] fon
+          +t-bold rounded-full shadow-card hover:bg-white/80 transition-a
+          +ll duration-300 overflow-hidden"                              
+      259                              >
+      260                                  <Pencil size={14} className="s
+           hrink-0" />
+      259 -                                Editar                        
+      261 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[60px] transition-all duration-30
+          +0 whitespace-nowrap">Editar</span>                            
+      262                              </button>
+      263                          )}
+      264  
+      263 -                        {/* 4. Pendiente */}                  
+      265 +                        {/* 4. No se presentó — visible en tur
+          +nos pasados */}                                               
+      266 +                        {canMarkNoShow && (                   
+      267 +                            <button onClick={handleNoShow} dis
+          +abled={markingNoShow}                                         
+      268 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-gray-500 text-[11px] fon
+          +t-bold rounded-full shadow-card hover:bg-gray-50 hover:border-
+          +gray-200 transition-all duration-300 overflow-hidden disabled:
+          +opacity-50"                                                   
+      269 +                            >                                 
+      270 +                                <UserX size={14} className="sh
+          +rink-0" />                                                    
+      271 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[110px] transition-all duration-3
+          +00 whitespace-nowrap">                                        
+      272 +                                    {markingNoShow ? 'Marcando
+          +...' : 'No se presentó'}                                      
+      273 +                                </span>                       
+      274 +                            </button>                         
+      275 +                        )}                                    
+      276 +                                                              
+      277 +                        {/* 5. Pendiente (Amber Hover) */}    
+      278                          {canConfirmAppointments && status === 
+           'confirmed' && (
+      279                              <button onClick={handleSetSchedule
+           d}
+      266 -                                className="flex items-center g
+          -ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-ambe
+          -r-600 text-[11px] font-bold rounded-full shadow-card hover:bg-
+          -amber-50 hover:border-amber-100/50 transition-colors"         
+      280 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-amber-600 text-[11px] fo
+          +nt-bold rounded-full shadow-card hover:bg-amber-50 hover:borde
+          +r-amber-100/50 transition-all duration-300 overflow-hidden"   
+      281                              >
+      282                                  <Circle size={14} className="s
+           hrink-0" />
+      269 -                                Pendiente                     
+      283 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[80px] transition-all duration-30
+          +0 whitespace-nowrap">Pendiente</span>                         
+      284                              </button>
+      285                          )}
+      286  
+      273 -                        {/* 5. Confirmar */}                  
+      287 +                        {/* 6. Confirmar (Emerald Hover) */}  
+      288                          {canConfirmAppointments && status === 
+           'scheduled' && !confirmed && (
+      289                              <button onClick={handleConfirm}
+      276 -                                className="flex items-center g
+          -ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-emer
+          -ald-600 text-[11px] font-bold rounded-full shadow-card hover:b
+          -g-emerald-50 hover:border-emerald-100/50 transition-colors"   
+      290 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-emerald-600 text-[11px] 
+          +font-bold rounded-full shadow-card hover:bg-emerald-50 hover:b
+          +order-emerald-100/50 transition-all duration-300 overflow-hidd
+          +en"                                                           
+      291                              >
+      292                                  <Check size={14} className="sh
+           rink-0" />
+      279 -                                Confirmar                     
+      293 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[80px] transition-all duration-30
+          +0 whitespace-nowrap">Confirmar</span>                         
+      294                              </button>
+      295                          )}
+      296  
+      283 -                        {/* 6. No se presentó */}             
+      284 -                        {canMarkNoShow && (                   
+      285 -                            <button onClick={handleNoShow} dis
+          -abled={markingNoShow}                                         
+      286 -                                className="flex items-center g
+          -ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-gray
+          --500 text-[11px] font-bold rounded-full shadow-card hover:bg-g
+          -ray-50 hover:border-gray-200 transition-colors disabled:opacit
+          -y-50"                                                         
+      287 -                            >                                 
+      288 -                                <UserX size={14} className="sh
+          -rink-0" />                                                    
+      289 -                                {markingNoShow ? 'Marcando...'
+          - : 'No se presentó'}                                          
+      290 -                            </button>                         
+      291 -                        )}                                    
+      292 -                                                              
+      297                          {/* 7. Eliminar */}
+      298                          {canDeleteAppointments && ['scheduled'
+           , 'confirmed'].includes(status) && (
+      299                              <button onClick={() => setShowCanc
+           elConfirm(true)}
+      296 -                                className="flex items-center g
+          -ap-1.5 px-3.5 py-2.5 bg-white border border-white/80 text-rose
+          --600 text-[11px] font-bold rounded-full shadow-card hover:bg-r
+          -ose-50 transition-colors"                                     
+      300 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-rose-600 text-[11px] fon
+          +t-bold rounded-full shadow-card hover:bg-rose-50 transition-al
+          +l duration-300 overflow-hidden"                               
+      301                              >
+      302                                  <Trash2 size={14} className="s
+           hrink-0" />
+      299 -                                Eliminar                      
+      303 +                                <span className="max-w-0 overf
+          +low-hidden group-hover:max-w-[70px] transition-all duration-30
+          +0 whitespace-nowrap">Eliminar</span>                          
+      304                              </button>
+      305                          )}
+      306                      </div>
+
+● Restaurado. Orden final de botones:
+
+  Chat → IA → Editar → No se presentó → Pendiente/Confirmar → Eliminar
+
+  "No se presentó" usa exactamente el mismo estilo expand-on-hover que los
+  demás, con max-w-[110px] para acomodar el texto más largo. Solo aparece cuando
+   el turno ya pasó (isPast) y está en scheduled o confirmed.
+
+✻ Cooked for 1m 17s
+
+❯ ya se que es lo que sucede, como el detalle del turno tiene cierto ancho al   
+momento de hacer hover en ciertos botones supera como el ancho entonces empieza 
+ a parpadear y se buguea, puedes ensanchar un poco mas el detalle del turno     
+para que quepan todos                                                           
+
+● Claro, el problema es que con 6 botones en flex-wrap al expandirse uno supera
+  el ancho y el reflow mueve los demás, sacando el cursor del botón. La solución
+   correcta es ensanchar el drawer.
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 1 line, removed 1 line
+      82      }
+      83  
+      84      return (
+      85 -        <div className="absolute top-2 right-2 bottom-2 w-[360p
+         -x] bg-white/30 backdrop-blur-2xl border border-white/60 rounded
+         --[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-50 flex flex
+         --col animate-drawer-in overflow-hidden">                       
+      85 +        <div className="absolute top-2 right-2 bottom-2 w-[420p
+         +x] bg-white/30 backdrop-blur-2xl border border-white/60 rounded
+         +-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-50 flex flex
+         +-col animate-drawer-in overflow-hidden">                       
+      86              {/* Header */}
+      87              <div className="flex items-center gap-2 p-4">
+      88                  <button onClick={onClose} className="w-7 h-7 fl
+          ex items-center justify-center rounded-full bg-white/40 border 
+          border-white/50 text-navy-700 hover:bg-white/60 shadow-sm trans
+          ition-colors">
+
+● 360px → 420px. Con ese espacio extra los botones expandidos caben en una sola
+  fila sin que el flex-wrap haga reflow y sin parpadeo.
+
+❯ excelente ahora si ya dio, ahora bien el boton no tiene los mismos estilos    
+como el de editar esta como mas gris el icono tiene como borde, la idea es que  
+sea del mismo estilo que los otros botones                                      
+● La diferencia está en text-gray-500 hover:bg-gray-50 hover:border-gray-200 —
+  lo alineo exactamente al estilo de Editar y Chat.
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 1 line, removed 1 line
+      265                          {/* 4. No se presentó — visible en tur
+           nos pasados */}
+      266                          {canMarkNoShow && (
+      267                              <button onClick={handleNoShow} dis
+           abled={markingNoShow}
+      268 -                                className="group flex items-ce
+          -nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          - bg-white border border-white/80 text-gray-500 text-[11px] fon
+          -t-bold rounded-full shadow-card hover:bg-gray-50 hover:border-
+          -gray-200 transition-all duration-300 overflow-hidden disabled:
+          -opacity-50"                                                   
+      268 +                                className="group flex items-ce
+          +nter justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5
+          + bg-white border border-white/80 text-navy-900 text-[11px] fon
+          +t-bold rounded-full shadow-card hover:bg-white/80 transition-a
+          +ll duration-300 overflow-hidden disabled:opacity-50"          
+      269                              >
+      270                                  <UserX size={14} className="sh
+           rink-0" />
+      271                                  <span className="max-w-0 overf
+           low-hidden group-hover:max-w-[110px] transition-all duration-3
+           00 whitespace-nowrap">
+
+● Ahora tiene exactamente el mismo estilo que Editar y Chat: fondo blanco, borde
+   white/80, texto navy-900, hover white/80.
+
+❯ dentrop del detalle de turno y el boton de reactivar IA si te das cuenta la   
+estrella que tiene ahora el icono del login y del sidebar esta mas pegada a la  
+cabeza del robot, puedes hacer lo mismo en el boton de reactivar IA y de pausar 
+ IA? solo seria como bajarlo creo qeu tiene 1.5 seria de bajarlo a 1 en esos    
+botones que te comento                                                          
+
+  Searched for 3 patterns, read 2 files (ctrl+o to expand)
+
+● Ambos tienen w-3.5 h-3.5 como container del bot, lo que hace que el -top-1 
+  -left-1 (= -4px) desplace la estrella proporcionalmente más lejos que en
+  Login/Sidebar donde el bot es 28px. La solución es reducir el offset a
+  -top-0.5 -left-0.5 (= -2px) para que quede pegada igual que en los otros
+  iconos.
+
+● Update(src\components\Calendar\AppointmentDrawer.jsx)
+  ⎿  Added 1 line, removed 1 line
+      242                                      <Bot size={13} />
+      243                                      <AIStar
+      244                                          size={5}
+      245 -                                        className={`absolute -
+          -top-1 -left-1 ${botPaused ? 'text-amber-500' : 'text-navy-900'
+          -}`}                                                           
+      245 +                                        className={`absolute -
+          +top-0.5 -left-0.5 ${botPaused ? 'text-amber-500' : 'text-navy-
+          +900'}`}                                                       
+      246                                          strokeWidth={2.5}
+      247                                      />
+      248                                  </div>
+
+● Update(src\components\Patients\PatientDrawer.jsx)
+  ⎿  Added 1 line, removed 1 line
+      160                              <Bot size={13} />
+      161                              <AIStar
+      162                                  size={5}
+      163 -                                className={`absolute -top-1 -l
+          -eft-1 ${botPaused ? 'text-amber-500' : 'text-navy-900'}`}     
+      163 +                                className={`absolute -top-0.5 
+          +-left-0.5 ${botPaused ? 'text-amber-500' : 'text-navy-900'}`} 
+      164                                  strokeWidth={2.5}
+      165                              />
+      166                          </div>
+
+● -top-1 -left-1 → -top-0.5 -left-0.5 en ambos drawers (AppointmentDrawer y
+  PatientDrawer). La estrella ahora queda a 2px del borde del robot en lugar de
+  4px, proporcional al tamaño del icono chico igual que en Login y Sidebar.
+
+✻ Brewed for 3m 2s
+
+❯ ahora bien dentro de la grafica de pastel no tiene ningun color no se         
+presento, puedes usar el azul, ademas dentro de del perfil del paciente tambien 
+ tiene que aparecer ese estado de no se presento y creo que con eso ese estado  
+ya lo implementamos bien en todo el sistema                                     
+
+  Searched for 1 pattern, read 2 files (ctrl+o to expand)
+
+● Tengo todo. Dos cambios limpios:
+
+● Update(src\components\Stats\AppointmentStatusChart.jsx)
+  ⎿  Added 1 line, removed 1 line
+      1  import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } fro
+         m 'recharts';
+      2  
+      3 -const PIE_COLORS = ['#10B981', '#F59E0B', '#EF4444'];           
+      3 +const PIE_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#1D4ED8'];
+      4  
+      5  export function AppointmentStatusChart({ data, confRate }) {
+      6      const hasData = data.some(d => d.value > 0);
+
+● Update(src\components\Patients\PatientDrawer.jsx)
+  ⎿  Added 12 lines, removed 7 lines
+      100                          {appointments.map(apt => (
+      101                              <div key={apt.id} className="flex 
+           gap-3 items-center">
+      102                                  <div className={`w-2 h-2 round
+           ed-full shrink-0 ${
+      103 -                                    apt.status === 'cancelled'
+          -                                                              
+      104 -                                        ? 'bg-rose-500 shadow-
+          -[0_0_8px_rgba(244,63,94,0.4)]'                                
+      105 -                                        : apt.confirmed       
+      106 -                                            ? 'bg-emerald-500 
+          -shadow-[0_0_8px_rgba(16,185,129,0.4)]'                        
+      107 -                                            : 'bg-amber-400 sh
+          -adow-[0_0_8px_rgba(251,191,36,0.6)]'                          
+      103 +                                    apt.status === 'cancelled'
+      104 +                                        ? 'bg-rose-500 shadow-
+          +[0_0_8px_rgba(244,63,94,0.4)]'                                
+      105 +                                        : apt.status === 'no_s
+          +how'                                                          
+      106 +                                            ? 'bg-blue-700 sha
+          +dow-[0_0_8px_rgba(29,78,216,0.4)]'                            
+      107 +                                            : apt.confirmed   
+      108 +                                                ? 'bg-emerald-
+          +500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'                    
+      109 +                                                : 'bg-amber-40
+          +0 shadow-[0_0_8px_rgba(251,191,36,0.6)]'                      
+      110                                  }`} />
+      111                                  <div>
+      112                                      <div className="text-xs fo
+           nt-bold text-navy-900 tracking-wide">
+      113                                          {formatAptDate(apt.dat
+           e_start)}
+      114                                      </div>
+      115                                      <div className={`text-[10p
+           x] font-bold mt-0.5 ${
+      114 -                                        apt.status === 'cancel
+          -led' ? 'text-rose-600/70' :                                   
+      116 +                                        apt.status === 'cancel
+          +led' ? 'text-rose-600/70' :                                   
+      117 +                                        apt.status === 'no_sho
+          +w' ? 'text-blue-700/70' :                                     
+      118                                          apt.confirmed ? 'text-
+           emerald-600/70' : 'text-amber-600/70'
+      119                                      }`}>
+      117 -                                        {apt.status === 'cance
+          -lled' ? 'Cancelado' : apt.confirmed ? 'Confirmado' : 'Pendient
+          -e'}                                                           
+      120 +                                        {apt.status === 'cance
+          +lled' ? 'Cancelado' :                                         
+      121 +                                         apt.status === 'no_sh
+          +ow' ? 'No se presentó' :                                      
+      122 +                                         apt.confirmed ? 'Conf
+          +irmado' : 'Pendiente'}                                        
+      123                                      </div>
+      124                                  </div>
+      125                              </div>
+
+● Listo:
+
+  - Gráfica de pastel — #1D4ED8 (azul navy) como 4to color para "No se
+  presentaron", tanto en el gráfico como en la leyenda de abajo
+  - Perfil del paciente — punto azul + texto "No se presentó" en
+  text-blue-700/70, consistente con el color del gráfico
+
+  El estado no_show queda cubierto en todos los puntos del sistema: calendario,
+  drawer de turno, perfil del paciente y estadísticas.
+
+❯ usa el azul navy                                                              
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● navy-900 es #0F2044. Lo aplico en el gráfico y en el PatientDrawer:
+
+● Update(src\components\Stats\AppointmentStatusChart.jsx)
+  ⎿  Added 1 line, removed 1 line
+      1  import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } fro
+         m 'recharts';
+      2  
+      3 -const PIE_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#1D4ED8'];
+      3 +const PIE_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#0F2044'];
+      4  
+      5  export function AppointmentStatusChart({ data, confRate }) {
+      6      const hasData = data.some(d => d.value > 0);
+
+● Update(src\components\Patients\PatientDrawer.jsx)
+  ⎿  Added 1 line, removed 1 line
+      103                                      apt.status === 'cancelled'
+      104                                          ? 'bg-rose-500 shadow-
+           [0_0_8px_rgba(244,63,94,0.4)]'
+      105                                          : apt.status === 'no_s
+           how'
+      106 -                                            ? 'bg-blue-700 sha
+          -dow-[0_0_8px_rgba(29,78,216,0.4)]'                            
+      106 +                                            ? 'bg-navy-900 sha
+          +dow-[0_0_8px_rgba(15,32,68,0.4)]'                             
+      107                                              : apt.confirmed
+      108                                                  ? 'bg-emerald-
+           500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+      109                                                  : 'bg-amber-40
+           0 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+
+● Update(src\components\Patients\PatientDrawer.jsx)
+  ⎿  Added 1 line, removed 1 line
+      114                                      </div>
+      115                                      <div className={`text-[10p
+           x] font-bold mt-0.5 ${
+      116                                          apt.status === 'cancel
+           led' ? 'text-rose-600/70' :
+      117 -                                        apt.status === 'no_sho
+          -w' ? 'text-blue-700/70' :                                     
+      117 +                                        apt.status === 'no_sho
+          +w' ? 'text-navy-900/70' :                                     
+      118                                          apt.confirmed ? 'text-
+           emerald-600/70' : 'text-amber-600/70'
+      119                                      }`}>
+      120                                          {apt.status === 'cance
+           lled' ? 'Cancelado' :
+
+● Listo — #0F2044 (navy-900) en el gráfico de pastel y bg-navy-900 /
+  text-navy-900/70 en el perfil del paciente.
+
+❯ excelente ahora bien me gustaria cambiar los colores dentro de las fichas del 
+ calendario, si esta pendiente ese amarillo ambar, si esta confirmado el verde, 
+ si esta cancelado el rojo y si no se presento el gris, incluso mejor prueba    
+mejor este navy que le pusimos ponerle el gris asi se diferencia que el gris es 
+ no se presento                                                                 
+
+  Read 1 file (ctrl+o to expand)
+● Necesito un objeto backgrounds además del de borders, y cambiar cancelled a
+  rojo. El bg-white está hardcodeado en los tres layouts así que lo reemplazo
+  con la clase dinámica:
+
+● Write(src\components\Calendar\CalendarEvent.jsx)
+  ⎿  Added 39 lines, removed 16 lines
+       1  import { getDurationMinutes } from '../../utils/calendarUtils';
+       2  
+       3  export default function CalendarEvent({ appointment, style, onC
+          lick, isCompact }) {
+       4 +    const status = appointment.status === 'cancelled' ? 'cancel
+         +led'                                                           
+       5 +        : appointment.status === 'no_show' ? 'no_show'         
+       6 +        : appointment.confirmed ? 'confirmed' : 'pending';     
+       7 +                                                               
+       8      const borders = {
+       9          confirmed: 'border-l-emerald-500',
+       6 -        pending: 'border-l-navy-700',                          
+       7 -        cancelled: 'border-l-gray-300 opacity-50',             
+       8 -        no_show:   'border-l-gray-300 opacity-50',             
+      10 +        pending:   'border-l-navy-700',                        
+      11 +        cancelled: 'border-l-rose-400',                        
+      12 +        no_show:   'border-l-gray-300',                        
+      13      };
+      14  
+      11 -    const status = appointment.status === 'cancelled' ? 'cancel
+         -led'                                                           
+      12 -        : appointment.status === 'no_show' ? 'no_show'         
+      13 -        : appointment.confirmed ? 'confirmed' : 'pending';     
+      15 +    const backgrounds = {                                      
+      16 +        confirmed: 'bg-emerald-50',                            
+      17 +        pending:   'bg-navy-50',                               
+      18 +        cancelled: 'bg-rose-50 opacity-60',                    
+      19 +        no_show:   'bg-gray-100 opacity-60',                   
+      20 +    };                                                         
+      21  
+      22 +    const nameColor = {                                        
+      23 +        confirmed: 'text-navy-900',                            
+      24 +        pending:   'text-navy-900',                            
+      25 +        cancelled: 'text-navy-900/60',                         
+      26 +        no_show:   'text-navy-900/50',                         
+      27 +    };                                                         
+      28 +                                                               
+      29 +    const timeColor = {                                        
+      30 +        confirmed: 'text-gray-500',                            
+      31 +        pending:   'text-gray-500',                            
+      32 +        cancelled: 'text-gray-400',                            
+      33 +        no_show:   'text-gray-400',                            
+      34 +    };                                                         
+      35 +                                                               
+      36      const start = new Date(appointment.date_start);
+      37      const end = new Date(appointment.date_end);
+      38      const duration = getDurationMinutes(appointment.date_start,
+           appointment.date_end);
+     ...
+      44      const name = appointment.patients?.display_name || 'Sin nom
+          bre';
+      45      const timeText = `${formatTime(start)} - ${formatTime(end)}
+          `;
+      46  
+      47 +    const baseClass = `border-y border-r border-gray-100 shadow
+         +-sm hover:shadow-md border-l-[3px] cursor-pointer transition-al
+         +l overflow-hidden ${borders[status]} ${backgrounds[status]}`;  
+      48 +                                                               
+      49      // Compact layout for short events (≤ 30min)
+      50      if (duration <= 30 || isCompact) {
+      51          return (
+      52              <div
+      53                  style={style}
+      54                  onClick={() => onClick?.(appointment)}
+      32 -                className={`bg-white border-y border-r border-g
+         -ray-100 shadow-sm hover:shadow-md border-l-[3px] rounded-r-xl r
+         -ounded-l-sm px-2 py-1 cursor-pointer transition-all flex items-
+         -center gap-2 overflow-hidden ${borders[status]}`}              
+      55 +                className={`${baseClass} rounded-r-xl rounded-l
+         +-sm px-2 py-1 flex items-center gap-2`}                        
+      56              >
+      34 -                <span className="font-bold text-navy-900 text-[
+         -11px] tracking-tight truncate leading-tight">                  
+      57 +                <span className={`font-bold text-[11px] trackin
+         +g-tight truncate leading-tight ${nameColor[status]}`}>         
+      58                      {name}
+      59                  </span>
+      37 -                <span className="text-[10px] font-medium text-g
+         -ray-400 truncate shrink-0">                                    
+      60 +                <span className={`text-[10px] font-medium trunc
+         +ate shrink-0 ${timeColor[status]}`}>                           
+      61                      {formatTime(start)}
+      62                  </span>
+      63              </div>
+     ...
+      70              <div
+      71                  style={style}
+      72                  onClick={() => onClick?.(appointment)}
+      50 -                className={`bg-white border-y border-r border-g
+         -ray-100 shadow-sm hover:shadow-md border-l-[3px] rounded-r-xl r
+         -ounded-l-sm p-2 cursor-pointer transition-all flex flex-col jus
+         -tify-start overflow-hidden ${borders[status]}`}                
+      73 +                className={`${baseClass} rounded-r-xl rounded-l
+         +-sm p-2 flex flex-col justify-start`}                          
+      74              >
+      52 -                <div className="font-bold text-navy-900 text-[1
+         -2px] tracking-tight truncate leading-tight">                   
+      75 +                <div className={`font-bold text-[12px] tracking
+         +-tight truncate leading-tight ${nameColor[status]}`}>          
+      76                      {name}
+      77                  </div>
+      55 -                <div className="text-[10px] font-medium text-gr
+         -ay-500 mt-0.5 truncate">                                       
+      78 +                <div className={`text-[10px] font-medium mt-0.5
+         + truncate ${timeColor[status]}`}>                              
+      79                      {timeText}
+      80                  </div>
+      81              </div>
+     ...
+       87          <div
+       88              style={style}
+       89              onClick={() => onClick?.(appointment)}
+       67 -            className={`bg-white border-y border-r border-gray
+          --100 shadow-sm hover:shadow-md border-l-[3px] rounded-r-xl rou
+          -nded-l-sm p-2.5 cursor-pointer transition-all flex flex-col ju
+          -stify-start overflow-hidden ${borders[status]}`}              
+       90 +            className={`${baseClass} rounded-r-xl rounded-l-sm
+          + p-2.5 flex flex-col justify-start`}                          
+       91          >
+       69 -            <div className="font-bold text-navy-900 text-[13px
+          -] tracking-tight truncate leading-tight">                     
+       92 +            <div className={`font-bold text-[13px] tracking-ti
+          +ght truncate leading-tight ${nameColor[status]}`}>            
+       93                  {name}
+       94              </div>
+       72 -            <div className="text-[11px] font-medium text-gray-
+          -500 mt-1 truncate">                                           
+       95 +            <div className={`text-[11px] font-medium mt-1 trun
+          +cate ${timeColor[status]}`}>                                  
+       96                  {timeText}
+       97              </div>
+       98              {duration >= 90 && (
+       76 -                <div className="text-[10px] font-medium text-g
+          -ray-400 mt-1">                                                
+       99 +                <div className={`text-[10px] font-medium mt-1 
+          +${timeColor[status]}`}>                                       
+      100                      {Math.floor(duration / 60)}h {duration % 6
+           0 > 0 ? `${duration % 60}min` : ''}
+      101                  </div>
+      102              )}
+  ⎿  You've hit your limit · resets 1am (America/Guatemala)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+✻ Sautéed for 55s

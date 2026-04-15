@@ -1,10 +1,34 @@
 import { create } from 'zustand';
 
+// T-38: Normaliza un valor de tiempo a 'HH:MM'.
+// Soporta: string '09:00', '09:00:00', timestamp ISO,
+//          integer < 24 (horas: 9 → '09:00'),
+//          integer >= 24 (minutos: 540 → '09:00').
+function normalizeTime(val, fallback) {
+    if (val === null || val === undefined || val === '') return fallback;
+    // Entero: hora directa (9 → 09:00) o minutos (540 → 09:00)
+    const num = Number(val);
+    if (!isNaN(num) && String(val).match(/^\d+$/)) {
+        const totalMin = num < 24 ? num * 60 : num; // < 24 = horas, >= 24 = minutos
+        const h = Math.floor(totalMin / 60);
+        const m = totalMin % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    // String con HH:MM (o HH:MM:SS, o timestamp ISO)
+    const s = String(val);
+    const match = s.match(/(\d{1,2}):(\d{2})/);
+    if (!match) return fallback;
+    return `${match[1].padStart(2, '0')}:${match[2]}`;
+}
+
 // T-38: Genera slots de HH:MM desde startTime hasta endTime (inclusive) en pasos de `stepMin`.
 // Ejemplo: generateTimeSlots('08:00', '17:00', 30) → ['08:00','08:30',...,'17:00']
 export function generateTimeSlots(startTime = '09:00', endTime = '18:00', stepMin = 30) {
-    const [sh, sm] = startTime.split(':').map(Number);
-    const [eh, em] = endTime.split(':').map(Number);
+    // Normalizar por si vienen valores no-string del store
+    const start = normalizeTime(startTime, '09:00');
+    const end   = normalizeTime(endTime,   '18:00');
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
     const startMinutes = sh * 60 + sm;
     const endMinutes   = eh * 60 + em;
     const slots = [];

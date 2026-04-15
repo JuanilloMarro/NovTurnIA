@@ -35,6 +35,7 @@ function getUTCOffset(timezone, date) {
 async function toISO(date, time) {
     const timezone = await getBusinessTimezone();
     const d = date instanceof Date ? date : new Date(date + 'T12:00:00');
+    if (!time) throw new Error('toISO: time is required');
     const [h, m] = time.split(':').map(Number);
     const pad = n => String(n).padStart(2, '0');
     const targetDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0);
@@ -156,6 +157,16 @@ export async function scheduledAppointment(id) {
     const { error } = await supabase
         .from('appointments')
         .update({ confirmed: false, status: 'scheduled' })
+        .eq('id', id)
+        .eq('business_id', getBID());
+
+    if (error) throw error;
+}
+
+export async function markNoShow(id) {
+    const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'no_show' })
         .eq('id', id)
         .eq('business_id', getBID());
 
@@ -359,6 +370,26 @@ export async function getBusinessInfo() {
 
     if (error) throw error;
     return data;
+}
+
+// T-38: Query mínima SOLO para schedule_start / schedule_end.
+// Separada de getBusinessInfo() porque schedule_days puede no existir todavía en el schema,
+// y una columna inexistente hace fallar TODA la query (error de PostgREST).
+// Esta función nunca lanza — devuelve null si falla, para no romper el flujo de auth.
+export async function getBusinessSchedule(businessId) {
+    try {
+        const id = businessId ?? getBID();
+        if (!id) return null;
+        const { data, error } = await supabase
+            .from('businesses')
+            .select('schedule_start, schedule_end, schedule_days')
+            .eq('id', id)
+            .single();
+        if (error || !data) return null;
+        return data;
+    } catch {
+        return null;
+    }
 }
 
 // T-61: movido desde useAuth.js — todo acceso a DB pasa por el service layer

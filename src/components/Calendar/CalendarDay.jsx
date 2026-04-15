@@ -1,9 +1,12 @@
 import { isSameDay, getEventStyleWithColumns, layoutOverlappingEvents } from '../../utils/calendarUtils';
 import CalendarEvent from './CalendarEvent';
-
-const HOURS = Array.from({ length: 9 }, (_, i) => i + 9); // 9 a 17
+import { useAppStore } from '../../store/useAppStore';
 
 export default function CalendarDay({ appointments, selectedDate, loading, onEventClick }) {
+    const { businessHours } = useAppStore();
+    const startH = parseInt((businessHours.schedule_start || '09:00').split(':')[0], 10);
+    const endH   = parseInt((businessHours.schedule_end   || '18:00').split(':')[0], 10);
+    const HOURS  = Array.from({ length: endH - startH + 1 }, (_, i) => i + startH);
     const dayAppointments = appointments.filter(apt => isSameDay(new Date(apt.date_start), selectedDate));
     const layoutEvents = layoutOverlappingEvents(dayAppointments);
     const isToday = isSameDay(selectedDate, new Date());
@@ -56,7 +59,7 @@ export default function CalendarDay({ appointments, selectedDate, loading, onEve
                                 <CalendarEvent
                                     key={apt.id}
                                     appointment={apt}
-                                    style={getEventStyleWithColumns(apt.date_start, apt.date_end, column, totalColumns)}
+                                    style={getEventStyleWithColumns(apt.date_start, apt.date_end, column, totalColumns, startH, HOURS.length)}
                                     onClick={onEventClick}
                                 />
                             ))}

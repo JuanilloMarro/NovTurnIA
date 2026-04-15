@@ -62,10 +62,11 @@ export function useStats() {
             const confirmedThisMonth  = apts.filter(a => a.confirmed).length;
             const scheduledThisMonth  = apts.filter(a => a.status === 'scheduled' && !a.confirmed).length;
             const cancelledThisMonth  = apts.filter(a => a.status === 'cancelled').length;
+            const noShowThisMonth     = apts.filter(a => a.status === 'no_show').length;
             const createdByBot        = apts.filter(a => a.created_by === 'bot').length;
             const createdByStaff      = apts.filter(a => a.created_by === 'dashboard').length;
 
-            const totalForDonut = confirmedThisMonth + scheduledThisMonth + cancelledThisMonth;
+            const totalForDonut = confirmedThisMonth + scheduledThisMonth + cancelledThisMonth + noShowThisMonth;
             const confRate      = totalForDonut === 0 ? 0 : Math.round((confirmedThisMonth / totalForDonut) * 100);
 
             const result = {
@@ -78,15 +79,17 @@ export function useStats() {
                     sentMessages:     messageCounts.sent,
                     receivedMessages: messageCounts.received,
                     confirmedThisMonth,
+                    noShowThisMonth,
                     createdByBot,
                     createdByStaff,
                 },
                 donut: {
                     confRate,
                     data: [
-                        { name: 'Confirmados', value: confirmedThisMonth },
-                        { name: 'Pendientes',  value: Math.max(0, scheduledThisMonth) },
-                        { name: 'Cancelados',  value: cancelledThisMonth },
+                        { name: 'Confirmados',       value: confirmedThisMonth },
+                        { name: 'Pendientes',         value: Math.max(0, scheduledThisMonth) },
+                        { name: 'Cancelados',         value: cancelledThisMonth },
+                        { name: 'No se presentaron', value: noShowThisMonth },
                     ]
                 },
                 rawApts: (trendRaw || []).map(a => ({ date_start: a.date_start, status: a.status }))

@@ -1,9 +1,14 @@
 import { getWeekDays, getEventStyleWithColumns, isSameDay, layoutOverlappingEvents } from '../../utils/calendarUtils';
 import CalendarEvent from './CalendarEvent';
-
-const HOURS = Array.from({ length: 9 }, (_, i) => i + 9); // 9 a 17
+import { useAppStore } from '../../store/useAppStore';
 
 export default function CalendarWeek({ appointments, weekStart, loading, onEventClick }) {
+    const { businessHours } = useAppStore();
+    const startH = parseInt((businessHours.schedule_start || '09:00').split(':')[0], 10);
+    const endH   = parseInt((businessHours.schedule_end   || '18:00').split(':')[0], 10);
+    // incluye la hora de cierre para que el último slot quede visible en la grilla
+    const HOURS = Array.from({ length: endH - startH + 1 }, (_, i) => i + startH);
+
     const days = getWeekDays(weekStart);
 
     return (
@@ -57,7 +62,7 @@ export default function CalendarWeek({ appointments, weekStart, loading, onEvent
                                         <CalendarEvent
                                             key={apt.id}
                                             appointment={apt}
-                                            style={getEventStyleWithColumns(apt.date_start, apt.date_end, column, totalColumns)}
+                                            style={getEventStyleWithColumns(apt.date_start, apt.date_end, column, totalColumns, startH, HOURS.length)}
                                             onClick={onEventClick}
                                         />
                                     ))}

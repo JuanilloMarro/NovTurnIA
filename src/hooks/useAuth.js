@@ -1,16 +1,37 @@
 import { useAppStore } from '../store/useAppStore';
 import { supabase } from '../config/supabase';
-import { getBusinessStatus, getBusinessInfo } from '../services/supabaseService';
+import { getBusinessStatus, getBusinessSchedule } from '../services/supabaseService';
 import * as Sentry from '@sentry/react';
 
 // T-20: setBusinessId leído del store en lugar de config/supabase.js
-const setBusinessId    = (id) => useAppStore.getState().setBusinessId(id);
-// T-38: helper para poblar businessHours desde la info del negocio
+const setBusinessId = (id) => useAppStore.getState().setBusinessId(id);
+
+// T-38: normaliza un valor de tiempo al formato 'HH:MM'.
+// Soporta: integer < 24 (horas: 8 → '08:00'),
+//          integer >= 24 (minutos: 480 → '08:00'),
+//          string '08:00', '08:00:00', timestamp ISO.
+function toHHMM(val, fallback) {
+    if (val === null || val === undefined || val === '') return fallback;
+    // Entero puro: hora (< 24) o minutos (>= 24)
+    const num = Number(val);
+    if (!isNaN(num) && String(val).trim().match(/^\d+$/)) {
+        const totalMin = num < 24 ? num * 60 : num;
+        const h = Math.floor(totalMin / 60);
+        const m = totalMin % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    // String con formato HH:MM (o HH:MM:SS, o timestamp ISO)
+    const match = String(val).match(/(\d{1,2}):(\d{2})/);
+    if (!match) return fallback;
+    return `${match[1].padStart(2, '0')}:${match[2]}`;
+}
+
+// Poblar businessHours desde la info del negocio — siempre guarda strings HH:MM limpios
 function applyBusinessHours(info) {
     if (!info) return;
     useAppStore.getState().setBusinessHours({
-        schedule_start: info.schedule_start || '09:00',
-        schedule_end:   info.schedule_end   || '18:00',
+        schedule_start: toHHMM(info.schedule_start, '09:00'),
+        schedule_end:   toHHMM(info.schedule_end,   '18:00'),
         schedule_days:  Array.isArray(info.schedule_days) ? info.schedule_days : [1,2,3,4,5],
     });
 }
@@ -40,15 +61,17 @@ export function useAuth() {
 
             // Auto-detect: establecer el business_id desde el perfil
             setBusinessId(staffProfile.business_id);
-            // T-38: leer horario del negocio de una sola query (getBusinessInfo ya trae schedule_*)
-            const [planStatus, businessInfo] = await Promise.all([
+            // T-38: getBusinessSchedule nunca lanza — devuelve null si la columna no existe
+            const [planStatus, schedule] = await Promise.all([
                 getBusinessStatus(staffProfile.business_id),
-                getBusinessInfo(),
+                getBusinessSchedule(staffProfile.business_id),
             ]);
             setBusinessStatus(planStatus);
-            applyBusinessHours(businessInfo);
+            applyBusinessHours(schedule); // no-op si es null
             setAuth(data.user, staffProfile);
             Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
+        } catch (err) {
+            throw err;
         } finally {
             setLoading(false);
         }
@@ -84,13 +107,12 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
 
             if (staffProfile) {
                 setBusinessId(staffProfile.business_id);
-                // T-38: leer horario del negocio (getBID ya está seteado arriba)
-                const [planStatus, businessInfo] = await Promise.all([
+                const [planStatus, schedule] = await Promise.all([
                     getBusinessStatus(staffProfile.business_id),
-                    getBusinessInfo(),
+                    getBusinessSchedule(staffProfile.business_id),
                 ]);
                 setBusinessStatus(planStatus);
-                applyBusinessHours(businessInfo);
+                applyBusinessHours(schedule);
                 setAuth(session.user, staffProfile);
                 Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
             } else {
@@ -122,12 +144,12 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
 
                     if (profile) {
                         setBusinessId(profile.business_id);
-                        const [planStatus, businessInfo] = await Promise.all([
+                        const [planStatus, schedule] = await Promise.all([
                             getBusinessStatus(profile.business_id),
-                            getBusinessInfo(),
+                            getBusinessSchedule(profile.business_id),
                         ]);
                         setBusinessStatus(planStatus);
-                        applyBusinessHours(businessInfo);
+                        applyBusinessHours(schedule);
                         setAuth(currentSession.user, profile);
                     }
                 } catch (e) {

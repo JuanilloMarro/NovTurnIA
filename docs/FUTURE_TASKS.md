@@ -68,8 +68,6 @@ const { canAddStaff, canAddPatient, currentPlan, limitsReached } = usePlanLimits
 
 ---
 
----
-
 ### T-03 🔴 Billing integration — Stripe/Paddle actualiza `businesses.plan` 🔲
 
 **Problema:** No hay integración con ningún proveedor de pagos. El campo `plan` en `businesses` se actualizaría manualmente. No hay forma automatizada de cobrar ni de actualizar el plan tras un pago.
@@ -102,14 +100,6 @@ switch (event.type) {
 
 **Esfuerzo:** Alto
 **Depende de:** T-01, T-02
-
----
-
----
-
-### ✅ T-38 — TIME_SLOTS dinámicos desde horario del negocio — COMPLETADO
-
-> Movido a [COMPLETED_TASKS.md](./COMPLETED_TASKS.md) — sesión 4 del 2026-04-14.
 
 ---
 
@@ -477,25 +467,6 @@ Aplicar en todos los modales del proyecto.
 
 ---
 
-### T-47 🟡 Invalidación de cache en eventos de Realtime 🔲
-
-**Archivos:** `src/store/useAppStore.js`, `src/hooks/usePatients.js`, `src/hooks/useStats.js`
-
-**Problema:** El cache de pacientes (1 min) y de stats (5 min) en el store de Zustand nunca se invalida cuando llegan eventos de Realtime. Un nuevo paciente creado por otra sesión activa el Realtime en `usePatients`, pero si el cache de stats no se invalida, los contadores muestran datos incorrectos por hasta 5 minutos.
-
-**Solución:**
-```js
-// En useRealtime.js, al recibir INSERT/UPDATE de patients:
-useAppStore.getState().invalidatePatientsCache();
-// Al recibir INSERT/UPDATE de appointments:
-useAppStore.getState().invalidateStatsCache();
-```
-Agregar funciones `invalidatePatientsCache()` e `invalidateStatsCache()` al store.
-
-**Esfuerzo:** Bajo-Medio
-
----
-
 ### T-54 🟡 `activePatients` y `totalPatients` usan el mismo valor — posible bug 🔲
 
 **Archivo:** `src/hooks/useStats.js:100-101`
@@ -539,30 +510,6 @@ Revisar RLS de la tabla `patient_phones` y verificar que T-19 cubre este caso.
 **Depende de:** T-19
 
 ---
-
-### T-56 🟡 `clearNotifications` borra todo sin audit trail ni permiso elevado 🔲
-
-**Archivo:** `src/services/supabaseService.js:418-424`
-
-**Problema:** `clearNotifications()` ejecuta un `DELETE` masivo de todas las notificaciones del negocio sin dejar registro de quién ejecutó la acción. Cualquier usuario con acceso al panel puede silenciosamente borrar el historial de actividad de toda la clínica. Para una app médica con audit trail, este es un gap de compliance.
-
-**Solución:**
-1. Registrar la acción en `audit_log` antes de borrar:
-```js
-await supabase.from('audit_log').insert({
-    business_id: BUSINESS_ID,
-    action: 'DELETE',
-    table_name: 'notifications',
-    actor_id: getCurrentUserId(), // desde el store
-    new_data: { count: notificationCount }
-});
-```
-2. Opcionalmente, requerir permiso `manage_users` (o un permiso dedicado) para esta operación.
-
-**Esfuerzo:** Bajo
-
----
-
 
 ## FASE 4 — 🟢 Escalabilidad (cuando el volumen lo requiera)
 
@@ -679,9 +626,6 @@ Actualizar el flujo de cancelación en el frontend para setear `cancelled_at` en
 | T-23 | Unificar error handling en `supabaseService.js` | 🟡 | — | Bajo-Medio | 🔲 |
 | T-24 | Rate limiting en `createStaffUser` | 🟡 | T-13 | Bajo | 🔲 |
 | T-59 | `loadMore` en `usePatients` duplica la lógica de estado de `load` — unificar | 🟡 | — | Bajo | 🔲 |
-| T-60 | `getBusinessInfo` y `getBusinessTimezone` hacen 2 queries a la misma tabla — unificar | 🟡 | — | Muy Bajo | 🔲 |
-| T-61 | `fetchBusinessStatus` en `useAuth.js` viola arquitectura — mover a `supabaseService.js` | 🟡 | T-29 | Muy Bajo | 🔲 |
-| T-62 | Catch-rethrow vacío en `login()` de `useAuth.js` — eliminar bloque catch innecesario | 🟡 | — | Muy Bajo | 🔲 |
 
 ---
 
@@ -704,7 +648,17 @@ Actualizar el flujo de cancelación en el frontend para setear `cancelled_at` en
 ✅ T-53 (setAuth user/profile)  ← COMPLETADO
 ✅ T-57 (useRealtime genérico)  ← COMPLETADO
 ✅ T-58 (getRange memoizado)    ← COMPLETADO
-✅ T-38 (TIME_SLOTS dinámicos) ← COMPLETADO
+✅ T-38 (TIME_SLOTS dinámicos) ← COMPLETADO — Calendar + modales + getBusinessSchedule
+✅ T-47 (Cache stats → Realtime) ← COMPLETADO
+✅ T-56 (clearNotifications audit) ← COMPLETADO
+✅ T-60 (unificar business queries) ← COMPLETADO
+✅ T-61 (fetchBusinessStatus → service) ← COMPLETADO
+✅ T-62 (catch rethrow vacío) ← COMPLETADO
+✅ Bug: prop mutation AppointmentDrawer ← COMPLETADO
+✅ Bug: alert() → showErrorToast ← COMPLETADO
+✅ Bug: toISO null guard ← COMPLETADO
+✅ Bug: parseInt radix CalendarWeek/Day ← COMPLETADO
+✅ Bug: try/catch debounce NewAppointmentModal ← COMPLETADO
     ↓
 T-05 (Sentry)                   ← Visibilidad desde el día 1 en prod
 T-51 (trendRaw → RPC agrupado)  ← Performance: elimina 3k filas por carga

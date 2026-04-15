@@ -100,21 +100,26 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                         {appointments.map(apt => (
                             <div key={apt.id} className="flex gap-3 items-center">
                                 <div className={`w-2 h-2 rounded-full shrink-0 ${
-                                    apt.status === 'cancelled' 
-                                        ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' 
-                                        : apt.confirmed 
-                                            ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' 
-                                            : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                                    apt.status === 'cancelled'
+                                        ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'
+                                        : apt.status === 'no_show'
+                                            ? 'bg-navy-900 shadow-[0_0_8px_rgba(15,32,68,0.4)]'
+                                            : apt.confirmed
+                                                ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                                                : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
                                 }`} />
                                 <div>
                                     <div className="text-xs font-bold text-navy-900 tracking-wide">
                                         {formatAptDate(apt.date_start)}
                                     </div>
                                     <div className={`text-[10px] font-bold mt-0.5 ${
-                                        apt.status === 'cancelled' ? 'text-rose-600/70' : 
+                                        apt.status === 'cancelled' ? 'text-rose-600/70' :
+                                        apt.status === 'no_show' ? 'text-navy-900/70' :
                                         apt.confirmed ? 'text-emerald-600/70' : 'text-amber-600/70'
                                     }`}>
-                                        {apt.status === 'cancelled' ? 'Cancelado' : apt.confirmed ? 'Confirmado' : 'Pendiente'}
+                                        {apt.status === 'cancelled' ? 'Cancelado' :
+                                         apt.status === 'no_show' ? 'No se presentó' :
+                                         apt.confirmed ? 'Confirmado' : 'Pendiente'}
                                     </div>
                                 </div>
                             </div>
@@ -160,7 +165,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                             <Bot size={13} />
                             <AIStar
                                 size={5}
-                                className={`absolute -top-1 -left-1 ${botPaused ? 'text-amber-500' : 'text-navy-900'}`}
+                                className={`absolute -top-0.5 -left-0.5 ${botPaused ? 'text-amber-500' : 'text-navy-900'}`}
                                 strokeWidth={2.5}
                             />
                         </div>
