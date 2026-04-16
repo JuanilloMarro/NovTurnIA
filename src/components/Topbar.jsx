@@ -1,6 +1,7 @@
-import { Bell, Moon, Sun, Monitor, Check, LogOut, Calendar, UserPlus, Trash2, Bot, Menu } from 'lucide-react';
+import { Bell, Moon, Sun, Monitor, Check, LogOut, Calendar, UserPlus, Trash2, Bot, Menu, Clock } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
+import { usePendingReminder } from '../hooks/usePendingReminder';
 import { useAppStore } from '../store/useAppStore';
 import { useToastStore } from '../store/useToastStore';
 import { useAuth } from '../hooks/useAuth';
@@ -13,6 +14,7 @@ function getInitials(name) {
 export default function Topbar() {
     const { profile, logout } = useAuth();
     const { activityLog, unreadCount, markAllRead } = useNotifications();
+    usePendingReminder();
     const clearActivityLog = useToastStore(s => s.clearActivityLog);
     const { theme, setTheme, toggleSidebar } = useAppStore();
     const [showNotif, setShowNotif] = useState(false);
@@ -96,13 +98,14 @@ export default function Topbar() {
                                         const isApt = entry.type === 'appointment';
                                         const isPatient = entry.type === 'patient';
                                         const isBot = entry.type.startsWith('bot');
+                                        const isReminder = entry.type === 'pending_reminder';
 
                                         return (
                                             <div key={entry.id} className={`flex items-center gap-3 p-3 bg-white/40 hover:bg-white/60 border border-white/50 rounded-2xl transition-all cursor-pointer shadow-sm group ${
                                                 !entry.read ? 'ring-1 ring-navy-400/20' : ''
                                             }`}>
-                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm border border-white/30 text-sm bg-navy-900/90`}>
-                                                    {isBot ? <Bot size={15} className="text-white" /> : isApt ? <Calendar size={15} className="text-white" /> : isPatient ? <UserPlus size={15} className="text-white" /> : (entry.title?.[0] || '?')}
+                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm border border-white/30 text-sm ${isReminder ? 'bg-amber-500/90' : 'bg-navy-900/90'}`}>
+                                                    {isReminder ? <Clock size={15} className="text-white" /> : isBot ? <Bot size={15} className="text-white" /> : isApt ? <Calendar size={15} className="text-white" /> : isPatient ? <UserPlus size={15} className="text-white" /> : (entry.title?.[0] || '?')}
                                                 </div>
                                                 <div className="flex-1 min-w-0 pr-1">
                                                     <div className="font-bold text-navy-900 text-sm truncate leading-tight flex items-center gap-1.5">

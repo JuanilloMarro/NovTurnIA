@@ -1,6 +1,6 @@
 # NovTurnAI — Infrastructure Evaluation
 
-> Última actualización: 2026-04-15 (sesión 10 — fix gráfica, T-43, T-46, T-10, T-54)
+> Última actualización: 2026-04-16 (sesión 12 — T-36 gestión de servicios /settings)
 > Evaluación de deployment readiness por área. Escala 0–10.
 > 🔴 Bloqueante · 🟠 Importante · 🟡 Deseable · ✅ Resuelto
 
@@ -11,13 +11,13 @@
 | Área                         |Puntaje base|Puntaje actual| Delta    |
 |------------------------------|------------|--------------|----------|
 | Base de datos (Supabase)     | 6.0/10     | **8.5/10**   | +2.5     |
-| Dashboard React + Vite       | 7.0/10     | **8.5/10**   | +1.5     |
+| Dashboard React + Vite       | 7.0/10     | **9.0/10**   | +2.0     |
 | Producto / SaaS              | 5.0/10     | **7.2/10**   | +2.2     |
 | Bot / N8N Workflow           | 4.5/10     | **7.5/10**   | +3.0     |
 | Infraestructura / Despliegue | 6.5/10     | **6.5/10**   | —        |
 | Resiliencia                  | 4.0/10     | **5.0/10**   | +1.0     |
 | Modelo de negocio            | 1.0/10     | **2.5/10**   | +1.5     |
-| **PROMEDIO GLOBAL**          | **4.9/10** | **6.9/10**   | **+2.0** |
+| **PROMEDIO GLOBAL**          | **4.9/10** | **7.0/10**   | **+2.1** |
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## 3. Dashboard React + Vite — 8.5/10
+## 3. Dashboard React + Vite — 9.0/10
 
 ### Sub-área: Arquitectura de componentes — 9.0/10
 
@@ -123,7 +123,7 @@
 | `businessHours` en store | ✅ | — |
 | `businessId` default preparado para UUID | ✅ T-08 | Default cambiado de `0` a `''` |
 
-### Sub-área: Experiencia de usuario — 8.0/10
+### Sub-área: Experiencia de usuario — 8.5/10
 
 | Item | Estado | Notas |
 |------|--------|-------|
@@ -133,6 +133,9 @@
 | Responsive mobile < 768px | ✅ | Sidebar oculto con hamburger toggle, `ml-0 md:ml-[240px]` |
 | Focus trap + Escape en modales | ✅ T-46 | `useModalFocus` hook — WCAG 2.1 criterio 2.1.2 |
 | Validación teléfono Guatemala | ✅ T-43 | Regex +502 (8 dígitos, prefijo 2–7) + badge visual |
+| Recordatorios in-app turnos pendientes (24h) | ✅ T-39 | Hook polling/hora + notificación campanita con ícono ámbar |
+| Gestión de servicios desde `/settings` | ✅ T-36 | CRUD glass + selector en Nuevo Turno con auto-duración |
+| UI Conf. global del negocio (`/business`) | ✅ T-37 | Edición identidad, horario y flags + validaciones amigables |
 | Dark mode funcional | 🟡 T-33 | Pendiente — reversión completa; light mode intacto |
 | Keyboard nav en calendario | 🟢 | T-48 |
 
@@ -184,6 +187,7 @@
 - ✅ `patient_phones` con columna `business_id` en DB + backfill (T-19) + guard en código (T-55)
 - ✅ `gdprDeletePatient` — borrado permanente Art. 17 + botón admin en PatientDrawer (T-10)
 - ✅ Validación teléfono con regex +502 (8 dígitos, prefijo 2–7) + badge visual (T-43)
+- ✅ `usePendingReminder` — recordatorios in-app de turnos pendientes cada hora, cero costo externo (T-39)
 
 ---
 
@@ -217,6 +221,7 @@
 | 4 | T-35 | Guard de deduplicación en trigger `handle_audit_log` | Bajo | ✅ Ejecutado |
 | 5 | T-01 | Tabla `plans` + columnas en `businesses` + RPC `get_plan_limits` | Bajo | 🔲 Pendiente |
 | 6 | T-08 | Migración INTEGER → UUID en `businesses.id` (multi-tabla) | **Alto** — ejecutar en staging primero | 🔲 Pendiente |
+| 7 | T-36 | Tabla `services` con RLS + índice `business_id` | Bajo | 🔲 Pendiente (si no existe aún) |
 
 ### SQL T-01 — Plan enforcement (ejecutar para activar gate de plan)
 
@@ -300,6 +305,29 @@ ALTER TABLE public.staff_users  ALTER COLUMN business_uuid SET NOT NULL;
 ```
 
 > ⚠️ **T-08 es la migración de mayor riesgo**. Ejecutar en un branch de Supabase (staging) antes de producción. Tener backup Point-in-Time Recovery activo.
+
+### SQL T-36 — Tabla `services` (ejecutar si no existe)
+
+```sql
+CREATE TABLE IF NOT EXISTS public.services (
+  id               SERIAL PRIMARY KEY,
+  business_id      INTEGER NOT NULL REFERENCES public.businesses(id),
+  name             TEXT NOT NULL,
+  description      TEXT,
+  duration_minutes INTEGER NOT NULL DEFAULT 30,
+  price            DECIMAL(10,2),
+  active           BOOLEAN NOT NULL DEFAULT true,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_services_business ON public.services(business_id);
+
+ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "services_tenant_isolation" ON public.services
+  USING (business_id = get_user_business_id())
+  WITH CHECK (business_id = get_user_business_id());
+```
 
 ---
 

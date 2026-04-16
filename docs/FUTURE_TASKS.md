@@ -1,6 +1,6 @@
 # NovTurnAI — Tareas Pendientes & Plan de Ejecución
 
-> Actualizado: 2026-04-15
+> Actualizado: 2026-04-16 (sesión 12)
 > Prioridades: 🔴 Pre-lanzamiento · 🟠 Primer mes · 🟡 Segundo mes · 🟢 Escalabilidad
 > Estado: 🔲 Pendiente · 🔄 En progreso · 🚫 Bloqueada por dependencia
 > Completadas → ver [COMPLETED_TASKS.md](./COMPLETED_TASKS.md)
@@ -12,9 +12,9 @@
 | Fase | Tareas | Bloqueante para |
 |------|--------|----------------|
 | 🔴 Pre-lanzamiento | 1 | Cobrar, operar y lanzar sin riesgos críticos |
-| 🟠 Primer mes | 3 | Visibilidad en producción, features clave |
+| 🟠 Primer mes | 2 | Visibilidad en producción, features clave |
 | 🟡 Segundo mes | 3 | Compliance médico, resiliencia, calidad de datos |
-| 🟢 Escalabilidad | 6 | Crecimiento a 10k+ usuarios |
+| 🟢 Escalabilidad | 5 | Crecimiento a 10k+ usuarios |
 | Técnicas de apoyo | 6 | Sin ventana fija, soportan las demás |
 
 ---
@@ -105,27 +105,6 @@ ALTER TABLE public.businesses ADD COLUMN uuid_id UUID DEFAULT gen_random_uuid() 
 ---
 
 
-### T-39 🟠 Sistema de recordatorios de citas 🔲
-
-**Problema:** No existe ningún sistema de recordatorios. Los pacientes no reciben avisos antes de sus turnos, lo que genera alto índice de ausencias (no-shows). Para una clínica médica, los recordatorios son críticos para la operación diaria.
-
-**Solución:**
-1. **Supabase Scheduled Function** (pg_cron) que corra cada hora:
-```sql
--- Seleccionar citas que tienen recordatorio pendiente en ~24h y ~1h
-SELECT id, patient_id, date_start FROM appointments
-WHERE status IN ('scheduled', 'confirmed')
-  AND date_start BETWEEN NOW() + INTERVAL '23 hours' AND NOW() + INTERVAL '25 hours'
-  AND reminder_24h_sent = false;
-```
-2. **Edge Function `send-reminders`** que llame al bot de WhatsApp o email por cada turno próximo.
-3. **Campos `reminder_24h_sent`, `reminder_1h_sent`** en `appointments` para evitar duplicados.
-4. Mensaje personalizable por negocio (template en `businesses`).
-
-**Esfuerzo:** Alto
-**Depende de:** T-06 (onboarding), integración WhatsApp/email activa
-
----
 
 ## FASE 3 — 🟡 Segundo mes (compliance médico y resiliencia)
 
@@ -233,25 +212,8 @@ npx supabase gen types typescript --project-id <id> > src/types/database.ts
 
 ---
 
-### T-36 🟢 Gestión de servicios desde el dashboard 🔲
 
-**Problema:** No hay UI para que el administrador gestione los tipos de citas/servicios que ofrece su negocio. El campo `service_id` en `appointments` referencia una tabla `services` que solo se puede editar directamente en DB.
 
-**Solución:** Sección dentro de `/settings` (o `/users`) con lista de servicios activos, crear/editar/desactivar servicio. El modal "Nuevo Turno" ya tiene `serviceId` pero sin opciones reales cargadas desde DB.
-
-**Esfuerzo:** Medio
-
----
-
-### T-37 🟢 Configuración del negocio desde el dashboard (`/settings`) 🔲
-
-**Problema:** No hay página donde el administrador pueda modificar la configuración de su negocio: nombre, horario de atención, timezone, logo, etc. Todo cambio requiere intervención directa en la base de datos.
-
-**Solución:** Ruta `/settings` protegida con `manage_users` o nuevo permiso `manage_business`. Formulario para editar `businesses.name`, `schedule_start`, `schedule_end`, `schedule_days`, `timezone`. Usar `getBusinessInfo()` (ya existe) como base.
-
-**Esfuerzo:** Medio
-
----
 
 ### T-48 🟢 Navegación por teclado en el calendario 🔲
 
@@ -329,6 +291,9 @@ npx supabase gen types typescript --project-id <id> > src/types/database.ts
 ✅ T-10 (GDPR borrado permanente)            ← COMPLETADO — gdprDeletePatient + botón admin
 ✅ T-54 (activePatients bug)                 ← COMPLETADO — ya corregido en useStats.js
 ✅ T-45 (audit trail permisos)               ← COMPLETADO — trigger SQL en staff_roles
+✅ T-39 (Recordatorios turnos pendientes)    ← COMPLETADO — hook polling cada hora + notificación campanita
+✅ T-36 (Gestión de servicios dashboard)    ← COMPLETADO — /settings + CRUD glass + selector en Nuevo Turno
+✅ T-37 (UI Conf. global del negocio)        ← COMPLETADO — UI /settings/business + validaciones
     ↓
 T-05 (Sentry)                   ← Visibilidad desde el día 1 en prod
     ↓
@@ -343,7 +308,7 @@ T-10-b (Retención automática pg_cron)
 T-11 (Reconexión Realtime)      ← T-57 ya hecho ✅
     ↓
 T-14, T-15, T-16                ← Escalabilidad: cuando el volumen lo pida
-T-36, T-37, T-48               ← Features + UX adicional
+T-36, T-48               ← Features + UX adicional
 ```
 
 ## Deployment

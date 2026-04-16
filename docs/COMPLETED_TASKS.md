@@ -23,7 +23,95 @@
 | 2026-04-15 (sesión 8) | 9 | Performance DB, paginación, plan enforcement, seguridad multi-tenant, schema médico |
 | 2026-04-15 (sesión 9) | 2 | Lazy loading, responsive mobile |
 | 2026-04-15 (sesión 10) | 7 | Fix gráfica, validación teléfono, focus trap, GDPR, bugs |
-| **Total** | **73** | |
+| 2026-04-16 (sesión 11) | 1 | Recordatorios in-app para turnos pendientes (T-39 rediseñado) |
+| 2026-04-16 (sesión 12) | 2 | Gestión de config del negocio (T-37) y servicios (/settings submódulos) (T-36) |
+| **Total** | **76** | |
+
+---
+
+## 2026-04-16 (sesión 12)
+
+---
+
+---
+
+### ✅ T-37 — Configuración del negocio desde el dashboard (`/settings/business`)
+
+**Problema:** No había interfaz para gestionar los ajustes globales del negocio sin tocar directamente la base de datos, lo que generaba fricción al cambiar el horario, nombre, o emails de alerta.
+
+**Solución en UI:**
+- **`BusinessSettings.jsx`:** Componente funcional que integra de forma coherente el horario, notificaciones, días laborables y la política de emergencias.
+- **Validaciones Amigables:** Implementación de validaciones frontend estrictas (`!/^[\w-\.]+@.../`) que reemplazan los errores técnicos de Supabase por "Toasts" amistosos (ej: "El correo no debe exceder los 255 caracteres").
+- **Layout Unificado:** Se reemplazó el botón `absolute` por una barra en footer igual a `Settings.jsx` (T-36) para mantener coherencia visual.
+
+**Solución en DB:**
+- Se proveyó el código SQL para `ALTER TABLE businesses` ampliando de `varchar(20)` a `varchar(100)` columnas clave (`schedule_days`, `name`), aliviando la limitación estricta al serializar listas como `"Lun,Mar,Mié"`.
+
+**Impacto:** El administrador de la clínica es ahora 100% independiente para configurar la cuenta sin soporte de ingeniería de por medio.
+
+---
+
+### ✅ T-36 — Gestión de servicios desde el dashboard (`/settings`)
+
+**Problema:** El campo `service_id` en `appointments` siempre se guardaba como `null` porque no existía UI para gestionar servicios. El admin no podía crear, editar ni desactivar tipos de citas desde el dashboard.
+
+**Solución en 6 archivos:**
+
+1. **`supabaseService.js`** — 4 funciones nuevas: `getServices`, `createService`, `updateService`, `toggleServiceActive`. Todas filtradas por `getBID()` y con guard de multi-tenancy en UPDATE/toggle.
+
+2. **`src/hooks/useServices.js`** — Hook con estado local `services[]`. Expone `create`, `update`, `toggle` que actualizan optimísticamente el estado local sin necesidad de recargar desde DB. Manejo graceful si la tabla no existe aún (`PGRST116`).
+
+3. **`src/pages/Settings.jsx`** — Página nueva con layout idéntico a `Users.jsx` (panel izquierdo lista + panel derecho formulario). Sub-módulo "Servicios" dentro de "Configuración":
+   - **Panel izquierdo:** lista de servicios con inicial-avatar, duración como chip, badge "Inactivo" en rose para los desactivados. Botón `+` en el header que abre el formulario vacío para crear.
+   - **Panel derecho:** formulario con 3 campos — Nombre (input), Duración (select 15/20/30/45/60/90/120 min con ícono Clock), Precio opcional (input numérico con ícono DollarSign).
+   - **Botones de acción** con el patrón `gap-0 hover:gap-1.5 / max-w-0 hover:max-w-[N]` de expand-on-hover del resto del sistema. "Desactivar" en rose, "Activar" en emerald, "Guardar / Crear" en navy.
+   - Empty state con ícono `Layers` cuando no hay nada seleccionado.
+
+4. **`App.jsx`** — Ruta `/settings` lazy, protegida con `canManageRoles`.
+
+5. **`Sidebar.jsx`** — Nuevo item "Servicios" con ícono `Layers` en el dropdown de Configuración (encima de Usuarios). El `useEffect` que auto-abre el dropdown ahora también detecta `/settings`. El `max-h` del dropdown subió de `max-h-40` a `max-h-52` para acomodar el ítem extra.
+
+6. **`NewAppointmentModal.jsx`** — Selector de servicio opcional entre Paciente y Fecha. Carga los servicios activos al abrir el modal. Al elegir un servicio con `duration_minutes`, auto-ajusta la hora de fin. Pasa `serviceId` a `createAppointment`. El selector solo aparece si hay servicios activos (`services.length > 0`) para no romper la experiencia de negocios sin servicios configurados.
+
+**`formatDuration`** exportada desde `Settings.jsx` y reutilizada en el modal para mostrar "30 min", "1h", "1h 30min", etc.
+
+**Impacto:** El admin puede crear los tipos de consulta de su clínica (ej: "Consulta general — 30 min — $150") directamente desde el dashboard. Cuando el doctor agenda un turno, elige el servicio y la hora de fin se ajusta automáticamente. El `service_id` empieza a poblarse en `appointments`, habilitando futuros filtros de estadísticas por tipo de servicio.
+
+---
+
+## 2026-04-16 (sesión 11)
+
+---
+
+### ✅ T-39 — Recordatorios in-app de turnos pendientes de confirmación
+
+**Contexto:** La tarea original planteaba integración con WhatsApp para enviar recordatorios, pero se rediseñó para evitar costos externos. El nuevo enfoque usa exclusivamente la infraestructura ya existente (tabla `notifications` + realtime listener del Topbar).
+
+**Problema:** No había ningún mecanismo que alertara al doctor sobre turnos pendientes de confirmación (`status = 'scheduled'`) próximos a ocurrir. Los turnos podían llegar al día sin que el staff supiera que debían confirmarlos.
+
+**Solución:**
+
+1. **`supabaseService.js`** — 3 funciones nuevas:
+   - `getPendingAppointmentsNext24h()` — consulta `appointments` con `status='scheduled'` entre `now` y `now + 24h`, con join a `patients(display_name)`.
+   - `getLastPendingReminderTime()` — devuelve el `created_at` de la última notificación `type='pending_reminder'` para el negocio activo. Permite anti-spam.
+   - `insertPendingReminderNotification(appointments)` — inserta una notificación en la tabla `notifications` con el conteo de turnos pendientes y los primeros 3 pacientes con horario (ej: `"García – 10:30 · López – 14:00 · …y 2 más"`).
+
+2. **`src/hooks/usePendingReminder.js`** — Hook nuevo:
+   - Al montar: ejecuta un chequeo inmediato.
+   - Cada hora: `setInterval` de 3.600.000ms.
+   - Anti-spam: si ya se insertó un recordatorio hace menos de 1 hora, omite el insert.
+   - Si hay turnos pendientes → inserta notificación → el realtime listener de `useNotifications` la recibe y la agrega a la campanita automáticamente (sin polling adicional).
+
+3. **`src/components/Topbar.jsx`** — 3 cambios:
+   - Importa `Clock` de `lucide-react`.
+   - Llama `usePendingReminder()` para activar el sistema (siempre que el Topbar esté montado = usuario autenticado).
+   - Las notificaciones `type='pending_reminder'` muestran ícono de reloj con fondo ámbar (`bg-amber-500/90`), visualmente distintas de las notificaciones de turno (azul) y paciente (azul).
+
+**Formato de la notificación:**
+- **Título:** `"3 turnos pendientes de confirmar"` (singular/plural automático)
+- **Mensaje:** `"García – 10:30 · López – 14:00 · Ramos – 16:00"` (máx 3 + contador de excedentes)
+
+**Impacto:** El doctor ve en la campanita (con badge rojo) un resumen de los turnos que necesitan confirmación en las próximas 24 horas, actualizado automáticamente cada hora. Cero costos de WhatsApp o email — usa la infraestructura existente de notificaciones.
 
 ---
 

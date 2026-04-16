@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow } from '../../services/supabaseService';
-import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, RotateCcw } from 'lucide-react';
+import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow, markRescheduled } from '../../services/supabaseService';
+import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, RotateCcw, Tag } from 'lucide-react';
+import { formatDuration } from '../../pages/Settings';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import EditAppointmentModal from './EditAppointmentModal';
@@ -175,6 +176,34 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Servicio — solo si el turno tiene uno asociado */}
+                                {appointment.services?.name && (
+                                    <>
+                                        <div className="border-b border-dashed border-gray-200 ml-[56px]" />
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center shrink-0">
+                                                <Tag size={18} />
+                                            </div>
+                                            <div className="pt-0.5">
+                                                <div className="text-xs font-semibold text-gray-400 mb-0.5">Servicio</div>
+                                                <div className="font-bold text-navy-900 text-xs">
+                                                    {appointment.services.name}
+                                                    {appointment.services.duration_minutes > 0 && (
+                                                        <span className="ml-1.5 text-navy-700/50 font-semibold">
+                                                            · {formatDuration(appointment.services.duration_minutes)}
+                                                        </span>
+                                                    )}
+                                                    {appointment.services.price != null && (
+                                                        <span className="ml-1.5 text-navy-700/50 font-semibold">
+                                                            · Q {Number(appointment.services.price).toFixed(2)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -337,7 +366,9 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                         patient_phones: patients?.patient_phones,
                     }}
                     onClose={() => setShowReschedule(false)}
-                    onCreated={() => {
+                    onCreated={async () => {
+                        // Stamp rescheduled_at so this record disappears from seguimiento
+                        try { await markRescheduled(appointment.id); } catch { /* non-blocking */ }
                         setShowReschedule(false);
                         onUpdated?.();
                         onClose();

@@ -16,7 +16,8 @@
       "mcp__supabase__deploy_edge_function",
       "Bash(npm install:*)",
       "Bash(find '/c/Users/Juan Diego/OneDrive/Documentos/Antigravity Projects/NovTurnAI/NovTurnIA/src/components' -type f -name *.jsx -o -name *.js)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "mcp__supabase__apply_migration"
     ]
   },
   "enableAllProjectMcpServers": true,

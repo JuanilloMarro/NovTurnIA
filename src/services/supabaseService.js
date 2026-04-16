@@ -43,6 +43,61 @@ async function toISO(date, time) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(h)}:${pad(m)}:00${offset}`;
 }
 
+// ── Services ─────────────────────────────────────────────
+
+export async function getServices() {
+    const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('business_id', getBID())
+        .order('name', { ascending: true });
+    if (error) throw error;
+    return data || [];
+}
+
+export async function createService({ name, description, duration_minutes, price }) {
+    const { data, error } = await supabase
+        .from('services')
+        .insert({
+            business_id: getBID(),
+            name: name.trim(),
+            description: description?.trim() || null,
+            duration_minutes: duration_minutes || 30,
+            price: price ?? null,
+            active: true,
+        })
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function updateService(id, { name, description, duration_minutes, price }) {
+    const { data, error } = await supabase
+        .from('services')
+        .update({
+            name: name.trim(),
+            description: description?.trim() || null,
+            duration_minutes: duration_minutes || 30,
+            price: price ?? null,
+        })
+        .eq('id', id)
+        .eq('business_id', getBID())
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function toggleServiceActive(id, active) {
+    const { error } = await supabase
+        .from('services')
+        .update({ active })
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
+}
+
 // ── Appointments ──────────────────────────────────────────
 
 /**
@@ -75,7 +130,7 @@ export async function getOccupiedSlotsForDate(date) {
 export async function getAppointmentsByWeek(weekStart, weekEnd) {
     const { data, error } = await supabase
         .from('appointments')
-        .select('*, patients(display_name, patient_phones(phone))')
+        .select('*, patients(display_name, patient_phones(phone)), services(name, duration_minutes, price)')
         .eq('business_id', getBID())
         .gte('date_start', weekStart)
         .lt('date_start', weekEnd)
@@ -107,18 +162,20 @@ export async function createAppointment({ patientId, serviceId, date, startTime,
             throw new Error('Este horario ya está ocupado. Seleccioná otro.');
         }
         console.error('Insert Error — code:', error.code, '| message:', error.message, '| details:', error.details, '| hint:', error.hint);
-        throw new Error('Error al guardar el turno. Verifica los datos.');
+        throw error;
     }
     return data;
 }
 
-export async function updateAppointment(id, { date, startTime, endTime }) {
+export async function updateAppointment(id, { date, startTime, endTime, serviceId }) {
+    const updates = {
+        date_start: await toISO(date, startTime),
+        date_end: await toISO(date, endTime),
+    };
+    if (serviceId !== undefined) updates.service_id = serviceId;
     const { data, error } = await supabase
         .from('appointments')
-        .update({
-            date_start: await toISO(date, startTime),
-            date_end: await toISO(date, endTime),
-        })
+        .update(updates)
         .eq('id', id)
         .eq('business_id', getBID())
         .select()
@@ -177,6 +234,16 @@ export async function markNoShow(id) {
     if (error) throw error;
 }
 
+export async function markRescheduled(id) {
+    const { error } = await supabase
+        .from('appointments')
+        .update({ rescheduled_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('business_id', getBID());
+
+    if (error) throw error;
+}
+
 /**
  * Returns appointments with status 'no_show' or 'cancelled' for the follow-up tab.
  * @param {Object} opts
@@ -203,6 +270,7 @@ export async function getLostAppointments({ type = 'all', days = 30 } = {}) {
         `)
         .eq('business_id', getBID())
         .in('status', statuses)
+        .is('rescheduled_at', null)
         .gte('date_start', since.toISOString())
         .order('date_start', { ascending: false });
 
@@ -446,11 +514,25 @@ export async function getStatsOverview() {
 export async function getBusinessInfo() {
     const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, plan, timezone, schedule_start, schedule_end, schedule_days')
+        .select('id, name, plan, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, has_emergencias, custom_prompt')
         .eq('id', getBID())
         .single();
 
     if (error) throw error;
+    return data;
+}
+
+export async function updateBusinessInfo(fields) {
+    const { data, error } = await supabase
+        .from('businesses')
+        .update(fields)
+        .eq('id', getBID())
+        .select()
+        .single();
+
+    if (error) throw error;
+    // Bust timezone cache so next toISO() picks up the new value
+    _businessTimezone = null;
     return data;
 }
 
@@ -561,6 +643,77 @@ export async function clearNotifications() {
         .eq('business_id', getBID());
 
     if (error) throw error;
+}
+
+// ── Pending Appointment Reminders (T-39) ─────────────────
+
+/** Turnos con status='scheduled' en las próximas 24 horas */
+export async function getPendingAppointmentsNext24h() {
+    const now = new Date();
+    const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const { data, error } = await supabase
+        .from('appointments')
+        .select('id, date_start, patients(display_name)')
+        .eq('business_id', getBID())
+        .eq('status', 'scheduled')
+        .gte('date_start', now.toISOString())
+        .lte('date_start', in24h.toISOString())
+        .order('date_start', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+}
+
+/** Retorna el created_at de la última notificación de tipo pending_reminder */
+export async function getLastPendingReminderTime() {
+    const { data, error } = await supabase
+        .from('notifications')
+        .select('created_at')
+        .eq('business_id', getBID())
+        .eq('type', 'pending_reminder')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error) throw error;
+    return data?.created_at ?? null;
+}
+
+/** Inserta una notificación de recordatorio con resumen de turnos pendientes */
+export async function insertPendingReminderNotification(appointments) {
+    const count = appointments.length;
+    if (count === 0) return null;
+
+    const tz = await getBusinessTimezone();
+    const formatter = new Intl.DateTimeFormat('es', {
+        timeZone: tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+
+    const lines = appointments.slice(0, 3).map(appt => {
+        const name = appt.patients?.display_name || 'Paciente';
+        const timeStr = formatter.format(new Date(appt.date_start));
+        return `${name} – ${timeStr}`;
+    });
+    if (count > 3) lines.push(`...y ${count - 3} más`);
+
+    const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+            business_id: getBID(),
+            type: 'pending_reminder',
+            title: `${count} turno${count > 1 ? 's' : ''} pendiente${count > 1 ? 's' : ''} de confirmar`,
+            message: lines.join(' · '),
+            read: false,
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
 }
 
 // ── Staff Management ──────────────────────────────────────

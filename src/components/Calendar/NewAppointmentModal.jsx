@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { createAppointment, getPatients, getOccupiedSlotsForDate } from '../../services/supabaseService';
+import { createAppointment, getPatients, getOccupiedSlotsForDate, getServices } from '../../services/supabaseService';
 import { X, Search, Calendar, ChevronDown, Save } from 'lucide-react';
+import { formatDuration } from '../../pages/Settings';
 import { formatPhone } from '../../utils/format';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 import { useAppStore, generateTimeSlots } from '../../store/useAppStore';
@@ -34,11 +35,21 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
         const em = h * 60 + m + 60;
         return `${String(Math.floor(em / 60)).padStart(2, '0')}:${String(em % 60).padStart(2, '0')}`;
     });
+    const [serviceId, setServiceId] = useState(null);
+    const [services, setServices] = useState([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [occupiedRanges, setOccupiedRanges] = useState([]);
     const modalRef = useRef(null);
     useModalFocus(modalRef, isOpen, onClose);
+
+    // Load active services once when modal opens
+    useEffect(() => {
+        if (!isOpen) return;
+        getServices()
+            .then(data => setServices(data.filter(s => s.active)))
+            .catch(() => setServices([]));
+    }, [isOpen]);
 
     // Fetch occupied slots whenever the selected date (or open state) changes
     useEffect(() => {
@@ -58,6 +69,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
 
     if (!isOpen) return null;
 
+    // Servicio actualmente seleccionado y si fija la duración del turno
+    const selectedService = serviceId ? services.find(s => s.id === serviceId) ?? null : null;
+    const hasServiceDuration = (selectedService?.duration_minutes ?? 0) > 0;
+
     function searchPatients(q) {
         setPatientQ(q);
         setPatients([]);
@@ -69,6 +84,29 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                 setPatients(data ?? []);
             } catch { /* silently ignore search errors */ }
         }, 300);
+    }
+
+    function calcEnd(start, duration) {
+        const [sh, sm] = start.split(':').map(Number);
+        const endMin = sh * 60 + sm + duration;
+        const eh = Math.floor(endMin / 60) % 24;
+        const em = endMin % 60;
+        return `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
+    }
+
+    function handleServiceChange(e) {
+        const val = e.target.value;
+        if (!val) {
+            setServiceId(null);
+            // Volver al default: fin = inicio + 1h
+            setEndTime(calcEnd(startTime, 60));
+            return;
+        }
+        const svc = services.find(s => String(s.id) === val);
+        setServiceId(Number(val));
+        if (svc?.duration_minutes) {
+            setEndTime(calcEnd(startTime, svc.duration_minutes));
+        }
     }
 
     async function handleSubmit(e) {
@@ -86,7 +124,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
 
         setError(''); setLoading(true);
         try {
-            await createAppointment({ patientId: patientObj.id, date, startTime, endTime });
+            await createAppointment({ patientId: patientObj.id, serviceId: serviceId || null, date, startTime, endTime });
             showSuccessToast(
                 'Turno Creado Exitosamente',
                 `${patientObj.display_name || 'Paciente'} : ${startTime} a ${endTime}`,
@@ -131,7 +169,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                     <div className="px-6 py-4 space-y-5">
                         {/* Paciente */}
                         <div>
-                            <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Paciente</label>
+                            <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3">Paciente</label>
 
                             {!patientObj ? (
                                 <div className="relative">
@@ -181,9 +219,31 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                             )}
                         </div>
 
+                        {/* Servicio */}
+                        <div>
+                            <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3">Servicio</label>
+                            <div className="relative">
+                                <select
+                                    value={serviceId ?? ''}
+                                    onChange={handleServiceChange}
+                                    className="w-full bg-white/40 border border-white/60 rounded-full px-4 pr-10 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm"
+                                >
+                                    <option value="">Sin servicio</option>
+                                    {services.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name}{s.duration_minutes ? ` · ${formatDuration(s.duration_minutes)}` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-navy-800">
+                                    <ChevronDown size={16} />
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Fecha */}
                         <div>
-                            <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Fecha</label>
+                            <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3">Fecha</label>
                             <div className="relative">
                                 <input type="date" value={date} onChange={e => setDate(e.target.value)} required
                                     className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm [&::-webkit-calendar-picker-indicator]:opacity-0"
@@ -196,21 +256,22 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
 
                         {/* Horario */}
                         <div className="flex gap-4">
+                            {/* Inicio — siempre editable */}
                             <div className="flex-1">
-                                <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Inicio</label>
+                                <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3">Inicio</label>
                                 <div className="relative">
-                                    <select value={startTime} onChange={e => { 
-                                        const newStart = e.target.value;
-                                        setStartTime(newStart);
-                                        // Auto-set end time to 1 hour after start
-                                        const [sh, sm] = newStart.split(':').map(Number);
-                                        const endMinutes = sh * 60 + sm + 60; // +1 hour default
-                                        const eh = Math.floor(endMinutes / 60);
-                                        const em = endMinutes % 60;
-                                        const autoEnd = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
-                                        setEndTime(autoEnd);
-                                    }}
-                                        className="w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-10 py-2 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm">
+                                    <select
+                                        value={startTime}
+                                        onChange={e => {
+                                            const newStart = e.target.value;
+                                            setStartTime(newStart);
+                                            // Si hay servicio con duración, recalcular fin con esa duración
+                                            // Si no, mantener +1h por defecto
+                                            const duration = selectedService?.duration_minutes || 60;
+                                            setEndTime(calcEnd(newStart, duration));
+                                        }}
+                                        className="w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-10 py-2 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm"
+                                    >
                                         {TIME_SLOTS.filter(t => t !== schedule_end).map(t => {
                                             const occ = isOccupied(t);
                                             return <option key={t} value={t} disabled={occ}>{t}{occ ? ' — ocupado' : ''}</option>;
@@ -221,17 +282,33 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Fin — display read-only si hay servicio con duración, editable si no */}
                             <div className="flex-1">
-                                <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Fin</label>
-                                <div className="relative">
-                                    <select value={endTime} onChange={e => setEndTime(e.target.value)}
-                                        className="w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-10 py-2 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm">
-                                        {TIME_SLOTS.filter(t => t > startTime).map(t => <option key={t}>{t}</option>)}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-navy-800">
-                                        <ChevronDown size={16} />
+                                <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3">
+                                    Fin
+                                    {hasServiceDuration && (
+                                        <span className="normal-case tracking-normal font-semibold text-navy-700/40 ml-1">(auto)</span>
+                                    )}
+                                </label>
+                                {hasServiceDuration ? (
+                                    <div className="w-full bg-white/20 border border-white/30 rounded-full px-4 py-2 text-sm font-semibold text-navy-900/50 shadow-sm select-none">
+                                        {endTime}
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="relative">
+                                        <select
+                                            value={endTime}
+                                            onChange={e => setEndTime(e.target.value)}
+                                            className="w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-10 py-2 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm"
+                                        >
+                                            {TIME_SLOTS.filter(t => t > startTime).map(t => <option key={t}>{t}</option>)}
+                                        </select>
+                                        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-navy-800">
+                                            <ChevronDown size={16} />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -18,7 +18,9 @@ const Stats           = lazy(() => import('./pages/Stats'));
 const Users           = lazy(() => import('./pages/Users'));
 const AuditLog        = lazy(() => import('./pages/AuditLog'));
 const AdminOnboarding = lazy(() => import('./pages/AdminOnboarding'));
-const Login           = lazy(() => import('./pages/Login'));
+const Settings         = lazy(() => import('./pages/Settings'));
+const BusinessSettings = lazy(() => import('./pages/BusinessSettings'));
+const Login            = lazy(() => import('./pages/Login'));
 
 function PageLoader() {
     return (
@@ -88,8 +90,10 @@ export default function App() {
                                             <Route path="/conversations" element={<Conversations />} />
                                             <Route path="/patients/:id/history" element={<PatientHistory />} />
                                             <Route path="/stats" element={canViewStats ? <Stats /> : <Navigate to="/" replace />} />
+                                            <Route path="/settings" element={canManageRoles ? <Settings /> : <Navigate to="/" replace />} />
                                             <Route path="/users" element={canManageRoles ? <Users /> : <Navigate to="/" replace />} />
                                             <Route path="/audit-log" element={canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
+                                            <Route path="/business" element={canManageRoles ? <BusinessSettings /> : <Navigate to="/" replace />} />
                                             <Route path="/admin/new-tenant" element={isSuperAdmin ? <AdminOnboarding /> : <Navigate to="/" replace />} />
                                             <Route path="*" element={<Navigate to="/" replace />} />
                                         </Routes>
