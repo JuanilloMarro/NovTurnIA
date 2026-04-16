@@ -64,7 +64,7 @@ export default function CalendarMonth({ appointments, monthDate, loading, onEven
                                 </span>
                             </div>
 
-                            <div className="space-y-1 overflow-y-auto max-h-[80px] custom-scrollbar">
+                            <div className="space-y-1 overflow-y-auto max-h-[80px] custom-scrollbar pr-2">
                                 {dayAppointments.map(apt => {
                                     const timeStr = new Date(apt.date_start).toLocaleTimeString('es-GT', {
                                         hour: '2-digit', minute: '2-digit', timeZone: 'America/Guatemala', hour12: true

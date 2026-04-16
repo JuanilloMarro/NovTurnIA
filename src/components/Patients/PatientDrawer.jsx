@@ -31,6 +31,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
     const [showEdit, setShowEdit] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showGdprConfirm, setShowGdprConfirm] = useState(false);
+    const [gdprConfirmText, setGdprConfirmText] = useState('');
     const [deleting, setDeleting] = useState(false);
     const [botPaused, setBotPaused] = useState(patient?.human_takeover || false);
     const name = patient.display_name || 'Sin nombre';
@@ -213,7 +214,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                     {/* 5. Eliminar datos GDPR — solo admin/manager */}
                     {canManageRoles && (
                         <button
-                            onClick={() => setShowGdprConfirm(true)}
+                            onClick={() => { setShowGdprConfirm(true); setGdprConfirmText(''); }}
                             className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-800 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
                             title="Borrado permanente GDPR Art. 17"
                         >
@@ -263,6 +264,20 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                         <p className="text-sm font-bold text-navy-900 text-center mb-1">Borrar datos permanentemente (GDPR)</p>
                         <p className="text-xs text-navy-700/70 text-center mb-1 px-4">Esta acción es <span className="font-bold text-rose-700">irreversible</span>. Se eliminarán todos los datos de <span className="font-bold text-navy-900">{name}</span>: teléfonos, historial de conversaciones y citas.</p>
                         <p className="text-[10px] text-navy-700/50 text-center mb-5 px-4">Art. 17 GDPR — Derecho al olvido</p>
+                        
+                        <div className="mb-6 px-2">
+                            <label className="block text-[10px] uppercase font-bold text-navy-700/60 mb-1.5 text-center">
+                                Escribe "confirmar" para proceder:
+                            </label>
+                            <input 
+                                type="text" 
+                                value={gdprConfirmText} 
+                                onChange={e => setGdprConfirmText(e.target.value)}
+                                className="w-full text-center px-4 py-2.5 rounded-xl text-xs font-bold border border-rose-200 bg-white/60 focus:border-rose-400 focus:bg-white focus:outline-none transition-colors shadow-sm text-navy-900"
+                                placeholder="confirmar" 
+                            />
+                        </div>
+
                         <div className="flex justify-center gap-3">
                             <button
                                 onClick={() => setShowGdprConfirm(false)}
@@ -272,8 +287,8 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                             </button>
                             <button
                                 onClick={handleGdprDelete}
-                                disabled={deleting}
-                                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-rose-700/80 border border-rose-600 text-white text-[11px] font-bold rounded-full hover:bg-rose-800 transition-colors shadow-sm disabled:opacity-50 min-w-[100px]"
+                                disabled={deleting || gdprConfirmText.toLowerCase().trim() !== 'confirmar'}
+                                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-rose-700/80 border border-rose-600 text-white text-[11px] font-bold rounded-full hover:bg-rose-800 transition-colors shadow-sm disabled:opacity-40 disabled:hover:bg-rose-700/80 min-w-[100px]"
                             >
                                 <ShieldOff size={13} /> {deleting ? 'Eliminando...' : 'Eliminar todo'}
                             </button>

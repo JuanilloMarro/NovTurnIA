@@ -144,7 +144,7 @@ export default function Patients() {
                     <p>No se encontraron pacientes para tu búsqueda.</p>
                 </div>
             ) : (
-                <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar pb-10">
+                <div className="space-y-3 flex-1 overflow-y-auto pr-3 custom-scrollbar pb-10">
                     {patients.map((p, i) => (
                         <PatientCard key={p.id} patient={p} index={i} onClick={setSelectedPatient} />
                     ))}

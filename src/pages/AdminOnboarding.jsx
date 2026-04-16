@@ -79,9 +79,9 @@ export default function AdminOnboarding() {
                 <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Onboarding de nuevo negocio — solo super-admin</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pb-8">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar pr-3 space-y-6 pb-8">
                 {/* Negocio */}
-                <div className="bg-white/30 backdrop-blur-xl border border-white/60 rounded-[28px] p-6 space-y-4">
+                <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-[28px] p-6 space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                         <Building2 size={16} className="text-navy-900/60" />
                         <span className="text-sm font-bold text-navy-900">Datos del negocio</span>
@@ -112,7 +112,7 @@ export default function AdminOnboarding() {
                 </div>
 
                 {/* Horario */}
-                <div className="bg-white/30 backdrop-blur-xl border border-white/60 rounded-[28px] p-6 space-y-4">
+                <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-[28px] p-6 space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                         <Clock size={16} className="text-navy-900/60" />
                         <span className="text-sm font-bold text-navy-900">Horario de atención</span>
@@ -150,7 +150,7 @@ export default function AdminOnboarding() {
                 </div>
 
                 {/* Admin */}
-                <div className="bg-white/30 backdrop-blur-xl border border-white/60 rounded-[28px] p-6 space-y-4">
+                <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-[28px] p-6 space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                         <User size={16} className="text-navy-900/60" />
                         <span className="text-sm font-bold text-navy-900">Administrador del negocio</span>

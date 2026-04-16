@@ -62,92 +62,86 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0 })
     }
 
     return (
-        <div className="h-full flex flex-col min-h-0">
-            {/* Lista */}
-            <div className="flex-1 min-h-0 overflow-y-auto rounded-[20px] bg-white/20 backdrop-blur-sm border border-white/40 shadow-sm">
+        <div className={`h-full flex flex-col min-h-0 w-full pt-2 transition-all duration-300 ${selectedAppointment ? 'pr-[380px]' : ''}`}>
+            {/* Scrollable list */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar pb-10 space-y-2 pr-3">
                 {loading ? (
-                    <div className="flex items-center justify-center h-40 text-navy-700/40 text-xs font-semibold">
-                        Cargando...
-                    </div>
+                    Array(4).fill(0).map((_, i) => (
+                        <div key={i} className="animate-shimmer h-[76px] rounded-2xl bg-white/40 w-full" />
+                    ))
                 ) : appointments.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-40 gap-2 text-navy-700/40">
-                        <UserX size={28} strokeWidth={1.5} />
-                        <span className="text-xs font-semibold">Sin registros en este período</span>
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-navy-900/40 py-16">
+                        <div className="w-14 h-14 rounded-full bg-white/40 backdrop-blur-md border border-white/60 flex items-center justify-center shadow-sm">
+                            <UserX size={24} strokeWidth={1.5} />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-sm font-bold text-navy-900/60">Sin registros</p>
+                            <p className="text-[11px] font-semibold text-navy-700/40 mt-0.5">No hay pacientes perdidos en este período</p>
+                        </div>
                     </div>
                 ) : (
-                    <table className="w-full text-xs">
-                        <thead>
-                            <tr className="border-b border-white/40">
-                                <th className="text-left px-4 py-3 text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Paciente</th>
-                                <th className="text-left px-4 py-3 text-[10px] font-bold text-navy-700/50 uppercase tracking-wider hidden sm:table-cell">Teléfono</th>
-                                <th className="text-left px-4 py-3 text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Fecha</th>
-                                <th className="text-left px-4 py-3 text-[10px] font-bold text-navy-700/50 uppercase tracking-wider hidden md:table-cell">Estado</th>
-                                <th className="px-4 py-3 text-[10px] font-bold text-navy-700/50 uppercase tracking-wider text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {appointments.map(apt => {
-                                const patient = apt.patients;
-                                const phone = patient?.patient_phones?.find(p => p.is_primary)?.phone
-                                    ?? patient?.patient_phones?.[0]?.phone;
-                                return (
-                                    <tr
-                                        key={apt.id}
-                                        onClick={() => setSelectedAppointment(apt)}
-                                        className="border-b border-white/20 hover:bg-white/30 transition-colors cursor-pointer group"
-                                    >
-                                        <td className="px-4 py-3">
-                                            <div className="font-semibold text-navy-900 truncate max-w-[160px]">
-                                                {patient?.display_name || 'Sin nombre'}
-                                            </div>
-                                            <div className="mt-1 md:hidden">
-                                                <StatusBadge status={apt.status} />
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-navy-700/70 font-medium hidden sm:table-cell whitespace-nowrap">
-                                            {formatPhone(phone) || '—'}
-                                        </td>
-                                        <td className="px-4 py-3 whitespace-nowrap">
-                                            <div className="font-semibold text-navy-900">{formatDate(apt.date_start)}</div>
-                                            <div className="text-navy-700/50 text-[10px]">{formatTime(apt.date_start)}</div>
-                                        </td>
-                                        <td className="px-4 py-3 hidden md:table-cell">
-                                            <StatusBadge status={apt.status} />
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-end gap-1.5">
-                                                {canEditAppointments && (
-                                                    <button
-                                                        onClick={e => { e.stopPropagation(); setRescheduleTarget(apt); }}
-                                                        title="Reagendar"
-                                                        className="w-7 h-7 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-700 hover:bg-white hover:text-navy-900 shadow-sm transition-all"
-                                                    >
-                                                        <RotateCcw size={12} />
-                                                    </button>
-                                                )}
-                                                {canViewConversations && (
-                                                    <button
-                                                        onClick={e => { e.stopPropagation(); navigate(`/conversations?patient=${apt.patient_id}`); }}
-                                                        title="Ir a conversación"
-                                                        className="w-7 h-7 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-700 hover:bg-white hover:text-navy-900 shadow-sm transition-all"
-                                                    >
-                                                        <MessageCircle size={12} />
-                                                    </button>
-                                                )}
-                                                <ChevronRight size={12} className="text-navy-700/30 group-hover:text-navy-700/60 transition-colors ml-1" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                    appointments.map((apt, index) => {
+                        const patient = apt.patients;
+                        const phone = patient?.patient_phones?.find(p => p.is_primary)?.phone
+                            ?? patient?.patient_phones?.[0]?.phone;
+                        const name = patient?.display_name || 'Sin nombre';
+                        
+                        const isCancelled = apt.status === 'cancelled';
+                        const iconBg = isCancelled 
+                            ? 'bg-rose-500/10 text-rose-700 border-rose-500/20' 
+                            : 'bg-gray-100 text-gray-500 border-gray-200';
+                        const Icon = isCancelled ? X : UserX;
+
+                        return (
+                            <div
+                                key={apt.id}
+                                onClick={() => setSelectedAppointment(apt)}
+                                className="group bg-white/40 backdrop-blur-sm border border-white/60 rounded-2xl p-4 hover:bg-white/60 transition-all duration-300 cursor-pointer animate-fade-up shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                                style={{ animationDelay: `${index * 0.04}s` }}
+                            >
+                                <div className="flex items-center gap-3.5">
+                                    {/* Icon Avatar matching Activity Log */}
+                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${iconBg}`}>
+                                        <Icon size={16} strokeWidth={2.5} />
+                                    </div>
+                                    
+                                    <div className="flex-1">
+                                        <p className="text-[13px] font-semibold text-navy-900 leading-snug">
+                                            <span className="font-bold text-navy-900/60 text-[10px] tracking-wider block mb-0.5">
+                                                {isCancelled ? 'Cancelado' : 'No se presentó'}
+                                            </span>
+                                            {name}
+                                        </p>
+                                        <div className="flex items-center mt-1.5 flex-wrap text-[10px] font-bold text-navy-900/40 tracking-wider">
+                                            <span>{formatDate(apt.date_start)}</span>
+                                            <span className="mx-1.5 opacity-60">•</span>
+                                            <span>{formatTime(apt.date_start)}</span>
+                                            {phone && (
+                                                <>
+                                                    <span className="mx-1.5 opacity-60">•</span>
+                                                    <span>{formatPhone(phone)}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center justify-end gap-2 shrink-0">
+                                    <div className="hidden md:flex items-center justify-center w-8 h-8 rounded-full border border-white/60 bg-white/40 text-navy-700 group-hover:bg-white group-hover:scale-105 transition-all shadow-sm">
+                                        <ChevronRight size={16} />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
                 )}
             </div>
 
             {selectedAppointment && (
                 <AppointmentDrawer
                     appointment={selectedAppointment}
+                    variant="followup"
                     onClose={() => setSelectedAppointment(null)}
                     onUpdated={() => { load(); setSelectedAppointment(null); }}
                 />

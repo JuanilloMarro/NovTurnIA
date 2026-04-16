@@ -79,7 +79,7 @@ export default function Users() {
                 </div>
             </div>
 
-            <div className="flex-1 bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
+            <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
                 {/* Left Side: User List Navigation */}
                 <div className="w-[300px] xl:w-[320px] flex flex-col z-10">
                     <div className="p-6">
@@ -89,7 +89,7 @@ export default function Users() {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pt-0 space-y-1.5">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pr-3 pt-0 space-y-1.5">
                         {users.map(u => {
                             const isSelected = selectedUser?.id === u.id;
                             const badge = getRoleBadge(u);

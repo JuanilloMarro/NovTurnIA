@@ -88,7 +88,7 @@ export default function Topbar() {
                                     </button>
                                 )}
                             </div>
-                            <div className="max-h-[320px] overflow-y-auto space-y-2 custom-scrollbar pr-1">
+                            <div className="max-h-[320px] overflow-y-auto space-y-2 custom-scrollbar pr-3">
                                 {activityLog.length === 0 ? (
                                     <div className="text-center text-navy-800/60 py-8 text-xs font-bold">Sin actividad reciente</div>
                                 ) : (

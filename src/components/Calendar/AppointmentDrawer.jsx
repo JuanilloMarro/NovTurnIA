@@ -15,7 +15,7 @@ function getInitials(name) {
     return name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
+export default function AppointmentDrawer({ appointment, onClose, onUpdated, variant }) {
     const navigate = useNavigate();
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [canceling, setCanceling] = useState(false);
@@ -81,8 +81,10 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
         }
     }
 
+    const drawerWidth = variant === 'followup' ? 'w-[360px]' : 'w-[420px]';
+
     return (
-        <div className="absolute top-2 right-2 bottom-2 w-[420px] bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-50 flex flex-col animate-drawer-in overflow-hidden">
+        <div className={`absolute top-2 right-2 bottom-2 ${drawerWidth} bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-50 flex flex-col animate-drawer-in overflow-hidden`}>
             {/* Header */}
             <div className="flex items-center gap-2 p-4">
                 <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
@@ -178,50 +180,33 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                     </div>
                 </div>
             </div>
-
             {/* Footer de Acciones fijo abajo */}
             <div className="p-4 mt-auto">
-                {/* Panel de re-engagement cuando el paciente no se presentó */}
-                {status === 'no_show' ? (
-                    <div className="rounded-2xl bg-white/40 border border-white/60 p-4 space-y-3">
-                        <div className="flex items-center gap-2 text-gray-500">
-                            <UserX size={14} className="shrink-0" />
-                            <span className="text-[11px] font-bold uppercase tracking-widest">Paciente no se presentó</span>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setShowReschedule(true)}
-                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300"
-                            >
-                                <RotateCcw size={13} className="shrink-0" />
-                                Reagendar
-                            </button>
-                            {canViewConversations && (
-                                <button
-                                    onClick={() => navigate(`/conversations?patient=${appointment.patient_id}`)}
-                                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300"
-                                >
-                                    <MessageCircle size={13} className="shrink-0" />
-                                    WhatsApp
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                        {/* 1. Chat */}
-                        {canViewConversations && status !== 'cancelled' && (
-                            <button
-                                onClick={() => navigate(`/conversations?patient=${appointment.patient_id}`)}
-                                className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
-                            >
-                                <MessageCircle size={14} className="shrink-0" />
-                                <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Chat</span>
-                            </button>
-                        )}
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                    {/* 0. Reagendar (solo Cancelado y No se presentó) */}
+                    {canEditAppointments && (status === 'cancelled' || status === 'no_show') && (
+                        <button
+                            onClick={() => setShowReschedule(true)}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        >
+                            <RotateCcw size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Reagendar</span>
+                        </button>
+                    )}
+
+                    {/* 1. Chat */}
+                    {canViewConversations && (
+                        <button
+                            onClick={() => navigate(`/conversations?patient=${appointment.patient_id}`)}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        >
+                            <MessageCircle size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Chat</span>
+                        </button>
+                    )}
 
                         {/* 2. IA (Bot Toggle) */}
-                        {canToggleAi && appointment.patients && status !== 'cancelled' && (
+                        {canToggleAi && appointment.patients && (
                             <button
                                 onClick={async () => {
                                     const newValue = !appointment.patients.human_takeover;
@@ -253,7 +238,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                         )}
 
                         {/* 3. Editar */}
-                        {canEditAppointments && status !== 'cancelled' && (
+                        {canEditAppointments && status !== 'cancelled' && status !== 'no_show' && variant !== 'followup' && (
                             <button onClick={() => setShowEdit(true)}
                                 className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
                             >
@@ -304,7 +289,6 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated }) {
                             </button>
                         )}
                     </div>
-                )}
             </div>
 
             {/* Cancel Confirmation */}

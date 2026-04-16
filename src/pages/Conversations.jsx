@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, MessageCircle, Bot, ShieldAlert } from 'lucide-react';
 import AIStar from '../components/Icons/AIStar';
@@ -32,6 +32,14 @@ export default function Conversations() {
     const [historyHasMore, setHistoryHasMore] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
+    const messagesEndRef = useRef(null);
+
+    // Mueve el scroll al final solo al terminar la carga inicial
+    useEffect(() => {
+        if (!loadingHistory && history.length > 0) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        }
+    }, [loadingHistory]);
 
     // Auto-select patient from URL if present
     useEffect(() => {
@@ -121,7 +129,7 @@ export default function Conversations() {
                 </div>
             </div>
 
-            <div className="flex-1 bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
+            <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
                 {/* Left Panel: Contacts */}
                 <div className="w-[320px] flex flex-col z-10">
                     <div className="p-4">
@@ -138,7 +146,7 @@ export default function Conversations() {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pt-0 space-y-1">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pr-3 pt-0 space-y-1">
                         {patients.filter(p => !search || p.display_name?.toLowerCase().includes(search.toLowerCase())).map(p => {
                             const isSelected = selectedPatient?.id === p.id;
                             const name = p.display_name || 'Sin nombre';
@@ -235,7 +243,7 @@ export default function Conversations() {
                                                         ? 'bg-navy-900 text-white rounded-[20px] rounded-br-[4px] border border-navy-800'
                                                         : 'bg-white/70 backdrop-blur-md border border-white/90 text-navy-900 rounded-[20px] rounded-bl-[4px]'
                                                         }`}>
-                                                        <p>{msg.content}</p>
+                                                        <p className="whitespace-pre-wrap">{msg.content}</p>
                                                         <div className={`text-[9px] uppercase font-bold tracking-widest mt-1.5 ${isBot ? 'text-navy-300 text-right' : 'text-navy-500'}`}>
                                                             {new Date(msg.created_at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                                         </div>
@@ -243,6 +251,7 @@ export default function Conversations() {
                                                 </div>
                                             );
                                         })}
+                                        <div ref={messagesEndRef} className="h-1" />
                                     </div>
                                 )}
                             </div>

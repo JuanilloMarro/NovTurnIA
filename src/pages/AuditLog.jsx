@@ -370,7 +370,7 @@ export default function AuditLog() {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 lg:mb-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 lg:mb-6 pr-3">
                 {loading ? (
                     <div className="flex items-center justify-center p-12">
                         <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
@@ -416,7 +416,7 @@ export default function AuditLog() {
                             const actStyle = ACTION_STYLES[isEffectivelyDelete ? 'DELETE' : log.action] || 'bg-gray-100 text-gray-600 border-gray-200';
 
                             return (
-                                <div key={log.id} className="bg-white/40 hover:bg-white/60 border border-white/50 rounded-2xl px-5 py-4 transition-all">
+                                <div key={log.id} className="group bg-white/40 backdrop-blur-sm border border-white/60 rounded-2xl px-5 py-4 hover:bg-white/60 transition-all duration-300 shadow-sm">
                                     <div className="flex items-center gap-3.5">
                                         <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${actStyle}`}>
                                             {isInsert ? <Plus size={16} strokeWidth={2.5} /> : isEffectivelyDelete ? <Trash2 size={16} strokeWidth={2.5} /> : <Edit2 size={16} strokeWidth={2.5} />}
@@ -428,13 +428,12 @@ export default function AuditLog() {
                                                 {String(summary || '').charAt(0).toUpperCase() + String(summary || '').slice(1)}.
                                             </p>
                                             {d && (
-                                                <div className="flex items-center gap-2 mt-1.5">
-                                                    <span className="text-[10px] font-bold text-navy-900/40 tracking-widest bg-white/50 px-2 py-0.5 rounded border border-white/80">
-                                                        {mod}
-                                                    </span>
-                                                    <span className="text-[10px] font-bold text-navy-900/40 tracking-wider">
-                                                        {d.toLocaleDateString('es-GT', { day: '2-digit', month: 'short' })} • {d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
+                                                <div className="flex items-center mt-1.5 flex-wrap text-[10px] font-bold text-navy-900/40 tracking-wider">
+                                                    <span>{mod}</span>
+                                                    <span className="mx-1.5 opacity-60">•</span>
+                                                    <span>{d.toLocaleDateString('es-GT', { day: '2-digit', month: 'short' })}</span>
+                                                    <span className="mx-1.5 opacity-60">•</span>
+                                                    <span>{d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}</span>
                                                 </div>
                                             )}
                                         </div>
