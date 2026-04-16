@@ -7,16 +7,16 @@ export default function CalendarEvent({ appointment, style, onClick, isCompact }
 
     const borders = {
         confirmed: 'border-l-emerald-500',
-        pending:   'border-l-navy-700',
-        cancelled: 'border-l-rose-400',
-        no_show:   'border-l-gray-300',
+        pending:   'border-l-amber-400',
+        cancelled: 'border-l-rose-400 opacity-50',
+        no_show:   'border-l-gray-300 opacity-50',
     };
 
     const backgrounds = {
-        confirmed: 'bg-emerald-50',
-        pending:   'bg-navy-50',
-        cancelled: 'bg-rose-50 opacity-60',
-        no_show:   'bg-gray-100 opacity-60',
+        confirmed: 'bg-white',
+        pending:   'bg-white',
+        cancelled: 'bg-white',
+        no_show:   'bg-white',
     };
 
     const nameColor = {

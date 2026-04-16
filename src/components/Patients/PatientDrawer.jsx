@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, MessageCircle, Pencil, Trash2, Phone, Bot } from 'lucide-react';
+import { X, ChevronLeft, MessageCircle, Pencil, Trash2, Phone, Bot, ShieldOff } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
-import { deletePatient, setHumanTakeover } from '../../services/supabaseService';
+import { deletePatient, gdprDeletePatient, setHumanTakeover } from '../../services/supabaseService';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
+import { usePermissions } from '../../hooks/usePermissions';
 import EditPatientModal from './EditPatientModal';
 import AIStar from '../Icons/AIStar';
 
@@ -26,8 +27,10 @@ function formatAptDate(isoString) {
 
 export default function PatientDrawer({ patient, onClose, onRefresh }) {
     const navigate = useNavigate();
+    const { canManageRoles } = usePermissions();
     const [showEdit, setShowEdit] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showGdprConfirm, setShowGdprConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [botPaused, setBotPaused] = useState(patient?.human_takeover || false);
     const name = patient.display_name || 'Sin nombre';
@@ -43,6 +46,21 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
             showErrorToast('Error al Eliminar', err.message || 'No se pudo eliminar al paciente.');
         } finally {
             setDeleting(false);
+        }
+    }
+
+    async function handleGdprDelete() {
+        setDeleting(true);
+        try {
+            await gdprDeletePatient(patient.id);
+            showSuccessToast('Datos eliminados (GDPR)', `Todos los datos de ${name} han sido borrados permanentemente.`);
+            onClose();
+            onRefresh?.();
+        } catch (err) {
+            showErrorToast('Error al eliminar datos', err.message || 'No se pudieron eliminar los datos.');
+        } finally {
+            setDeleting(false);
+            setShowGdprConfirm(false);
         }
     }
 
@@ -103,7 +121,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                                     apt.status === 'cancelled'
                                         ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'
                                         : apt.status === 'no_show'
-                                            ? 'bg-navy-900 shadow-[0_0_8px_rgba(15,32,68,0.4)]'
+                                            ? 'bg-gray-400 shadow-[0_0_8px_rgba(156,163,175,0.4)]'
                                             : apt.confirmed
                                                 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
                                                 : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
@@ -114,7 +132,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                                     </div>
                                     <div className={`text-[10px] font-bold mt-0.5 ${
                                         apt.status === 'cancelled' ? 'text-rose-600/70' :
-                                        apt.status === 'no_show' ? 'text-navy-900/70' :
+                                        apt.status === 'no_show' ? 'text-gray-500/70' :
                                         apt.confirmed ? 'text-emerald-600/70' : 'text-amber-600/70'
                                     }`}>
                                         {apt.status === 'cancelled' ? 'Cancelado' :
@@ -191,6 +209,18 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                         <Trash2 size={14} className="shrink-0" />
                         <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">Eliminar</span>
                     </button>
+
+                    {/* 5. Eliminar datos GDPR — solo admin/manager */}
+                    {canManageRoles && (
+                        <button
+                            onClick={() => setShowGdprConfirm(true)}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-800 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
+                            title="Borrado permanente GDPR Art. 17"
+                        >
+                            <ShieldOff size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">GDPR</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -220,6 +250,38 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                 document.body
             )}
 
+
+            {/* GDPR hard-delete confirmation */}
+            {showGdprConfirm && createPortal(
+                <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+                    <div className="w-full max-w-sm bg-white/30 backdrop-blur-xl border border-rose-200/60 p-6 animate-fade-up shadow-[0_8px_32px_rgba(26,58,107,0.15)] rounded-[32px]">
+                        <div className="flex items-center justify-center mb-3">
+                            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
+                                <ShieldOff size={18} className="text-rose-700" />
+                            </div>
+                        </div>
+                        <p className="text-sm font-bold text-navy-900 text-center mb-1">Borrar datos permanentemente (GDPR)</p>
+                        <p className="text-xs text-navy-700/70 text-center mb-1 px-4">Esta acción es <span className="font-bold text-rose-700">irreversible</span>. Se eliminarán todos los datos de <span className="font-bold text-navy-900">{name}</span>: teléfonos, historial de conversaciones y citas.</p>
+                        <p className="text-[10px] text-navy-700/50 text-center mb-5 px-4">Art. 17 GDPR — Derecho al olvido</p>
+                        <div className="flex justify-center gap-3">
+                            <button
+                                onClick={() => setShowGdprConfirm(false)}
+                                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm min-w-[100px]"
+                            >
+                                <X size={13} /> Cancelar
+                            </button>
+                            <button
+                                onClick={handleGdprDelete}
+                                disabled={deleting}
+                                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-rose-700/80 border border-rose-600 text-white text-[11px] font-bold rounded-full hover:bg-rose-800 transition-colors shadow-sm disabled:opacity-50 min-w-[100px]"
+                            >
+                                <ShieldOff size={13} /> {deleting ? 'Eliminando...' : 'Eliminar todo'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
 
             {showEdit && (
                 <EditPatientModal

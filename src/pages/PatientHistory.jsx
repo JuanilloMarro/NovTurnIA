@@ -13,7 +13,9 @@ export default function PatientHistory() {
     const navigate = useNavigate();
     const { patients, search, handleSearch } = usePatients();
     const [history, setHistory] = useState([]);
+    const [historyHasMore, setHistoryHasMore] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
     const bottomRef = useRef(null);
 
     const selectedPatient = patients.find(p => p.id === id);
@@ -41,17 +43,29 @@ export default function PatientHistory() {
 
         setLoadingHistory(true);
         try {
-            // Usar getPatientHistory() del service layer en lugar de llamar
-            // supabase directamente desde el componente.
-            // CLAUDE.md es explícito: "never call the Supabase client directly
-            // from components or pages". La función ya existía en supabaseService.js
-            // y no se estaba usando.
-            const data = await getPatientHistory(patientId);
-            setHistory(data || []);
+            const { data, hasMore } = await getPatientHistory(patientId);
+            setHistory(data);
+            setHistoryHasMore(hasMore);
         } catch {
             setHistory([]);
+            setHistoryHasMore(false);
         } finally {
             setLoadingHistory(false);
+        }
+    }
+
+    async function loadMoreHistory() {
+        if (!id || loadingMoreHistory || !historyHasMore) return;
+        setLoadingMoreHistory(true);
+        try {
+            const oldest = history[0]?.created_at;
+            const { data, hasMore } = await getPatientHistory(id, { before: oldest });
+            setHistory(prev => [...data, ...prev]);
+            setHistoryHasMore(hasMore);
+        } catch {
+            // no-op — mantener mensajes actuales
+        } finally {
+            setLoadingMoreHistory(false);
         }
     }
 
@@ -115,7 +129,19 @@ export default function PatientHistory() {
                             ) : history.length === 0 ? (
                                 <div className="text-center text-gray-400 mt-20">No hay mensajes registrados con el bot.</div>
                             ) : (
-                                history.map((msg) => {
+                                <>
+                                {historyHasMore && (
+                                    <div className="flex justify-center pb-2">
+                                        <button
+                                            onClick={loadMoreHistory}
+                                            disabled={loadingMoreHistory}
+                                            className="px-4 py-1.5 bg-white border border-gray-200 rounded-full text-[11px] font-bold text-navy-800 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+                                        >
+                                            {loadingMoreHistory ? 'Cargando...' : 'Cargar mensajes anteriores'}
+                                        </button>
+                                    </div>
+                                )}
+                                {history.map((msg) => {
                                     const isUser = msg.role === 'user';
                                     let content = msg.content;
                                     let hasAudio = false;
@@ -139,7 +165,8 @@ export default function PatientHistory() {
                                             </div>
                                         </div>
                                     );
-                                })
+                                })}
+                                </>
                             )}
                             <div ref={bottomRef} />
                         </div>

@@ -23,7 +23,11 @@ function getInitials(name) {
 // T-34: un rol es editable si tiene permisos JSONB en la DB,
 // sin importar su nombre. Antes solo 'secretary' podía editarse.
 function isEditableRole(role) {
-    return role?.permissions !== null && role?.permissions !== undefined;
+    if (role?.permissions === null || role?.permissions === undefined) return false;
+    // El rol con manage_roles:true es el rol máximo — sus permisos no se pueden editar
+    // desde la UI para evitar un lockout accidental.
+    if (role.permissions?.manage_roles === true) return false;
+    return true;
 }
 
 // ── Traducciones de roles a español ──
@@ -145,7 +149,9 @@ export default function Users() {
                                         {!isEditableRole(selectedUser?.staff_roles) && (
                                             <div className="flex items-center gap-1.5 text-[9px] font-bold text-navy-700 bg-navy-900/5 border border-navy-900/10 px-2.5 py-1 rounded-full">
                                                 <Lock size={10} />
-                                                Permisos definidos en DB
+                                                {selectedUser?.staff_roles?.permissions?.manage_roles
+                                                    ? 'Rol máximo acciones no editables'
+                                                    : 'Permisos definidos en DB'}
                                             </div>
                                         )}
                                         {isEditableRole(selectedUser?.staff_roles) && canManageRoles && (
@@ -199,12 +205,12 @@ export default function Users() {
                                                     // sin importar lo que dijera la DB. Ahora la DB es la única fuente de verdad.
                                                     const isChecked = selectedUser.staff_roles?.permissions?.[perm.key] || false;
                                                     const isLocked = !canEditPermissions;
-                                                    
+
                                                     const togglePermission = () => {
                                                         if (isLocked) return;
                                                         const currentPerms = selectedUser.staff_roles?.permissions || {};
                                                         const newPerms = { ...currentPerms, [perm.key]: !isChecked };
-                                                        
+
                                                         setSelectedUser({
                                                             ...selectedUser,
                                                             staff_roles: {
@@ -215,23 +221,22 @@ export default function Users() {
                                                     };
 
                                                     return (
-                                                        <label 
-                                                            key={perm.key} 
+                                                        <label
+                                                            key={perm.key}
                                                             className={`flex items-center gap-3.5 py-1 select-none group w-fit ${isLocked ? 'cursor-default' : 'cursor-pointer'}`}
                                                         >
                                                             <div className="relative shrink-0 flex items-center">
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    className="peer sr-only" 
-                                                                    checked={isChecked} 
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="peer sr-only"
+                                                                    checked={isChecked}
                                                                     onChange={togglePermission}
                                                                     disabled={isLocked}
                                                                 />
-                                                                <div className={`w-[16px] h-[16px] rounded-[5px] border transition-all flex items-center justify-center shadow-sm ${
-                                                                    isChecked 
+                                                                <div className={`w-[16px] h-[16px] rounded-[5px] border transition-all flex items-center justify-center shadow-sm ${isChecked
                                                                         ? 'bg-navy-900 border-navy-900 text-white'
                                                                         : 'border-navy-900/30 bg-white/60 backdrop-blur-sm'
-                                                                } ${!isLocked ? 'group-hover:border-navy-900/50' : 'opacity-90'}`}>
+                                                                    } ${!isLocked ? 'group-hover:border-navy-900/50' : 'opacity-90'}`}>
                                                                     <Check size={12} strokeWidth={4} className={`transition-transform duration-200 ${isChecked ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`} />
                                                                 </div>
                                                             </div>
@@ -246,7 +251,7 @@ export default function Users() {
                                     ))}
                                 </div>
                             </div>
-                            
+
                             {/* Footer: Guardar (solo si es editable) */}
                             {canEditPermissions && (
                                 <div className="mt-6 px-8 pb-10 flex items-center justify-end gap-3 z-20">

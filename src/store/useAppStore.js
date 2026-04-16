@@ -41,13 +41,14 @@ export function generateTimeSlots(startTime = '09:00', endTime = '18:00', stepMi
 }
 
 export const useAppStore = create((set) => ({
-    isSidebarOpen: true,
+    isSidebarOpen: false,
     toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 
     // Multi-tenant: business ID derivado del perfil del usuario autenticado.
     // T-20: movido de 'export let BUSINESS_ID' en config/supabase.js al store
     // para tener una fuente de verdad trazable y evitar condiciones de carrera.
-    businessId: 0,
+    // T-08: default cambiado a '' para soportar UUID después de la migración de schema.
+    businessId: '',
     setBusinessId: (id) => set({ businessId: id }),
 
     // T-38: Horario del negocio leído de DB al login — evita hardcodear 09:00-18:00.
@@ -80,6 +81,10 @@ export const useAppStore = create((set) => ({
         user: null, profile: null, loading: false, businessStatus: 'active',
         businessHours: { schedule_start: '09:00', schedule_end: '18:00', schedule_days: [1,2,3,4,5] },
     }),
+
+    // T-11: Estado de la conexión Realtime — alimentado por useRealtime.js
+    realtimeStatus: 'connected', // 'connected' | 'disconnected'
+    setRealtimeStatus: (realtimeStatus) => set({ realtimeStatus }),
 
     // Cache de pacientes (1 minuto)
     _patientsCache: { data: [], fetchedAt: 0 },

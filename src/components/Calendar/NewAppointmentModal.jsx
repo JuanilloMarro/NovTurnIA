@@ -5,6 +5,7 @@ import { X, Search, Calendar, ChevronDown, Save } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 import { useAppStore, generateTimeSlots } from '../../store/useAppStore';
+import { useModalFocus } from '../../hooks/useModalFocus';
 
 // T-38: TIME_SLOTS dinámicos según horario del negocio (leído de DB al login).
 // Usa defaults seguros si businessHours aún no se pobla.
@@ -36,6 +37,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [occupiedRanges, setOccupiedRanges] = useState([]);
+    const modalRef = useRef(null);
+    useModalFocus(modalRef, isOpen, onClose);
 
     // Fetch occupied slots whenever the selected date (or open state) changes
     useEffect(() => {
@@ -109,7 +112,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
 
     return createPortal(
         <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-            <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-md overflow-hidden animate-fade-up">
+            <div ref={modalRef} className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-md overflow-hidden animate-fade-up">
 
                 <div className="flex items-center justify-between px-6 pt-6 pb-2">
                     <h2 className="text-lg font-bold text-navy-900 tracking-tight">Nuevo Turno</h2>

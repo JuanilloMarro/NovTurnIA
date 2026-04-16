@@ -1,6 +1,6 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
-const PIE_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#0F2044'];
+const PIE_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#9CA3AF'];
 
 export function AppointmentStatusChart({ data, confRate }) {
     const hasData = data.some(d => d.value > 0);

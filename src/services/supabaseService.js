@@ -133,10 +133,14 @@ export async function updateAppointment(id, { date, startTime, endTime }) {
     return data;
 }
 
-export async function cancelAppointment(id) {
+export async function cancelAppointment(id, reason = null) {
+    // T-49: registra cancelled_at separado de deleted_at para métricas de cancelación.
+    const update = { status: 'cancelled', cancelled_at: new Date().toISOString() };
+    if (reason) update.cancellation_reason = reason;
+
     const { error } = await supabase
         .from('appointments')
-        .update({ status: 'cancelled' })
+        .update(update)
         .eq('id', id)
         .eq('business_id', getBID());
 
@@ -171,6 +175,39 @@ export async function markNoShow(id) {
         .eq('business_id', getBID());
 
     if (error) throw error;
+}
+
+/**
+ * Returns appointments with status 'no_show' or 'cancelled' for the follow-up tab.
+ * @param {Object} opts
+ * @param {'all'|'no_show'|'cancelled'} opts.type   - filter by status type
+ * @param {number}                      opts.days   - look-back window in days (default 30)
+ */
+export async function getLostAppointments({ type = 'all', days = 30 } = {}) {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    since.setHours(0, 0, 0, 0);
+
+    const statuses = type === 'no_show' ? ['no_show']
+        : type === 'cancelled' ? ['cancelled']
+        : ['no_show', 'cancelled'];
+
+    const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+            id, date_start, date_end, status, patient_id,
+            patients(
+                id, display_name, human_takeover,
+                patient_phones(phone, is_primary)
+            )
+        `)
+        .eq('business_id', getBID())
+        .in('status', statuses)
+        .gte('date_start', since.toISOString())
+        .order('date_start', { ascending: false });
+
+    if (error) throw error;
+    return data ?? [];
 }
 
 // ── Patients ──────────────────────────────────────────────
@@ -236,16 +273,26 @@ export async function getAuditLog({ page = 0, pageSize = 50 } = {}) {
     return { data: data || [], count: count || 0, hasMore: to < (count || 0) - 1 };
 }
 
-export async function getPatientHistory(patientId) {
-    const { data, error } = await supabase
+// T-32: paginación con cursor — evita traer el historial completo de un paciente activo.
+// Retorna { data: Message[], hasMore: boolean }.
+// Para cargar mensajes anteriores: pasar before = oldest_message.created_at.
+export async function getPatientHistory(patientId, { limit = 50, before = null } = {}) {
+    let query = supabase
         .from('history')
         .select('*')
         .eq('business_id', getBID())
         .eq('patient_id', patientId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
+    if (before) query = query.lt('created_at', before);
+
+    const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+
+    const rows = data || [];
+    // Revertir para mostrar del más antiguo al más reciente en la UI
+    return { data: rows.reverse(), hasMore: rows.length === limit };
 }
 
 export async function reactivateBot(patientId) {
@@ -301,20 +348,27 @@ export async function createPatient({ display_name, phone }) {
     return patient;
 }
 
-export async function updatePatient(patientId, { display_name, phone }) {
+export async function updatePatient(patientId, { display_name, phone, birth_date }) {
+    const patch = { display_name };
+    // T-44: birth_date opcional — null limpia el campo, undefined lo omite
+    if (birth_date !== undefined) patch.birth_date = birth_date || null;
+
     const { error: patientError } = await supabase
         .from('patients')
-        .update({ display_name })
+        .update(patch)
         .eq('id', patientId)
         .eq('business_id', getBID());
 
     if (patientError) throw new Error('No se pudo actualizar el paciente.');
 
     if (phone) {
+        // T-55: business_id guard en patient_phones — defensa en profundidad.
+        // Requiere que patient_phones tenga la columna business_id (ver migración T-19/T-55).
         const { data: existing, error: updateError } = await supabase
             .from('patient_phones')
             .update({ phone })
             .eq('patient_id', patientId)
+            .eq('business_id', getBID())
             .eq('is_primary', true)
             .select();
 
@@ -323,7 +377,7 @@ export async function updatePatient(patientId, { display_name, phone }) {
         if (!existing || existing.length === 0) {
             const { error: insertError } = await supabase
                 .from('patient_phones')
-                .insert({ patient_id: patientId, phone, is_primary: true });
+                .insert({ patient_id: patientId, phone, is_primary: true, business_id: getBID() });
             if (insertError) throw new Error('Paciente actualizado pero error al guardar teléfono.');
         }
     }
@@ -336,6 +390,34 @@ export async function deletePatient(patientId) {
         .eq('id', patientId)
         .eq('business_id', getBID());
     if (error) throw new Error('No se pudo eliminar al paciente.');
+}
+
+/**
+ * T-10: GDPR Art. 17 — Borrado permanente e irreversible de todos los datos del paciente.
+ * Elimina en orden de dependencia: teléfonos → historial → citas → paciente.
+ * Solo debe llamarse desde un flujo con confirmación explícita del administrador.
+ */
+export async function gdprDeletePatient(patientId) {
+    const bid = getBID();
+
+    const deletes = [
+        supabase.from('patient_phones').delete().eq('patient_id', patientId).eq('business_id', bid),
+        supabase.from('history').delete().eq('patient_id', patientId).eq('business_id', bid),
+        supabase.from('appointments').delete().eq('patient_id', patientId).eq('business_id', bid),
+    ];
+
+    for (const op of deletes) {
+        const { error } = await op;
+        if (error) throw error;
+    }
+
+    const { error } = await supabase
+        .from('patients')
+        .delete()
+        .eq('id', patientId)
+        .eq('business_id', bid);
+
+    if (error) throw error;
 }
 
 // ── Stats ─────────────────────────────────────────────────
@@ -545,23 +627,63 @@ export async function getMessageCounts(monthStart, monthEnd) {
 }
 
 /**
- * Individual appointment rows for the trend chart (last N months).
- * MainChart needs date_start + status per row to group by week/month on the client.
+ * T-51: Aggregated appointment trend via RPC — replaces raw row fetch.
+ * Falls back to a direct query + client-side aggregation when the RPC
+ * hasn't been deployed yet (PGRST202 = function not found).
+ * @param {string} granularity - 'day' | 'week' | 'month'
+ * @param {string} start - ISO 8601 start date
+ * @param {string} end   - ISO 8601 end date (exclusive)
  */
-export async function getAppointmentTrend(monthsBack = 6) {
-    const since = new Date();
-    since.setMonth(since.getMonth() - monthsBack);
-    since.setDate(1);
+export async function getAppointmentTrend(granularity = 'month', start, end) {
+    const { data, error } = await supabase.rpc('get_appointment_trend', {
+        p_business_id: getBID(),
+        p_granularity: granularity,
+        p_start: start,
+        p_end: end,
+    });
 
+    if (error) {
+        // PGRST202 = RPC not deployed yet — aggregate client-side from raw rows
+        if (error.code === 'PGRST202') {
+            return _trendFallback(granularity, start, end);
+        }
+        throw error;
+    }
+    return data || [];
+}
+
+async function _trendFallback(granularity, start, end) {
     const { data, error } = await supabase
         .from('appointments')
         .select('date_start, status')
         .eq('business_id', getBID())
-        .gte('date_start', since.toISOString())
-        .order('date_start', { ascending: true });
+        .gte('date_start', start)
+        .lt('date_start', end);
 
     if (error) throw error;
-    return data || [];
+    if (!data || data.length === 0) return [];
+
+    const map = {};
+    data.forEach(row => {
+        const d = new Date(row.date_start);
+        let key;
+        if (granularity === 'day') {
+            key = d.toISOString().split('T')[0];
+        } else if (granularity === 'week') {
+            const dow = d.getDay();
+            const mon = new Date(d);
+            mon.setDate(d.getDate() - dow + (dow === 0 ? -6 : 1));
+            mon.setHours(0, 0, 0, 0);
+            key = mon.toISOString().split('T')[0];
+        } else {
+            key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+        if (!map[key]) map[key] = { period: key, total: 0, completed: 0, cancelled: 0 };
+        map[key].total++;
+        if (row.status === 'completed') map[key].completed++;
+        if (row.status === 'cancelled')  map[key].cancelled++;
+    });
+    return Object.values(map);
 }
 
 // ── AuditLog helpers ──────────────────────────────────────
@@ -630,4 +752,23 @@ export async function updateStaffUserRole(userId, roleId) {
         .eq('business_id', getBID());
 
     if (error) throw error;
+}
+
+// ── Plan limits (T-01) ────────────────────────────────────
+
+/**
+ * T-01: Retorna los límites del plan activo y el uso actual del negocio.
+ * Llama la RPC get_plan_limits que cruza businesses + plans + conteos en vivo.
+ * Si la RPC no existe (pre-migración), retorna null → el hook trata null como ilimitado.
+ */
+export async function getPlanLimits() {
+    const { data, error } = await supabase.rpc('get_plan_limits', {
+        p_business_id: getBID(),
+    });
+    // PGRST202 = function not found (migración aún no ejecutada) → ilimitado
+    if (error) {
+        if (error.code === 'PGRST202' || error.code === '42883') return null;
+        throw error;
+    }
+    return data;
 }

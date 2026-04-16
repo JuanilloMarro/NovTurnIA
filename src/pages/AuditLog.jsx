@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAuditLog, getStaffUsers, getPatientsForAuditLog } from '../services/supabaseService';
-import { Search, Database, SlidersHorizontal, Plus, Edit2, Trash2, X, Download } from 'lucide-react';
+import { Search, Database, SlidersHorizontal, Plus, Edit2, Trash2, X, Download, RefreshCw } from 'lucide-react';
 import { formatPhone } from '../utils/format';
 import { downloadCSV } from '../utils/export';
 
@@ -49,7 +49,7 @@ function fmtVal(key, val) {
         return val;
     }
     if (key === 'permissions' && typeof val === 'object') {
-        const on = Object.entries(val).filter(([,v]) => v).map(([k]) => FIELDS[k] || k);
+        const on = Object.entries(val).filter(([, v]) => v).map(([k]) => FIELDS[k] || k);
         return on.length > 0 ? on.join(', ') : 'Ninguno';
     }
     if (typeof val === 'object') return null;
@@ -99,7 +99,7 @@ function getLogSummary(log, oldP, newP, ctxPaciente) {
         const isUpdate = log.action === 'UPDATE';
         const isDelete = log.action === 'DELETE';
         const isInsert = log.action === 'INSERT';
-        
+
         if (log.table_name === 'appointments') {
             const pName = ctxPaciente || 'un paciente';
             if (isInsert) return `creó un nuevo turno para ${pName}`;
@@ -112,19 +112,19 @@ function getLogSummary(log, oldP, newP, ctxPaciente) {
                     if (newStatus === 'Confirmado') return `confirmó el turno de ${pName}`;
                     if (newStatus === 'Pendiente') return `marcó como pendiente el turno de ${pName}`;
                 }
-                
+
                 const changedFields = (newP || []).filter(e => {
                     const oldVal = (oldP || []).find(o => o?.label === e?.label)?.value;
                     return oldVal !== e?.value;
                 }).map(e => e?.label).filter(Boolean).join(', ');
-                
+
                 return `actualizó el turno de ${pName}${changedFields ? ` (${String(changedFields).toLowerCase()})` : ''}`;
             }
         }
-        
+
         if (log.table_name === 'patients') {
             const pName = ctxPaciente || (newP || []).find(e => e?.label === 'Nombre' || e?.label === 'Nombre completo')?.value || 'un paciente';
-            
+
             if (isInsert) return `registró a ${pName} como nuevo paciente`;
             if (isDelete) return `eliminó el registro de ${pName}`;
             if (isUpdate) {
@@ -144,7 +144,7 @@ function getLogSummary(log, oldP, newP, ctxPaciente) {
                 return `actualizó información de ${pName}${changedFields ? ` (${String(changedFields).toLowerCase()})` : ''}`;
             }
         }
-        
+
         const actMap = { 'INSERT': 'creó un registro en', 'UPDATE': 'actualizó un registro en', 'DELETE': 'eliminó un registro en' };
         const moduleName = MODULES[log.table_name] || log.table_name || 'Módulo';
         return `${actMap[log.action] || log.action || 'Modificó'} ${moduleName}`;
@@ -167,54 +167,55 @@ export default function AuditLog() {
     const [showFilters, setShowFilters] = useState(false);
     const [exporting, setExporting] = useState(false);
 
+    // T-35: deduplicación O(n) con Set — reemplaza el reduce con find() que era O(n²).
+    // El trigger handle_audit_log ya previene nuevos duplicados en DB (ver migración T-35).
+    // Este filtro es solo una salvaguarda para datos históricos.
     function deduplicateLogs(raw) {
-        return raw
-            .filter(l => l.table_name !== 'patient_phones')
-            .reduce((acc, current) => {
-                const isDuplicate = acc.find(item =>
-                    item.table_name === current.table_name &&
-                    item.action === current.action &&
-                    item.record_id === current.record_id &&
-                    Math.abs(new Date(item.created_at) - new Date(current.created_at)) < 5000
-                );
-                if (!isDuplicate) acc.push(current);
-                return acc;
-            }, []);
+        const seen = new Set();
+        return raw.filter(l => {
+            if (l.table_name === 'patient_phones') return false;
+            // Bucket de 5 segundos: floor(ms / 5000) agrupa eventos dentro de la misma ventana
+            const bucket = Math.floor(new Date(l.created_at).getTime() / 5000);
+            const key = `${l.table_name}:${l.action}:${l.record_id}:${bucket}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
     }
 
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const [{ data: logData, hasMore: more }, staffData, patientsData] = await Promise.all([
-                    getAuditLog({ page: 0 }),
-                    getStaffUsers(),
-                    getPatientsForAuditLog()
-                ]);
+    async function fetchData() {
+        setLoading(true);
+        try {
+            const [{ data: logData, hasMore: more }, staffData, patientsData] = await Promise.all([
+                getAuditLog({ page: 0 }),
+                getStaffUsers(),
+                getPatientsForAuditLog()
+            ]);
 
-                const sMap = {};
-                (staffData || []).forEach(u => { sMap[u.id] = u.full_name || u.email || 'Staff'; });
+            const sMap = {};
+            (staffData || []).forEach(u => { sMap[u.id] = u.full_name || u.email || 'Staff'; });
 
-                const pMap = {};
-                (patientsData || []).forEach(p => {
-                    pMap[p.id] = {
-                        name: p.display_name,
-                        phone: p.patient_phones?.find(ph => ph.is_primary)?.phone || p.patient_phones?.[0]?.phone
-                    };
-                });
+            const pMap = {};
+            (patientsData || []).forEach(p => {
+                pMap[p.id] = {
+                    name: p.display_name,
+                    phone: p.patient_phones?.find(ph => ph.is_primary)?.phone || p.patient_phones?.[0]?.phone
+                };
+            });
 
-                setLogs(deduplicateLogs(logData || []));
-                setAuditHasMore(more);
-                setAuditPage(0);
-                setStaffMap(sMap);
-                setPatientMap(pMap);
-            } catch (err) {
-                console.error('Error fetching audit log:', err);
-            } finally {
-                setLoading(false);
-            }
+            setLogs(deduplicateLogs(logData || []));
+            setAuditHasMore(more);
+            setAuditPage(0);
+            setStaffMap(sMap);
+            setPatientMap(pMap);
+        } catch (err) {
+            console.error('Error fetching audit log:', err);
+        } finally {
+            setLoading(false);
         }
-        fetchData();
-    }, []);
+    }
+
+    useEffect(() => { fetchData(); }, []);
 
     function handleExport() {
         setExporting(true);
@@ -296,15 +297,27 @@ export default function AuditLog() {
                         />
                     </div>
 
+                    {/* Refresh */}
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
+                        <button
+                            onClick={fetchData}
+                            disabled={loading}
+                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 active:scale-95 transition-all duration-300 overflow-hidden disabled:opacity-40"
+                        >
+                            <RefreshCw size={14} className={`shrink-0 ${loading ? 'animate-spin' : ''}`} />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
+                        </button>
+                    </div>
+
                     {/* Export CSV */}
                     <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                         <button
                             onClick={handleExport}
                             disabled={exporting || filtered.length === 0}
-                            className="w-8 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 disabled:opacity-50"
-                            title="Exportar CSV"
+                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50"
                         >
-                            <Download size={14} />
+                            <Download size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
                         </button>
                     </div>
 
@@ -313,42 +326,43 @@ export default function AuditLog() {
                         <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`w-8 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 outline-none ${hasActiveFilters ? 'ring-1 ring-navy-400/30' : ''}`}
+                                className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
                             >
-                                <SlidersHorizontal size={14} />
+                                <SlidersHorizontal size={14} className="shrink-0" />
+                                <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Filtros</span>
                             </button>
                         </div>
 
                         {/* Filter dropdown */}
                         {showFilters && (
-                            <div className="absolute right-0 top-full mt-2 w-56 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card z-50 p-4 animate-fade-up space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[11px] font-bold text-navy-900 uppercase tracking-wider">Filtros</span>
-                                    {hasActiveFilters && (
-                                        <button onClick={() => { setFilterAction(''); setFilterUser(''); }} className="text-[10px] font-bold text-red-500 hover:text-red-600">
-                                            Limpiar
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="text-[10px] font-bold text-navy-700/60 uppercase tracking-wider mb-1.5 block">Acción</label>
-                                    <select value={filterAction} onChange={e => setFilterAction(e.target.value)} className="w-full bg-white/60 border border-white/90 rounded-xl px-3 py-2 text-[11px] font-bold text-navy-900 outline-none focus:ring-1 focus:ring-white">
-                                        <option value="">Todas</option>
-                                        <option value="INSERT">Creado</option>
-                                        <option value="UPDATE">Actualizado</option>
-                                        <option value="DELETE">Eliminado</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="text-[10px] font-bold text-navy-700/60 uppercase tracking-wider mb-1.5 block">Usuario</label>
-                                    <select value={filterUser} onChange={e => setFilterUser(e.target.value)} className="w-full bg-white/60 border border-white/90 rounded-xl px-3 py-2 text-[11px] font-bold text-navy-900 outline-none focus:ring-1 focus:ring-white">
-                                        <option value="">Todos</option>
-                                        {uniqueUsers.map(u => (
-                                            <option key={u.uuid} value={u.uuid}>{u.name}</option>
-                                        ))}
-                                    </select>
+                            <div className="absolute right-0 top-full mt-2 w-48 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card z-50 py-2 animate-fade-up">
+                                {hasActiveFilters && (
+                                    <div className="flex items-center justify-between px-4 pb-2 mb-1 border-b border-white/50">
+                                        <span className="text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Filtros</span>
+                                        <button onClick={() => { setFilterAction(''); setFilterUser(''); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
+                                    </div>
+                                )}
+                                <p className="px-4 pt-1 pb-0.5 text-[10px] font-bold text-navy-700/40 uppercase tracking-wider">Acción</p>
+                                {[{ value: '', label: 'Todas' }, { value: 'INSERT', label: 'Creado' }, { value: 'UPDATE', label: 'Actualizado' }, { value: 'DELETE', label: 'Eliminado' }].map(opt => (
+                                    <div
+                                        key={opt.value}
+                                        onClick={() => setFilterAction(opt.value)}
+                                        className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${filterAction === opt.value ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                    >
+                                        {opt.label}
+                                    </div>
+                                ))}
+                                <div className="border-t border-white/50 mt-1 pt-1">
+                                    <p className="px-4 pt-1 pb-0.5 text-[10px] font-bold text-navy-700/40 uppercase tracking-wider">Usuario</p>
+                                    {[{ uuid: '', name: 'Todos' }, ...uniqueUsers].map(u => (
+                                        <div
+                                            key={u.uuid}
+                                            onClick={() => setFilterUser(u.uuid)}
+                                            className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${filterUser === u.uuid ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                        >
+                                            {u.name}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
@@ -372,21 +386,21 @@ export default function AuditLog() {
                             const modRaw = MODULES[log.table_name] || log.table_name || '—';
                             const mod = modRaw.charAt(0).toUpperCase() + modRaw.slice(1).toLowerCase();
                             const act = ACTIONS[log.action] || log.action || '—';
-                            
+
                             // Title Case User
                             const whoRaw = userName(log.changed_by);
                             const who = whoRaw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-                            
+
                             const d = log.created_at ? new Date(log.created_at) : null;
 
                             const isInsert = log.action === 'INSERT';
-                            
+
                             // Detect Soft Deletes or Cancellations
                             const isSoftDelete = log.action === 'UPDATE' && !log.old_data?.deleted_at && log.new_data?.deleted_at;
                             const isCancellation = log.action === 'UPDATE' && log.table_name === 'appointments' && log.new_data?.status === 'cancelled' && log.old_data?.status !== 'cancelled';
-                            
+
                             const isEffectivelyDelete = log.action === 'DELETE' || isSoftDelete || isCancellation;
-                            
+
                             const oldPRaw = parseData(log.old_data, log.table_name, patientMap);
                             const newPRaw = parseData(log.new_data, log.table_name, patientMap);
 
@@ -407,7 +421,7 @@ export default function AuditLog() {
                                         <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${actStyle}`}>
                                             {isInsert ? <Plus size={16} strokeWidth={2.5} /> : isEffectivelyDelete ? <Trash2 size={16} strokeWidth={2.5} /> : <Edit2 size={16} strokeWidth={2.5} />}
                                         </div>
-                                        
+
                                         <div className="flex-1">
                                             <p className="text-[13px] font-semibold text-navy-900 leading-snug">
                                                 <span className="font-bold text-navy-900/60 text-[10px] tracking-wider block mb-0.5">{who}</span>

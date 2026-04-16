@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { getAppointmentTrend } from '../../services/supabaseService';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer
@@ -10,14 +11,42 @@ const PERIODS = [
     { key: 'month', label: 'Mes' },
 ];
 
-// Helpers para agrupar
-function getWeekKey(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-    const monday = new Date(d.setDate(diff));
-    return monday.toISOString().split('T')[0];
+// ── Date range helpers ────────────────────────────────────────────────────────
+
+function getDayRange() {
+    const today = new Date();
+    const day = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+    monday.setHours(0, 0, 0, 0);
+    const end = new Date(monday);
+    end.setDate(monday.getDate() + 7);
+    return { start: monday.toISOString(), end: end.toISOString() };
 }
+
+function getWeekRange() {
+    // 4 weeks back → 1 week ahead (6 weeks total)
+    const today = new Date();
+    const day = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+    monday.setHours(0, 0, 0, 0);
+    const start = new Date(monday);
+    start.setDate(monday.getDate() - 28);
+    const end = new Date(monday);
+    end.setDate(monday.getDate() + 14);
+    return { start: start.toISOString(), end: end.toISOString() };
+}
+
+function getMonthRange() {
+    const year = new Date().getFullYear();
+    return {
+        start: new Date(year, 0, 1).toISOString(),
+        end: new Date(year + 1, 0, 1).toISOString(),
+    };
+}
+
+// ── Label helpers ─────────────────────────────────────────────────────────────
 
 function formatWeekLabel(mondayStr) {
     const mon = new Date(mondayStr + 'T12:00:00');
@@ -27,88 +56,91 @@ function formatWeekLabel(mondayStr) {
     return `${fmt(mon)}-${fmt(sun)}`;
 }
 
-export function MainChart({ rawApts }) {
+// ── Slot generation (empty grid for each period) ──────────────────────────────
+
+function buildSlots(period) {
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+
+    if (period === 'day') {
+        const day = today.getDay();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+        return Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            const key = d.toISOString().split('T')[0];
+            const label = d.toLocaleDateString('es-GT', { weekday: 'short', day: '2-digit' }).replace('.', '');
+            return { key, name: label, turnos: 0, completed: 0, cancelled: 0 };
+        });
+    }
+
+    if (period === 'week') {
+        const day = today.getDay();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+        const start = new Date(monday);
+        start.setDate(monday.getDate() - 28);
+        return Array.from({ length: 6 }, (_, i) => {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i * 7);
+            const key = d.toISOString().split('T')[0];
+            return { key, name: formatWeekLabel(key), turnos: 0, completed: 0, cancelled: 0 };
+        });
+    }
+
+    // month
+    const year = today.getFullYear();
+    return Array.from({ length: 12 }, (_, i) => {
+        const d = new Date(year, i, 15);
+        const key = `${year}-${String(i + 1).padStart(2, '0')}`;
+        let label = d.toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
+        label = label.charAt(0).toUpperCase() + label.slice(1);
+        return { key, name: label, turnos: 0, completed: 0, cancelled: 0 };
+    });
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export function MainChart() {
     const [period, setPeriod] = useState('week');
+    const [trendData, setTrendData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const data = useMemo(() => {
-        if (!rawApts) return [];
-
-        const today = new Date();
-        today.setHours(12, 0, 0, 0); // Evitar problemas de timezone
-
-        const generatedData = [];
-
-        if (period === 'day') {
-            // Monday to Sunday of the current week
-            const dayOfWeek = today.getDay();
-            const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            const monday = new Date(today);
-            monday.setDate(diff);
-
-            for (let i = 0; i < 7; i++) {
-                const d = new Date(monday);
-                d.setDate(monday.getDate() + i);
-                const key = d.toISOString().split('T')[0];
-                const label = d.toLocaleDateString('es-GT', { weekday: 'short', day: '2-digit' }).replace('.', '');
-                generatedData.push({ key, name: label, turnos: 0, completed: 0, cancelled: 0 });
-            }
-        } else if (period === 'week') {
-            // 4 weeks ago to 1 week ahead (6 weeks total)
-            const dayOfWeek = today.getDay();
-            const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            const mondayThisWeek = new Date(today);
-            mondayThisWeek.setDate(diff);
-            
-            const startMonday = new Date(mondayThisWeek);
-            startMonday.setDate(startMonday.getDate() - 28);
-
-            for (let i = 0; i < 6; i++) {
-                const d = new Date(startMonday);
-                d.setDate(startMonday.getDate() + (i * 7));
-                const key = getWeekKey(d);
-                const label = formatWeekLabel(key);
-                generatedData.push({ key, name: label, turnos: 0, completed: 0, cancelled: 0 });
-            }
-        } else if (period === 'month') {
-            // Jan to Dec current year
-            const year = today.getFullYear();
-            for (let i = 0; i < 12; i++) {
-                const d = new Date(year, i, 15);
-                const key = `${year}-${String(i + 1).padStart(2, '0')}`;
-                let label = d.toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
-                label = label.charAt(0).toUpperCase() + label.slice(1);
-                generatedData.push({ key, name: label, turnos: 0, completed: 0, cancelled: 0 });
+    useEffect(() => {
+        let cancelled = false;
+        async function fetchTrend() {
+            setLoading(true);
+            try {
+                const range = period === 'day' ? getDayRange()
+                    : period === 'week' ? getWeekRange()
+                    : getMonthRange();
+                const rows = await getAppointmentTrend(period, range.start, range.end);
+                if (!cancelled) setTrendData(rows);
+            } catch (err) {
+                console.error('Error loading trend:', err);
+                if (!cancelled) setTrendData([]);
+            } finally {
+                if (!cancelled) setLoading(false);
             }
         }
+        fetchTrend();
+        return () => { cancelled = true; };
+    }, [period]);
 
-        const map = {};
-        generatedData.forEach(item => {
-            map[item.key] = item;
-        });
-
-        rawApts.forEach(apt => {
-            const d = new Date(apt.date_start);
-            let key;
-            if (period === 'day') {
-                key = d.toISOString().split('T')[0];
-            } else if (period === 'week') {
-                key = getWeekKey(d);
-            } else {
-                key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            }
-
-            if (map[key]) {
-                if (apt.status !== 'cancelled') {
-                    map[key].turnos++;
-                }
-                if (apt.status === 'completed') map[key].completed++;
-                if (apt.status === 'cancelled') map[key].cancelled++;
+    // Merge aggregated server rows into the pre-generated slot grid
+    const data = useMemo(() => {
+        const slots = buildSlots(period);
+        const map = Object.fromEntries(slots.map(s => [s.key, s]));
+        trendData.forEach(row => {
+            if (map[row.period]) {
+                map[row.period].turnos    = (row.total ?? 0) - (row.cancelled ?? 0);
+                map[row.period].completed = row.completed ?? 0;
+                map[row.period].cancelled = row.cancelled ?? 0;
             }
         });
-
-        return generatedData;
-    }, [rawApts, period]);
-
+        return slots;
+    }, [trendData, period]);
 
     return (
         <div className="h-full flex flex-col">
@@ -139,7 +171,11 @@ export function MainChart({ rawApts }) {
             </div>
 
             <div className="flex-1 w-full min-h-0">
-                {data.length === 0 ? (
+                {loading ? (
+                    <div className="h-full flex items-center justify-center">
+                        <div className="w-5 h-5 border-2 border-navy-900/20 border-t-navy-900/60 rounded-full animate-spin" />
+                    </div>
+                ) : data.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-navy-900/30">
                         <p className="text-xs font-bold">Sin datos para este período</p>
                     </div>

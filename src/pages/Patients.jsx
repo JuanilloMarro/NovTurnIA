@@ -3,7 +3,7 @@ import { usePatients } from '../hooks/usePatients';
 import PatientCard from '../components/Patients/PatientCard';
 import PatientDrawer from '../components/Patients/PatientDrawer';
 import NewPatientModal from '../components/Patients/NewPatientModal';
-import { Search, SlidersHorizontal, Download } from 'lucide-react';
+import { Search, SlidersHorizontal, Download, Plus, RefreshCw } from 'lucide-react';
 import { exportAllPatients } from '../services/supabaseService';
 import { downloadCSV } from '../utils/export';
 
@@ -59,11 +59,24 @@ export default function Patients() {
                     </div>
 
                     <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
-                        <button 
+                        <button
                             onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
-                            className="px-4 h-full rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-navy-900 text-[11px] font-bold"
+                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
                         >
-                            <span className="text-[14px]">+</span> Agregar Paciente
+                            <Plus size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Agregar Paciente</span>
+                        </button>
+                    </div>
+
+                    {/* Refresh */}
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                        <button
+                            onClick={() => reload(search, true, 0)}
+                            disabled={loading}
+                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 active:scale-95 transition-all duration-300 overflow-hidden disabled:opacity-40"
+                        >
+                            <RefreshCw size={14} className={`shrink-0 ${loading ? 'animate-spin' : ''}`} />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
                         </button>
                     </div>
 
@@ -72,38 +85,50 @@ export default function Patients() {
                         <button
                             onClick={handleExport}
                             disabled={exporting}
-                            className="w-8 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 disabled:opacity-50"
-                            title="Exportar CSV"
+                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50"
                         >
-                            <Download size={14} />
+                            <Download size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
                         </button>
                     </div>
 
-                    {/* Sort funnel button - moved to last position */}
-                    <div className="relative h-full">
-                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
-                            <button 
-                                onClick={() => setShowSort(!showSort)}
-                                className="w-8 h-8 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900"
-                            >
-                                <SlidersHorizontal size={14} />
-                            </button>
-                        </div>
-
-                        {showSort && (
-                            <div className="absolute right-0 top-full mt-2 w-48 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card z-50 py-2 animate-fade-up">
-                                {sortOptions.map(opt => (
-                                    <div
-                                        key={opt.id}
-                                        onClick={() => { setSortOrder(opt.id); setShowSort(false); }}
-                                        className={`px-4 py-2.5 text-xs font-bold cursor-pointer hover:bg-white/60 transition-colors ${sortOrder === opt.id ? 'text-navy-900 bg-white/50' : 'text-navy-700'}`}
+                    {/* Sort funnel button */}
+                    {(() => {
+                        const hasActiveSort = sortOrder !== 'recent';
+                        return (
+                            <div className="relative h-full">
+                                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                                    <button
+                                        onClick={() => setShowSort(!showSort)}
+                                        className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
                                     >
-                                        {opt.label}
+                                        <SlidersHorizontal size={14} className="shrink-0" />
+                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Filtros</span>
+                                    </button>
+                                </div>
+
+                                {showSort && (
+                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card z-50 py-2 animate-fade-up">
+                                        {hasActiveSort && (
+                                            <div className="flex items-center justify-between px-4 pb-2 mb-1 border-b border-white/50">
+                                                <span className="text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Orden</span>
+                                                <button onClick={() => { setSortOrder('recent'); setShowSort(false); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
+                                            </div>
+                                        )}
+                                        {sortOptions.map(opt => (
+                                            <div
+                                                key={opt.id}
+                                                onClick={() => setSortOrder(opt.id)}
+                                                className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${sortOrder === opt.id ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                            >
+                                                {opt.label}
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                )}
                             </div>
-                        )}
-                    </div>
+                        );
+                    })()}
                 </div>
             </div>
 

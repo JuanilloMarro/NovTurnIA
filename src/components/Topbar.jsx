@@ -1,4 +1,4 @@
-import { Bell, Moon, Sun, Monitor, Check, LogOut, Calendar, UserPlus, Trash2, Bot } from 'lucide-react';
+import { Bell, Moon, Sun, Monitor, Check, LogOut, Calendar, UserPlus, Trash2, Bot, Menu } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAppStore } from '../store/useAppStore';
@@ -14,7 +14,7 @@ export default function Topbar() {
     const { profile, logout } = useAuth();
     const { activityLog, unreadCount, markAllRead } = useNotifications();
     const clearActivityLog = useToastStore(s => s.clearActivityLog);
-    const { theme, setTheme } = useAppStore();
+    const { theme, setTheme, toggleSidebar } = useAppStore();
     const [showNotif, setShowNotif] = useState(false);
     const [showThemeMenu, setShowThemeMenu] = useState(false);
     const notifRef = useRef(null);
@@ -48,8 +48,17 @@ export default function Topbar() {
     };
 
     return (
-        <header className="h-[72px] px-6 flex items-center justify-end z-[100] transition-all sticky top-0 bg-transparent">
-            <div className="flex items-center gap-6 mt-2">
+        <header className="h-[72px] px-6 flex items-center justify-between md:justify-end z-[100] transition-all sticky top-0 bg-transparent">
+            {/* Hamburger — solo visible en mobile (md:hidden) */}
+            <button
+                onClick={toggleSidebar}
+                className="md:hidden w-9 h-9 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-900 shadow-sm hover:bg-white/80 transition-all"
+                aria-label="Abrir menú"
+            >
+                <Menu size={18} />
+            </button>
+
+            <div className="flex items-center gap-2 mt-2">
                 <div className="relative" ref={notifRef}>
                     <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-11">
                         <button
@@ -70,7 +79,7 @@ export default function Topbar() {
                             <div className="flex justify-between items-center mb-3 px-3 pt-1">
                                 <h3 className="font-bold text-navy-900 text-base">Actividad</h3>
                                 {activityLog.length > 0 && (
-                                    <button 
+                                    <button
                                         onClick={() => clearActivityLog()}
                                         className="text-[10px] text-red-600/70 hover:text-red-600 font-bold uppercase tracking-wider flex items-center gap-1 transition-colors"
                                     >

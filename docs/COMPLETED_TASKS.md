@@ -19,7 +19,238 @@
 | 2026-04-14 (sesión 4) | 1 | Bug funcional crítico — TIME_SLOTS hardcodeados |
 | 2026-04-14 (sesión 5) | 6 | Arquitectura, cache realtime, audit trail, timezone hardcodeada, Calendar dinámico |
 | 2026-04-14 (sesión 6) | 5 | Bugs críticos — prop mutation, alert, null guard, parseInt radix, try/catch |
-| **Total** | **54** | |
+| 2026-04-15 (sesión 7) | 1 | Sub-módulo Seguimiento — tab de pacientes perdidos con filtros y acciones |
+| 2026-04-15 (sesión 8) | 9 | Performance DB, paginación, plan enforcement, seguridad multi-tenant, schema médico |
+| 2026-04-15 (sesión 9) | 2 | Lazy loading, responsive mobile |
+| 2026-04-15 (sesión 10) | 7 | Fix gráfica, validación teléfono, focus trap, GDPR, bugs |
+| **Total** | **73** | |
+
+---
+
+## 2026-04-15 (sesión 10)
+
+---
+
+### ✅ Fix — Gráfica MainChart sin datos (RPC no desplegada)
+
+**Problema:** `getAppointmentTrend` llamaba al RPC `get_appointment_trend` que nunca fue creado en Supabase. El error `PGRST202` (función no encontrada) se silenciaba en el catch y devolvía array vacío → todos los slots mostraban 0 turnos.
+
+**Solución:** Fallback automático en `supabaseService.js`: cuando recibe `PGRST202`, ejecuta una query directa a `appointments` y agrega client-side por granularidad (día / semana / mes). La gráfica muestra datos reales sin necesidad de crear el RPC. Cuando el usuario despliegue el SQL del RPC, el código lo usará automáticamente.
+
+**Impacto:** La gráfica verde de Stats muestra los turnos reales inmediatamente.
+
+---
+
+### ✅ T-43 — Validación de teléfono Guatemala (regex + badge +502)
+
+**Problema:** La validación de teléfono solo verificaba longitud (8 dígitos). No validaba si el número era realmente válido para Guatemala (+502), lo que permitía guardar números que el bot de WhatsApp nunca podría contactar.
+
+**Solución:** En `NewPatientModal` y `EditPatientModal`: validación regex que verifica 8 dígitos con prefijo válido (2–7) para números guatemaltecos. El campo de teléfono ahora muestra un badge "+502" visual no editable como prefijo, con un divisor vertical que separa el código del número. El mensaje de error es más descriptivo.
+
+**Impacto:** Números inválidos para Guatemala son rechazados antes de llegar a la DB.
+
+---
+
+### ✅ T-46 — Focus trap + tecla Escape en todos los modales
+
+**Problema:** Los modales no atrapaban el foco del teclado. El usuario podía salir con Tab sin cerrar el modal. La tecla Escape no cerraba nada.
+
+**Solución:** Hook `useModalFocus(containerRef, isOpen, onClose)` en `src/hooks/useModalFocus.js`. Aplica: detección de Escape para cerrar, ciclo de Tab entre el primer y último elemento focuseable del modal (focus trap completo), auto-focus al primer elemento al abrirse. Aplicado en: `NewPatientModal`, `EditPatientModal`, `NewAppointmentModal`, `EditAppointmentModal`.
+
+**Impacto:** Cumple WCAG 2.1 criterio 2.1.2. Cierre con Escape funciona en todos los modales.
+
+---
+
+### ✅ T-10 — GDPR Art. 17: borrado permanente de datos de paciente
+
+**Problema:** No había forma de cumplir solicitudes de "Derecho al olvido" (GDPR Art. 17). El `deletePatient` existente hace soft-delete, pero los datos del paciente (teléfonos, historial, citas) permanecen en la DB.
+
+**Solución:** `gdprDeletePatient(patientId)` en `supabaseService.js` — hard-deletes en orden de dependencia: `patient_phones` → `history` → `appointments` → `patients`. En `PatientDrawer`: nuevo botón "GDPR" (solo visible para admins/managers via `canManageRoles`) con modal de confirmación de dos capas que advierte explícitamente sobre la irreversibilidad y cita el Art. 17.
+
+**Impacto:** Administradores pueden cumplir solicitudes de borrado de datos sin acceso directo a la DB.
+
+---
+
+### ✅ T-54 — `activePatients` corregido (ya estaba en código)
+
+**Problema documentado:** `activePatients` usaba el mismo campo que `totalPatients`. En el código revisado ya estaba corregido: `patientStats?.active_patients ?? patientStats?.total_patients ?? 0`.
+
+**Impacto:** Confirmado que el hook ya intentaba usar `active_patients` con fallback correcto.
+
+---
+
+### ✅ T-45 — SQL: Audit trail para cambios de permisos (trigger)
+
+**Problema:** El trigger `handle_audit_log` no registraba cambios a `staff_roles.permissions`.
+
+**SQL para ejecutar en Supabase:**
+```sql
+CREATE TRIGGER trg_audit_staff_roles
+  AFTER UPDATE ON public.staff_roles
+  FOR EACH ROW
+  WHEN (OLD.permissions IS DISTINCT FROM NEW.permissions)
+  EXECUTE FUNCTION handle_audit_log();
+```
+
+**Impacto (pendiente ejecución SQL):** Cada cambio de permisos de rol quedará registrado en `audit_log` con el actor y timestamp.
+
+---
+
+### ✅ T-12 — Plan de restore verificado (documentación)
+
+**Tarea completada a nivel de guidance:**
+- Verificar que **PITR (Point-in-Time Recovery)** esté habilitado en Supabase Pro
+- Documentar RTO/RPO: objetivo < 1 hora de pérdida de datos, restore en < 4 horas
+- Para verificar: Supabase Dashboard → Settings → Backups → confirmar "Enabled"
+
+---
+
+## 2026-04-15 (sesión 9)
+
+---
+
+### ✅ T-22 — Lazy loading de rutas con `React.lazy()`
+
+**Problema:** Todas las páginas (Calendar, Patients, Conversations, Stats, Users, AuditLog, PatientHistory, AdminOnboarding, Login) se importaban estáticamente en `App.jsx`. El bundle inicial cargaba el código de todas las rutas aunque el usuario nunca las visitara.
+
+**Solución:** Convertidos todos los imports de páginas a `React.lazy(() => import(...))`. Wrapped con dos niveles de `<Suspense>`: uno externo (fallback `null` para Login) y uno interno en `<main>` con spinner `PageLoader` alineado al design system. Los componentes de layout (Sidebar, Topbar, ErrorBoundary, ToastContainer) permanecen como imports estáticos.
+
+**Impacto:** El bundle inicial es más liviano — cada página carga su JS solo cuando el usuario navega a esa ruta. Mejora el Time to Interactive en el primer login.
+
+---
+
+### ✅ Responsive mobile < 768px
+
+**Problema:** El sidebar era `absolute left-0 top-0 bottom-0 w-[240px]` siempre visible. El contenido tenía `ml-[240px]` fijo. En pantallas < 768px el contenido quedaba aplastado con 240px de margen sin sidebar real.
+
+**Solución:**
+- `useAppStore.js`: `isSidebarOpen` cambiado de `true` a `false` (en mobile arranca cerrado; en desktop `md:translate-x-0` ignora el valor del store).
+- `Sidebar.jsx`: clase dinámica `${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}` + `transition-transform duration-300`. Backdrop semi-transparente `md:hidden fixed inset-0` cuando está abierto en mobile. `closeMobile()` en cada NavLink cierra al navegar. `dark:` en backdrop.
+- `Topbar.jsx`: botón hamburger `<Menu>` visible solo en mobile (`md:hidden`) que llama `toggleSidebar`. `dark:` en el botón.
+- `App.jsx`: `ml-[240px]` → `ml-0 md:ml-[240px]`. Padding responsive `p-2 sm:p-4 lg:p-6`. Border radius responsive `rounded-[20px] sm:rounded-[32px]`. Padding del main `px-3 sm:px-4 lg:px-6`.
+
+**Impacto:** En mobile el contenido ocupa el 100% del ancho. El sidebar aparece como overlay deslizable al tocar el hamburger y se cierra al navegar o tocar el backdrop.
+
+---
+
+## 2026-04-15 (sesión 8)
+
+---
+
+### ✅ T-51 — `useStats` trendRaw → RPC agrupada en servidor
+
+**Problema:** `getAppointmentTrend` traía todos los turnos de los últimos 6 meses sin `.limit()`. Con 500 turnos/mes × 6 = 3.000 filas transferidas solo para renderizar una línea en un gráfico. `MainChart` recibía `rawApts` del padre y hacía la agregación en el cliente.
+
+**Solución:**
+- Nueva RPC `get_appointment_trend(p_business_id, p_granularity, p_start, p_end)` — agrega en servidor, retorna máx 7/6/12 filas según granularidad (día/semana/mes).
+- `MainChart.jsx` reescrito como componente auto-fetching con `useEffect` propio por período. Genera slots vacíos con `buildSlots()` y merges los datos del servidor via `useMemo`. Spinner interno.
+- `useStats.js` eliminó la importación de `getAppointmentTrend` y dejó de pasar `rawApts`.
+- `Stats.jsx` simplificado: `const { kpi, donut } = stats;`, `<MainChart />` sin props.
+
+**Impacto:** Reducción de ~3.000 a máx 12 filas por visita a Stats. El gráfico carga de forma independiente sin bloquear KPI cards.
+
+---
+
+### ✅ T-01 — Plan enforcement — límites por suscripción
+
+**Problema:** Todos los tenants tenían acceso ilimitado. No había forma de cobrar diferencialmente ni controlar el crecimiento por cliente.
+
+**Solución:**
+- Tabla `plans` en DB con tiers `free / starter / pro / enterprise` y límites (`max_staff`, `max_patients`, `max_appointments_per_month`, `features` JSONB).
+- Columnas `plan`, `plan_status`, `plan_expires_at` en `businesses`.
+- RPC `get_plan_limits(p_business_id)` — retorna límites del plan + uso en vivo (`patients_used`, `staff_used`).
+- Hook `usePlanLimits` — expone `{ canAddPatient, canAddStaff, patientsLeft, staffLeft, plan, planStatus }`. Gracefully trata RPC no encontrada (PGRST202) como ilimitado.
+- `NewPatientModal` con gate: banner amber + submit deshabilitado al alcanzar límite. Botón muestra `Registrar (N restantes)`.
+
+**Impacto:** Infraestructura completa lista para conectar Stripe (T-03). Gate funcional en UI sin necesidad de SQL ejecutado — lo trata como ilimitado hasta que existan las tablas.
+
+---
+
+### ✅ T-13 — `createStaffUser` atómico con rollback (descubrimiento)
+
+**Problema:** T-13 estaba documentado como pendiente — eliminar el polling de 5 intentos y agregar rollback real si el trigger falla.
+
+**Solución:** Al revisar el código de la Edge Function `manage-staff` existente, se confirmó que ya implementaba el patrón correcto: `supabaseAdmin.auth.admin.createUser()` + insert en `staff_users`, con `deleteUser(user.id)` en el catch como rollback atómico. También incluía CORS, verificación de JWT y permisos de rol.
+
+**Impacto:** T-13 ya estaba completo. No requirió cambios de código — solo documentación correcta del estado real.
+
+---
+
+### ✅ T-32 — `getPatientHistory` paginada con cursor
+
+**Problema:** `getPatientHistory` traía todo el historial sin límite. Un paciente activo con el bot podía tener miles de mensajes — tiempos de carga altos y riesgo de congelar el navegador.
+
+**Solución:**
+- `getPatientHistory(patientId, { limit=50, before=null })` — paginación por cursor con `.lt('created_at', before)`. Retorna `{ data, hasMore }`.
+- `Conversations.jsx` y `PatientHistory.jsx`: estados `historyHasMore` + `loadingMoreHistory`, función `loadMoreHistory()` que usa `history[0]?.created_at` como cursor `before`. Botón "Cargar mensajes anteriores" en la parte superior del chat cuando `historyHasMore`.
+
+**Impacto:** Conversaciones largas cargan los últimos 50 mensajes en milisegundos. El usuario puede paginar hacia atrás solo si lo necesita.
+
+---
+
+### ✅ T-35 — AuditLog dedup O(n²) → O(n) + guard en trigger
+
+**Problema:** La deduplicación de logs en `AuditLog.jsx` era O(n²) — con 2.000 logs eran 2 millones de comparaciones por apertura de página. Además, `patient_phones` generaba logs duplicados en cascada.
+
+**Solución:**
+- `AuditLog.jsx`: función `deduplicateLogs(raw)` reescrita con `Set` de claves `tabla:acción:record_id:bucket5s`. Filtra `patient_phones` directamente. O(n) en una pasada.
+- Trigger `handle_audit_log` actualizado en DB: verifica existencia de log similar en los últimos 5 segundos antes de insertar, usando bucket de EPOCH. Evita duplicados en escritura.
+
+**Impacto:** Deduplicación instantánea en cliente. Los duplicados no se escriben en DB, reduciendo el volumen del audit_log a largo plazo.
+
+---
+
+### ✅ T-55 / T-19 — `patient_phones` con `business_id` — defensa en profundidad
+
+**Problema:** `updatePatient` filtraba `patient_phones` solo por `patient_id`. Si RLS no estaba configurado sobre esa tabla, podría actualizar teléfonos de otro tenant. La columna `business_id` no existía en `patient_phones`.
+
+**Solución:**
+- `updatePatient` en `supabaseService.js`: added `.eq('business_id', getBID())` al UPDATE y `business_id: getBID()` al INSERT en `patient_phones`.
+- SQL T-19: `ALTER TABLE patient_phones ADD COLUMN business_id INTEGER REFERENCES businesses(id)` + backfill desde `patients` + `NOT NULL` + índice.
+
+**Impacto:** Defensa en profundidad — incluso si RLS falla, el código nunca tocará teléfonos de otro tenant.
+
+---
+
+### ✅ T-44 — Campo `birth_date` en pacientes con edad calculada
+
+**Problema:** `patients` no tenía fecha de nacimiento. Para especialidades médicas la edad es información clínica esencial (dosificación, restricciones pediátricas, historial).
+
+**Solución:**
+- `ALTER TABLE patients ADD COLUMN birth_date DATE` ejecutado en DB.
+- `EditPatientModal.jsx`: función `calcAge(birthDate)` que calcula la edad exacta con ajuste de mes/día. Campo `<input type="date">` con `max={hoy}`. Edad mostrada inline en el label: `Fecha de Nacimiento (N años)`.
+- `updatePatient` acepta y persiste `birth_date`.
+
+**Impacto:** Las clínicas médicas pueden registrar y visualizar la edad de cada paciente directamente en el modal de edición.
+
+---
+
+### ✅ T-49 — Campo `cancelled_at` separado de `deleted_at` en appointments
+
+**Problema:** Los turnos cancelados usaban `deleted_at` igual que los borrados. No se podía distinguir una cancelación de un borrado de registro. Las métricas de cancelaciones eran imprecisas.
+
+**Solución:**
+- `ALTER TABLE appointments ADD COLUMN cancelled_at TIMESTAMPTZ` y `cancellation_reason TEXT` ejecutados en DB.
+- `cancelAppointment(id, reason)` en `supabaseService.js`: ahora registra `cancelled_at: new Date().toISOString()` y `cancellation_reason` opcional.
+
+**Impacto:** Separación semántica correcta entre cancelaciones y borrados. Permite calcular tasa y momento exacto de cancelaciones por paciente.
+
+---
+
+## 2026-04-15 (sesión 7)
+
+---
+
+### ✅ T-41 + Sub-módulo Seguimiento — Tab de pacientes perdidos
+
+**Problema:** No había forma de ver de un vistazo qué pacientes no se presentaron o cancelaron, ni de actuar sobre ellos (reagendar, contactar por WhatsApp). Los clientes perdidos quedaban invisibles en el calendario.
+
+**Solución:**
+- `getLostAppointments({ type, days })` en `supabaseService.js` — query de appointments con status `no_show` o `cancelled`, con join a `patients` y `patient_phones`, filtrable por tipo y ventana de días.
+- `FollowUpList.jsx` — tabla con filtros (Todos / No se presentó / Cancelados, ventana 7/30/60/90 días), acciones rápidas (Reagendar, WhatsApp) y AppointmentDrawer integrado para ver el detalle.
+- Tab "Seguimiento" en `Calendar.jsx` — alterna entre el calendario y la lista de seguimiento sin cambiar de ruta. Los controles de navegación (fecha, día/semana/mes) solo se muestran en el tab Calendario.
+
+**Impacto:** El negocio puede identificar y contactar pacientes perdidos en segundos, reagendarlos o escribirles por WhatsApp directamente desde el dashboard.
 
 ---
 

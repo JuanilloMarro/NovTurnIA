@@ -36,7 +36,7 @@ export function usePatients() {
             return cache.data;
         }
 
-        if (!hasDataRef.current) setLoading(true);
+        if (!hasDataRef.current || forceRefresh) setLoading(true);
         try {
             const { data, count, hasMore: more } = await getPatients(q, { page: pageNum });
             if (pageNum === 0) {

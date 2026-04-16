@@ -29,7 +29,9 @@ export default function Conversations() {
     function handleSearch(q) { setSearch(q); }
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [history, setHistory] = useState([]);
+    const [historyHasMore, setHistoryHasMore] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
 
     // Auto-select patient from URL if present
     useEffect(() => {
@@ -53,9 +55,31 @@ export default function Conversations() {
 
     async function loadHistory(id) {
         setLoadingHistory(true);
-        const data = await getPatientHistory(id);
-        setHistory(data);
-        setLoadingHistory(false);
+        try {
+            const { data, hasMore } = await getPatientHistory(id);
+            setHistory(data);
+            setHistoryHasMore(hasMore);
+        } catch {
+            setHistory([]);
+            setHistoryHasMore(false);
+        } finally {
+            setLoadingHistory(false);
+        }
+    }
+
+    async function loadMoreHistory() {
+        if (!selectedPatient || loadingMoreHistory || !historyHasMore) return;
+        setLoadingMoreHistory(true);
+        try {
+            const oldest = history[0]?.created_at;
+            const { data, hasMore } = await getPatientHistory(selectedPatient.id, { before: oldest });
+            setHistory(prev => [...data, ...prev]);
+            setHistoryHasMore(hasMore);
+        } catch {
+            // no-op — mantener mensajes actuales
+        } finally {
+            setLoadingMoreHistory(false);
+        }
     }
 
     async function handleReactivateIA() {
@@ -192,6 +216,17 @@ export default function Conversations() {
                                     </div>
                                 ) : (
                                     <div className="space-y-4 pb-4">
+                                        {historyHasMore && (
+                                            <div className="flex justify-center pb-2">
+                                                <button
+                                                    onClick={loadMoreHistory}
+                                                    disabled={loadingMoreHistory}
+                                                    className="px-4 py-1.5 bg-white/50 border border-white/70 rounded-full text-[11px] font-bold text-navy-800 hover:bg-white/70 transition-colors shadow-sm disabled:opacity-50"
+                                                >
+                                                    {loadingMoreHistory ? 'Cargando...' : 'Cargar mensajes anteriores'}
+                                                </button>
+                                            </div>
+                                        )}
                                         {history.map(msg => {
                                             const isBot = msg.role === 'assistant';
                                             return (

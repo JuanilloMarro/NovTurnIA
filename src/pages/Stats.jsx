@@ -30,7 +30,7 @@ export default function Stats() {
         );
     }
 
-    const { kpi, donut, rawApts } = stats;
+    const { kpi, donut } = stats;
 
     return (
         <div className="h-full flex flex-col w-full pt-2 overflow-hidden px-2">
@@ -79,7 +79,7 @@ export default function Stats() {
                 {/* Charts Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0 pb-2 px-1">
                     <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6">
-                        <MainChart rawApts={rawApts} />
+                        <MainChart />
                     </div>
                     <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6">
                         <AppointmentStatusChart data={donut.data} confRate={donut.confRate} />

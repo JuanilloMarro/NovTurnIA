@@ -5,6 +5,12 @@ import { useAuth } from './useAuth';
 
 // T-57: Hook genérico que elimina el 90% de código duplicado entre
 // useRealtimeAppointments y useRealtimePatients.
+//
+// T-11 (pendiente): La lógica de RealtimeStatusBanner está implementada pero desactivada.
+// El problema es que CLOSED se dispara tanto en desconexiones reales como en desmonte por
+// navegación (módulos sin realtime como Stats/Users nunca cancelan el timer).
+// Retomar cuando se encuentre el approach correcto para distinguir ambos casos.
+// Archivos listos: RealtimeStatusBanner.jsx, useAppStore.realtimeStatus, setRealtimeStatus.
 function useRealtimeTable(table, channelPrefix, onUpdate) {
     const onUpdateRef = useRef(onUpdate);
     const { profile } = useAuth();

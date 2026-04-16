@@ -3,17 +3,16 @@ import {
     getStatsOverview,
     getCurrentMonthAppointments,
     getMessageCounts,
-    getAppointmentTrend,
 } from '../services/supabaseService';
 import { useAppStore } from '../store/useAppStore';
 
 // T-29: Eliminadas las 3 llamadas directas a supabase — ahora pasan por supabaseService.js.
 // T-50: getMessageCounts ahora recibe monthStart/monthEnd para evitar COUNT(*) sin fecha.
-// Reducción original: 7 queries → 4 queries por carga, más cache de 5 minutos.
+// T-51: getAppointmentTrend movido a MainChart — el gráfico hace su propio fetch agregado.
+// Reducción: 7 queries → 3 queries por carga, más cache de 5 minutos.
 // - getStatsOverview()              → mv_business_stats + mv_patient_stats  (RPCs)
 // - getCurrentMonthAppointments()   → breakdown del mes actual (confirmed/bot/staff)
 // - getMessageCounts()              → mensajes enviados/recibidos del mes
-// - getAppointmentTrend()           → turnos individuales para el gráfico de tendencia
 
 const STALE_MS = 5 * 60_000; // 5 minutos
 
@@ -37,12 +36,11 @@ export function useStats() {
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
             const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
 
-            // 4 queries en paralelo vía service layer (T-29):
-            const [overview, currentMonthApts, messageCounts, trendRaw] = await Promise.all([
+            // 3 queries en paralelo vía service layer (T-29, T-51):
+            const [overview, currentMonthApts, messageCounts] = await Promise.all([
                 getStatsOverview(),
                 getCurrentMonthAppointments(monthStart, monthEnd),
                 getMessageCounts(monthStart, monthEnd),
-                getAppointmentTrend(6),
             ]);
 
             const { apptStats, patientStats } = overview;
@@ -91,8 +89,7 @@ export function useStats() {
                         { name: 'Cancelados',         value: cancelledThisMonth },
                         { name: 'No se presentaron', value: noShowThisMonth },
                     ]
-                },
-                rawApts: (trendRaw || []).map(a => ({ date_start: a.date_start, status: a.status }))
+                }
             };
 
             useAppStore.getState().setStatsCache(result);
@@ -102,7 +99,6 @@ export function useStats() {
             setStats({
                 kpi: { monthApts: 0, totalPatients: 0, activePatients: 0, newThisMonth: 0, sentMessages: 0, receivedMessages: 0, confirmedThisMonth: 0, createdByBot: 0, createdByStaff: 0 },
                 donut: { confRate: 0, data: [{ name: 'Confirmados', value: 0 }, { name: 'Pendientes', value: 0 }, { name: 'Cancelados', value: 0 }] },
-                rawApts: []
             });
         } finally {
             setLoading(false);

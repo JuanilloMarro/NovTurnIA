@@ -51,9 +51,10 @@ export function useAppointments() {
         [anchorDate.getTime(), viewMode]
     );
     const hasLoadedRef = useRef(false);
+    const [reloading, setReloading] = useState(false);
 
-    const load = useCallback(async () => {
-        if (!hasLoadedRef.current) setLoading(true);
+    const load = useCallback(async (force = false) => {
+        if (!hasLoadedRef.current || force) setLoading(true);
         try {
             const data = await getAppointmentsByWeek(
                 rangeStart.toISOString().slice(0, 10),
@@ -69,6 +70,26 @@ export function useAppointments() {
     }, [rangeStart.getTime(), rangeEnd.getTime()]);
 
     useEffect(() => { load(); }, [load]);
+
+    const reload = useCallback(async () => {
+        setReloading(true);
+        try {
+            const data = await Promise.race([
+                getAppointmentsByWeek(
+                    rangeStart.toISOString().slice(0, 10),
+                    rangeEnd.toISOString().slice(0, 10)
+                ),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('timeout')), 10_000)
+                ),
+            ]);
+            setAppointments(data);
+        } catch (err) {
+            console.error("Error reloading appointments:", err);
+        } finally {
+            setReloading(false);
+        }
+    }, [rangeStart.getTime(), rangeEnd.getTime()]);
 
     // Realtime Sync (Optimized: only re-fetch on Insert/Delete, Update locally)
     useRealtimeAppointments((payload) => {
@@ -104,21 +125,22 @@ export function useAppointments() {
 
     const goToday = () => setAnchorDate(new Date());
 
-    return { 
-        appointments, 
-        loading, 
-        anchorDate, 
-        weekStart: getMonday(anchorDate), // For backwards compatibility
+    return {
+        appointments,
+        loading,
+        reloading,
+        anchorDate,
+        weekStart: getMonday(anchorDate),
         viewMode,
         setViewMode,
         setDate: setAnchorDate,
-        prevWeek, 
-        nextWeek, 
+        prevWeek,
+        nextWeek,
         prevDay,
         nextDay,
         prevMonth,
         nextMonth,
-        goToday, 
-        reload: load 
+        goToday,
+        reload,
     };
 }
