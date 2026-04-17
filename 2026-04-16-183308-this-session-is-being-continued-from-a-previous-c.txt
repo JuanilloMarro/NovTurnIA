@@ -1,0 +1,1342 @@
+ ▐▛███▜▌   Claude Code v2.1.107
+▝▜█████▛▘  Sonnet 4.6 · Claude Pro
+  ▘▘ ▝▝    ~\Documents\Antigravity Projects\NovTurnIA\NovTurnIA
+
+✻ Conversation compacted (ctrl+o for history)
+
+  ⎿  Referenced file docs\infrastructure_evaluation.md
+  ⎿  Read docs\FUTURE_TASKS.md (312 lines)
+  ⎿  Referenced file docs\COMPLETED_TASKS.md
+  ⎿  Referenced file src\services\supabaseService.js
+  ⎿  Read src\hooks\useStats.js (101 lines)
+
+● Todo listo. Docs actualizados, sesión 13 completada con 9 tareas nuevas (total
+   85).
+
+  Pendientes de alta prioridad para la próxima sesión:
+  - T-05 🟠 Sentry (solo variable de entorno en Vercel)
+  - T-11 🟡 Activar banner Realtime (código ya escrito)
+  - T-33 🟡 Dark mode funcional
+  - T-03 🔴 Billing — Stripe (esfuerzo alto)
+  - Filtro conversaciones — quedó interrumpido antes de completarse
+
+  ¿Por dónde seguimos?
+
+✻ Churned for 4m 46s
+
+❯ tarea tecnicas debes quitarlo de future tasks si ya se termianron             
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(docs\FUTURE_TASKS.md)
+  ⎿  Added 1 line, removed 1 line
+      1  # NovTurnAI — Tareas Pendientes & Plan de Ejecución
+      2  
+      3 -> Actualizado: 2026-04-16 (sesión 12)                           
+      3 +> Actualizado: 2026-04-16 (sesión 13)                           
+      4  > Prioridades: 🔴 Pre-lanzamiento · 🟠 Primer mes · 🟡 Segundo m
+         es · 🟢 Escalabilidad
+      5  > Estado: 🔲 Pendiente · 🔄 En progreso · 🚫 Bloqueada por depen
+         dencia
+      6  > Completadas → ver [COMPLETED_TASKS.md](./COMPLETED_TASKS.md)
+
+● Update(docs\FUTURE_TASKS.md)
+  ⎿  Added 1 line, removed 1 line
+      15  | 🟠 Primer mes | 2 | Visibilidad en producción, features clave
+           |
+      16  | 🟡 Segundo mes | 3 | Compliance médico, resiliencia, calidad 
+          de datos |
+      17  | 🟢 Escalabilidad | 3 | Crecimiento a 10k+ usuarios |
+      18 -| Técnicas de apoyo | 6 | Sin ventana fija, soportan las demás 
+         -|                                                              
+      18 +| Técnicas de apoyo | 1 | Sin ventana fija, soportan las demás 
+         +|                                                              
+      19  
+      20  ---
+      21  
+
+● Update(docs\FUTURE_TASKS.md)
+  ⎿  Removed 6 lines
+      220  
+      221  | ID | Tarea | Prioridad | Depende de | Esfuerzo | Estado |
+      222  |----|-------|-----------|------------|---------|--------|
+      223 -| T-17 | Consolidar 3 queries restantes de `useStats` en una s
+          -ola RPC | 🟡 | — | Medio | ✅ |                               
+      223  | T-18 | Migrar `appointments.id` a UUID v7 (cuando supere 50k
+            filas) | 🟢 | T-09 | Medio | 🔲 |
+      225 -| T-19 | Agregar `business_id` directo a `patient_phones` (opt
+          -imización RLS) | 🟡 | T-09 | Bajo-Medio | ✅ |                
+      226 -| T-22 | Lazy loading de rutas con `React.lazy()` | 🟡 | — | B
+          -ajo | ✅ |                                                    
+      227 -| T-23 | Unificar error handling en `supabaseService.js` | 🟡 
+          -| — | Bajo-Medio | ✅ |                                       
+      228 -| T-24 | Rate limiting en `createStaffUser` | 🟡 | T-13 | Bajo
+          - | ✅ |                                                       
+      229 -| T-59 | `loadMore` en `usePatients` duplica la lógica de esta
+          -do de `load` — unificar | 🟡 | — | Bajo | ✅ |                
+      224  
+      225  ---
+      226  
+
+● Listo. Eliminé T-17, T-19, T-22, T-23, T-24 y T-59 de la tabla — solo queda
+  T-18 🔲 (el UUID v7 para appointments, que es escalabilidad futura). También
+  actualicé el contador del Resumen Ejecutivo de 6 → 1 y la fecha a sesión 13.
+
+✻ Worked for 37s
+
+❯ Ahora bien tomando en cuenta los documentos de &                              
+  'c:\Users\jmarr\Documents\Antigravity                                         
+  Projects\NovTurnIA\NovTurnIA\docs\COMPLETED_TASKS.md', &                      
+  'c:\Users\jmarr\Documents\Antigravity                                         
+  Projects\NovTurnIA\NovTurnIA\docs\FUTURE_TASKS.md', &                         
+  'c:\Users\jmarr\Documents\Antigravity                                         
+  Projects\NovTurnIA\NovTurnIA\docs\infrastructure_evaluation.md', que otras    
+  tareas o problemas miras por solucionar? ademas analiza la optimizacion de    
+  datos que esta costando qeu carguen las tablas y hasta que no doy f5 se       
+  actualizan normales                                                           
+
+  Read 2 files (ctrl+o to expand)
+
+● Ahora veamos el problema de carga de tablas y caché. Necesito ver los hooks y
+  el store.
+
+  Searched for 9 patterns, read 10 files (ctrl+o to expand)
+
+● Ahora tengo el cuadro completo. Déjame analizar todo:
+
+  ---
+  Diagnóstico — Tareas nuevas identificadas
+
+  🔴 Bug principal: datos obsoletos tras mutaciones (el F5)
+
+  Causa raíz encontrada — en Patients.jsx hay dos callbacks que no usan
+  forceRefresh:
+
+  // Patients.jsx:176 — después de CREAR paciente
+  onCreated={() => {
+      handleSearch(search);  // ← llama load(q, false, 0) — con cache! puede 
+  devolver datos viejos
+      setIsNewPatientModalOpen(false);
+  }}
+
+  // Patients.jsx:187 — después de EDITAR paciente
+  onRefresh={async () => {
+      const data = await reload(search);  // ← reload es load(q, false, 0) — 
+  mismo problema
+      const updated = data.find(p => p.id === selectedPatient.id);
+      ...
+  }}
+
+  reload es simplemente load exportado — sin forceRefresh=true. Si el usuario
+  crea/edita un paciente dentro del primer minuto de haber abierto la página, el
+   cache de 1 minuto gana y la lista no cambia. El realtime debería compensar
+  esto, pero si está desconectado (T-11 sin resolver), nada actualiza.
+
+  Fix: Patients.jsx — 2 líneas
+
+  // onCreated: forzar refresh
+  onCreated={() => {
+      reload(search, true);  // forceRefresh=true
+      setIsNewPatientModalOpen(false);
+  }}
+
+  // onRefresh: forzar refresh
+  onRefresh={async () => {
+      const data = await reload(search, true);  // forceRefresh=true
+      const updated = data.find(p => p.id === selectedPatient.id);
+      if (updated) setSelectedPatient(updated);
+  }}
+
+  ---
+  🟠 Conversations — recarga completa en cada visita
+
+  getPatientsForConversations() trae todos los pacientes sin límite ni caché, y
+  se ejecuta en cada useEffect de montaje. Con 200+ pacientes esto es lento y
+  siempre hace un round-trip al servidor.
+
+  // Conversations.jsx:26 — sin cache, sin límite
+  useEffect(() => {
+      getPatientsForConversations().then(setPatients).catch(() => {});
+  }, []);
+
+  El query en sí está bien (T-31 ya lo hizo liviano), pero habría que añadir un
+  cache de corta duración en el store igual que _patientsCache.
+
+  ---
+  🟡 Otras tareas que veo desde el código/docs
+
+  ┌──────────────────┬─────────────────────────────┬───────────┬────────────┐
+  │        ID        │          Problema           │ Prioridad │  Esfuerzo  │
+  ├──────────────────┼─────────────────────────────┼───────────┼────────────┤
+  │                  │ onCreated/onRefresh en      │           │            │
+  │ T-NEW-stale      │ Patients.jsx usan           │ 🔴        │ Muy bajo   │
+  │                  │ forceRefresh=false → datos  │           │ (2 líneas) │
+  │                  │ obsoletos post-mutación     │           │            │
+  ├──────────────────┼─────────────────────────────┼───────────┼────────────┤
+  │                  │ Conversations recarga todos │           │            │
+  │ T-NEW-conv-cache │  los pacientes en cada      │ 🟠        │ Bajo       │
+  │                  │ visita — necesita cache en  │           │            │
+  │                  │ store (como _patientsCache) │           │            │
+  ├──────────────────┼─────────────────────────────┼───────────┼────────────┤
+  │                  │ Realtime desconectado →     │           │            │
+  │ T-11             │ ningún update llega sin F5  │ 🟡        │ Bajo-Medio │
+  │                  │ — código listo, falta       │           │            │
+  │                  │ activar                     │           │            │
+  ├──────────────────┼─────────────────────────────┼───────────┼────────────┤
+  │ T-33             │ Dark mode — código listo,   │ 🟡        │ Medio      │
+  │                  │ solo falta wire             │           │            │
+  ├──────────────────┼─────────────────────────────┼───────────┼────────────┤
+  │ T-03             │ Stripe — sin billing no se  │ 🔴        │ Alto       │
+  │                  │ puede cobrar                │           │            │
+  ├──────────────────┼─────────────────────────────┼───────────┼────────────┤
+  │ T-05             │ Sentry — solo               │ 🟠        │ 30 min     │
+  │                  │ VITE_SENTRY_DSN en Vercel   │           │            │
+  ├──────────────────┼─────────────────────────────┼───────────┼────────────┤
+  │ T-08             │ businesses.id INTEGER→UUID  │ 🟠        │ Alto       │
+  │                  │ en URL                      │           │            │
+  └──────────────────┴─────────────────────────────┴───────────┴────────────┘
+
+  ---
+  ¿Qué resolvemos primero?
+
+  El bug de F5 son literalmente 2 líneas — lo hago ya. ¿Quieres que también meta
+   el cache para Conversations, o lo dejamos para después?
+
+✻ Churned for 2m 52s
+
+❯ si adelante                                                                   
+
+  Read 2 files (ctrl+o to expand)
+
+● Fix 1 — Patients.jsx: forceRefresh en ambos callbacks
+
+● Update(src\pages\Patients.jsx)
+  ⎿  Added 1 line, removed 1 line
+      174                      isOpen={isNewPatientModalOpen} 
+      175                      onClose={() => setIsNewPatientModalOpen(fa
+           lse)} 
+      176                      onCreated={() => {
+      177 -                        handleSearch(search); // Refresh with 
+          -current search                                                
+      177 +                        reload(search, true); // forceRefresh 
+          +— salta el cache de 1 min                                     
+      178                          setIsNewPatientModalOpen(false);
+      179                      }}
+      180                  />
+● Update(src\pages\Patients.jsx)
+  ⎿  Added 1 line, removed 1 line
+      185                      patient={selectedPatient} 
+      186                      onClose={() => setSelectedPatient(null)} 
+      187                      onRefresh={async () => {
+      188 -                        const data = await reload(search);    
+      188 +                        const data = await reload(search, true
+          +); // forceRefresh — salta el cache de 1 min                  
+      189                          const updated = data.find(p => p.id ==
+           = selectedPatient.id);
+      190                          if (updated) setSelectedPatient(update
+           d);
+      191                      }} 
+
+● Fix 2 — useAppStore.js: agregar cache para Conversations
+
+● Update(src\store\useAppStore.js)
+  ⎿  Added 8 lines
+       91      setPatientsCache: (data) => set({ _patientsCache: { data, 
+           fetchedAt: Date.now() } }),
+       92      invalidatePatientsCache: () => set({ _patientsCache: { dat
+           a: [], fetchedAt: 0 } }),
+       93  
+       94 +    // Cache de lista de pacientes para Conversations (2 minut
+          +os)                                                           
+       95 +    // Conversations hace getPatientsForConversations() en cad
+          +a montaje — sin cache, cada                                   
+       96 +    // navegación dispara un SELECT sobre todos los pacientes.
+          + 2 min es suficiente para                                     
+       97 +    // evitar round-trips innecesarios sin mostrar datos demas
+          +iado obsoletos.                                               
+       98 +    _conversationsCache: { data: [], fetchedAt: 0 },          
+       99 +    setConversationsCache: (data) => set({ _conversationsCache
+          +: { data, fetchedAt: Date.now() } }),                         
+      100 +    invalidateConversationsCache: () => set({ _conversationsCa
+          +che: { data: [], fetchedAt: 0 } }),                           
+      101 +                                                              
+      102      // Cache de estadísticas (5 minutos)
+      103      // Stats hace 7 queries a tablas pesadas — sin cache, cada
+            visita a /stats
+      104      // dispara todas las queries desde cero. Con 5 min de stal
+           e, las visitas frecuentes
+
+● Fix 3 — Conversations.jsx: usar el cache del store
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 3 lines
+       6  import { getPatientHistory, setHumanTakeover, getPatientsForCon
+          versations } from '../services/supabaseService';
+       7  import { showErrorToast } from '../store/useToastStore';
+       8  import { formatPhone } from '../utils/format';
+       9 +import { useAppStore } from '../store/useAppStore';            
+      10  
+      11 +const CONV_STALE_MS = 2 * 60_000; // 2 minutos                 
+      12 +                                                               
+      13  function getInitials(name) {
+      14      if (!name) return '?';
+      15      return name.trim().split(/\s+/).map(w => w[0]).join('').sli
+          ce(0, 2).toUpperCase();
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 13 lines, removed 2 lines
+      20      const patientIdFromUrl = searchParams.get('patient');
+      21  
+      22      // T-31: query liviana — solo id, display_name, human_takeo
+          ver y teléfono
+      23 -    // Reemplaza usePatients() que traía 5 citas por paciente i
+         -nnecesariamente                                                
+      23 +    // Reemplaza usePatients() que traía 5 citas por paciente i
+         +nnecesariamente.                                               
+      24 +    // Cache de 2 min en store — evita re-fetch en cada navegac
+         +ión a /conversations.                                          
+      25      const [patients, setPatients] = useState([]);
+      26      const [search, setSearch] = useState('');
+      27      const { canToggleAi } = usePermissions();
+      28  
+      29      useEffect(() => {
+      29 -        getPatientsForConversations().then(setPatients).catch((
+         -) => {});                                                      
+      30 +        const cache = useAppStore.getState()._conversationsCach
+         +e;                                                             
+      31 +        if (cache.data.length > 0 && Date.now() - cache.fetched
+         +At < CONV_STALE_MS) {                                          
+      32 +            setPatients(cache.data);                           
+      33 +            return;                                            
+      34 +        }                                                      
+      35 +        getPatientsForConversations()                          
+      36 +            .then(data => {                                    
+      37 +                useAppStore.getState().setConversationsCache(da
+         +ta);                                                           
+      38 +                setPatients(data);                             
+      39 +            })                                                 
+      40 +            .catch(() => {});                                  
+      41      }, []);
+      42  
+      43      function handleSearch(q) { setSearch(q); }
+
+● Ahora también hay que invalidar el cache de conversations cuando se modifica
+  un paciente (ej: toggle de takeover). Verifiquemos si hay algún lugar donde se
+   cambia human_takeover:
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Cuando se reactiva la IA, también hay que actualizar la lista local y el cache
+   para que el badge amber desaparezca:
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 8 lines, removed 1 line
+      119              // (2) duplicaba lógica que ya existía en supabase
+           Service.js,
+      120              // (3) expone err.message via alert() que puede co
+           ntener detalles internos de Supabase.
+      121              await setHumanTakeover(selectedPatient.id, false);
+      122 -            setSelectedPatient({ ...selectedPatient, human_tak
+          -eover: false });                                              
+      122 +            const updated = { ...selectedPatient, human_takeov
+          +er: false };                                                  
+      123 +            setSelectedPatient(updated);                      
+      124 +            // Actualizar lista local y cache para que el badg
+          +e amber desaparezca sin re-fetch                              
+      125 +            setPatients(prev => {                             
+      126 +                const next = prev.map(p => p.id === updated.id
+          + ? { ...p, human_takeover: false } : p);                      
+      127 +                useAppStore.getState().setConversationsCache(n
+          +ext);                                                         
+      128 +                return next;                                  
+      129 +            });                                               
+      130          } catch (err) {
+      131              // Usar el sistema de toasts en lugar de alert():
+      132              // alert() es bloqueante, inconsistente con el res
+           to de la UI, y concatena
+
+● También invalidar el cache de conversations cuando se crea o edita un paciente
+   desde Patients (para que la próxima visita a /conversations vea los datos
+  frescos):
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(src\pages\Patients.jsx)
+  ⎿  Added 1 line
+       7  import { exportAllPatients } from '../services/supabaseService'
+          ;
+       8  import { downloadCSV } from '../utils/export';
+       9  import { usePermissions } from '../hooks/usePermissions';
+      10 +import { useAppStore } from '../store/useAppStore';            
+      11  
+      12  export default function Patients() {
+      13      const { canCreatePatients, canExportPatients } = usePermiss
+          ions();
+
+● Update(src\pages\Patients.jsx)
+  ⎿  Added 1 line
+      175                      isOpen={isNewPatientModalOpen} 
+      176                      onClose={() => setIsNewPatientModalOpen(fa
+           lse)} 
+      177                      onCreated={() => {
+      178 +                        useAppStore.getState().invalidateConve
+          +rsationsCache(); // nuevo paciente visible en /conversations  
+      179                          reload(search, true); // forceRefresh 
+           — salta el cache de 1 min
+      180                          setIsNewPatientModalOpen(false);
+      181                      }}
+
+● Update(src\pages\Patients.jsx)
+  ⎿  Added 1 line
+      187                      patient={selectedPatient} 
+      188                      onClose={() => setSelectedPatient(null)} 
+      189                      onRefresh={async () => {
+      190 +                        useAppStore.getState().invalidateConve
+          +rsationsCache(); // cambios en paciente reflejados en /convers
+          +ations                                                        
+      191                          const data = await reload(search, true
+           ); // forceRefresh — salta el cache de 1 min
+      192                          const updated = data.find(p => p.id ==
+           = selectedPatient.id);
+      193                          if (updated) setSelectedPatient(update
+           d);
+
+● También hay que invalidar el cache de conversations cuando el realtime detecta
+   cambios en pacientes (actualmente solo invalida _patientsCache):
+
+● Update(src\hooks\usePatients.js)
+  ⎿  Added 1 line
+      102          } else {
+      103              // Re-fetch everything for Insert/Delete to keep c
+           onsistency
+      104              useAppStore.getState().invalidatePatientsCache();
+      105 +            useAppStore.getState().invalidateConversationsCach
+          +e(); // Conversations ve los mismos pacientes                 
+      106              setPage(0);
+      107              load('', true, 0); // Force refresh from page 0
+      108          }
+
+● Listo. Revisemos que todo quedó bien:
+
+  Read 2 files (ctrl+o to expand)
+
+● Todo correcto. Resumen de los cambios:
+
+  ---
+  Qué se resolvió
+
+  Bug del F5 — Patients.jsx
+
+  - onCreated: handleSearch(search) → reload(search, true) — fuerza fetch real,
+  salta cache de 1 min
+  - onRefresh (tras editar): reload(search) → reload(search, true) — mismo fix
+
+  Cache para Conversations
+
+  - useAppStore.js: nuevo slice _conversationsCache con TTL de 2 minutos +
+  setConversationsCache + invalidateConversationsCache
+  - Conversations.jsx: al montar, sirve datos del cache si son frescos; si no,
+  fetcha y guarda
+  - Toggle IA (handleReactivateIA): actualiza lista local + cache en memoria —
+  el badge amber desaparece inmediatamente sin re-fetch
+  - usePatients.js: el realtime de INSERT/DELETE también invalida
+  _conversationsCache (coherencia entre páginas)
+  - Patients.jsx: crear o editar paciente invalida _conversationsCache para que
+  la próxima visita a /conversations vea datos frescos
+
+✻ Baked for 1m 26s
+
+❯ en cuanto a porcentaje como ves terminado el proyeto?                         
+
+● Depende de qué "terminado" signifique para el proyecto. Lo veo desde tres
+  ángulos:
+
+  ---
+  Producto (lo que el usuario final experimenta)
+
+  ~88% completo
+
+  Todo lo que un negocio necesita para operar día a día está funcionando:
+  - Calendario con turnos, vistas día/semana/mes ✅
+  - Gestión de pacientes completa ✅
+  - Bot de WhatsApp con IA ✅
+  - Conversaciones con handoff humano ✅
+  - Staff + permisos granulares ✅
+  - Estadísticas y gráficas ✅
+  - Recordatorios de pendientes ✅
+  - Configuración de negocio y servicios ✅
+  - Plan enforcement ✅
+
+  Lo que falta: dark mode (cosmético), realtime banner (UX), filtros en
+  conversations (interrumpido).
+
+  ---
+  SaaS listo para cobrar
+
+  ~45% completo
+
+  Aquí está el hueco real. Aunque el producto funciona, no se puede operar como
+  negocio:
+
+  ┌────────────────────────────────────────────────┬───────────────────┐
+  │                   Bloqueante                   │      Estado       │
+  ├────────────────────────────────────────────────┼───────────────────┤
+  │ Stripe — cobrar a clientes                     │ ❌ T-03 sin hacer │
+  ├────────────────────────────────────────────────┼───────────────────┤
+  │ Ciclo de vida del tenant (trial, suspensión)   │ ❌ T-02 sin hacer │
+  ├────────────────────────────────────────────────┼───────────────────┤
+  │ Visibilidad de errores en producción           │ ❌ Sentry sin DSN │
+  ├────────────────────────────────────────────────┼───────────────────┤
+  │ Costo real por cliente calculado               │ ❌ No documentado │
+  ├────────────────────────────────────────────────┼───────────────────┤
+  │ businesses.id expone número de clientes en URL │ ❌ T-08 pendiente │
+  └────────────────────────────────────────────────┴───────────────────┘
+
+  Sin Stripe, el modelo de ingresos es 100% manual. El producto está listo para
+  demostrar, pero no para escalar.
+
+  ---
+  Calidad técnica / deuda
+
+  ~85% completo
+
+  El código está bien estructurado — 85 tareas técnicas resueltas. Lo que queda:
+  - TypeScript (T-16) — cuando el equipo crezca
+  - TanStack Query (T-15) — cuando haya 3+ devs
+  - T-08 UUID migration — riesgo controlado
+  - T-11 Realtime banner — código listo, falta activar
+
+  ---
+  Número global
+
+  ~72% para un SaaS que puede operar como negocio autónomo.
+
+  Si la meta es solo "usar el producto internamente o con clientes de
+  confianza", estás en ~88%. Si la meta es lanzar y cobrar automáticamente a
+  desconocidos, el número baja a ~50% porque falta todo el flujo de
+  monetización.
+
+  El camino más corto al 100% real: T-05 (Sentry, 30 min) → T-02 (ciclo tenant)
+  → T-03 (Stripe). Todo lo demás es optimización.
+
+❯ haz el filtro en conversacion                                                 
+
+  Read 1 file (ctrl+o to expand)
+
+● Entiendo la estructura. Voy a añadir un filtro con dropdown (igual al estilo
+  de Patients) que permita filtrar por: Todos / Bot desactivado / Bot activo.
+
+● Update(src\pages\Conversations.jsx)  ⎿  Added 7 lines, removed 1 line
+      1  import { useState, useEffect, useRef } from 'react';
+      2  import { useSearchParams } from 'react-router-dom';
+      3 -import { Search, MessageCircle, Bot, ShieldAlert } from 'lucide-
+        -react';                                                         
+      3 +import { Search, MessageCircle, Bot, ShieldAlert, SlidersHorizon
+        +tal, Check } from 'lucide-react';                               
+      4  import AIStar from '../components/Icons/AIStar';
+      5  import { usePermissions } from '../hooks/usePermissions';
+      6  import { getPatientHistory, setHumanTakeover, getPatientsForConv
+         ersations } from '../services/supabaseService';
+     ...
+      10  
+      11  const CONV_STALE_MS = 2 * 60_000; // 2 minutos
+      12  
+      13 +const FILTER_OPTIONS = [                                       
+      14 +    { id: 'all',        label: 'Todos' },                      
+      15 +    { id: 'takeover',   label: 'Bot desactivado' },            
+      16 +    { id: 'bot_active', label: 'Bot activo' },                 
+      17 +];                                                             
+      18 +                                                               
+      19  function getInitials(name) {
+      20      if (!name) return '?';
+      21      return name.trim().split(/\s+/).map(w => w[0]).join('').sli
+          ce(0, 2).toUpperCase();
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 15 lines
+      30      // Cache de 2 min en store — evita re-fetch en cada navegac
+          ión a /conversations.
+      31      const [patients, setPatients] = useState([]);
+      32      const [search, setSearch] = useState('');
+      33 +    const [filter, setFilter] = useState('all');               
+      34 +    const [showFilter, setShowFilter] = useState(false);       
+      35 +    const filterRef = useRef(null);                            
+      36      const { canToggleAi } = usePermissions();
+      37  
+      38 +    // Cierra el dropdown al hacer click fuera                 
+      39      useEffect(() => {
+      40 +        if (!showFilter) return;                               
+      41 +        function handleClickOutside(e) {                       
+      42 +            if (filterRef.current && !filterRef.current.contain
+         +s(e.target)) {                                                 
+      43 +                setShowFilter(false);                          
+      44 +            }                                                  
+      45 +        }                                                      
+      46 +        document.addEventListener('mousedown', handleClickOutsi
+         +de);                                                           
+      47 +        return () => document.removeEventListener('mousedown', 
+         +handleClickOutside);                                           
+      48 +    }, [showFilter]);                                          
+      49 +                                                               
+      50 +    useEffect(() => {                                          
+      51          const cache = useAppStore.getState()._conversationsCach
+          e;
+      52          if (cache.data.length > 0 && Date.now() - cache.fetched
+          At < CONV_STALE_MS) {
+      53              setPatients(cache.data);
+
+● Ahora añado la lógica de filtrado y reemplazo el panel izquierdo:
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 11 lines
+      160      // Helper para obtener teléfono del paciente
+      161      const getPhone = (p) => p.patient_phones?.[0]?.phone || ''
+           ;
+      162  
+      163 +    // Lista filtrada — primero por texto, luego por filtro ac
+          +tivo                                                          
+      164 +    const filteredPatients = patients.filter(p => {           
+      165 +        if (search && !p.display_name?.toLowerCase().includes(
+          +search.toLowerCase())) return false;                          
+      166 +        if (filter === 'takeover') return p.human_takeover;   
+      167 +        if (filter === 'bot_active') return !p.human_takeover;
+      168 +        return true;                                          
+      169 +    });                                                       
+      170 +                                                              
+      171 +    const filterLabel = FILTER_OPTIONS.find(o => o.id === filt
+          +er)?.label || 'Todos';                                        
+      172 +    const isFiltering = filter !== 'all';                     
+      173 +                                                              
+      174      return (
+      175          <div className="h-full flex flex-col max-w-4xl mx-auto
+            w-full pt-2">
+      176              <div className="flex flex-col lg:flex-row items-st
+           art lg:items-center justify-between gap-3 mb-4">
+
+● Ahora reemplazo el panel izquierdo con la barra de búsqueda + botón de filtro
+  + dropdown:
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 55 lines, removed 11 lines
+      185              <div className="flex-1 bg-white/40 backdrop-blur-2
+           xl border border-white/60 rounded-[32px] shadow-md flex overfl
+           ow-hidden mb-4 lg:mb-6 animate-fade-up">
+      186                  {/* Left Panel: Contacts */}
+      187                  <div className="w-[320px] flex flex-col z-10">
+      188 -                    <div className="p-4">                     
+      189 -                        <div className="relative h-10 w-full">
+      190 -                            <div className="absolute inset-y-0
+          - left-0 pl-4 flex items-center pointer-events-none text-navy-9
+          -00">                                                          
+      191 -                                <Search size={14} strokeWidth=
+          -{2.5} />                                                      
+      188 +                    <div className="p-4 pb-3 space-y-2">      
+      189 +                        {/* Barra búsqueda + botón filtro */} 
+      190 +                        <div className="flex items-center gap-
+          +2">                                                           
+      191 +                            <div className="relative h-10 flex
+          +-1">                                                          
+      192 +                                <div className="absolute inset
+          +-y-0 left-0 pl-4 flex items-center pointer-events-none text-na
+          +vy-900">                                                      
+      193 +                                    <Search size={14} strokeWi
+          +dth={2.5} />                                                  
+      194 +                                </div>                        
+      195 +                                <input                        
+      196 +                                    className="w-full h-full b
+          +g-white/60 backdrop-blur-card border border-white/90 rounded-f
+          +ull pl-10 pr-4 text-xs font-semibold text-navy-900 outline-non
+          +e focus:border-white focus:bg-white/80 focus:ring-1 focus:ring
+          +-white transition-all placeholder-navy-900/60 shadow-sm"      
+      197 +                                    placeholder="Buscar pacien
+          +te..."                                                        
+      198 +                                    value={search}            
+      199 +                                    onChange={e => handleSearc
+          +h(e.target.value)}                                            
+      200 +                                />                            
+      201                              </div>
+      193 -                            <input                            
+      194 -                                className="w-full h-full bg-wh
+          -ite/60 backdrop-blur-card border border-white/90 rounded-full 
+          -pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none fo
+          -cus:border-white focus:bg-white/80 focus:ring-1 focus:ring-whi
+          -te transition-all placeholder-navy-900/60 shadow-sm"          
+      195 -                                placeholder="Buscar paciente..
+          -."                                                            
+      196 -                                value={search}                
+      197 -                                onChange={e => handleSearch(e.
+          -target.value)}                                                
+      198 -                            />                                
+      202 +                            {/* Botón filtro */}              
+      203 +                            <div className="relative" ref={fil
+          +terRef}>                                                      
+      204 +                                <button                       
+      205 +                                    onClick={() => setShowFilt
+          +er(v => !v)}                                                  
+      206 +                                    className={`h-10 w-10 flex
+          + items-center justify-center rounded-full border shadow-sm tra
+          +nsition-all ${isFiltering ? 'bg-navy-900 border-navy-900 text-
+          +white' : 'bg-white/60 border-white/90 text-navy-900 hover:bg-w
+          +hite/80'}`}                                                   
+      207 +                                    title={`Filtro: ${filterLa
+          +bel}`}                                                        
+      208 +                                >                             
+      209 +                                    <SlidersHorizontal size={1
+          +4} strokeWidth={2.5} />                                       
+      210 +                                </button>                     
+      211 +                                                              
+      212 +                                {/* Dropdown filtro */}       
+      213 +                                {showFilter && (              
+      214 +                                    <div className="absolute r
+          +ight-0 top-12 w-48 bg-white/80 backdrop-blur-2xl border border
+          +-white/80 rounded-2xl shadow-lg overflow-hidden z-50 animate-f
+          +ade-up">                                                      
+      215 +                                        {FILTER_OPTIONS.map(op
+          +t => (                                                        
+      216 +                                            <button           
+      217 +                                                key={opt.id}  
+      218 +                                                onClick={() =>
+          + { setFilter(opt.id); setShowFilter(false); }}                
+      219 +                                                className="w-f
+          +ull flex items-center justify-between px-4 py-2.5 text-xs font
+          +-semibold text-navy-900 hover:bg-white/60 transition-colors"  
+      220 +                                            >                 
+      221 +                                                <span>{opt.lab
+          +el}</span>                                                    
+      222 +                                                {filter === op
+          +t.id && <Check size={12} strokeWidth={3} className="text-navy-
+          +900" />}                                                      
+      223 +                                            </button>         
+      224 +                                        ))}                   
+      225 +                                    </div>                    
+      226 +                                )}                            
+      227 +                            </div>                            
+      228                          </div>
+      229 +                                                              
+      230 +                        {/* Contador cuando hay filtro activo 
+          +*/}                                                           
+      231 +                        {isFiltering && (                     
+      232 +                            <div className="flex items-center 
+          +justify-between px-1">                                        
+      233 +                                <span className="text-[11px] f
+          +ont-semibold text-navy-700/70">                               
+      234 +                                    {filteredPatients.length} 
+          +de {patients.length} pacientes                                
+      235 +                                </span>                       
+      236 +                                <button                       
+      237 +                                    onClick={() => setFilter('
+          +all')}                                                        
+      238 +                                    className="text-[11px] fon
+          +t-bold text-navy-900 hover:underline"                         
+      239 +                                >                             
+      240 +                                    Limpiar                   
+      241 +                                </button>                     
+      242 +                            </div>                            
+      243 +                        )}                                    
+      244                      </div>
+      245  
+      246                      <div className="flex-1 overflow-y-auto cus
+           tom-scrollbar p-2 pr-3 pt-0 space-y-1">
+      203 -                        {patients.filter(p => !search || p.dis
+          -play_name?.toLowerCase().includes(search.toLowerCase())).map(p
+          - => {                                                         
+      247 +                        {filteredPatients.map(p => {          
+      248                              const isSelected = selectedPatient
+           ?.id === p.id;
+      249                              const name = p.display_name || 'Si
+           n nombre';
+      250                              return (
+
+● El .map() anterior tenía patients.filter(...).map(p =>, ahora solo usa
+  filteredPatients.map(p =>. Pero hay una llave de cierre del bloque
+  .filter().map() que hay que limpiar. Revisemos:
+
+  Read 1 file (ctrl+o to expand)
+
+● La estructura está bien. Voy a añadir también el estado vacío cuando el filtro
+   no da resultados:
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 9 lines, removed 1 line
+      244                      </div>
+      245  
+      246                      <div className="flex-1 overflow-y-auto cus
+           tom-scrollbar p-2 pr-3 pt-0 space-y-1">
+      247 -                        {filteredPatients.map(p => {          
+      247 +                        {filteredPatients.length === 0 ? (    
+      248 +                            <div className="flex flex-col item
+          +s-center justify-center py-12 text-center px-4">              
+      249 +                                <SlidersHorizontal size={22} s
+          +trokeWidth={1.5} className="text-navy-900/30 mb-2" />         
+      250 +                                <p className="text-xs font-bol
+          +d text-navy-900/50">Sin resultados</p>                        
+      251 +                                <p className="text-[11px] font
+          +-semibold text-navy-700/40 mt-0.5">                           
+      252 +                                    {isFiltering ? 'Prueba otr
+          +o filtro' : 'No hay pacientes que coincidan'}                 
+      253 +                                </p>                          
+      254 +                            </div>                            
+      255 +                        ) : filteredPatients.map(p => {       
+      256                              const isSelected = selectedPatient
+           ?.id === p.id;
+      257                              const name = p.display_name || 'Si
+           n nombre';
+      258                              return (
+
+● Verificación final del archivo:
+
+  Read 1 file (ctrl+o to expand)
+
+● Todo bien. Resumen de lo que se hizo:
+
+  ---
+  Lo que se implementó:
+
+  - Botón de filtro — ícono SlidersHorizontal a la derecha del buscador. Se pone
+   fondo oscuro (bg-navy-900) cuando hay un filtro activo, igual a como funciona
+   en otras páginas
+  - Dropdown con 3 opciones: Todos / Bot desactivado / Bot activo — con un ✓ en
+  la opción activa. Se cierra al clickear fuera
+  - Contador + botón Limpiar — aparece debajo de la barra solo cuando hay filtro
+   activo, muestra X de Y pacientes
+  - Estado vacío — si el filtro no da resultados, muestra mensaje contextual
+  ("Prueba otro filtro" vs "No hay pacientes que coincidan")
+  - El filtro se combina con el buscador — buscar por nombre y filtrar por
+  estado funcionan juntos
+
+✻ Cogitated for 1m 24s
+
+❯ Solo falta por abecedario para filtrar las conversaciones del cliente         
+
+  Read 1 file (ctrl+o to expand)
+
+● Ahora entiendo la estructura completa. Añado el índice alfabético como una
+  fila de letras scrollable, que solo muestra las letras que tienen pacientes
+  disponibles:
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 1 line
+      32      const [search, setSearch] = useState('');
+      33      const [filter, setFilter] = useState('all');
+      34      const [showFilter, setShowFilter] = useState(false);
+      35 +    const [letterFilter, setLetterFilter] = useState(null);    
+      36      const filterRef = useRef(null);
+      37      const { canToggleAi } = usePermissions();
+      38  
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 15 lines, removed 3 lines
+      161      // Helper para obtener teléfono del paciente
+      162      const getPhone = (p) => p.patient_phones?.[0]?.phone || ''
+           ;
+      163  
+      164 -    // Lista filtrada — primero por texto, luego por filtro ac
+          -tivo                                                          
+      165 -    const filteredPatients = patients.filter(p => {           
+      166 -        if (search && !p.display_name?.toLowerCase().includes(
+          -search.toLowerCase())) return false;                          
+      164 +    // Paso 1: aplicar filtro de bot status (para calcular let
+          +ras disponibles)                                              
+      165 +    const botFiltered = patients.filter(p => {                
+      166          if (filter === 'takeover') return p.human_takeover;
+      167          if (filter === 'bot_active') return !p.human_takeover;
+      168          return true;
+      169      });
+      170  
+      171 +    // Letras disponibles según el filtro de bot activo (no de
+          +pende del search ni de la letra)                              
+      172 +    const availableLetters = [...new Set(                     
+      173 +        botFiltered.map(p => (p.display_name?.[0] || '').toUpp
+          +erCase()).filter(l => /[A-Z]/.test(l))                        
+      174 +    )].sort();                                                
+      175 +                                                              
+      176 +    // Paso 2: aplicar búsqueda de texto + filtro de letra enc
+          +ima                                                           
+      177 +    const filteredPatients = botFiltered.filter(p => {        
+      178 +        if (search && !p.display_name?.toLowerCase().includes(
+          +search.toLowerCase())) return false;                          
+      179 +        if (letterFilter && (p.display_name?.[0] || '').toUppe
+          +rCase() !== letterFilter) return false;                       
+      180 +        return true;                                          
+      181 +    });                                                       
+      182 +                                                              
+      183      const filterLabel = FILTER_OPTIONS.find(o => o.id === filt
+           er)?.label || 'Todos';
+      184      const isFiltering = filter !== 'all';
+      185 +    const showLetterIndex = !search && availableLetters.length
+          + > 1;                                                         
+      186  
+      187      return (
+      188          <div className="h-full flex flex-col max-w-4xl mx-auto
+            w-full pt-2">
+
+● Ahora añado la fila de letras y actualizo el contador para que incluya también
+   la letra activa. Primero el contador/limpiar, luego la fila de letras:
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 22 lines, removed 3 lines
+      240                              </div>
+      241                          </div>
+      242  
+      243 -                        {/* Contador cuando hay filtro activo 
+          -*/}                                                           
+      244 -                        {isFiltering && (                     
+      243 +                        {/* Índice alfabético — visible cuando
+          + no hay búsqueda de texto */}                                 
+      244 +                        {showLetterIndex && (                 
+      245 +                            <div className="flex gap-0.5 flex-
+          +wrap px-0.5">                                                 
+      246 +                                {availableLetters.map(letter =
+          +> (                                                           
+      247 +                                    <button                   
+      248 +                                        key={letter}          
+      249 +                                        onClick={() => setLett
+          +erFilter(prev => prev === letter ? null : letter)}            
+      250 +                                        className={`w-6 h-6 ro
+          +unded-lg text-[10px] font-bold transition-all ${              
+      251 +                                            letterFilter === l
+          +etter                                                         
+      252 +                                                ? 'bg-navy-900
+          + text-white shadow-sm'                                        
+      253 +                                                : 'bg-white/50
+          + text-navy-700 hover:bg-white/80'                             
+      254 +                                        }`}                   
+      255 +                                    >                         
+      256 +                                        {letter}              
+      257 +                                    </button>                 
+      258 +                                ))}                           
+      259 +                            </div>                            
+      260 +                        )}                                    
+      261 +                                                              
+      262 +                        {/* Contador cuando hay filtro o letra
+          + activa */}                                                   
+      263 +                        {(isFiltering || letterFilter) && (   
+      264                              <div className="flex items-center 
+           justify-between px-1">
+      265                                  <span className="text-[11px] f
+           ont-semibold text-navy-700/70">
+      266                                      {filteredPatients.length} 
+           de {patients.length} pacientes
+      267                                  </span>
+      268                                  <button
+      250 -                                    onClick={() => setFilter('
+          -all')}                                                        
+      269 +                                    onClick={() => { setFilter
+          +('all'); setLetterFilter(null); }}                            
+      270                                      className="text-[11px] fon
+           t-bold text-navy-900 hover:underline"
+      271                                  >
+      272                                      Limpiar
+
+● También hay que limpiar letterFilter cuando el usuario empieza a escribir en
+  el buscador:
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 1 line, removed 1 line
+      62              .catch(() => {});
+      63      }, []);
+      64  
+      65 -    function handleSearch(q) { setSearch(q); }                 
+      65 +    function handleSearch(q) { setSearch(q); if (q) setLetterFi
+         +lter(null); }                                                  
+      66      const [selectedPatient, setSelectedPatient] = useState(null
+          );
+      67      const [history, setHistory] = useState([]);
+      68      const [historyHasMore, setHistoryHasMore] = useState(false)
+          ;
+
+● Verificación rápida de la sección de controles completa:
+
+  Read 1 file (ctrl+o to expand)
+
+● Perfecto, todo correcto. Lo que se añadió:
+
+  Comportamiento del índice alfabético:
+  - Aparece debajo del buscador cuando hay más de una letra disponible y no hay
+  texto en el buscador
+  - Solo muestra las letras que tienen al menos un paciente (con el filtro de
+  bot activo aplicado) — si hay 10 pacientes todos empezando con A, B y C, solo
+  aparecen esas 3 letras
+  - Click en una letra la activa (fondo oscuro) y filtra la lista — click otra
+  vez la desactiva
+  - Al escribir en el buscador, el índice desaparece y la letra seleccionada se
+  limpia automáticamente
+  - El botón "Limpiar" del contador resetea tanto el filtro de bot como la letra
+   a la vez
+  - Se combina con el filtro de bot: puedes poner "Bot desactivado" + letra "M"
+  y ver solo los pacientes con bot inactivo cuyo nombre empieza con M
+
+✻ Baked for 1m 2s
+
+❯ Noooo tiene que estar dentro del boton de filtros, asi tal cual esta en       
+  pacientes                                                                     
+  Read 1 file (ctrl+o to expand)
+
+● Entendido — quiere orden A-Z / Z-A dentro del mismo dropdown de filtros, igual
+   que en Pacientes. Elimino el índice de letras y lo meto al dropdown:
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 1 line, removed 1 line
+      31      const [patients, setPatients] = useState([]);
+      32      const [search, setSearch] = useState('');
+      33      const [filter, setFilter] = useState('all');
+      34 +    const [sortOrder, setSortOrder] = useState('a-z');         
+      35      const [showFilter, setShowFilter] = useState(false);
+      35 -    const [letterFilter, setLetterFilter] = useState(null);    
+      36      const filterRef = useRef(null);
+      37      const { canToggleAi } = usePermissions();
+      38  
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 1 line, removed 1 line
+      62              .catch(() => {});
+      63      }, []);
+      64  
+      65 -    function handleSearch(q) { setSearch(q); if (q) setLetterFi
+         -lter(null); }                                                  
+      65 +    function handleSearch(q) { setSearch(q); }                 
+      66      const [selectedPatient, setSelectedPatient] = useState(null
+          );
+      67      const [history, setHistory] = useState([]);
+      68      const [historyHasMore, setHistoryHasMore] = useState(false)
+          ;
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 14 lines, removed 20 lines
+      161      // Helper para obtener teléfono del paciente
+      162      const getPhone = (p) => p.patient_phones?.[0]?.phone || ''
+           ;
+      163  
+      164 -    // Paso 1: aplicar filtro de bot status (para calcular let
+          -ras disponibles)                                              
+      165 -    const botFiltered = patients.filter(p => {                
+      166 -        if (filter === 'takeover') return p.human_takeover;   
+      167 -        if (filter === 'bot_active') return !p.human_takeover;
+      168 -        return true;                                          
+      169 -    });                                                       
+      164 +    // Filtrar por estado de bot + búsqueda de texto, luego or
+          +denar                                                         
+      165 +    const filteredPatients = patients                         
+      166 +        .filter(p => {                                        
+      167 +            if (search && !p.display_name?.toLowerCase().inclu
+          +des(search.toLowerCase())) return false;                      
+      168 +            if (filter === 'takeover') return p.human_takeover
+          +;                                                             
+      169 +            if (filter === 'bot_active') return !p.human_takeo
+          +ver;                                                          
+      170 +            return true;                                      
+      171 +        })                                                    
+      172 +        .sort((a, b) => {                                     
+      173 +            const na = (a.display_name || '').toLowerCase();  
+      174 +            const nb = (b.display_name || '').toLowerCase();  
+      175 +            return sortOrder === 'z-a' ? nb.localeCompare(na) 
+          +: na.localeCompare(nb);                                       
+      176 +        });                                                   
+      177  
+      171 -    // Letras disponibles según el filtro de bot activo (no de
+          -pende del search ni de la letra)                              
+      172 -    const availableLetters = [...new Set(                     
+      173 -        botFiltered.map(p => (p.display_name?.[0] || '').toUpp
+          -erCase()).filter(l => /[A-Z]/.test(l))                        
+      174 -    )].sort();                                                
+      175 -                                                              
+      176 -    // Paso 2: aplicar búsqueda de texto + filtro de letra enc
+          -ima                                                           
+      177 -    const filteredPatients = botFiltered.filter(p => {        
+      178 -        if (search && !p.display_name?.toLowerCase().includes(
+          -search.toLowerCase())) return false;                          
+      179 -        if (letterFilter && (p.display_name?.[0] || '').toUppe
+          -rCase() !== letterFilter) return false;                       
+      180 -        return true;                                          
+      181 -    });                                                       
+      182 -                                                              
+      178 +    const isFiltering = filter !== 'all' || sortOrder !== 'a-z
+          +';                                                            
+      179      const filterLabel = FILTER_OPTIONS.find(o => o.id === filt
+           er)?.label || 'Todos';
+      184 -    const isFiltering = filter !== 'all';                     
+      185 -    const showLetterIndex = !search && availableLetters.length
+          - > 1;                                                         
+      180  
+      181      return (
+      182          <div className="h-full flex flex-col max-w-4xl mx-auto
+            w-full pt-2">
+
+● Ahora actualizo el dropdown para tener dos secciones (Estado + Orden) y
+  elimino el índice alfabético del JSX:
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 32 lines, removed 7 lines
+      218  
+      219                                  {/* Dropdown filtro */}
+      220                                  {showFilter && (
+      221 -                                    <div className="absolute r
+          -ight-0 top-12 w-48 bg-white/80 backdrop-blur-2xl border border
+          --white/80 rounded-2xl shadow-lg overflow-hidden z-50 animate-f
+          -ade-up">                                                      
+      221 +                                    <div className="absolute r
+          +ight-0 top-12 w-48 bg-white/80 backdrop-blur-2xl border border
+          +-white/80 rounded-2xl shadow-lg overflow-hidden z-50 py-2 anim
+          +ate-fade-up">                                                 
+      222 +                                        {/* Header limpiar */}
+      223 +                                        {isFiltering && (     
+      224 +                                            <div className="fl
+          +ex items-center justify-between px-4 pb-2 mb-1 border-b border
+          +-white/50">                                                   
+      225 +                                                <span classNam
+          +e="text-[10px] font-bold text-navy-700/50 uppercase tracking-w
+          +ider">Filtros</span>                                          
+      226 +                                                <button onClic
+          +k={() => { setFilter('all'); setSortOrder('a-z'); setShowFilte
+          +r(false); }} className="text-[10px] font-bold text-rose-500 ho
+          +ver:text-rose-600">Limpiar</button>                           
+      227 +                                            </div>            
+      228 +                                        )}                    
+      229 +                                        {/* Sección Estado */}
+      230 +                                        <div className="px-4 p
+          +t-1 pb-1">                                                    
+      231 +                                            <span className="t
+          +ext-[10px] font-bold text-navy-700/40 uppercase tracking-wider
+          +">Estado</span>                                               
+      232 +                                        </div>                
+      233                                          {FILTER_OPTIONS.map(op
+           t => (
+      223 -                                            <button           
+      234 +                                            <div              
+      235                                                  key={opt.id}
+      225 -                                                onClick={() =>
+          - { setFilter(opt.id); setShowFilter(false); }}                
+      226 -                                                className="w-f
+          -ull flex items-center justify-between px-4 py-2.5 text-xs font
+          --semibold text-navy-900 hover:bg-white/60 transition-colors"  
+      236 +                                                onClick={() =>
+          + setFilter(opt.id)}                                           
+      237 +                                                className={`mx
+          +-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer trans
+          +ition-colors ${filter === opt.id ? 'bg-navy-900 text-white' : 
+          +'text-navy-700 hover:bg-white/60'}`}                          
+      238                                              >
+      228 -                                                <span>{opt.lab
+          -el}</span>                                                    
+      229 -                                                {filter === op
+          -t.id && <Check size={12} strokeWidth={3} className="text-navy-
+          -900" />}                                                      
+      230 -                                            </button>         
+      239 +                                                {opt.label}   
+      240 +                                            </div>            
+      241                                          ))}
+      242 +                                        {/* Separador */}     
+      243 +                                        <div className="mx-4 m
+          +y-2 border-t border-white/50" />                              
+      244 +                                        {/* Sección Orden */} 
+      245 +                                        <div className="px-4 p
+          +b-1">                                                         
+      246 +                                            <span className="t
+          +ext-[10px] font-bold text-navy-700/40 uppercase tracking-wider
+          +">Orden</span>                                                
+      247 +                                        </div>                
+      248 +                                        {[{ id: 'a-z', label: 
+          +'De la A-Z' }, { id: 'z-a', label: 'De la Z-A' }].map(opt => (
+      249 +                                            <div              
+      250 +                                                key={opt.id}  
+      251 +                                                onClick={() =>
+          + setSortOrder(opt.id)}                                        
+      252 +                                                className={`mx
+          +-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer trans
+          +ition-colors ${sortOrder === opt.id ? 'bg-navy-900 text-white'
+          + : 'text-navy-700 hover:bg-white/60'}`}                       
+      253 +                                            >                 
+      254 +                                                {opt.label}   
+      255 +                                            </div>            
+      256 +                                        ))}                   
+      257                                      </div>
+      258                                  )}
+      259                              </div>
+
+● Ahora elimino el bloque del índice alfabético que quedó en el JSX:
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 3 lines, removed 22 lines
+      259                              </div>
+      260                          </div>
+      261  
+      262 -                        {/* Índice alfabético — visible cuando
+          - no hay búsqueda de texto */}                                 
+      263 -                        {showLetterIndex && (                 
+      264 -                            <div className="flex gap-0.5 flex-
+          -wrap px-0.5">                                                 
+      265 -                                {availableLetters.map(letter =
+          -> (                                                           
+      266 -                                    <button                   
+      267 -                                        key={letter}          
+      268 -                                        onClick={() => setLett
+          -erFilter(prev => prev === letter ? null : letter)}            
+      269 -                                        className={`w-6 h-6 ro
+          -unded-lg text-[10px] font-bold transition-all ${              
+      270 -                                            letterFilter === l
+          -etter                                                         
+      271 -                                                ? 'bg-navy-900
+          - text-white shadow-sm'                                        
+      272 -                                                : 'bg-white/50
+          - text-navy-700 hover:bg-white/80'                             
+      273 -                                        }`}                   
+      274 -                                    >                         
+      275 -                                        {letter}              
+      276 -                                    </button>                 
+      277 -                                ))}                           
+      278 -                            </div>                            
+      279 -                        )}                                    
+      280 -                                                              
+      281 -                        {/* Contador cuando hay filtro o letra
+          - activa */}                                                   
+      282 -                        {(isFiltering || letterFilter) && (   
+      262 +                        {/* Contador cuando hay filtro activo 
+          +*/}                                                           
+      263 +                        {isFiltering && (                     
+      264                              <div className="flex items-center 
+           justify-between px-1">
+      265                                  <span className="text-[11px] f
+           ont-semibold text-navy-700/70">
+      266                                      {filteredPatients.length} 
+           de {patients.length} pacientes
+      267                                  </span>
+      268                                  <button
+      288 -                                    onClick={() => { setFilter
+          -('all'); setLetterFilter(null); }}                            
+      269 +                                    onClick={() => { setFilter
+          +('all'); setSortOrder('a-z'); }}                              
+      270                                      className="text-[11px] fon
+           t-bold text-navy-900 hover:underline"
+      271                                  >
+      272                                      Limpiar
+
+● También hay que quitar Check del import ya que ahora usamos el mismo estilo de
+   Patients (fondo oscuro en el item seleccionado, sin checkmark):
+
+● Update(src\pages\Conversations.jsx)
+  ⎿  Added 1 line, removed 1 line
+      1  import { useState, useEffect, useRef } from 'react';
+      2  import { useSearchParams } from 'react-router-dom';
+      3 -import { Search, MessageCircle, Bot, ShieldAlert, SlidersHorizon
+        -tal, Check } from 'lucide-react';                               
+      3 +import { Search, MessageCircle, Bot, ShieldAlert, SlidersHorizon
+        +tal } from 'lucide-react';                                      
+      4  import AIStar from '../components/Icons/AIStar';
+      5  import { usePermissions } from '../hooks/usePermissions';
+      6  import { getPatientHistory, setHumanTakeover, getPatientsForConv
+         ersations } from '../services/supabaseService';
+
+● Verificación final del dropdown y la lógica:
+
+  Read 1 file (ctrl+o to expand)
+
+● Todo correcto. Lo que quedó:
+
+  Dropdown con dos secciones idéntico al estilo de Pacientes:
+  - Estado — Todos / Bot desactivado / Bot activo (item seleccionado con fondo
+  bg-navy-900)
+  - Orden — De la A-Z / De la Z-A (mismo estilo)
+  - Header "Filtros + Limpiar en rojo" solo aparece cuando hay algo no default
+  activo
+  - El botón del embudo se pone oscuro cuando hay filtro o se cambia de A-Z
+  - El contador debajo del buscador aparece igual que antes cuando hay algo
+  activo
+  - A-Z es el orden por defecto (la DB ya traía order('display_name'), ahora el
+  sort lo maneja el cliente)
+
+✻ Crunched for 1m 18s
+
+※ recap: Implemented filter dropdown in Conversations with Estado (Todos/Bot desactivado/Bot activo) and Orden (A-Z/Z-A) sections matching Patients page style. Next: test visually and update docs.
+
+❯ en serio ya no ves mas problemas criticos? ademas me gustaria que revises     
+  supabase: primero dentro de appointments, cancelatoin reason no lo genera ni  
+  el bot ni el dashboard, cancelled at tampoco. se crearon muchas tablas de     
+  audit log no entiendo porque, al igual que history se crearon varias y no me  
+  gusta eso, dentro de notifications metadata no sirve de nada. dentro de       
+  patients handoff reason ni handoff at sirven ni si quiera birth date si a     
+  todas estas columnas no se les da un motuvo o una utilidad real entonces      
+  eliminemoslas o propon un uso real si solo es para mas info no tiene mucho    
+  sentido pero si necesito que resuelvas porque se van generando tablas y       
+  tablas de history y de audit log                                              
+
+  Searched for 2 patterns, called supabase 8 times (ctrl+o to expand)
+
+● Ahora tengo el cuadro completo. Déjame explicar todo:
+
+  ---
+  Las "múltiples tablas" de audit_log y history
+
+  No es un bug — es el particionamiento T-14 que hicimos la sesión pasada.
+  PostgreSQL expone cada partición como tabla separada en el dashboard de
+  Supabase. Son una sola tabla lógica.
+
+  El problema real: creamos particiones m03–m12 pero solo m03 y m04 tienen
+  datos. Las otras 10 particiones (m05–m12) están vacías y son overhead visual y
+   de memoria innecesario.
+
+  Propuesta: eliminar las particiones futuras vacías (m05–m12) de ambas tablas.
+  Los datos futuros caen automáticamente en _default hasta que se creen
+  particiones nuevas.
+
+  ---
+  Columnas muertas confirmadas por DB
+
+  Columna: cancelled_at
+  Tabla: appointments
+  Registros con dato: 0 de 8 canceladas
+  Veredicto: ⚠️ Se genera en nuevas cancelaciones, las 8 son históricas (antes
+  de
+    T-49) — CONSERVAR
+  ────────────────────────────────────────
+  Columna: cancellation_reason
+  Tabla: appointments
+  Registros con dato: 0 de 8
+  Veredicto: ❌ Dashboard llama cancelAppointment(id) sin reason — nunca se 
+  llena
+  ────────────────────────────────────────
+  Columna: handoff_reason
+  Tabla: patients
+  Registros con dato: 0 de 15
+  Veredicto: ❌ Bot no lo escribe, dashboard no lo muestra — muerta
+  ────────────────────────────────────────
+  Columna: handoff_at
+  Tabla: patients
+  Registros con dato: 0 de 15
+  Veredicto: ❌ Igual — muerta
+  ────────────────────────────────────────
+  Columna: birth_date
+  Tabla: patients
+  Registros con dato: 0 de 15
+  Veredicto: ✅ UI existe en EditPatientModal, simplemente nadie la llenó
+  todavía
+    — CONSERVAR
+  ────────────────────────────────────────
+  Columna: metadata
+  Tabla: notifications
+  Registros con dato: siempre NULL
+  Veredicto: ❌ Nunca se inserta — muerta
+
+  ---
+  Mi propuesta concreta
+
+  Eliminar sin reemplazar (basura pura):
+  - patients.handoff_reason
+  - patients.handoff_at
+  - notifications.metadata
+  - Particiones vacías: audit_log_y2026m05 hasta y2026m12 + history_y2026m05
+  hasta y2026m12
+
+  Darle utilidad real en lugar de eliminar:
+  - cancellation_reason → agregar un selector de motivo en el diálogo de
+  cancelación del drawer (ej: "Paciente no se presentó", "Cambio de fecha",
+  "Canceló el paciente", "Otro"). Así el campo cobra vida y las métricas tienen
+  sentido.
+
+  ¿Procedo con todo esto? El SQL de drop de columnas es rápido y sin riesgo. El
+  selector de motivo en el drawer es una mejora de UX real. ¿Lo hago todo junto?
+
+✻ Brewed for 1m 26s
+
+❯ Si adelante                                                                   
+  ⎿  You've hit your limit · resets 10pm (America/Guatemala)
+     /upgrade to increase your usage limit.
