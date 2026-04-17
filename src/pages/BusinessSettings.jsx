@@ -326,23 +326,11 @@ export default function BusinessSettings() {
 
                         {/* Funciones */}
                         <Section icon={Zap} title="Funciones">
-                            <div className="flex items-center justify-between bg-white/40 border border-white/60 rounded-2xl px-5 py-4 shadow-sm">
-                                <div>
-                                    <p className="text-sm font-bold text-navy-900 leading-none mb-1">Atención de emergencias</p>
-                                    <p className="text-[11px] text-navy-700/50 font-semibold">
-                                        Permite que la IA gestione consultas fuera del horario habitual
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setField('has_emergencias', !form.has_emergencias)}
-                                    className={`relative w-11 h-6 rounded-full border transition-all duration-300 shrink-0 ${form.has_emergencias
-                                        ? 'bg-navy-900 border-navy-900'
-                                        : 'bg-white/60 border-white/80'
-                                        }`}
-                                >
-                                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${form.has_emergencias ? 'translate-x-5' : 'translate-x-0'
-                                        }`} />
-                                </button>
+                            <div className="bg-white/40 border border-white/60 rounded-2xl px-5 py-4 shadow-sm">
+                                <p className="text-sm font-bold text-navy-900 leading-none mb-1">Atención de emergencias</p>
+                                <p className="text-[11px] text-navy-700/50 font-semibold">
+                                    Trabaja y gestiona emergencias fuera del horario habitual
+                                </p>
                             </div>
                         </Section>
 

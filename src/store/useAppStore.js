@@ -106,4 +106,11 @@ export const useAppStore = create((set) => ({
     _statsCache: { data: null, fetchedAt: 0 },
     setStatsCache: (data) => set({ _statsCache: { data, fetchedAt: Date.now() } }),
     invalidateStatsCache: () => set({ _statsCache: { data: null, fetchedAt: 0 } }),
+
+    // Estado global de human_takeover por paciente — sincroniza el botón Pausar/Reactivar IA
+    // entre AppointmentDrawer, PatientDrawer y Conversations sin importar desde dónde se cambie.
+    humanTakeoverMap: {},
+    setPatientTakeover: (patientId, value) => set(state => ({
+        humanTakeoverMap: { ...state.humanTakeoverMap, [patientId]: value },
+    })),
 }));

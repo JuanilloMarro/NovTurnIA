@@ -254,9 +254,11 @@ export default function AuditLog() {
         return staffMap[uuid] || uuid.slice(0, 8) + '…';
     }
 
-    // Unique users for filter dropdown
-    const uniqueUsers = [...new Set(logs.map(l => l.changed_by))].map(uuid => ({
-        uuid, name: userName(uuid)
+    // Unique users for filter dropdown — usa '__sistema__' como sentinel para changed_by null
+    const SISTEMA_KEY = '__sistema__';
+    const uniqueUsers = [...new Set(logs.map(l => l.changed_by ?? SISTEMA_KEY))].map(id => ({
+        uuid: id,
+        name: id === SISTEMA_KEY ? 'Sistema' : (staffMap[id] || id.slice(0, 8) + '…'),
     }));
 
     const hasActiveFilters = filterAction || filterUser;
@@ -268,7 +270,10 @@ export default function AuditLog() {
         const effectiveAction = (log.action === 'DELETE' || isSoftDelete || isCancellation) ? 'DELETE' : log.action;
 
         if (filterAction && effectiveAction !== filterAction) return false;
-        if (filterUser && log.changed_by !== filterUser) return false;
+        if (filterUser) {
+            const logUser = log.changed_by ?? SISTEMA_KEY;
+            if (logUser !== filterUser) return false;
+        }
         if (search) {
             const t = `${MODULES[log.table_name] || log.table_name} ${ACTIONS[effectiveAction] || effectiveAction} ${userName(log.changed_by)}`.toLowerCase();
             if (!t.includes(search.toLowerCase())) return false;

@@ -10,6 +10,7 @@ import AIStar from '../Icons/AIStar';
 import { formatPhone } from '../../utils/format';
 import { showSuccessToast, showErrorToast, showBotToast } from '../../store/useToastStore';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAppStore } from '../../store/useAppStore';
 
 function getInitials(name) {
     if (!name) return '?';
@@ -23,7 +24,12 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
     const [showEdit, setShowEdit] = useState(false);
     const [showReschedule, setShowReschedule] = useState(false);
     const [markingNoShow, setMarkingNoShow] = useState(false);
-    const [botPaused, setBotPaused] = useState(appointment?.patients?.human_takeover || false);
+    const humanTakeoverMap = useAppStore(s => s.humanTakeoverMap);
+    const setPatientTakeover = useAppStore(s => s.setPatientTakeover);
+    const patientId = appointment?.patient_id;
+    const botPaused = patientId in humanTakeoverMap
+        ? humanTakeoverMap[patientId]
+        : (appointment?.patients?.human_takeover || false);
 
     const { canViewConversations, canToggleAi, canEditAppointments, canRescheduleAppointments, canConfirmAppointments, canSetPending, canMarkNoShow, canDeleteAppointments } = usePermissions();
 
@@ -236,10 +242,10 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                         {canToggleAi && appointment.patients && (
                             <button
                                 onClick={async () => {
-                                    const newValue = !appointment.patients.human_takeover;
+                                    const newValue = !botPaused;
                                     try {
                                         await setHumanTakeover(appointment.patient_id, newValue);
-                                        setBotPaused(newValue);
+                                        setPatientTakeover(appointment.patient_id, newValue);
                                         onUpdated?.();
                                     } catch (err) {
                                         showErrorToast('Error al actualizar bot', err.message);
@@ -274,8 +280,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                             </button>
                         )}
 
-                        {/* 4. No se presentó — visible en turnos pasados */}
-                        {canMarkNoShow && (
+                        {/* 4. No se presentó — visible en turnos pasados, no en seguimiento */}
+                        {canMarkNoShow && variant !== 'followup' && (
                             <button onClick={handleNoShow} disabled={markingNoShow}
                                 className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50"
                             >

@@ -35,6 +35,7 @@ export default function Conversations() {
     const [showFilter, setShowFilter] = useState(false);
     const filterRef = useRef(null);
     const { canToggleAi } = usePermissions();
+    const humanTakeoverMap = useAppStore(s => s.humanTakeoverMap);
 
     // Cierra el dropdown al hacer click fuera
     useEffect(() => {
@@ -135,20 +136,9 @@ export default function Conversations() {
         if (!canToggleAi) return;
 
         try {
-            // Usar setHumanTakeover(false) del service layer en lugar de llamar
-            // supabase.rpc directamente desde el componente.
-            // El llamado directo: (1) viola la arquitectura documentada,
-            // (2) duplicaba lógica que ya existía en supabaseService.js,
-            // (3) expone err.message via alert() que puede contener detalles internos de Supabase.
             await setHumanTakeover(selectedPatient.id, false);
-            const updated = { ...selectedPatient, human_takeover: false };
-            setSelectedPatient(updated);
-            // Actualizar lista local y cache para que el badge amber desaparezca sin re-fetch
-            setPatients(prev => {
-                const next = prev.map(p => p.id === updated.id ? { ...p, human_takeover: false } : p);
-                useAppStore.getState().setConversationsCache(next);
-                return next;
-            });
+            useAppStore.getState().setPatientTakeover(selectedPatient.id, false);
+            setSelectedPatient(prev => ({ ...prev, human_takeover: false }));
         } catch (err) {
             // Usar el sistema de toasts en lugar de alert():
             // alert() es bloqueante, inconsistente con el resto de la UI, y concatena
@@ -162,7 +152,9 @@ export default function Conversations() {
     const getPhone = (p) => p.patient_phones?.[0]?.phone || '';
 
     // Filtrar por estado de bot + búsqueda de texto, luego ordenar
+    // Aplica overrides del store global para reflejar cambios hechos desde otros componentes
     const filteredPatients = patients
+        .map(p => p.id in humanTakeoverMap ? { ...p, human_takeover: humanTakeoverMap[p.id] } : p)
         .filter(p => {
             if (search && !p.display_name?.toLowerCase().includes(search.toLowerCase())) return false;
             if (filter === 'takeover') return p.human_takeover;
@@ -177,6 +169,13 @@ export default function Conversations() {
 
     const isFiltering = filter !== 'all' || sortOrder !== 'a-z';
     const filterLabel = FILTER_OPTIONS.find(o => o.id === filter)?.label || 'Todos';
+
+    // Paciente seleccionado con override del mapa global aplicado
+    const selectedPatientEffective = selectedPatient
+        ? (selectedPatient.id in humanTakeoverMap
+            ? { ...selectedPatient, human_takeover: humanTakeoverMap[selectedPatient.id] }
+            : selectedPatient)
+        : null;
 
     return (
         <div className="h-full flex flex-col max-w-4xl mx-auto w-full pt-2">
@@ -327,7 +326,7 @@ export default function Conversations() {
                                     </div>
                                 </div>
 
-                                {selectedPatient.human_takeover && canToggleAi && (
+                                {selectedPatientEffective?.human_takeover && canToggleAi && (
                                     <button
                                         onClick={handleReactivateIA}
                                         className="flex items-center gap-2 px-3.5 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-[11px] font-bold shadow-sm hover:bg-amber-100 transition-all group/btn"

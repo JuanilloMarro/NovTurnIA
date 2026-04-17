@@ -98,6 +98,22 @@ export async function toggleServiceActive(id, active) {
     if (error) throw error;
 }
 
+export async function deleteService(id) {
+    // Limpiar FK en turnos que referencian este servicio antes de eliminar
+    await supabase
+        .from('appointments')
+        .update({ service_id: null })
+        .eq('service_id', id)
+        .eq('business_id', getBID());
+
+    const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
+}
+
 // ── Appointments ──────────────────────────────────────────
 
 /**
@@ -130,7 +146,7 @@ export async function getOccupiedSlotsForDate(date) {
 export async function getAppointmentsByWeek(weekStart, weekEnd) {
     const { data, error } = await supabase
         .from('appointments')
-        .select('*, patients(display_name, patient_phones(phone)), services(name, duration_minutes, price)')
+        .select('*, patients(display_name, human_takeover, patient_phones(phone)), services(name, duration_minutes, price)')
         .eq('business_id', getBID())
         .gte('date_start', weekStart)
         .lt('date_start', weekEnd)
@@ -364,11 +380,12 @@ export async function getPatientHistory(patientId, { limit = 50, before = null }
 }
 
 export async function reactivateBot(patientId) {
-    const { data, error } = await supabase.rpc('reactivate_bot', {
-        p_patient_id: patientId
-    });
+    const { error } = await supabase
+        .from('patients')
+        .update({ human_takeover: false })
+        .eq('id', patientId)
+        .eq('business_id', getBID());
     if (error) throw error;
-    return data;
 }
 
 export async function setHumanTakeover(patientId, value) {
@@ -382,7 +399,6 @@ export async function setHumanTakeover(patientId, value) {
         .from('patients')
         .update({
             human_takeover: true,
-            handoff_reason: 'manual',
         })
         .eq('id', patientId)
         .eq('business_id', getBID());

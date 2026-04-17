@@ -8,6 +8,7 @@ import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 import { usePermissions } from '../../hooks/usePermissions';
 import EditPatientModal from './EditPatientModal';
 import AIStar from '../Icons/AIStar';
+import { useAppStore } from '../../store/useAppStore';
 
 function getInitials(name) {
     if (!name) return '?';
@@ -33,7 +34,11 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
     const [showGdprConfirm, setShowGdprConfirm] = useState(false);
     const [gdprConfirmText, setGdprConfirmText] = useState('');
     const [deleting, setDeleting] = useState(false);
-    const [botPaused, setBotPaused] = useState(patient?.human_takeover || false);
+    const humanTakeoverMap = useAppStore(s => s.humanTakeoverMap);
+    const setPatientTakeover = useAppStore(s => s.setPatientTakeover);
+    const botPaused = patient?.id in humanTakeoverMap
+        ? humanTakeoverMap[patient.id]
+        : (patient?.human_takeover || false);
     const name = patient.display_name || 'Sin nombre';
 
     async function handleDelete() {
@@ -165,11 +170,10 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                     {/* 2. IA (Bot Toggle) */}
                     <button
                         onClick={async () => {
-                            const newValue = !patient.human_takeover;
+                            const newValue = !botPaused;
                             try {
                                 await setHumanTakeover(patient.id, newValue);
-                                setBotPaused(newValue);
-                                patient.human_takeover = newValue;
+                                setPatientTakeover(patient.id, newValue);
                                 onRefresh?.();
                             } catch (err) {
                                 showErrorToast('Error al actualizar IA', err.message);

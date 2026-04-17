@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useServices } from '../hooks/useServices';
 import { usePermissions } from '../hooks/usePermissions';
-import { Layers, Plus, Save, ToggleLeft, ToggleRight, ChevronDown, Clock, DollarSign, Search, SlidersHorizontal } from 'lucide-react';
+import { Layers, Plus, Save, ToggleLeft, ToggleRight, ChevronDown, Clock, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { showSuccessToast, showErrorToast } from '../store/useToastStore';
 
 const DURATION_OPTIONS = [
@@ -22,7 +22,7 @@ export function formatDuration(minutes) {
 }
 
 export default function Settings() {
-    const { services, loading, create, update, toggle } = useServices();
+    const { services, loading, create, update, toggle, remove } = useServices();
     const { canCreateServices, canEditServices, canToggleServices } = usePermissions();
 
     const [selectedId, setSelectedId] = useState(null); // null | 'new' | number
@@ -30,6 +30,8 @@ export default function Settings() {
     const [form, setForm] = useState({ name: '', duration_minutes: 30, priceCents: null });
     const [saving, setSaving] = useState(false);
     const [toggling, setToggling] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [searchStr, setSearchStr] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [sortOrder, setSortOrder] = useState('recent'); // 'recent', 'a-z', 'z-a'
@@ -124,6 +126,21 @@ export default function Settings() {
             showErrorToast('Error al guardar', err.message);
         } finally {
             setSaving(false);
+        }
+    }
+
+    async function handleDelete() {
+        if (!selectedService) return;
+        setDeleting(true);
+        try {
+            await remove(selectedService.id);
+            showSuccessToast('Servicio eliminado', selectedService.name);
+            setSelectedId(null);
+            setShowDeleteConfirm(false);
+        } catch (err) {
+            showErrorToast('Error al eliminar', err.message);
+        } finally {
+            setDeleting(false);
         }
     }
 
@@ -235,11 +252,7 @@ export default function Settings() {
                                 <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
                                     <button
                                         onClick={handleNewClick}
-                                        className={`group h-full flex items-center justify-center gap-0 hover:gap-1.5 px-2 hover:px-3 text-[11px] font-bold transition-all duration-300 overflow-hidden outline-none rounded-full ${
-                                            selectedId === 'new'
-                                                ? 'bg-navy-900 text-white'
-                                                : 'text-navy-900 hover:bg-white/80'
-                                        }`}
+                                        className="group h-full flex items-center justify-center gap-0 hover:gap-1.5 px-2 hover:px-3 text-navy-900 text-[11px] font-bold transition-all duration-300 overflow-hidden outline-none rounded-full hover:bg-white/80"
                                     >
                                         <Plus size={14} className="shrink-0" />
                                         <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Nuevo</span>
@@ -416,10 +429,10 @@ export default function Settings() {
                                 </div>
                             </div>
                             
-                            {/* Footer actions sticky but slim */}
+                            {/* Footer actions */}
                             {(canCreateServices || canEditServices || canToggleServices) && (
-                                <div className="px-6 py-4 bg-white/40 border-t border-white/60 backdrop-blur-md flex items-center justify-end gap-3 z-20 shrink-0">
-                                    {/* Activar / Desactivar — solo en modo edición */}
+                                <div className="px-6 py-4 border-t border-white/60 flex items-center justify-end gap-3 z-20 shrink-0">
+                                    {/* 1. Desactivar / Activar — solo edición */}
                                     {canToggleServices && !isNew && selectedService && (
                                         <button
                                             onClick={handleToggle}
@@ -440,7 +453,7 @@ export default function Settings() {
                                         </button>
                                     )}
 
-                                    {/* Guardar */}
+                                    {/* 2. Guardar cambios */}
                                     {(isNew ? canCreateServices : canEditServices) && (
                                         <button
                                             onClick={handleSave}
@@ -453,6 +466,47 @@ export default function Settings() {
                                             </span>
                                         </button>
                                     )}
+
+                                    {/* 3. Eliminar — solo edición */}
+                                    {canEditServices && !isNew && selectedService && (
+                                        <button
+                                            onClick={() => setShowDeleteConfirm(true)}
+                                            disabled={deleting}
+                                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-sm hover:bg-rose-50 hover:border-rose-100/50 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                                        >
+                                            <Trash2 size={14} className="shrink-0" />
+                                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">
+                                                Eliminar
+                                            </span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Confirmación eliminar */}
+                            {showDeleteConfirm && (
+                                <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-r-[32px]">
+                                    <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-6 shadow-lg mx-6 w-full max-w-xs text-center animate-fade-up">
+                                        <p className="text-sm font-bold text-navy-900 mb-1">¿Eliminar servicio?</p>
+                                        <p className="text-xs text-navy-700/60 font-semibold mb-5">
+                                            Esta acción no se puede deshacer.
+                                        </p>
+                                        <div className="flex justify-center gap-3">
+                                            <button
+                                                onClick={() => setShowDeleteConfirm(false)}
+                                                className="px-5 py-2 bg-white/60 border border-white/80 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/80 transition-colors shadow-sm"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                onClick={handleDelete}
+                                                disabled={deleting}
+                                                className="px-5 py-2 bg-rose-500/80 border border-rose-400 text-white text-[11px] font-bold rounded-full hover:bg-rose-600 transition-colors shadow-sm disabled:opacity-50"
+                                            >
+                                                {deleting ? 'Eliminando...' : 'Sí, eliminar'}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>

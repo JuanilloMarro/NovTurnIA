@@ -4,6 +4,7 @@ import {
     createService as createServiceAPI,
     updateService as updateServiceAPI,
     toggleServiceActive,
+    deleteService as deleteServiceAPI,
 } from '../services/supabaseService';
 
 export function useServices() {
@@ -47,5 +48,10 @@ export function useServices() {
         setServices(prev => prev.map(s => s.id === id ? { ...s, active } : s));
     }
 
-    return { services, loading, reload: load, create, update, toggle };
+    async function remove(id) {
+        await deleteServiceAPI(id);
+        setServices(prev => prev.filter(s => s.id !== id));
+    }
+
+    return { services, loading, reload: load, create, update, toggle, remove };
 }

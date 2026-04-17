@@ -21,7 +21,7 @@ BEGIN
     END IF;
 
     -- ── Validate within business hours ───────────────
-    SELECT schedule_start, schedule_end
+    SELECT schedule_start, schedule_end, timezone
     INTO biz
     FROM businesses
     WHERE id = NEW.business_id;
@@ -30,8 +30,11 @@ BEGIN
         RAISE EXCEPTION 'El negocio con ID % no existe.', NEW.business_id;
     END IF;
 
-    start_hour := EXTRACT(HOUR FROM NEW.date_start);
-    end_hour := EXTRACT(HOUR FROM NEW.date_end);
+    -- Convertir a la timezone local del negocio antes de extraer la hora,
+    -- porque date_start/date_end son timestamptz (con offset) y Postgres
+    -- usa UTC por defecto, lo que hace que 13:00-06:00 se interprete como 19:00.
+    start_hour := EXTRACT(HOUR FROM NEW.date_start AT TIME ZONE COALESCE(biz.timezone, 'America/Guatemala'));
+    end_hour := EXTRACT(HOUR FROM NEW.date_end AT TIME ZONE COALESCE(biz.timezone, 'America/Guatemala'));
 
     IF start_hour < biz.schedule_start OR end_hour > biz.schedule_end THEN
         RAISE EXCEPTION 'El turno está fuera del horario del negocio (% a %).',
@@ -42,7 +45,7 @@ BEGIN
     IF EXISTS (
         SELECT 1 FROM appointments
         WHERE business_id = NEW.business_id
-          AND status = 'active'
+          AND status IN ('scheduled', 'confirmed')
           AND id IS DISTINCT FROM NEW.id  -- Allow updating the same row
           AND NEW.date_start < date_end
           AND NEW.date_end > date_start
@@ -59,7 +62,7 @@ DROP TRIGGER IF EXISTS trg_validate_appointment ON appointments;
 CREATE TRIGGER trg_validate_appointment
     BEFORE INSERT OR UPDATE ON appointments
     FOR EACH ROW
-    WHEN (NEW.status = 'active')
+    WHEN (NEW.status IN ('scheduled', 'confirmed'))
     EXECUTE FUNCTION validate_appointment();
 
 -- ─── 2. Staff user validation ────────────────────────
