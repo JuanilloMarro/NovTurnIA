@@ -91,6 +91,14 @@ export const useAppStore = create((set) => ({
     setPatientsCache: (data) => set({ _patientsCache: { data, fetchedAt: Date.now() } }),
     invalidatePatientsCache: () => set({ _patientsCache: { data: [], fetchedAt: 0 } }),
 
+    // Cache de lista de pacientes para Conversations (2 minutos)
+    // Conversations hace getPatientsForConversations() en cada montaje — sin cache, cada
+    // navegación dispara un SELECT sobre todos los pacientes. 2 min es suficiente para
+    // evitar round-trips innecesarios sin mostrar datos demasiado obsoletos.
+    _conversationsCache: { data: [], fetchedAt: 0 },
+    setConversationsCache: (data) => set({ _conversationsCache: { data, fetchedAt: Date.now() } }),
+    invalidateConversationsCache: () => set({ _conversationsCache: { data: [], fetchedAt: 0 } }),
+
     // Cache de estadísticas (5 minutos)
     // Stats hace 7 queries a tablas pesadas — sin cache, cada visita a /stats
     // dispara todas las queries desde cero. Con 5 min de stale, las visitas frecuentes

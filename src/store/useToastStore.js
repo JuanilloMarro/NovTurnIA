@@ -59,7 +59,12 @@ export const useToastStore = create((set, get) => ({
             if (activity.id && state.activityLog.some(a => a.id === activity.id)) {
                 return state;
             }
-            const newLog = [activity, ...state.activityLog].slice(0, 30);
+            let prevLog = state.activityLog;
+            // Remover recordatorios anteriores no leídos para evitar duplicidad visual
+            if (activity.type === 'pending_reminder') {
+                prevLog = prevLog.filter(a => !(a.type === 'pending_reminder' && !a.read));
+            }
+            const newLog = [activity, ...prevLog].slice(0, 30);
             return { 
                 activityLog: newLog,
                 unreadCount: newLog.filter(a => !a.read).length,

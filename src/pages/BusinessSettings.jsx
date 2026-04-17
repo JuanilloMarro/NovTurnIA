@@ -281,8 +281,8 @@ export default function BusinessSettings() {
                                                 type="button"
                                                 onClick={() => toggleDay(day.key)}
                                                 className={`px-4 py-2 rounded-full text-[12px] font-bold border transition-all duration-200 ${active
-                                                        ? 'bg-navy-900 text-white border-navy-900 shadow-sm'
-                                                        : 'bg-white/40 text-navy-900/40 border-white/60 hover:bg-white/60 hover:text-navy-900'
+                                                    ? 'bg-navy-900 text-white border-navy-900 shadow-sm'
+                                                    : 'bg-white/40 text-navy-900/40 border-white/60 hover:bg-white/60 hover:text-navy-900'
                                                     }`}
                                             >
                                                 {day.label}
@@ -309,10 +309,10 @@ export default function BusinessSettings() {
                         </Section>
 
                         {/* Inteligencia Artificial */}
-                        <Section icon={Bot} title="Inteligencia Artificial del Bot">
+                        <Section icon={Bot} title="Inteligencia Artificial del Asistente">
                             <Field label="Contexto e ideas base">
                                 <p className="text-[10px] text-navy-700/60 font-semibold mb-2 leading-tight">
-                                    Aquí puedes proporcionar instrucciones o contexto adicional para el bot asistente (ubicación, estilo de habla, entre otros). La IA usará esto como sugerencia inicial.
+                                    Aquí puedes proporcionar instrucciones o contexto adicional para el asistente (ubicación, estilo de habla, entre otros). La IA usará esto como sugerencia inicial.
                                 </p>
                                 <textarea
                                     maxLength={1500}
@@ -336,8 +336,8 @@ export default function BusinessSettings() {
                                 <button
                                     onClick={() => setField('has_emergencias', !form.has_emergencias)}
                                     className={`relative w-11 h-6 rounded-full border transition-all duration-300 shrink-0 ${form.has_emergencias
-                                            ? 'bg-navy-900 border-navy-900'
-                                            : 'bg-white/60 border-white/80'
+                                        ? 'bg-navy-900 border-navy-900'
+                                        : 'bg-white/60 border-white/80'
                                         }`}
                                 >
                                     <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${form.has_emergencias ? 'translate-x-5' : 'translate-x-0'
@@ -349,13 +349,13 @@ export default function BusinessSettings() {
                     </div>
                 </div>
 
-                {/* Footer actions */}
+                {/* Footer actions sticky but slim */}
                 {canManageRoles && (
-                    <div className="px-8 pb-10 flex items-center justify-end gap-3 z-20">
+                    <div className="px-6 py-4 bg-white/40 border-t border-white/60 backdrop-blur-md flex items-center justify-end gap-3 z-20 shrink-0">
                         <button
                             onClick={handleSave}
                             disabled={saving || !form.name.trim() || !dirty}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-navy-50 hover:border-navy-100/50 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-sm hover:bg-navy-50 hover:border-navy-100/50 transition-all duration-300 overflow-hidden disabled:opacity-50"
                         >
                             <Save size={14} className="shrink-0" />
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">

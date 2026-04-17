@@ -16,27 +16,44 @@ export function usePermissions() {
     return {
         role: roleName,
 
-        canViewStats: !!perms.view_stats,
-        canManageRoles: !!perms.manage_roles,
+        canViewCalendar: true,
+        canViewHistory:  true,
 
-        canViewCalendar: true, // Acceso base para cualquier staff activo autenticado
-        canViewHistory: true,
+        // ── Turnos ──────────────────────────────────────────
+        canCreateAppointments:    !!perms.create_appointments,    // botón Agregar Turno
+        canEditAppointments:      !!perms.edit_appointments,      // botón Editar en drawer
+        canRescheduleAppointments:!!perms.reschedule_appointments,// botón Reagendar en drawer
+        canConfirmAppointments:   !!perms.confirm_appointments,   // botón Confirmar en drawer
+        canSetPending:            !!perms.set_pending_appointments,// botón Pendiente en drawer
+        canMarkNoShow:            !!perms.mark_noshow_appointments,// botón No se presentó
+        canDeleteAppointments:    !!perms.delete_appointments,    // botón Eliminar en drawer
 
-        // Turnos
-        canCreateAppointments: !!perms.create_appointments,
-        canEditAppointments: !!perms.edit_appointments,
-        canConfirmAppointments: !!perms.confirm_appointments,
-        canDeleteAppointments: !!perms.delete_appointments,
+        // ── Seguimiento ──────────────────────────────────────
+        canViewFollowUp: !!perms.view_followup,                   // tab Seguimiento
 
-        // Pacientes
-        canViewPatients: !!perms.view_patients,
-        canCreatePatients: !!perms.create_patients,
-        canEditPatients: !!perms.edit_patients,
-        canDeletePatients: !!perms.delete_patients,
+        // ── Pacientes ────────────────────────────────────────
+        canViewPatients:   !!perms.view_patients,                 // acceso al módulo
+        canCreatePatients: !!perms.create_patients,               // botón Agregar Paciente
+        canEditPatients:   !!perms.edit_patients,                 // botón Editar en drawer
+        canDeletePatients: !!perms.delete_patients,               // botón Eliminar en drawer
+        canExportPatients: !!perms.export_patients,               // botón Exportar CSV
 
-        // IA y Conversaciones
-        canViewConversations: !!perms.view_conversations,
-        canToggleAi: !!perms.toggle_ai,
-        canDeleteUsers: !!perms.delete_users,
+        // ── Conversaciones e IA ──────────────────────────────
+        canViewConversations: !!perms.view_conversations,         // módulo + botón Chat en drawer
+        canToggleAi:          !!perms.toggle_ai,                  // botones Pausar / Reactivar IA
+
+        // ── Estadísticas ─────────────────────────────────────
+        canViewStats: !!perms.view_stats,                         // acceso al módulo
+
+        // ── Servicios ────────────────────────────────────────
+        canCreateServices: !!perms.create_services,               // botón Crear servicio
+        canEditServices:   !!perms.edit_services,                 // botón Guardar cambios
+        canToggleServices: !!perms.toggle_services,               // botones Activar / Desactivar
+        // Acceso al módulo si tiene cualquier permiso de servicios
+        canManageServices: !!(perms.create_services || perms.edit_services || perms.toggle_services),
+
+        // ── Administración ───────────────────────────────────
+        canManageRoles: !!perms.manage_roles,                     // módulo Usuarios, Actividad, Configuración
+        canDeleteUsers: !!perms.delete_users,                     // botón Eliminar usuario
     };
 }

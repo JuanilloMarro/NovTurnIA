@@ -25,7 +25,107 @@
 | 2026-04-15 (sesión 10) | 7 | Fix gráfica, validación teléfono, focus trap, GDPR, bugs |
 | 2026-04-16 (sesión 11) | 1 | Recordatorios in-app para turnos pendientes (T-39 rediseñado) |
 | 2026-04-16 (sesión 12) | 2 | Gestión de config del negocio (T-37) y servicios (/settings submódulos) (T-36) |
-| **Total** | **76** | |
+| 2026-04-16 (sesión 13) | 9 | Permisos granulares completos, T-14 particionamiento, T-17 RPC stats, T-23/24/59 deuda técnica |
+| **Total** | **85** | |
+
+---
+
+## 2026-04-16 (sesión 13)
+
+---
+
+### ✅ Permisos granulares — un checkbox por botón
+
+**Problema:** Los permisos de `usePermissions.js` usaban claves genéricas (`canManageRoles`, `canEditAppointments`) que agrupaban varios botones bajo un solo permiso. Un admin no podía dar permiso para "Crear paciente" sin dar también "Editar" o "Eliminar".
+
+**Solución:**
+- `usePermissions.js` actualizado con 21 permisos individuales: `create_appointments`, `edit_appointments`, `reschedule_appointments`, `confirm_appointments`, `set_pending_appointments`, `mark_noshow_appointments`, `delete_appointments`, `view_followup`, `view_patients`, `create_patients`, `edit_patients`, `delete_patients`, `export_patients`, `view_conversations`, `toggle_ai`, `view_stats`, `create_services`, `edit_services`, `toggle_services`, `manage_roles`, `delete_users`.
+- `Users.jsx` — 7 grupos (Turnos, Seguimiento, Pacientes, Conversaciones e IA, Estadísticas, Servicios, Administración), cada acción como checkbox independiente. Un check = un botón visible.
+- `AppointmentDrawer.jsx` — botones Reagendar/No se presentó/Pendiente/Confirmar/Editar/Eliminar controlados individualmente por `canRescheduleAppointments`, `canMarkNoShow`, `canSetPending`, etc.
+- `Settings.jsx` — botón "Nuevo" gateado por `canCreateServices`, toggle por `canToggleServices`, guardar por `canCreateServices`/`canEditServices` según contexto.
+- Roles admin actualizados en DB con todos los permisos en `true`.
+
+**Impacto:** Control total de acceso por acción. Un admin puede configurar que su secretaria solo cree turnos y confirme, pero no reagende ni elimine.
+
+---
+
+### ✅ Fix — trigger `handle_audit_log` falla con PKs no UUID
+
+**Problema:** El trigger declaraba `v_record_id UUID` pero `staff_roles.id` es INTEGER. Al hacer UPDATE sobre `staff_roles`, el trigger lanzaba "invalid input syntax for type uuid: '1'".
+
+**Solución:** `v_record_id` cambiado a `TEXT` y la extracción de `business_id` se hace desde `to_jsonb(NEW)->>'business_id'` en lugar de asumir que siempre existe como campo directo.
+
+**Impacto:** El trigger funciona para tablas con PKs de cualquier tipo (UUID, BIGINT, INTEGER).
+
+---
+
+### ✅ Fix — `clearNotifications` usaba campo inexistente `actor_id`
+
+**Problema:** El INSERT en `audit_log` de `clearNotifications` usaba `actor_id` pero el schema tiene `changed_by`. El insert fallaba silenciosamente.
+
+**Solución:** Campo corregido a `changed_by`. También agregado `record_id: 'bulk'` (campo NOT NULL que faltaba).
+
+**Impacto:** Las limpiezas masivas de notificaciones quedan correctamente auditadas.
+
+---
+
+### ✅ T-59 — `loadMore` en `usePatients` unificado
+
+**Problema:** `loadMore` duplicaba la lógica de fetch y actualización de estado de `load()` — llamaba directamente a `getPatients` y actualizaba `rawPatients`, `hasMore` y `page` manualmente, replicando ~10 líneas idénticas a lo que ya hacía `load`.
+
+**Solución:** `loadMore` simplificado a `await load(search, false, page + 1)`. Como `hasDataRef.current = true` y `forceRefresh = false`, `load` hace append en lugar de replace y no activa `setLoading`. `setLoadingMore` sigue siendo manejado por el propio `loadMore`.
+
+**Impacto:** Una sola fuente de verdad para el fetch de pacientes. Cualquier mejora futura a `load` beneficia automáticamente a `loadMore`.
+
+---
+
+### ✅ T-23 — Error handling unificado en `supabaseService.js`
+
+**Problema:** Inconsistencia en el manejo de errores: algunas funciones ocultaban el código de Supabase con `throw new Error('mensaje genérico')`, otras relanzaban el error original. Esto dificultaba el diagnóstico en producción y hacía que el error `code` (23505, 23P01, etc.) se perdiera.
+
+**Solución:**
+- `createPatient`: eliminado `console.error` del service layer; solo maneja `23505` (duplicado), el resto relanza el error original de Supabase.
+- `updatePatient`: `throw new Error('No se pudo actualizar...')` → `throw error` (preserva código y mensaje real).
+- `deletePatient`: `throw new Error('No se pudo eliminar...')` → `throw error`.
+
+**Impacto:** Los errores de DB llegan al componente con su código Supabase original. Facilita diagnóstico y permite que componentes manejen casos específicos por `error.code`.
+
+---
+
+### ✅ T-24 — Rate limiting en `createStaffUser`
+
+**Problema:** Sin límite de velocidad en la creación de staff users. Un script podía llamar la Edge Function `manage-staff` continuamente, consumiendo cuota de Supabase Auth y creando usuarios inválidos.
+
+**Solución:** Sliding-window rate limiter en memoria: array `_staffCreateLog` que registra timestamps de los últimos intentos. Máximo 3 creaciones por minuto por sesión de browser. Si se supera, lanza `"Demasiados intentos. Esperá un minuto..."`.
+
+**Impacto:** Protección contra clics accidentales repetidos y scripts de creación en masa.
+
+---
+
+### ✅ T-17 — Stats: 3 queries → 1 RPC `get_stats_dashboard`
+
+**Problema:** `useStats` hacía 3 round-trips HTTP en paralelo: `getStatsOverview()` (2 RPCs), `getCurrentMonthAppointments()` (1 query), `getMessageCounts()` (2 COUNTs paralelos). Total: 5 queries en 3 batches.
+
+**Solución:**
+- RPC `get_stats_dashboard(p_month_start, p_month_end)` creada en DB. Retorna JSON con `appt_stats`, `patient_stats`, `month_appointments`, `sent_count`, `received_count` en una sola llamada.
+- `useStats.js` actualizado para llamar `getStatsDashboard()`.
+- Fallback automático a las 3 queries separadas si la RPC no estuviera disponible (PGRST202).
+
+**Impacto:** Reducción de 3 round-trips HTTP a 1 en cada carga de la pantalla de estadísticas.
+
+---
+
+### ✅ T-14 — Particionamiento mensual de `history` y `audit_log`
+
+**Problema:** Tablas append-only sin particionamiento. Con el crecimiento de conversaciones y logs de auditoría, las queries full-scan se degradarían progresivamente.
+
+**Solución:** Migración aplicada en producción con la tabla existente renombrada, secuencia desvinculada (`OWNED BY NONE`), nueva tabla particionada creada con `PRIMARY KEY (id, created_at)`, y datos migrados:
+- `history`: particiones `y2026m03` → `y2026m12` + `_default`. Índice `idx_history_lookup_new` propagado a todas las particiones.
+- `audit_log`: misma estructura. Índices `idx_audit_record_new` + `idx_audit_business_new`. RLS recreado en tabla padre.
+
+Los datos migrados intactos: 37 filas en `history`, 210 en `audit_log`, repartidos correctamente en `_y2026m03` y `_y2026m04`.
+
+**Impacto:** Queries con filtro de fecha usarán partition pruning — solo escanean las particiones del rango solicitado. A medida que crezca el historial, el rendimiento escala linealmente en lugar de degradarse. Ejecutado en 37 filas (muy seguro) en lugar de esperar a 500k.
 
 ---
 

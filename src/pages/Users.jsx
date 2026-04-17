@@ -169,32 +169,61 @@ export default function Users() {
                                 <div className="space-y-10 pb-12 pt-2">
                                     {[
                                         {
-                                            title: 'Roles en Turnos',
+                                            title: 'Turnos',
                                             perms: [
-                                                { key: 'view_conversations', label: 'Ver conversación' },
-                                                { key: 'toggle_ai', label: 'Pausar o reactivar IA' },
-                                                { key: 'edit_appointments', label: 'Editar' },
-                                                { key: 'confirm_appointments', label: 'Confirmar' },
-                                                { key: 'delete_appointments', label: 'Eliminar' },
-                                                { key: 'create_appointments', label: 'Crear turno' }
+                                                { key: 'create_appointments',     label: 'Agregar turno' },
+                                                { key: 'edit_appointments',       label: 'Editar turno' },
+                                                { key: 'reschedule_appointments', label: 'Reagendar turno' },
+                                                { key: 'confirm_appointments',    label: 'Confirmar turno' },
+                                                { key: 'set_pending_appointments',label: 'Marcar como pendiente' },
+                                                { key: 'mark_noshow_appointments',label: 'No se presentó' },
+                                                { key: 'delete_appointments',     label: 'Eliminar turno' },
                                             ]
                                         },
                                         {
-                                            title: 'Roles en Pacientes',
+                                            title: 'Seguimiento',
                                             perms: [
-                                                { key: 'view_patients', label: 'Ver información' },
-                                                { key: 'create_patients', label: 'Crear paciente' },
-                                                { key: 'edit_patients', label: 'Editar paciente' },
-                                                { key: 'delete_patients', label: 'Eliminar paciente' }
+                                                { key: 'view_followup', label: 'Ver seguimiento' },
                                             ]
                                         },
                                         {
-                                            title: 'Roles de Administración',
+                                            title: 'Pacientes',
+                                            perms: [
+                                                { key: 'view_patients',   label: 'Ver pacientes' },
+                                                { key: 'create_patients', label: 'Agregar paciente' },
+                                                { key: 'edit_patients',   label: 'Editar paciente' },
+                                                { key: 'delete_patients', label: 'Eliminar paciente' },
+                                                { key: 'export_patients', label: 'Exportar CSV' },
+                                            ]
+                                        },
+                                        {
+                                            title: 'Conversaciones e IA',
+                                            perms: [
+                                                { key: 'view_conversations', label: 'Ver conversaciones' },
+                                                { key: 'toggle_ai',          label: 'Pausar IA' },
+                                            ]
+                                        },
+                                        {
+                                            title: 'Estadísticas',
                                             perms: [
                                                 { key: 'view_stats', label: 'Ver estadísticas' },
-                                                { key: 'manage_roles', label: 'Administrar staff' },
                                             ]
-                                        }
+                                        },
+                                        {
+                                            title: 'Servicios',
+                                            perms: [
+                                                { key: 'create_services', label: 'Crear servicio' },
+                                                { key: 'edit_services',   label: 'Editar servicio' },
+                                                { key: 'toggle_services', label: 'Activar / Desactivar servicio' },
+                                            ]
+                                        },
+                                        {
+                                            title: 'Administración',
+                                            perms: [
+                                                { key: 'manage_roles', label: 'Gestionar usuarios y roles' },
+                                                { key: 'delete_users', label: 'Eliminar usuarios' },
+                                            ]
+                                        },
                                     ].map(group => (
                                         <div key={group.title}>
                                             <h5 className="text-[12px] font-bold text-navy-700 tracking-wide mb-3 border-b border-navy-900/10 pb-1.5">{group.title}</h5>

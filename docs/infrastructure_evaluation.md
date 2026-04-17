@@ -1,6 +1,6 @@
 # NovTurnAI — Infrastructure Evaluation
 
-> Última actualización: 2026-04-16 (sesión 12 — T-36 gestión de servicios /settings)
+> Última actualización: 2026-04-16 (sesión 13 — T-14/17/23/24/59 + permisos granulares)
 > Evaluación de deployment readiness por área. Escala 0–10.
 > 🔴 Bloqueante · 🟠 Importante · 🟡 Deseable · ✅ Resuelto
 
@@ -10,14 +10,14 @@
 
 | Área                         |Puntaje base|Puntaje actual| Delta    |
 |------------------------------|------------|--------------|----------|
-| Base de datos (Supabase)     | 6.0/10     | **8.5/10**   | +2.5     |
-| Dashboard React + Vite       | 7.0/10     | **9.0/10**   | +2.0     |
+| Base de datos (Supabase)     | 6.0/10     | **8.8/10**   | +2.8     |
+| Dashboard React + Vite       | 7.0/10     | **9.3/10**   | +2.3     |
 | Producto / SaaS              | 5.0/10     | **7.2/10**   | +2.2     |
 | Bot / N8N Workflow           | 4.5/10     | **7.5/10**   | +3.0     |
 | Infraestructura / Despliegue | 6.5/10     | **6.5/10**   | —        |
-| Resiliencia                  | 4.0/10     | **5.0/10**   | +1.0     |
+| Resiliencia                  | 4.0/10     | **5.5/10**   | +1.5     |
 | Modelo de negocio            | 1.0/10     | **2.5/10**   | +1.5     |
-| **PROMEDIO GLOBAL**          | **4.9/10** | **7.0/10**   | **+2.1** |
+| **PROMEDIO GLOBAL**          | **4.9/10** | **7.2/10**   | **+2.3** |
 
 ---
 
@@ -35,7 +35,7 @@
 
 ---
 
-## 2. Base de Datos (Supabase) — 8.5/10
+## 2. Base de Datos (Supabase) — 8.8/10
 
 ### Sub-área: Estructura y normalización — 8.0/10
 
@@ -56,7 +56,7 @@
 | `business_id` en `patient_phones` (UPDATE/INSERT código) | ✅ Completado | T-55 |
 | RLS policies sobre `patient_phones` | ✅ Verificado | T-19 |
 
-### Sub-área: Rendimiento — 8.5/10
+### Sub-área: Rendimiento — 9.0/10
 
 | Item | Estado | Tarea |
 |------|--------|-------|
@@ -66,6 +66,8 @@
 | Guard de dedup en trigger `handle_audit_log` (DB) | ✅ SQL ejecutado | T-35 |
 | `trendRaw` sin límite (queries que descargan 3k+ filas) | ✅ Eliminado | T-51 |
 | `getPatientHistory` sin paginación | ✅ Eliminado | T-32 |
+| `history` + `audit_log` particionadas por mes | ✅ Completado | T-14 |
+| Stats: 3 round-trips → 1 RPC `get_stats_dashboard` | ✅ Completado | T-17 |
 
 ### Sub-área: Integridad de datos — 9.0/10
 
@@ -85,6 +87,10 @@
 - ✅ `handle_audit_log` trigger con dedup guard — duplicados no se escriben en DB (T-35)
 - ✅ `cancelAppointment` registra `cancelled_at` separado de `deleted_at` (T-49)
 - ✅ `birth_date` en `patients` — edad visible en EditPatientModal (T-44)
+- ✅ `history` y `audit_log` particionadas mensualmente — partition pruning activo (T-14)
+- ✅ Stats consolidadas en 1 RPC `get_stats_dashboard` — 3 round-trips → 1 (T-17)
+- ✅ `handle_audit_log` falla con PKs no-UUID corregido — `v_record_id TEXT`
+- ✅ `clearNotifications` campo `actor_id` → `changed_by` corregido + `record_id: 'bulk'`
 
 ### Blind spots pendientes
 
@@ -93,9 +99,9 @@
 
 ---
 
-## 3. Dashboard React + Vite — 9.0/10
+## 3. Dashboard React + Vite — 9.3/10
 
-### Sub-área: Arquitectura de componentes — 9.0/10
+### Sub-área: Arquitectura de componentes — 9.3/10
 
 | Item | Estado | Notas |
 |------|--------|-------|
@@ -103,9 +109,12 @@
 | `MainChart` auto-fetching por período | ✅ T-51 | Ya no depende de `rawApts` del padre; spinner propio |
 | Paginación en Conversations y PatientHistory | ✅ T-32 | Botón "Cargar anteriores" con cursor |
 | Lazy loading de rutas con `React.lazy()` | ✅ T-22 | Todas las páginas lazy — bundle inicial más liviano |
+| `loadMore` en `usePatients` unificado en `load()` | ✅ T-59 | Sin duplicación de lógica de estado |
+| Error handling unificado en `supabaseService.js` | ✅ T-23 | `throw error` original preserva código Supabase |
+| Rate limiting en `createStaffUser` | ✅ T-24 | Sliding-window 3 creaciones/minuto en memoria |
 | Sin TypeScript | 🟢 Escalabilidad | T-16 — cuando el equipo crezca |
 
-### Sub-área: Seguridad RBAC — 8.5/10
+### Sub-área: Seguridad RBAC — 9.5/10
 
 | Item | Estado | Notas |
 |------|--------|-------|
@@ -114,6 +123,8 @@
 | Rol máximo bloqueado en UI | ✅ | — |
 | Plan limit gate en `NewPatientModal` | ✅ T-01 | Banner amber + submit deshabilitado al alcanzar límite |
 | Conteo restante en botón de registro | ✅ T-01 | `Registrar (N restantes)` |
+| Permisos granulares — 1 checkbox por botón | ✅ | 21 permisos individuales, 7 módulos en Users.jsx |
+| Roles admin con todos los permisos en DB | ✅ | `manage_roles=true` → todos los nuevos permisos activados |
 
 ### Sub-área: Estado global Zustand — 8.0/10
 
@@ -153,20 +164,22 @@
 
 ---
 
-## 5. Resiliencia — 5.0/10
+## 5. Resiliencia — 5.5/10
 
 | Sub-área | Puntaje | Estado | Notas |
 |----------|---------|--------|-------|
 | Fallbacks (IA, Supabase, WhatsApp) | 5 | 🟠 | ErrorBoundary ✅, sin fallback si bot no responde |
-| Reintentos y timeouts | 3.5 | 🟠 | Reload citas con timeout ✅, resto de queries puede colgar |
-| Picos de carga | 7 | 🟡 | Cache ✅ + paginación ✅ — dedup trigger reduce writes |
+| Reintentos y timeouts | 4 | 🟠 | Reload citas con timeout ✅, resto de queries puede colgar |
+| Picos de carga | 7.5 | 🟡 | Cache ✅ + paginación ✅ + rate limiting createStaffUser ✅ |
 | Realtime disconnect | 2 | 🟠 | Sin banner de aviso — T-11 pendiente (código listo, sin activar) |
-| **Blind spot pendiente** | — | 🟠 | Sin timeout general en `supabaseService.js` — T-23 |
+| Error propagation | 8 | ✅ | Errores originales de Supabase preservados — T-23 |
 
 ### Mejoras aplicadas
 - ✅ `getPatientHistory` paginada — conversaciones largas ya no colapsan el tab (T-32)
 - ✅ `MainChart` con spinner propio — no bloquea KPI cards durante fetch por período (T-51)
 - ✅ `handle_audit_log` con dedup guard — reduce volumen de escrituras en audit_log (T-35)
+- ✅ Error handling unificado — errores originales de Supabase preservados con código (T-23)
+- ✅ Rate limiting en `createStaffUser` — sliding-window 3/min previene abusos (T-24)
 
 ---
 
@@ -333,15 +346,25 @@ CREATE POLICY "services_tenant_isolation" ON public.services
 
 ## Próximas tareas recomendadas
 
-### Inmediato (SQL sin código nuevo)
-1. Ejecutar SQL **T-01** — tabla de planes y RPC `get_plan_limits` (activa el gate de plan en producción)
-2. Configurar `VITE_SENTRY_DSN` en Vercel prod — 30 min, sin código
+### Inmediato
+1. Configurar `VITE_SENTRY_DSN` en Vercel prod — 30 min, sin código (T-05)
 
 ### Próxima semana
-3. **T-08** — Migración UUID en staging primero
-4. **T-03** — Integración Stripe (desbloquea monetización real)
+2. **T-08** — Migración `businesses.id` INTEGER → UUID en staging primero
+3. **T-03** — Integración Stripe (desbloquea monetización real)
 
 ### En 2-3 semanas
-6. **T-11** — Banner de reconexión Realtime
-7. **T-23** — Timeout general en `supabaseService.js`
-8. **T-33** — Dark mode (pendiente — implementar sin tocar light mode)
+4. **T-11** — Banner de reconexión Realtime (código listo en `RealtimeStatusBanner.jsx`)
+5. **T-33** — Dark mode (implementar sin modificar clases existentes de light mode)
+
+
+## Porcentaje 
+
+Número global
+
+  ~72% para un SaaS que puede operar como negocio autónomo.
+
+  Si la meta es solo "usar el producto internamente o con clientes de confianza", estás en ~88%. Si la meta es lanzar y cobrar automáticamente a desconocidos,  
+  el número baja a ~50% porque falta todo el flujo de monetización.
+
+  El camino más corto al 100% real: T-05 (Sentry, 30 min) → T-02 (ciclo tenant) → T-03 (Stripe). Todo lo demás es optimización.

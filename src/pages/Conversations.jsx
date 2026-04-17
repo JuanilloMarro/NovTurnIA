@@ -1,11 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, MessageCircle, Bot, ShieldAlert } from 'lucide-react';
+import { Search, MessageCircle, Bot, ShieldAlert, SlidersHorizontal } from 'lucide-react';
 import AIStar from '../components/Icons/AIStar';
 import { usePermissions } from '../hooks/usePermissions';
 import { getPatientHistory, setHumanTakeover, getPatientsForConversations } from '../services/supabaseService';
 import { showErrorToast } from '../store/useToastStore';
 import { formatPhone } from '../utils/format';
+import { useAppStore } from '../store/useAppStore';
+
+const CONV_STALE_MS = 2 * 60_000; // 2 minutos
+
+const FILTER_OPTIONS = [
+    { id: 'all',        label: 'Todos' },
+    { id: 'takeover',   label: 'Bot desactivado' },
+    { id: 'bot_active', label: 'Bot activo' },
+];
 
 function getInitials(name) {
     if (!name) return '?';
@@ -17,13 +26,40 @@ export default function Conversations() {
     const patientIdFromUrl = searchParams.get('patient');
 
     // T-31: query liviana — solo id, display_name, human_takeover y teléfono
-    // Reemplaza usePatients() que traía 5 citas por paciente innecesariamente
+    // Reemplaza usePatients() que traía 5 citas por paciente innecesariamente.
+    // Cache de 2 min en store — evita re-fetch en cada navegación a /conversations.
     const [patients, setPatients] = useState([]);
     const [search, setSearch] = useState('');
+    const [filter, setFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('a-z');
+    const [showFilter, setShowFilter] = useState(false);
+    const filterRef = useRef(null);
     const { canToggleAi } = usePermissions();
 
+    // Cierra el dropdown al hacer click fuera
     useEffect(() => {
-        getPatientsForConversations().then(setPatients).catch(() => {});
+        if (!showFilter) return;
+        function handleClickOutside(e) {
+            if (filterRef.current && !filterRef.current.contains(e.target)) {
+                setShowFilter(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showFilter]);
+
+    useEffect(() => {
+        const cache = useAppStore.getState()._conversationsCache;
+        if (cache.data.length > 0 && Date.now() - cache.fetchedAt < CONV_STALE_MS) {
+            setPatients(cache.data);
+            return;
+        }
+        getPatientsForConversations()
+            .then(data => {
+                useAppStore.getState().setConversationsCache(data);
+                setPatients(data);
+            })
+            .catch(() => {});
     }, []);
 
     function handleSearch(q) { setSearch(q); }
@@ -105,7 +141,14 @@ export default function Conversations() {
             // (2) duplicaba lógica que ya existía en supabaseService.js,
             // (3) expone err.message via alert() que puede contener detalles internos de Supabase.
             await setHumanTakeover(selectedPatient.id, false);
-            setSelectedPatient({ ...selectedPatient, human_takeover: false });
+            const updated = { ...selectedPatient, human_takeover: false };
+            setSelectedPatient(updated);
+            // Actualizar lista local y cache para que el badge amber desaparezca sin re-fetch
+            setPatients(prev => {
+                const next = prev.map(p => p.id === updated.id ? { ...p, human_takeover: false } : p);
+                useAppStore.getState().setConversationsCache(next);
+                return next;
+            });
         } catch (err) {
             // Usar el sistema de toasts en lugar de alert():
             // alert() es bloqueante, inconsistente con el resto de la UI, y concatena
@@ -117,6 +160,23 @@ export default function Conversations() {
 
     // Helper para obtener teléfono del paciente
     const getPhone = (p) => p.patient_phones?.[0]?.phone || '';
+
+    // Filtrar por estado de bot + búsqueda de texto, luego ordenar
+    const filteredPatients = patients
+        .filter(p => {
+            if (search && !p.display_name?.toLowerCase().includes(search.toLowerCase())) return false;
+            if (filter === 'takeover') return p.human_takeover;
+            if (filter === 'bot_active') return !p.human_takeover;
+            return true;
+        })
+        .sort((a, b) => {
+            const na = (a.display_name || '').toLowerCase();
+            const nb = (b.display_name || '').toLowerCase();
+            return sortOrder === 'z-a' ? nb.localeCompare(na) : na.localeCompare(nb);
+        });
+
+    const isFiltering = filter !== 'all' || sortOrder !== 'a-z';
+    const filterLabel = FILTER_OPTIONS.find(o => o.id === filter)?.label || 'Todos';
 
     return (
         <div className="h-full flex flex-col max-w-4xl mx-auto w-full pt-2">
@@ -132,22 +192,99 @@ export default function Conversations() {
             <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
                 {/* Left Panel: Contacts */}
                 <div className="w-[320px] flex flex-col z-10">
-                    <div className="p-4">
-                        <div className="relative h-10 w-full">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
-                                <Search size={14} strokeWidth={2.5} />
+                    <div className="p-4 pb-3 space-y-2">
+                        {/* Barra búsqueda + botón filtro */}
+                        <div className="flex items-center gap-2">
+                            <div className="relative h-10 flex-1">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
+                                    <Search size={14} strokeWidth={2.5} />
+                                </div>
+                                <input
+                                    className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-sm"
+                                    placeholder="Buscar paciente..."
+                                    value={search}
+                                    onChange={e => handleSearch(e.target.value)}
+                                />
                             </div>
-                            <input
-                                className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-sm"
-                                placeholder="Buscar paciente..."
-                                value={search}
-                                onChange={e => handleSearch(e.target.value)}
-                            />
+                            {/* Botón filtro */}
+                            <div className="relative" ref={filterRef}>
+                                <button
+                                    onClick={() => setShowFilter(v => !v)}
+                                    className={`h-10 w-10 flex items-center justify-center rounded-full border shadow-sm transition-all ${isFiltering ? 'bg-navy-900 border-navy-900 text-white' : 'bg-white/60 border-white/90 text-navy-900 hover:bg-white/80'}`}
+                                    title={`Filtro: ${filterLabel}`}
+                                >
+                                    <SlidersHorizontal size={14} strokeWidth={2.5} />
+                                </button>
+
+                                {/* Dropdown filtro */}
+                                {showFilter && (
+                                    <div className="absolute right-0 top-12 w-48 bg-white/80 backdrop-blur-2xl border border-white/80 rounded-2xl shadow-lg overflow-hidden z-50 py-2 animate-fade-up">
+                                        {/* Header limpiar */}
+                                        {isFiltering && (
+                                            <div className="flex items-center justify-between px-4 pb-2 mb-1 border-b border-white/50">
+                                                <span className="text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Filtros</span>
+                                                <button onClick={() => { setFilter('all'); setSortOrder('a-z'); setShowFilter(false); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
+                                            </div>
+                                        )}
+                                        {/* Sección Estado */}
+                                        <div className="px-4 pt-1 pb-1">
+                                            <span className="text-[10px] font-bold text-navy-700/40 uppercase tracking-wider">Estado</span>
+                                        </div>
+                                        {FILTER_OPTIONS.map(opt => (
+                                            <div
+                                                key={opt.id}
+                                                onClick={() => setFilter(opt.id)}
+                                                className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${filter === opt.id ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                            >
+                                                {opt.label}
+                                            </div>
+                                        ))}
+                                        {/* Separador */}
+                                        <div className="mx-4 my-2 border-t border-white/50" />
+                                        {/* Sección Orden */}
+                                        <div className="px-4 pb-1">
+                                            <span className="text-[10px] font-bold text-navy-700/40 uppercase tracking-wider">Orden</span>
+                                        </div>
+                                        {[{ id: 'a-z', label: 'De la A-Z' }, { id: 'z-a', label: 'De la Z-A' }].map(opt => (
+                                            <div
+                                                key={opt.id}
+                                                onClick={() => setSortOrder(opt.id)}
+                                                className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${sortOrder === opt.id ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                            >
+                                                {opt.label}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Contador cuando hay filtro activo */}
+                        {isFiltering && (
+                            <div className="flex items-center justify-between px-1">
+                                <span className="text-[11px] font-semibold text-navy-700/70">
+                                    {filteredPatients.length} de {patients.length} pacientes
+                                </span>
+                                <button
+                                    onClick={() => { setFilter('all'); setSortOrder('a-z'); }}
+                                    className="text-[11px] font-bold text-navy-900 hover:underline"
+                                >
+                                    Limpiar
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pr-3 pt-0 space-y-1">
-                        {patients.filter(p => !search || p.display_name?.toLowerCase().includes(search.toLowerCase())).map(p => {
+                        {filteredPatients.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                                <SlidersHorizontal size={22} strokeWidth={1.5} className="text-navy-900/30 mb-2" />
+                                <p className="text-xs font-bold text-navy-900/50">Sin resultados</p>
+                                <p className="text-[11px] font-semibold text-navy-700/40 mt-0.5">
+                                    {isFiltering ? 'Prueba otro filtro' : 'No hay pacientes que coincidan'}
+                                </p>
+                            </div>
+                        ) : filteredPatients.map(p => {
                             const isSelected = selectedPatient?.id === p.id;
                             const name = p.display_name || 'Sin nombre';
                             return (

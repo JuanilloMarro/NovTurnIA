@@ -8,7 +8,7 @@ import { useAppStore } from '../store/useAppStore';
 import { getBusinessInfo } from '../services/supabaseService';
 
 export default function Sidebar() {
-    const { canViewStats, canManageRoles, canViewPatients, canViewConversations } = usePermissions();
+    const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations } = usePermissions();
     const { profile } = useAuth();
     const { isSidebarOpen, toggleSidebar } = useAppStore();
     const [businessName, setBusinessName] = useState('');
@@ -77,18 +77,21 @@ export default function Sidebar() {
                         </NavLink>
                     )}
 
+                    {(canManageServices || canManageRoles) && (
+                        <NavLink to="/settings" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
+                            <Layers size={16} /> Servicios
+                        </NavLink>
+                    )}
+
                     {canManageRoles && (
                         <>
-                            <NavLink to="/settings" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                                <Layers size={16} /> Servicios
+
+                            <NavLink to="/audit-log" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
+                                <List size={16} /> Actividad
                             </NavLink>
 
                             <NavLink to="/users" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
                                 <ShieldCheck size={16} /> Usuarios
-                            </NavLink>
-
-                            <NavLink to="/audit-log" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                                <List size={16} /> Actividad
                             </NavLink>
 
                             <NavLink to="/business" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>

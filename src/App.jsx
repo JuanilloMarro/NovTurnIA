@@ -53,7 +53,7 @@ const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
 
 export default function App() {
     const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus, profile } = useAppStore();
-    const { canViewStats, canManageRoles } = usePermissions();
+    const { canViewStats, canManageRoles, canManageServices } = usePermissions();
     const isSuperAdmin = SUPER_ADMIN_EMAIL && profile?.email === SUPER_ADMIN_EMAIL;
 
     useEffect(() => {
@@ -90,7 +90,7 @@ export default function App() {
                                             <Route path="/conversations" element={<Conversations />} />
                                             <Route path="/patients/:id/history" element={<PatientHistory />} />
                                             <Route path="/stats" element={canViewStats ? <Stats /> : <Navigate to="/" replace />} />
-                                            <Route path="/settings" element={canManageRoles ? <Settings /> : <Navigate to="/" replace />} />
+                                            <Route path="/settings" element={(canManageServices || canManageRoles) ? <Settings /> : <Navigate to="/" replace />} />
                                             <Route path="/users" element={canManageRoles ? <Users /> : <Navigate to="/" replace />} />
                                             <Route path="/audit-log" element={canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
                                             <Route path="/business" element={canManageRoles ? <BusinessSettings /> : <Navigate to="/" replace />} />

@@ -1,6 +1,6 @@
 # NovTurnAI — Tareas Pendientes & Plan de Ejecución
 
-> Actualizado: 2026-04-16 (sesión 12)
+> Actualizado: 2026-04-16 (sesión 13)
 > Prioridades: 🔴 Pre-lanzamiento · 🟠 Primer mes · 🟡 Segundo mes · 🟢 Escalabilidad
 > Estado: 🔲 Pendiente · 🔄 En progreso · 🚫 Bloqueada por dependencia
 > Completadas → ver [COMPLETED_TASKS.md](./COMPLETED_TASKS.md)
@@ -14,8 +14,8 @@
 | 🔴 Pre-lanzamiento | 1 | Cobrar, operar y lanzar sin riesgos críticos |
 | 🟠 Primer mes | 2 | Visibilidad en producción, features clave |
 | 🟡 Segundo mes | 3 | Compliance médico, resiliencia, calidad de datos |
-| 🟢 Escalabilidad | 5 | Crecimiento a 10k+ usuarios |
-| Técnicas de apoyo | 6 | Sin ventana fija, soportan las demás |
+| 🟢 Escalabilidad | 3 | Crecimiento a 10k+ usuarios |
+| Técnicas de apoyo | 1 | Sin ventana fija, soportan las demás |
 
 ---
 
@@ -161,19 +161,6 @@ ALTER TABLE public.businesses ADD COLUMN uuid_id UUID DEFAULT gen_random_uuid() 
 
 ## FASE 4 — 🟢 Escalabilidad (cuando el volumen lo requiera)
 
-### T-14 🟢 Particionar `history` y `audit_log` por mes 🔲
-
-**Cuándo actuar:** Cuando `history` supere ~500k filas.
-
-**Problema:** Tablas append-only que crecerán indefinidamente. Sin particionamiento, las queries full-scan se degradarán progresivamente hasta afectar la experiencia del usuario.
-
-**Solución:** Particionamiento nativo de PostgreSQL por rango de `created_at` con particiones mensuales. Requiere recrear las tablas y migrar datos — hacerlo con Supabase Branch (T-09 como prerequisito).
-
-**Esfuerzo:** Alto
-**Depende de:** T-09
-
----
-
 ### T-15 🟢 TanStack Query — cache coherente y menos boilerplate 🔲
 
 **Cuándo actuar:** Cuando haya 3+ desarrolladores o al agregar TypeScript (T-16).
@@ -215,7 +202,7 @@ npx supabase gen types typescript --project-id <id> > src/types/database.ts
 
 
 
-### T-48 🟢 Navegación por teclado en el calendario 🔲
+
 
 **Problema:** El calendario no tiene atajos de teclado para navegar entre fechas. Los usuarios que prefieren el teclado (o personas con movilidad reducida) no pueden cambiar de día/semana sin el mouse. Esto viola WCAG 2.1 criterio 2.1.1.
 
@@ -233,13 +220,7 @@ npx supabase gen types typescript --project-id <id> > src/types/database.ts
 
 | ID | Tarea | Prioridad | Depende de | Esfuerzo | Estado |
 |----|-------|-----------|------------|---------|--------|
-| T-17 | Consolidar 3 queries restantes de `useStats` en una sola RPC | 🟡 | — | Medio | 🔲 |
 | T-18 | Migrar `appointments.id` a UUID v7 (cuando supere 50k filas) | 🟢 | T-09 | Medio | 🔲 |
-| T-19 | Agregar `business_id` directo a `patient_phones` (optimización RLS) | 🟡 | T-09 | Bajo-Medio | ✅ |
-| T-22 | Lazy loading de rutas con `React.lazy()` | 🟡 | — | Bajo | ✅ |
-| T-23 | Unificar error handling en `supabaseService.js` | 🟡 | — | Bajo-Medio | 🔲 |
-| T-24 | Rate limiting en `createStaffUser` | 🟡 | T-13 | Bajo | 🔲 |
-| T-59 | `loadMore` en `usePatients` duplica la lógica de estado de `load` — unificar | 🟡 | — | Bajo | 🔲 |
 
 ---
 
@@ -287,6 +268,11 @@ npx supabase gen types typescript --project-id <id> > src/types/database.ts
 ✅ Fix gráfica MainChart (RPC fallback)       ← COMPLETADO — PGRST202 fallback a query directa
 ✅ T-43 (validación teléfono)                ← COMPLETADO — regex +502 (8 dígitos, prefijo 2–7) + badge
 ✅ T-46 (focus trap + Escape)                ← COMPLETADO — useModalFocus en 4 modales
+✅ T-17 (get_stats_dashboard RPC)            ← COMPLETADO — 3 queries → 1 round-trip
+✅ T-23 (error handling supabaseService)     ← COMPLETADO — throw error original, clearNotifications fixed
+✅ T-24 (rate limiting createStaffUser)      ← COMPLETADO — sliding-window 3/min en memoria
+✅ T-59 (loadMore unificado)                 ← COMPLETADO — delega en load()
+✅ T-14 (particionamiento history+audit_log) ← COMPLETADO — mensual desde 2026-03, DEFAULT partition
 🔲 T-11 (banner Realtime)                    ← PENDIENTE — código listo, sin activar (ver task)
 ✅ T-10 (GDPR borrado permanente)            ← COMPLETADO — gdprDeletePatient + botón admin
 ✅ T-54 (activePatients bug)                 ← COMPLETADO — ya corregido en useStats.js

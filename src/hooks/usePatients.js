@@ -58,19 +58,18 @@ export function usePatients() {
         }
     }, [search]); // rawPatients.length removido de las dependencias
 
+    // T-59: unificado — delega en load() para no duplicar lógica de estado.
+    // load(q, false, page+1) detecta pageNum>0 y hace append en lugar de replace.
+    // setLoading no se activa porque hasDataRef.current=true y forceRefresh=false.
     const loadMore = useCallback(async () => {
         if (!hasMore || loadingMore) return;
         setLoadingMore(true);
         try {
-            const nextPage = page + 1;
-            const { data, hasMore: more } = await getPatients(search, { page: nextPage });
-            setRawPatients(prev => [...prev, ...data]);
-            setHasMore(more);
-            setPage(nextPage);
+            await load(search, false, page + 1);
         } finally {
             setLoadingMore(false);
         }
-    }, [hasMore, loadingMore, page, search]);
+    }, [hasMore, loadingMore, page, search, load]);
 
     useEffect(() => {
         load('');
@@ -103,6 +102,7 @@ export function usePatients() {
         } else {
             // Re-fetch everything for Insert/Delete to keep consistency
             useAppStore.getState().invalidatePatientsCache();
+            useAppStore.getState().invalidateConversationsCache(); // Conversations ve los mismos pacientes
             setPage(0);
             load('', true, 0); // Force refresh from page 0
         }

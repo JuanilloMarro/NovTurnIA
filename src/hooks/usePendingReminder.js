@@ -7,8 +7,8 @@ import {
     insertPendingReminderNotification,
 } from '../services/supabaseService';
 
-// Intervalo de chequeo: 1 hora
-const CHECK_INTERVAL_MS = 60 * 60 * 1000;
+// Intervalo de chequeo: 24 horas (solo notificar una vez al día para no apilar)
+const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 export function usePendingReminder() {
     const { profile } = useAuth();

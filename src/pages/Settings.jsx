@@ -23,7 +23,7 @@ export function formatDuration(minutes) {
 
 export default function Settings() {
     const { services, loading, create, update, toggle } = useServices();
-    const { canManageRoles } = usePermissions();
+    const { canCreateServices, canEditServices, canToggleServices } = usePermissions();
 
     const [selectedId, setSelectedId] = useState(null); // null | 'new' | number
     // price stored as integer cents internally (e.g. 350 = Q 3.50); null = no price
@@ -231,7 +231,7 @@ export default function Settings() {
                             </div>
 
                             {/* New Button */}
-                            {canManageRoles && (
+                            {canCreateServices && (
                                 <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
                                     <button
                                         onClick={handleNewClick}
@@ -415,16 +415,16 @@ export default function Settings() {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Footer actions */}
-                            {canManageRoles && (
-                                <div className="px-8 pb-10 flex items-center justify-end gap-3 z-20">
+                            
+                            {/* Footer actions sticky but slim */}
+                            {(canCreateServices || canEditServices || canToggleServices) && (
+                                <div className="px-6 py-4 bg-white/40 border-t border-white/60 backdrop-blur-md flex items-center justify-end gap-3 z-20 shrink-0">
                                     {/* Activar / Desactivar — solo en modo edición */}
-                                    {!isNew && selectedService && (
+                                    {canToggleServices && !isNew && selectedService && (
                                         <button
                                             onClick={handleToggle}
                                             disabled={toggling}
-                                            className={`group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 border text-[11px] font-bold rounded-full shadow-card transition-all duration-300 overflow-hidden disabled:opacity-50 ${
+                                            className={`group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 border text-[11px] font-bold rounded-full shadow-sm transition-all duration-300 overflow-hidden disabled:opacity-50 ${
                                                 selectedService.active
                                                     ? 'bg-white border-white/80 text-rose-500 hover:bg-rose-50 hover:border-rose-100/50'
                                                     : 'bg-white border-white/80 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100/50'
@@ -441,16 +441,18 @@ export default function Settings() {
                                     )}
 
                                     {/* Guardar */}
-                                    <button
-                                        onClick={handleSave}
-                                        disabled={saving || !form.name.trim()}
-                                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-navy-50 hover:border-navy-100/50 transition-all duration-300 overflow-hidden disabled:opacity-50"
-                                    >
-                                        <Save size={14} className="shrink-0" />
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">
-                                            {saving ? 'Guardando...' : isNew ? 'Crear servicio' : 'Guardar cambios'}
-                                        </span>
-                                    </button>
+                                    {(isNew ? canCreateServices : canEditServices) && (
+                                        <button
+                                            onClick={handleSave}
+                                            disabled={saving || !form.name.trim()}
+                                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-sm hover:bg-navy-50 hover:border-navy-100/50 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                                        >
+                                            <Save size={14} className="shrink-0" />
+                                            <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">
+                                                {saving ? 'Guardando...' : isNew ? 'Crear servicio' : 'Guardar cambios'}
+                                            </span>
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>

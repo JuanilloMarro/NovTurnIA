@@ -6,8 +6,11 @@ import NewPatientModal from '../components/Patients/NewPatientModal';
 import { Search, SlidersHorizontal, Download, Plus, RefreshCw } from 'lucide-react';
 import { exportAllPatients } from '../services/supabaseService';
 import { downloadCSV } from '../utils/export';
+import { usePermissions } from '../hooks/usePermissions';
+import { useAppStore } from '../store/useAppStore';
 
 export default function Patients() {
+    const { canCreatePatients, canExportPatients } = usePermissions();
     const { patients, loading, loadingMore, hasMore, search, handleSearch, sortOrder, setSortOrder, reload, loadMore } = usePatients();
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [showSort, setShowSort] = useState(false);
@@ -58,15 +61,17 @@ export default function Patients() {
                         />
                     </div>
 
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
-                        <button
-                            onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
-                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
-                        >
-                            <Plus size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Agregar Paciente</span>
-                        </button>
-                    </div>
+                    {canCreatePatients && (
+                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                            <button
+                                onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
+                                className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                            >
+                                <Plus size={14} className="shrink-0" />
+                                <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Agregar Paciente</span>
+                            </button>
+                        </div>
+                    )}
 
                     {/* Refresh */}
                     <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
@@ -81,16 +86,18 @@ export default function Patients() {
                     </div>
 
                     {/* Export CSV */}
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
-                        <button
-                            onClick={handleExport}
-                            disabled={exporting}
-                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50"
-                        >
-                            <Download size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
-                        </button>
-                    </div>
+                    {canExportPatients && (
+                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                            <button
+                                onClick={handleExport}
+                                disabled={exporting}
+                                className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                            >
+                                <Download size={14} className="shrink-0" />
+                                <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
+                            </button>
+                        </div>
+                    )}
 
                     {/* Sort funnel button */}
                     {(() => {
@@ -168,7 +175,8 @@ export default function Patients() {
                     isOpen={isNewPatientModalOpen} 
                     onClose={() => setIsNewPatientModalOpen(false)} 
                     onCreated={() => {
-                        handleSearch(search); // Refresh with current search
+                        useAppStore.getState().invalidateConversationsCache(); // nuevo paciente visible en /conversations
+                        reload(search, true); // forceRefresh — salta el cache de 1 min
                         setIsNewPatientModalOpen(false);
                     }}
                 />
@@ -179,7 +187,8 @@ export default function Patients() {
                     patient={selectedPatient} 
                     onClose={() => setSelectedPatient(null)} 
                     onRefresh={async () => {
-                        const data = await reload(search);
+                        useAppStore.getState().invalidateConversationsCache(); // cambios en paciente reflejados en /conversations
+                        const data = await reload(search, true); // forceRefresh — salta el cache de 1 min
                         const updated = data.find(p => p.id === selectedPatient.id);
                         if (updated) setSelectedPatient(updated);
                     }} 

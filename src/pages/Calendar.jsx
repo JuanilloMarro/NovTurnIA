@@ -8,6 +8,7 @@ import NewAppointmentModal from '../components/Calendar/NewAppointmentModal';
 import FollowUpList from '../components/Calendar/FollowUpList';
 import Button from '../components/ui/Button';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, UserX, Plus, SlidersHorizontal } from 'lucide-react';
+import { usePermissions } from '../hooks/usePermissions';
 
 const TYPE_OPTIONS = [
     { value: 'all',       label: 'Todos' },
@@ -23,6 +24,7 @@ const DAYS_OPTIONS = [
 ];
 
 export default function Calendar() {
+    const { canCreateAppointments, canViewFollowUp } = usePermissions();
     const {
         appointments,
         loading,
@@ -87,13 +89,15 @@ export default function Calendar() {
                             <CalendarIcon size={12} />
                             Calendario
                         </button>
-                        <button
-                            onClick={() => setTab('followup')}
-                            className={`px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${tab === 'followup' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}
-                        >
-                            <UserX size={12} />
-                            Seguimiento
-                        </button>
+                        {canViewFollowUp && (
+                            <button
+                                onClick={() => setTab('followup')}
+                                className={`px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${tab === 'followup' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}
+                            >
+                                <UserX size={12} />
+                                Seguimiento
+                            </button>
+                        )}
                     </div>
 
                     {tab === 'calendar' && (
@@ -120,15 +124,17 @@ export default function Calendar() {
                             </div>
 
                             {/* 4. Agregar Turno */}
-                            <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-10">
-                                <button
-                                    onClick={() => setIsModalOpen(true)}
-                                    className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
-                                >
-                                    <Plus size={14} className="shrink-0" />
-                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[90px] transition-all duration-300 whitespace-nowrap">Agregar Turno</span>
-                                </button>
-                            </div>
+                            {canCreateAppointments && (
+                                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-10">
+                                    <button
+                                        onClick={() => setIsModalOpen(true)}
+                                        className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                                    >
+                                        <Plus size={14} className="shrink-0" />
+                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[90px] transition-all duration-300 whitespace-nowrap">Agregar Turno</span>
+                                    </button>
+                                </div>
+                            )}
 
                             {/* 5. Actualizar */}
                             <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-10">

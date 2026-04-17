@@ -25,14 +25,12 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
     const [markingNoShow, setMarkingNoShow] = useState(false);
     const [botPaused, setBotPaused] = useState(appointment?.patients?.human_takeover || false);
 
-    const { canViewConversations, canToggleAi, canEditAppointments, canConfirmAppointments, canDeleteAppointments } = usePermissions();
+    const { canViewConversations, canToggleAi, canEditAppointments, canRescheduleAppointments, canConfirmAppointments, canSetPending, canMarkNoShow, canDeleteAppointments } = usePermissions();
 
     if (!appointment) return null;
     const { id, date_start, date_end, status, confirmed, patients } = appointment;
 
     const statusLabel = status === 'cancelled' ? 'cancelled' : status === 'no_show' ? 'no_show' : confirmed ? 'confirmed' : 'pending';
-    const isPast = new Date(date_start) < new Date();
-    const canMarkNoShow = canConfirmAppointments && isPast && ['scheduled', 'confirmed'].includes(status);
 
     async function handleNoShow() {
         setMarkingNoShow(true);
@@ -213,7 +211,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
             <div className="p-4 mt-auto">
                 <div className="flex flex-wrap items-center justify-center gap-2">
                     {/* 0. Reagendar (solo Cancelado y No se presentó) */}
-                    {canEditAppointments && (status === 'cancelled' || status === 'no_show') && (
+                    {canRescheduleAppointments && (status === 'cancelled' || status === 'no_show') && (
                         <button
                             onClick={() => setShowReschedule(true)}
                             className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
@@ -289,7 +287,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                         )}
 
                         {/* 5. Pendiente (Amber Hover) */}
-                        {canConfirmAppointments && status === 'confirmed' && (
+                        {canSetPending && status === 'confirmed' && (
                             <button onClick={handleSetScheduled}
                                 className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-amber-600 text-[11px] font-bold rounded-full shadow-card hover:bg-amber-50 hover:border-amber-100/50 transition-all duration-300 overflow-hidden"
                             >

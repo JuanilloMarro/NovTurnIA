@@ -1,18 +1,12 @@
 import { useState, useEffect } from 'react';
-import {
-    getStatsOverview,
-    getCurrentMonthAppointments,
-    getMessageCounts,
-} from '../services/supabaseService';
+import { getStatsDashboard } from '../services/supabaseService';
 import { useAppStore } from '../store/useAppStore';
 
 // T-29: Eliminadas las 3 llamadas directas a supabase — ahora pasan por supabaseService.js.
-// T-50: getMessageCounts ahora recibe monthStart/monthEnd para evitar COUNT(*) sin fecha.
+// T-50: getMessageCounts filtra por mes para evitar COUNT(*) sin fecha.
 // T-51: getAppointmentTrend movido a MainChart — el gráfico hace su propio fetch agregado.
-// Reducción: 7 queries → 3 queries por carga, más cache de 5 minutos.
-// - getStatsOverview()              → mv_business_stats + mv_patient_stats  (RPCs)
-// - getCurrentMonthAppointments()   → breakdown del mes actual (confirmed/bot/staff)
-// - getMessageCounts()              → mensajes enviados/recibidos del mes
+// T-17: 3 queries → 1 RPC (get_stats_dashboard). Reducción de round-trips HTTP.
+// - getStatsDashboard() → appt_stats + patient_stats + month_appointments + sent/received
 
 const STALE_MS = 5 * 60_000; // 5 minutos
 
@@ -36,15 +30,12 @@ export function useStats() {
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
             const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
 
-            // 3 queries en paralelo vía service layer (T-29, T-51):
-            const [overview, currentMonthApts, messageCounts] = await Promise.all([
-                getStatsOverview(),
-                getCurrentMonthAppointments(monthStart, monthEnd),
-                getMessageCounts(monthStart, monthEnd),
-            ]);
+            // T-17: 1 RPC en lugar de 3 round-trips paralelos
+            const dashboard = await getStatsDashboard(monthStart, monthEnd);
 
-            const { apptStats, patientStats } = overview;
-            const apts = currentMonthApts || [];
+            const apptStats    = dashboard.appt_stats   || [];
+            const patientStats = dashboard.patient_stats ?? null;
+            const apts         = dashboard.month_appointments || [];
 
             // Mes pasado desde mv_business_stats (ya calculado por Postgres)
             const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -74,8 +65,8 @@ export function useStats() {
                     totalPatients:    patientStats?.total_patients ?? 0,
                     activePatients:   patientStats?.active_patients ?? patientStats?.total_patients ?? 0,
                     newThisMonth:     patientStats?.new_this_month ?? 0,
-                    sentMessages:     messageCounts.sent,
-                    receivedMessages: messageCounts.received,
+                    sentMessages:     Number(dashboard.sent_count     ?? 0),
+                    receivedMessages: Number(dashboard.received_count ?? 0),
                     confirmedThisMonth,
                     noShowThisMonth,
                     createdByBot,

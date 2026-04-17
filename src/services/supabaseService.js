@@ -400,9 +400,9 @@ export async function createPatient({ display_name, phone }) {
     });
 
     if (error) {
-        console.error('create_patient_with_phone RPC Error:', error);
+        // T-23: código específico para duplicado de teléfono; resto relanza el error original
         if (error.code === '23505') throw new Error('Ya existe un paciente con ese teléfono.');
-        throw new Error('No se pudo registrar al paciente.');
+        throw error;
     }
 
     // Devolver el paciente completo para mantener compatibilidad con el hook
@@ -427,7 +427,8 @@ export async function updatePatient(patientId, { display_name, phone, birth_date
         .eq('id', patientId)
         .eq('business_id', getBID());
 
-    if (patientError) throw new Error('No se pudo actualizar el paciente.');
+    // T-23: relanzar error original para preservar código y mensaje de Supabase
+    if (patientError) throw patientError;
 
     if (phone) {
         // T-55: business_id guard en patient_phones — defensa en profundidad.
@@ -457,7 +458,8 @@ export async function deletePatient(patientId) {
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', patientId)
         .eq('business_id', getBID());
-    if (error) throw new Error('No se pudo eliminar al paciente.');
+    // T-23: relanzar error original en lugar de ocultar el código de Supabase
+    if (error) throw error;
 }
 
 /**
@@ -489,6 +491,37 @@ export async function gdprDeletePatient(patientId) {
 }
 
 // ── Stats ─────────────────────────────────────────────────
+
+/**
+ * T-17: Single RPC replaces 3 parallel queries (getStatsOverview + getCurrentMonthAppointments
+ * + getMessageCounts). Returns all dashboard data in one round-trip.
+ */
+export async function getStatsDashboard(monthStart, monthEnd) {
+    const { data, error } = await supabase.rpc('get_stats_dashboard', {
+        p_month_start: monthStart,
+        p_month_end:   monthEnd,
+    });
+    if (error) {
+        // Fallback to 3-query path if RPC not deployed yet
+        if (error.code === 'PGRST202' || error.code === '42883') {
+            const [overview, apts, counts] = await Promise.all([
+                getStatsOverview(),
+                getCurrentMonthAppointments(monthStart, monthEnd),
+                getMessageCounts(monthStart, monthEnd),
+            ]);
+            return {
+                appt_stats:          overview.apptStats || [],
+                patient_stats:       overview.patientStats,
+                month_appointments:  apts || [],
+                sent_count:          counts.sent,
+                received_count:      counts.received,
+            };
+        }
+        throw error;
+    }
+    return data;
+}
+
 export async function getStatsOverview() {
     const [{ data: apptStats, error: e1 }, { data: patientStats, error: e2 }] = await Promise.all([
         supabase.rpc('get_business_stats'),
@@ -626,14 +659,16 @@ export async function markNotificationsRead() {
 }
 
 export async function clearNotifications() {
-    const actorId = useAppStore.getState().profile?.id ?? null;
+    const changedBy = useAppStore.getState().profile?.id ?? null;
 
     // T-56: registrar en audit_log quién borró todas las notificaciones
+    // T-23: campo corregido actor_id → changed_by (nombre real en el schema)
     await supabase.from('audit_log').insert({
         business_id: getBID(),
         action: 'DELETE',
         table_name: 'notifications',
-        actor_id: actorId,
+        record_id: 'bulk',
+        changed_by: changedBy,
         new_data: { cleared_all: true },
     });
 
@@ -700,6 +735,15 @@ export async function insertPendingReminderNotification(appointments) {
     });
     if (count > 3) lines.push(`...y ${count - 3} más`);
 
+    // Evitar acumular o duplicar notificaciones en modo estricto/recargas: 
+    // Borramos cualquier recordatorio anterior que siga sin leer antes de insertar el nuevo.
+    await supabase
+        .from('notifications')
+        .delete()
+        .eq('business_id', getBID())
+        .eq('type', 'pending_reminder')
+        .eq('read', false);
+
     const { data, error } = await supabase
         .from('notifications')
         .insert({
@@ -717,7 +761,23 @@ export async function insertPendingReminderNotification(appointments) {
 }
 
 // ── Staff Management ──────────────────────────────────────
+
+// T-24: sliding-window rate limit — máx 3 creaciones por minuto por sesión de browser.
+// Protege contra clics múltiples accidentales y scripts que llamen al Edge Function.
+const _staffCreateLog = [];
+const STAFF_RATE_LIMIT = 3;
+const STAFF_RATE_WINDOW_MS = 60_000;
+
 export async function createStaffUser({ email, password, full_name, role_id }) {
+    const now = Date.now();
+    const windowStart = now - STAFF_RATE_WINDOW_MS;
+    // Descartar entradas fuera de la ventana
+    while (_staffCreateLog.length && _staffCreateLog[0] < windowStart) _staffCreateLog.shift();
+    if (_staffCreateLog.length >= STAFF_RATE_LIMIT) {
+        throw new Error('Demasiados intentos. Esperá un minuto antes de crear más usuarios.');
+    }
+    _staffCreateLog.push(now);
+
     const { data, error } = await supabase.functions.invoke('manage-staff', {
         body: { action: 'create', email, password, full_name, role_id },
     });
