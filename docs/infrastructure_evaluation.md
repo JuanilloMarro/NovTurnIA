@@ -1,6 +1,6 @@
 # NovTurnAI — Infrastructure Evaluation
 
-> Última actualización: 2026-04-16 (sesión 13 — T-14/17/23/24/59 + permisos granulares)
+> Última actualización: 2026-04-17 (sesión 14 — T-08 migración INTEGER → UUID completada)
 > Evaluación de deployment readiness por área. Escala 0–10.
 > 🔴 Bloqueante · 🟠 Importante · 🟡 Deseable · ✅ Resuelto
 
@@ -10,14 +10,14 @@
 
 | Área                         |Puntaje base|Puntaje actual| Delta    |
 |------------------------------|------------|--------------|----------|
-| Base de datos (Supabase)     | 6.0/10     | **8.8/10**   | +2.8     |
+| Base de datos (Supabase)     | 6.0/10     | **9.1/10**   | +3.1     |
 | Dashboard React + Vite       | 7.0/10     | **9.3/10**   | +2.3     |
 | Producto / SaaS              | 5.0/10     | **7.2/10**   | +2.2     |
 | Bot / N8N Workflow           | 4.5/10     | **7.5/10**   | +3.0     |
 | Infraestructura / Despliegue | 6.5/10     | **6.5/10**   | —        |
 | Resiliencia                  | 4.0/10     | **5.5/10**   | +1.5     |
 | Modelo de negocio            | 1.0/10     | **2.5/10**   | +1.5     |
-| **PROMEDIO GLOBAL**          | **4.9/10** | **7.2/10**   | **+2.3** |
+| **PROMEDIO GLOBAL**          | **4.9/10** | **7.3/10**   | **+2.4** |
 
 ---
 
@@ -35,7 +35,7 @@
 
 ---
 
-## 2. Base de Datos (Supabase) — 8.8/10
+## 2. Base de Datos (Supabase) — 9.1/10
 
 ### Sub-área: Estructura y normalización — 8.0/10
 
@@ -45,7 +45,7 @@
 | Columna `birth_date` en `patients` | ✅ En DB + UI (EditPatientModal con edad calculada) | T-44 |
 | Columna `cancelled_at` / `cancellation_reason` en `appointments` | ✅ En DB + código (`cancelAppointment` la registra) | T-49 |
 | Tabla `plans` + columnas en `businesses` | ✅ SQL ejecutado | T-01 |
-| `businesses.id` INTEGER → UUID | 🔄 SQL listo, pendiente ejecutar | T-08 |
+| `businesses.id` INTEGER → UUID | ✅ Migración ejecutada en producción | T-08 |
 
 ### Sub-área: Seguridad RLS — 8.5/10
 
@@ -91,11 +91,15 @@
 - ✅ Stats consolidadas en 1 RPC `get_stats_dashboard` — 3 round-trips → 1 (T-17)
 - ✅ `handle_audit_log` falla con PKs no-UUID corregido — `v_record_id TEXT`
 - ✅ `clearNotifications` campo `actor_id` → `changed_by` corregido + `record_id: 'bulk'`
+- ✅ `businesses.id` + todos los `business_id` FK migrados de INTEGER a UUID (T-08) — 10 tablas, RLS recreada, Edge Functions actualizadas, MVs eliminadas (Nano RAM), RPCs stats reescritas con queries directas
 
 ### Blind spots pendientes
 
-- 🟠 `businesses.id` sigue siendo INTEGER visible en URL hasta ejecutar migración T-08
+- ✅ `businesses.id` migrado a UUID — ya no expone enumeración de tenants en URL (T-08)
 - ✅ RLS de `patient_phones` verificada manualmente post-T-19
+- ⚠️ `scripts/rls_policies.sql` local: `get_user_business_id()` usa `staff_users` sin prefijo `public.` — DB corregida inline, archivo stale
+- ⚠️ `scripts/seed_complete.sql` / `scripts/seed_businesses.sql`: usan IDs INTEGER + `businesses_id_seq` — rotos para schema UUID actual
+- ⚠️ `supabase/migrations/006_recreate_stats_views.sql`: referencia MVs dropeadas (supersedido por RPCs directas)
 
 ---
 
@@ -187,7 +191,7 @@
 
 | Sub-área | Puntaje | Estado | Notas |
 |----------|---------|--------|-------|
-| Multi-tenancy | 9.0 | ✅ | `business_id` en todas las queries + `patient_phones` en código y DB (T-55 / T-19) |
+| Multi-tenancy | 9.5 | ✅ | `business_id` UUID en todas las queries + RLS recreada + no enumerable en URL (T-08, T-55, T-19) |
 | Escalabilidad nuevos clientes | 6.0 | 🟠 | Onboarding manual, plan enforcement completo (T-01) + hook + gate UI |
 | Documentación técnica | 7.0 | 🟡 | FUTURE_TASKS + COMPLETED_TASKS + infrastructure_evaluation — sin README instalación |
 | Observabilidad | 5.0 | 🟠 | Sentry instalado, falta DSN en Vercel prod |
@@ -233,7 +237,7 @@
 | 3 | T-19 | `ADD COLUMN business_id` en `patient_phones` + backfill + NOT NULL + índice | Bajo | ✅ Ejecutado |
 | 4 | T-35 | Guard de deduplicación en trigger `handle_audit_log` | Bajo | ✅ Ejecutado |
 | 5 | T-01 | Tabla `plans` + columnas en `businesses` + RPC `get_plan_limits` | Bajo | 🔲 Pendiente |
-| 6 | T-08 | Migración INTEGER → UUID en `businesses.id` (multi-tabla) | **Alto** — ejecutar en staging primero | 🔲 Pendiente |
+| 6 | T-08 | Migración INTEGER → UUID en `businesses.id` (multi-tabla) | Alto | ✅ Ejecutado |
 | 7 | T-36 | Tabla `services` con RLS + índice `business_id` | Bajo | 🔲 Pendiente (si no existe aún) |
 
 ### SQL T-01 — Plan enforcement (ejecutar para activar gate de plan)
@@ -283,42 +287,6 @@ END;
 $$;
 ```
 
-### SQL T-08 — Migración UUID (ejecutar por fases, con backup previo)
-
-```sql
--- FASE 1: Agregar columna UUID a businesses
-ALTER TABLE public.businesses
-  ADD COLUMN uuid_id UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE;
-
--- FASE 2: Agregar columnas UUID a tablas con FK
-ALTER TABLE public.appointments ADD COLUMN business_uuid UUID;
-ALTER TABLE public.patients     ADD COLUMN business_uuid UUID;
-ALTER TABLE public.staff_users  ADD COLUMN business_uuid UUID;
--- Repetir para: patient_phones, history, audit_log, notifications, services, etc.
-
--- FASE 3: Backfill
-UPDATE public.appointments  a SET business_uuid = (SELECT uuid_id FROM public.businesses b WHERE b.id = a.business_id);
-UPDATE public.patients      p SET business_uuid = (SELECT uuid_id FROM public.businesses b WHERE b.id = p.business_id);
-UPDATE public.staff_users   s SET business_uuid = (SELECT uuid_id FROM public.businesses b WHERE b.id = s.business_id);
--- Repetir para todas las tablas
-
--- FASE 4: NOT NULL en columnas backfilleadas
-ALTER TABLE public.appointments ALTER COLUMN business_uuid SET NOT NULL;
-ALTER TABLE public.patients     ALTER COLUMN business_uuid SET NOT NULL;
-ALTER TABLE public.staff_users  ALTER COLUMN business_uuid SET NOT NULL;
-
--- FASE 5: Actualizar RLS policies para usar business_uuid
--- (revisar cada policy y reemplazar business_id = X por business_uuid = X)
-
--- FASE 6 (después de validar): Renombrar columnas y eliminar enteros
--- ALTER TABLE public.appointments RENAME COLUMN business_id TO business_id_old;
--- ALTER TABLE public.appointments RENAME COLUMN business_uuid TO business_id;
--- -- Repetir para todas las tablas
--- -- Finalmente: DROP COLUMN business_id_old en todas las tablas
-```
-
-> ⚠️ **T-08 es la migración de mayor riesgo**. Ejecutar en un branch de Supabase (staging) antes de producción. Tener backup Point-in-Time Recovery activo.
-
 ### SQL T-36 — Tabla `services` (ejecutar si no existe)
 
 ```sql
@@ -350,8 +318,7 @@ CREATE POLICY "services_tenant_isolation" ON public.services
 1. Configurar `VITE_SENTRY_DSN` en Vercel prod — 30 min, sin código (T-05)
 
 ### Próxima semana
-2. **T-08** — Migración `businesses.id` INTEGER → UUID en staging primero
-3. **T-03** — Integración Stripe (desbloquea monetización real)
+2. **T-03** — Integración Stripe (desbloquea monetización real)
 
 ### En 2-3 semanas
 4. **T-11** — Banner de reconexión Realtime (código listo en `RealtimeStatusBanner.jsx`)
@@ -362,7 +329,7 @@ CREATE POLICY "services_tenant_isolation" ON public.services
 
 Número global
 
-  ~72% para un SaaS que puede operar como negocio autónomo.
+  ~73% para un SaaS que puede operar como negocio autónomo.
 
   Si la meta es solo "usar el producto internamente o con clientes de confianza", estás en ~88%. Si la meta es lanzar y cobrar automáticamente a desconocidos,  
   el número baja a ~50% porque falta todo el flujo de monetización.

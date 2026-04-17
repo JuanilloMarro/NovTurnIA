@@ -79,7 +79,7 @@ export function useAuth() {
 
     async function logout() {
         await supabase.auth.signOut();
-        setBusinessId(0);
+        setBusinessId('');
         clearAuth();
         Sentry.setUser(null);
     }
@@ -130,7 +130,7 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
     // Escuchar cambios de sesión
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         if (event === 'SIGNED_OUT') {
-            setBusinessId(0);
+            setBusinessId('');
             clearAuth();
         } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
             if (currentSession && currentSession.user) {

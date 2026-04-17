@@ -26,7 +26,57 @@
 | 2026-04-16 (sesión 11) | 1 | Recordatorios in-app para turnos pendientes (T-39 rediseñado) |
 | 2026-04-16 (sesión 12) | 2 | Gestión de config del negocio (T-37) y servicios (/settings submódulos) (T-36) |
 | 2026-04-16 (sesión 13) | 9 | Permisos granulares completos, T-14 particionamiento, T-17 RPC stats, T-23/24/59 deuda técnica |
-| **Total** | **85** | |
+| 2026-04-17 (sesión 14) | 1 | T-08 — Migración businesses.id INTEGER → UUID (10 tablas, RLS, Edge Functions, stats RPCs) |
+| **Total** | **86** | |
+
+---
+
+## 2026-04-17 (sesión 14)
+
+---
+
+### ✅ T-08 — Migración `businesses.id` INTEGER → UUID
+
+**Problema:** El ID de tenant era un entero secuencial (`1`, `2`, `3`) visible en la URL `?bid=1`. Cualquier persona podía enumerar el número exacto de clientes del SaaS y el orden de registro — información competitivamente sensible. Además, bloqueaba futuras integraciones que asumen UUIDs.
+
+**Solución aplicada:**
+
+**DB — 10 tablas migradas** (`businesses`, `appointments`, `services`, `patients`, `patient_phones`, `staff_users`, `staff_roles`, `notifications`, `history`, `audit_log`):
+- `supabase/migrations/005_business_id_to_uuid.sql`: columnas UUID temporales agregadas, backfill con mapping desde `businesses.new_id`, triggers de validación deshabilitados con `DISABLE TRIGGER USER` durante el UPDATE, FKs INTEGER dropeadas, columnas integer eliminadas, columnas UUID renombradas a `business_id`, FKs recreadas con `REFERENCES businesses(id)`, 9 índices recreados.
+- `DROP FUNCTION get_user_business_id() CASCADE` ejecutado fuera del bloque BEGIN para eliminar todas las RLS policies dependientes antes de cambiar tipos de columna.
+- MVs `mv_business_stats` / `mv_patient_stats` eliminadas (instancia Nano 0.5GB RAM — las MVs causaban `unhealthy` en el proyecto).
+- `supabase/migrations/006_recreate_stats_views.sql`: RPCs `get_business_stats`, `get_patient_stats`, `get_stats_dashboard`, `get_appointment_trend`, `get_plan_limits` recreadas con queries directas (sin MVs) y parámetros `UUID`.
+- `scripts/rls_policies.sql`: `get_user_business_id()` retorna `UUID`, variable `result_bid UUID`, cast `cached_bid::UUID`, tabla `public.staff_users` schema-qualified. RLS policies recreadas para todas las tablas incluyendo limpiezas de policies auto-generadas por Supabase Dashboard.
+- `NOTIFY pgrst, 'reload schema'` ejecutado para invalidar cache de PostgREST.
+- `VACUUM ANALYZE` en las 10 tablas.
+
+**Frontend:**
+- `src/main.jsx`: regex Sentry actualizada a `[a-f0-9-]+` para aceptar UUIDs en lugar de `\d+`.
+- `src/components/Sidebar.jsx`: fallback `profile?.business_id || ''` (era `|| 0`).
+- `src/hooks/useAuth.js`: `setBusinessId('')` en logout y handler `SIGNED_OUT` (era `setBusinessId(0)`).
+
+**Edge Functions (Deno/TypeScript):**
+- `supabase/functions/_shared/auth.ts`: tipos `staff_id`, `business_id`, `role_id` cambiados de `number` a `string`.
+- `supabase/functions/manage-staff/index.ts`: `caller.business_id` y `caller.id` tipados como `string`.
+- `supabase/functions/onboard-tenant/index.ts`: `createdBusinessId: string | null`.
+- Funciones redesplegadas con `npx supabase functions deploy`.
+
+**Problemas resueltos durante la migración:**
+- `policy already exists` → `DROP POLICY IF EXISTS` para policies auto-generadas por Supabase Dashboard
+- `cannot change return type of existing function` → `DROP FUNCTION ... CASCADE` fuera de la transacción
+- `El turno está fuera del horario` → `DISABLE TRIGGER USER` antes de los UPDATEs de backfill
+- `permission denied: RI_ConstraintTrigger is a system trigger` → cambiar `DISABLE TRIGGER ALL` por `DISABLE TRIGGER USER`
+- `cannot drop column business_id` (MV dependency) → DROP MVs en Paso 4a antes de eliminar columnas
+- `relation "staff_users" does not exist` → `FROM public.staff_users` con schema explícito
+- Supabase Nano unhealthy por RAM → eliminar MVs, reescribir stats con queries directas
+- DNS `ERR_NAME_NOT_RESOLVED` → cambiar DNS del sistema a Cloudflare 1.1.1.1
+
+**Impacto:** `business_id` ahora es UUID opaco en toda la stack — DB, API, frontend, Edge Functions. Los tenants no son enumerables. RLS policies funcionando correctamente con UUID. Stats, Login, Turnos y Pacientes verificados operativos post-migración.
+
+**Archivos stale (no urgente — DB ya correcta):**
+- `scripts/seed_complete.sql` / `scripts/seed_businesses.sql`: usan IDs INTEGER + `businesses_id_seq` — rotos para schema UUID
+- `scripts/rls_policies.sql`: `get_user_business_id()` sin prefijo `public.` (DB corregida inline)
+- `supabase/migrations/006_recreate_stats_views.sql`: referencia MVs dropeadas (supersedido por inline SQL)
 
 ---
 

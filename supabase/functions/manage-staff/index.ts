@@ -80,7 +80,7 @@ serve(async (req) => {
 // ── Create Staff User ─────────────────────────────────────────────────────────
 // T-26 fix: usar auth.admin.createUser() en lugar de INSERT directo con campo password
 async function handleCreate(
-  caller: { business_id: number },
+  caller: { business_id: string },
   payload: Record<string, unknown>
 ): Promise<Response> {
   const { email, password, full_name, role_id } = payload;
@@ -152,7 +152,7 @@ async function handleCreate(
 // ── Delete Staff User ─────────────────────────────────────────────────────────
 // T-04 fix: soft-delete en staff_users + hard-delete en auth.users
 async function handleDelete(
-  caller: { id: string; business_id: number },
+  caller: { id: string; business_id: string },
   payload: Record<string, unknown>
 ): Promise<Response> {
   const { id } = payload;
@@ -209,7 +209,7 @@ async function handleDelete(
 
 // ── Update Staff Role ─────────────────────────────────────────────────────────
 async function handleUpdateRole(
-  caller: { business_id: number },
+  caller: { business_id: string },
   payload: Record<string, unknown>
 ): Promise<Response> {
   const { userId, roleId } = payload;

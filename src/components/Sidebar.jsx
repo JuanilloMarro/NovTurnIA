@@ -13,7 +13,7 @@ export default function Sidebar() {
     const { isSidebarOpen, toggleSidebar } = useAppStore();
     const [businessName, setBusinessName] = useState('');
 
-    const businessId = profile?.business_id || 0;
+    const businessId = profile?.business_id || '';
 
     useEffect(() => {
         if (businessId) {

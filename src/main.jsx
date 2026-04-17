@@ -14,7 +14,7 @@ if (import.meta.env.VITE_SENTRY_DSN) {
         beforeSend(event) {
             // Redactar PII: emails y teléfonos de pacientes
             if (event.request?.url) {
-                event.request.url = event.request.url.replace(/[?&]bid=\d+/, '');
+                event.request.url = event.request.url.replace(/[?&]bid=[a-f0-9-]+/i, '');
             }
             if (event.user?.email) {
                 event.user.email = '[redacted]';

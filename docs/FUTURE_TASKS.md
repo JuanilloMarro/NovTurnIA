@@ -1,6 +1,6 @@
 # NovTurnAI — Tareas Pendientes & Plan de Ejecución
 
-> Actualizado: 2026-04-16 (sesión 13)
+> Actualizado: 2026-04-17 (sesión 14)
 > Prioridades: 🔴 Pre-lanzamiento · 🟠 Primer mes · 🟡 Segundo mes · 🟢 Escalabilidad
 > Estado: 🔲 Pendiente · 🔄 En progreso · 🚫 Bloqueada por dependencia
 > Completadas → ver [COMPLETED_TASKS.md](./COMPLETED_TASKS.md)
@@ -84,25 +84,6 @@ Sentry.setUser({ id: user.id, business_id: profile.business_id });
 ---
 
 
-### T-08 🟠 Migrar `businesses.id` de INTEGER a UUID 🔲
-
-**Problema:** El ID de tenant es un entero secuencial (`1`, `2`, `3`) visible en la URL `?bid=1`. Permite enumerar cuántos clientes tiene el SaaS y en qué orden se registraron — información sensible competitivamente.
-
-**Plan de migración (requiere T-09 — staging):**
-```sql
--- Fase 1: agregar columna UUID
-ALTER TABLE public.businesses ADD COLUMN uuid_id UUID DEFAULT gen_random_uuid() NOT NULL;
--- Fase 2: columnas uuid en tablas con FK (appointments, patients, staff_users, etc.)
--- Fase 3: backfill
--- Fase 4: NOT NULL, FKs nuevas, eliminar columnas enteras
--- Fase 5: actualizar RLS policies
--- Fase 6: frontend lee UUID en lugar de INTEGER
-```
-
-**Esfuerzo:** Alto (migración multi-tabla + frontend + validar RLS)
-**Depende de:** T-09 ✅ (CI/CD ya configurado)
-
----
 
 
 
@@ -286,7 +267,7 @@ T-05 (Sentry)                   ← Visibilidad desde el día 1 en prod
 T-02 (Ciclo de vida tenant)     ← Depende de T-01 ✅
 T-03 (Billing — Stripe)         ← Depende de T-01 ✅ + T-02
     ↓
-T-08 (businesses.id → UUID)     ← CI/CD ya está ✅, frontend preparado ✅
+✅ T-08 (businesses.id → UUID)     ← COMPLETADO — migración multi-tabla ejecutada en producción
     ↓
 T-39 (Recordatorios)
     ↓

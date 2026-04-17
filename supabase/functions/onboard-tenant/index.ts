@@ -85,7 +85,7 @@ serve(async (req) => {
   }
 
   let createdAuthUserId: string | null = null;
-  let createdBusinessId: number | null = null;
+  let createdBusinessId: string | null = null;
 
   try {
     const {

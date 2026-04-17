@@ -22,19 +22,19 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 -- ════════════════════════════════════════════════════════════
 
 CREATE OR REPLACE FUNCTION get_user_business_id()
-RETURNS INTEGER
+RETURNS UUID
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 AS $$
 DECLARE
   cached_bid TEXT;
-  result_bid INTEGER;
+  result_bid UUID;
 BEGIN
   -- Intenta leer del cache de sesión (missing_ok=true evita exception si no existe)
   cached_bid := current_setting('app.business_id', true);
   IF cached_bid IS NOT NULL AND cached_bid <> '' THEN
-    RETURN cached_bid::INTEGER;
+    RETURN cached_bid::UUID;
   END IF;
 
   -- Cache miss: buscar en staff_users y guardar en variable de sesión
@@ -139,11 +139,32 @@ CREATE POLICY "Staff can update appointments" ON appointments
   FOR UPDATE USING (business_id = get_user_business_id());
 
 -- ── services ──
+-- Limpiar policies auto-generadas por Supabase Dashboard (si existen)
+DROP POLICY IF EXISTS "services_select" ON services;
+DROP POLICY IF EXISTS "services_insert" ON services;
+DROP POLICY IF EXISTS "services_update" ON services;
+DROP POLICY IF EXISTS "services_delete" ON services;
 DROP POLICY IF EXISTS "Staff can view own business services" ON services;
 CREATE POLICY "Staff can view own business services" ON services
   FOR SELECT USING (business_id = get_user_business_id());
 
+DROP POLICY IF EXISTS "Staff can insert services" ON services;
+CREATE POLICY "Staff can insert services" ON services
+  FOR INSERT WITH CHECK (business_id = get_user_business_id());
+
+DROP POLICY IF EXISTS "Staff can update services" ON services;
+CREATE POLICY "Staff can update services" ON services
+  FOR UPDATE USING (business_id = get_user_business_id());
+
+DROP POLICY IF EXISTS "Staff can delete services" ON services;
+CREATE POLICY "Staff can delete services" ON services
+  FOR DELETE USING (business_id = get_user_business_id());
+
 -- ── history ──
+DROP POLICY IF EXISTS "history_select" ON history;
+DROP POLICY IF EXISTS "history_insert" ON history;
+DROP POLICY IF EXISTS "history_update" ON history;
+DROP POLICY IF EXISTS "history_delete" ON history;
 DROP POLICY IF EXISTS "Staff can view own business history" ON history;
 CREATE POLICY "Staff can view own business history" ON history
   FOR SELECT USING (business_id = get_user_business_id());
@@ -167,7 +188,10 @@ CREATE POLICY "Staff can insert own business notifications" ON notifications
 
 -- ── audit_log ──
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
-
+DROP POLICY IF EXISTS "audit_log_select" ON audit_log;
+DROP POLICY IF EXISTS "audit_log_insert" ON audit_log;
+DROP POLICY IF EXISTS "audit_log_update" ON audit_log;
+DROP POLICY IF EXISTS "audit_log_delete" ON audit_log;
 DROP POLICY IF EXISTS "Staff can view own business audit" ON audit_log;
 CREATE POLICY "Staff can view own business audit" ON audit_log
   FOR SELECT USING (business_id = get_user_business_id());

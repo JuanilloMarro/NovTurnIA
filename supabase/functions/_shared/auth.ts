@@ -107,9 +107,9 @@ export async function verifyToken(token: string): Promise<Record<string, unknown
 
 // Extract and verify the staff session from request headers
 export async function getStaffSession(req: Request): Promise<{
-  staff_id: number;
-  business_id: number;
-  role_id: number;
+  staff_id: string;
+  business_id: string;
+  role_id: string;
   email: string;
   permissions: Record<string, boolean>;
 } | null> {
@@ -122,9 +122,9 @@ export async function getStaffSession(req: Request): Promise<{
   if (!payload || !payload.staff_id || !payload.business_id) return null;
 
   return payload as {
-    staff_id: number;
-    business_id: number;
-    role_id: number;
+    staff_id: string;
+    business_id: string;
+    role_id: string;
     email: string;
     permissions: Record<string, boolean>;
   };
