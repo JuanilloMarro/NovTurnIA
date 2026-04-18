@@ -1,13 +1,120 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { getBusinessInfo, updateBusinessInfo } from '../services/supabaseService';
 import { usePermissions } from '../hooks/usePermissions';
-import { Save, Building2, Clock, Mail, Zap, Lock, Bot } from 'lucide-react';
-import { showSuccessToast, showErrorToast } from '../store/useToastStore';
+import { Save, Building2, Clock, Mail, Zap, Lock, Bot, Check } from 'lucide-react';
+import { showSettingsSavedToast, showValidationToast, showErrorToast } from '../store/useToastStore';
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
     value: i,
     label: `${String(i).padStart(2, '0')}:00`,
 }));
+
+// ── Wheel picker ──────────────────────────────────────────────────────────────
+const WH = 26;
+
+function WheelColumn({ items, selected, onSelect, displayFn, disabled = false }) {
+    const containerRef = useRef(null);
+    const trackRef     = useRef(null);
+    const offsetRef    = useRef(0);
+    const drag         = useRef({ active: false, startY: 0, startOffset: 0, lastY: 0, lastTime: 0, velocity: 0, raf: null });
+
+    function applyTransform(offset) {
+        if (trackRef.current) trackRef.current.style.transform = `translateY(${WH - offset}px)`;
+    }
+
+    useLayoutEffect(() => {
+        if (drag.current.active) return;
+        const idx = items.indexOf(selected);
+        if (idx === -1) return;
+        cancelAnimationFrame(drag.current.raf);
+        const targetOffset = idx * WH;
+        offsetRef.current = targetOffset;
+        applyTransform(targetOffset);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selected]);
+
+    function snapTo(fromOffset, velocity) {
+        cancelAnimationFrame(drag.current.raf);
+        const maxOffset = (items.length - 1) * WH;
+        const projected = Math.max(0, Math.min(maxOffset, fromOffset + velocity * 100));
+        const targetIdx = Math.round(projected / WH);
+        const targetOffset = targetIdx * WH;
+        const start = performance.now();
+        const duration = 220;
+        function step(now) {
+            const t = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            const cur = fromOffset + (targetOffset - fromOffset) * eased;
+            offsetRef.current = cur;
+            applyTransform(cur);
+            if (t < 1) {
+                drag.current.raf = requestAnimationFrame(step);
+            } else {
+                offsetRef.current = targetOffset;
+                applyTransform(targetOffset);
+                onSelect(items[targetIdx]);
+            }
+        }
+        drag.current.raf = requestAnimationFrame(step);
+    }
+
+    function onPointerDown(e) {
+        cancelAnimationFrame(drag.current.raf);
+        Object.assign(drag.current, { active: true, startY: e.clientY, startOffset: offsetRef.current, lastY: e.clientY, lastTime: performance.now(), velocity: 0 });
+        containerRef.current?.setPointerCapture(e.pointerId);
+        e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+        if (!drag.current.active) return;
+        const dy = e.clientY - drag.current.startY;
+        const maxOffset = (items.length - 1) * WH;
+        const raw = drag.current.startOffset - dy;
+        const clamped = raw < 0 ? raw * 0.3 : raw > maxOffset ? maxOffset + (raw - maxOffset) * 0.3 : raw;
+        offsetRef.current = clamped;
+        applyTransform(clamped);
+        const now = performance.now();
+        const dt = now - drag.current.lastTime;
+        if (dt > 0) drag.current.velocity = -(e.clientY - drag.current.lastY) / dt;
+        drag.current.lastY = e.clientY;
+        drag.current.lastTime = now;
+    }
+
+    function onPointerUp() {
+        if (!drag.current.active) return;
+        drag.current.active = false;
+        const maxOffset = (items.length - 1) * WH;
+        snapTo(Math.max(0, Math.min(maxOffset, offsetRef.current)), drag.current.velocity);
+    }
+
+    return (
+        <div
+            ref={containerRef}
+            className="relative flex-1 overflow-hidden select-none touch-none"
+            style={{ height: WH * 3, cursor: disabled ? 'default' : 'grab' }}
+            onPointerDown={disabled ? undefined : onPointerDown}
+            onPointerMove={disabled ? undefined : onPointerMove}
+            onPointerUp={disabled ? undefined : onPointerUp}
+            onPointerCancel={disabled ? undefined : onPointerUp}
+        >
+            <div className="absolute inset-x-1 pointer-events-none z-10 rounded-lg bg-white/60 border border-white/70 shadow-sm"
+                style={{ top: WH, height: WH }} />
+            <div className="absolute inset-0 pointer-events-none z-20"
+                style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.75) 0%, transparent 32%, transparent 68%, rgba(255,255,255,0.75) 100%)' }} />
+            <div ref={trackRef} className="absolute inset-x-0 top-0 will-change-transform z-30">
+                {items.map(item => {
+                    const isSelected = item === selected;
+                    return (
+                        <div key={item} style={{ height: WH }}
+                            className={`flex items-center justify-center transition-all duration-150 px-3 text-center leading-none ${isSelected ? 'text-navy-900 font-black text-[12px]' : 'text-navy-900/25 font-semibold text-[11px]'}`}>
+                            <span className="truncate w-full text-center">{displayFn ? displayFn(item) : item}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
 
 // Canonical day order and display labels
 const DAYS = [
@@ -96,20 +203,15 @@ function ReadOnlyField({ label, value }) {
 }
 
 function HourSelect({ value, onChange, options }) {
+    const items = options.map(o => o.label);
+    const selected = HOUR_OPTIONS.find(o => o.value === value)?.label || '00:00';
     return (
-        <div className="relative">
-            <select
-                value={value}
-                onChange={e => onChange(Number(e.target.value))}
-                className="w-full bg-white/40 border border-white/60 rounded-full px-4 pr-10 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm"
-            >
-                {options.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-navy-800">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
-            </div>
+        <div className="bg-white/30 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
+            <WheelColumn
+                items={items}
+                selected={selected}
+                onSelect={label => onChange(parseInt(label.split(':')[0]))}
+            />
         </div>
     );
 }
@@ -159,31 +261,35 @@ export default function BusinessSettings() {
     async function handleSave() {
         const nameInput = form.name.trim();
         if (!nameInput) {
-            showErrorToast('Atención', 'El nombre del negocio no puede estar vacío.');
+            showValidationToast('Atención', 'El nombre del negocio no puede estar vacío.');
             return;
         }
         if (nameInput.length > 100) {
-            showErrorToast('Nombre muy largo', 'El nombre no debe exceder los 100 caracteres.');
+            showValidationToast('Nombre muy largo', 'El nombre no debe exceder los 100 caracteres.');
             return;
         }
 
         if (selectedDays.size === 0) {
-            showErrorToast('Días inválidos', 'Debes seleccionar al menos un día de atención.');
+            showValidationToast('Días inválidos', 'Debes seleccionar al menos un día de atención.');
             return;
         }
 
         if (Number(form.schedule_end) <= Number(form.schedule_start)) {
-            showErrorToast('Horario inválido', 'La hora de cierre debe ser posterior a la de apertura.');
+            showValidationToast('Horario inválido', 'La hora de cierre debe ser posterior a la de apertura.');
             return;
         }
 
         const emailInput = form.notification_email.trim();
-        if (emailInput && !/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(emailInput)) {
-            showErrorToast('Email inválido', 'Revisa el formato del correo de notificaciones.');
+        if (!emailInput) {
+            showValidationToast('Email requerido', 'El correo es indispensable para el manejo de notificaciones y emergencias.');
+            return;
+        }
+        if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(emailInput)) {
+            showValidationToast('Email inválido', 'Revisa el formato del correo de notificaciones.');
             return;
         }
         if (emailInput.length > 255) {
-            showErrorToast('Email muy largo', 'El correo no debe exceder los 255 caracteres.');
+            showValidationToast('Email muy largo', 'El correo no debe exceder los 255 caracteres.');
             return;
         }
 
@@ -194,11 +300,11 @@ export default function BusinessSettings() {
                 schedule_start: Number(form.schedule_start),
                 schedule_end: Number(form.schedule_end),
                 schedule_days: serializeDays(selectedDays),
-                notification_email: emailInput || null,
+                notification_email: emailInput || '',
                 has_emergencias: form.has_emergencias,
                 custom_prompt: form.custom_prompt.trim() || null,
             });
-            showSuccessToast('Configuración guardada', nameInput);
+            showSettingsSavedToast(nameInput);
             setDirty(false);
         } catch (err) {
             console.error('SERVER ERROR:', err);
@@ -218,7 +324,7 @@ export default function BusinessSettings() {
     const planMeta = PLAN_LABELS[info?.plan] ?? { label: info?.plan ?? '—', color: 'bg-gray-100 text-gray-500 border-gray-200' };
 
     return (
-        <div className="h-full flex flex-col mx-auto w-full max-w-4xl pt-2 px-0">
+        <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-0">
             {/* Header */}
             <div className="flex items-start justify-between gap-3 mb-4">
                 <div>
@@ -272,21 +378,21 @@ export default function BusinessSettings() {
                             </div>
 
                             <Field label="Días de atención">
-                                <div className="flex flex-wrap gap-2 pt-1">
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-y-4 gap-x-2 pt-1">
                                     {DAYS.map(day => {
                                         const active = selectedDays.has(day.key);
                                         return (
-                                            <button
-                                                key={day.key}
-                                                type="button"
-                                                onClick={() => toggleDay(day.key)}
-                                                className={`px-4 py-2 rounded-full text-[12px] font-bold border transition-all duration-200 ${active
-                                                    ? 'bg-navy-900 text-white border-navy-900 shadow-sm'
-                                                    : 'bg-white/40 text-navy-900/40 border-white/60 hover:bg-white/60 hover:text-navy-900'
-                                                    }`}
-                                            >
-                                                {day.label}
-                                            </button>
+                                            <label key={day.key} className="flex items-center gap-3.5 cursor-pointer group select-none">
+                                                <div className="relative flex items-center justify-center shrink-0">
+                                                    <input type="checkbox" checked={active} onChange={() => toggleDay(day.key)} className="sr-only" />
+                                                    <div className={`w-[16px] h-[16px] rounded-[5px] border transition-all duration-300 flex items-center justify-center shadow-sm ${active ? 'bg-navy-900 border-navy-900 shadow-sm' : 'border-navy-900/30 bg-white/60 backdrop-blur-sm group-hover:border-navy-900/50'}`}>
+                                                        <Check size={12} strokeWidth={4} className={`text-white transition-all duration-200 ${active ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`} />
+                                                    </div>
+                                                </div>
+                                                <span className="font-bold text-[10.5px] tracking-tight leading-none pt-[1.5px] text-navy-900 transition-colors duration-300">
+                                                    {day.label}
+                                                </span>
+                                            </label>
                                         );
                                     })}
                                 </div>

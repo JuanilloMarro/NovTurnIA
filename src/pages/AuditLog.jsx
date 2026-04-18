@@ -7,7 +7,7 @@ import { downloadCSV } from '../utils/export';
 // ── Módulos ──
 const MODULES = {
     'appointments': 'Turnos',
-    'patients': 'Pacientes',
+    'patients': 'Clientes',
     'patient_phones': 'Teléfonos',
     'staff_users': 'Personal',
     'staff_roles': 'Roles',
@@ -72,13 +72,13 @@ function parseData(obj, table, pMap) {
 
     // Context enrichment: Inject patient name or phone number
     if (table === 'appointments' && obj.patient_id && pMap?.[obj.patient_id]) {
-        entries.unshift({ label: 'Paciente', value: pMap[obj.patient_id].name || 'Sin nombre' });
+        entries.unshift({ label: 'Cliente', value: pMap[obj.patient_id].name || 'Sin nombre' });
     }
     if (table === 'patients' && obj.id && pMap?.[obj.id]?.phone) {
         entries.push({ label: 'Teléfono', value: formatPhone(pMap[obj.id].phone) });
     }
     if (table === 'patient_phones' && obj.user_id && pMap?.[obj.user_id]) {
-        entries.unshift({ label: 'Paciente', value: pMap[obj.user_id].name || 'Sin nombre' });
+        entries.unshift({ label: 'Cliente', value: pMap[obj.user_id].name || 'Sin nombre' });
     }
 
     // Deduplicate entries by label
@@ -101,7 +101,7 @@ function getLogSummary(log, oldP, newP, ctxPaciente) {
         const isInsert = log.action === 'INSERT';
 
         if (log.table_name === 'appointments') {
-            const pName = ctxPaciente || 'un paciente';
+            const pName = ctxPaciente || 'un cliente';
             if (isInsert) return `creó un nuevo turno para ${pName}`;
             if (isDelete) return `eliminó el turno de ${pName}`;
             if (isUpdate) {
@@ -123,18 +123,18 @@ function getLogSummary(log, oldP, newP, ctxPaciente) {
         }
 
         if (log.table_name === 'patients') {
-            const pName = ctxPaciente || (newP || []).find(e => e?.label === 'Nombre' || e?.label === 'Nombre completo')?.value || 'un paciente';
+            const pName = ctxPaciente || (newP || []).find(e => e?.label === 'Nombre' || e?.label === 'Nombre completo')?.value || 'un cliente';
 
-            if (isInsert) return `registró a ${pName} como nuevo paciente`;
+            if (isInsert) return `registró a ${pName} como nuevo cliente`;
             if (isDelete) return `eliminó el registro de ${pName}`;
             if (isUpdate) {
                 // Verificar si fue un Soft Delete
                 if (!log.old_data?.deleted_at && log.new_data?.deleted_at) {
-                    return `eliminó el registro del paciente ${pName}`;
+                    return `eliminó el registro del cliente ${pName}`;
                 }
                 // Verificar si fue una restauración (opcional)
                 if (log.old_data?.deleted_at && !log.new_data?.deleted_at) {
-                    return `restauró el registro del paciente ${pName}`;
+                    return `restauró el registro del cliente ${pName}`;
                 }
 
                 const changedFields = (newP || []).filter(e => {
@@ -282,7 +282,7 @@ export default function AuditLog() {
     });
 
     return (
-        <div className="h-full flex flex-col max-w-5xl mx-auto w-full pt-2 px-0">
+        <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-0">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div>
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
@@ -340,30 +340,30 @@ export default function AuditLog() {
 
                         {/* Filter dropdown */}
                         {showFilters && (
-                            <div className="absolute right-0 top-full mt-2 w-48 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card z-50 py-2 animate-fade-up">
+                            <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 rounded-3xl shadow-[0_8px_32px_rgba(26,58,107,0.16),0_2px_8px_rgba(0,0,0,0.06)] z-50 p-2 animate-fade-up">
                                 {hasActiveFilters && (
-                                    <div className="flex items-center justify-between px-4 pb-2 mb-1 border-b border-white/50">
-                                        <span className="text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Filtros</span>
+                                    <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
+                                        <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
                                         <button onClick={() => { setFilterAction(''); setFilterUser(''); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
                                     </div>
                                 )}
-                                <p className="px-4 pt-1 pb-0.5 text-[10px] font-bold text-navy-700/40 uppercase tracking-wider">Acción</p>
+                                <p className="px-2 pt-2 pb-1 text-[10px] font-bold text-navy-700/40 tracking-wide">Acción</p>
                                 {[{ value: '', label: 'Todas' }, { value: 'INSERT', label: 'Creado' }, { value: 'UPDATE', label: 'Actualizado' }, { value: 'DELETE', label: 'Eliminado' }].map(opt => (
                                     <div
                                         key={opt.value}
                                         onClick={() => setFilterAction(opt.value)}
-                                        className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${filterAction === opt.value ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                        className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterAction === opt.value ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
                                     >
                                         {opt.label}
                                     </div>
                                 ))}
-                                <div className="border-t border-white/50 mt-1 pt-1">
-                                    <p className="px-4 pt-1 pb-0.5 text-[10px] font-bold text-navy-700/40 uppercase tracking-wider">Usuario</p>
+                                <div className="border-t border-gray-100 mt-1 pt-1">
+                                    <p className="px-2 pt-1 pb-1 text-[10px] font-bold text-navy-700/40 tracking-wide">Usuario</p>
                                     {[{ uuid: '', name: 'Todos' }, ...uniqueUsers].map(u => (
                                         <div
                                             key={u.uuid}
                                             onClick={() => setFilterUser(u.uuid)}
-                                            className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${filterUser === u.uuid ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                            className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterUser === u.uuid ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
                                         >
                                             {u.name}
                                         </div>
@@ -410,12 +410,12 @@ export default function AuditLog() {
                             const newPRaw = parseData(log.new_data, log.table_name, patientMap);
 
                             // Extract context tags
-                            const ctxPaciente = (newPRaw || oldPRaw)?.find(e => e.label === 'Paciente')?.value;
+                            const ctxPaciente = (newPRaw || oldPRaw)?.find(e => e.label === 'Cliente')?.value;
                             const ctxTelefono = (newPRaw || oldPRaw)?.find(e => e.label === 'Teléfono')?.value;
 
                             // Filter out context tags for the delta view
-                            const oldP = oldPRaw?.filter(e => e.label !== 'Paciente' && e.label !== 'Teléfono');
-                            const newP = newPRaw?.filter(e => e.label !== 'Paciente' && e.label !== 'Teléfono');
+                            const oldP = oldPRaw?.filter(e => e.label !== 'Cliente' && e.label !== 'Teléfono');
+                            const newP = newPRaw?.filter(e => e.label !== 'Cliente' && e.label !== 'Teléfono');
 
                             const summary = getLogSummary(log, oldP, newP, ctxPaciente);
                             const actStyle = ACTION_STYLES[isEffectivelyDelete ? 'DELETE' : log.action] || 'bg-gray-100 text-gray-600 border-gray-200';

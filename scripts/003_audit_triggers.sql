@@ -6,24 +6,30 @@
 CREATE OR REPLACE FUNCTION handle_audit_log()
 RETURNS trigger AS $$
 DECLARE
-    computed_business_id INTEGER;
-    computed_record_id UUID;
-    computed_old_data JSON;
-    computed_new_data JSON;
+    computed_business_id UUID;
+    computed_record_id   TEXT;
+    computed_old_data    JSON;
+    computed_new_data    JSON;
 BEGIN
+    -- Guard: evitar recursion si el trigger se instala sobre audit_log
+    IF TG_TABLE_NAME = 'audit_log' THEN
+        IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
+    END IF;
+
+    -- TEXT para record_id soporta PKs UUID, INTEGER o BIGINT sin error de cast
     IF TG_OP = 'DELETE' THEN
-        computed_business_id := OLD.business_id;
-        computed_record_id := OLD.id;
-        computed_old_data := row_to_json(OLD);
+        computed_business_id := (to_jsonb(OLD)->>'business_id')::UUID;
+        computed_record_id   := to_jsonb(OLD)->>'id';
+        computed_old_data    := row_to_json(OLD);
     ELSIF TG_OP = 'INSERT' THEN
-        computed_business_id := NEW.business_id;
-        computed_record_id := NEW.id;
-        computed_new_data := row_to_json(NEW);
+        computed_business_id := (to_jsonb(NEW)->>'business_id')::UUID;
+        computed_record_id   := to_jsonb(NEW)->>'id';
+        computed_new_data    := row_to_json(NEW);
     ELSE
-        computed_business_id := NEW.business_id;
-        computed_record_id := NEW.id;
-        computed_old_data := row_to_json(OLD);
-        computed_new_data := row_to_json(NEW);
+        computed_business_id := (to_jsonb(NEW)->>'business_id')::UUID;
+        computed_record_id   := to_jsonb(NEW)->>'id';
+        computed_old_data    := row_to_json(OLD);
+        computed_new_data    := row_to_json(NEW);
     END IF;
 
     INSERT INTO audit_log (
@@ -43,12 +49,8 @@ BEGIN
         computed_new_data,
         auth.uid()
     );
-    
-    IF TG_OP = 'DELETE' THEN
-        RETURN OLD;
-    ELSE
-        RETURN NEW;
-    END IF;
+
+    IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

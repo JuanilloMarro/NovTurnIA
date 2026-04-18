@@ -10,13 +10,18 @@ import {
 // Intervalo de chequeo: 24 horas (solo notificar una vez al día para no apilar)
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
+// Mutex a nivel de módulo: evita ejecuciones concurrentes por Strict Mode o remounts.
+// Al ser module-level (no un ref), es compartido por todas las instancias del hook.
+let _isChecking = false;
+
 export function usePendingReminder() {
     const { profile } = useAuth();
     const businessId = profile?.business_id || useAppStore.getState().businessId;
     const timerRef = useRef(null);
 
     async function runCheck() {
-        if (!businessId) return;
+        if (_isChecking || !businessId) return;
+        _isChecking = true;
         try {
             // Evitar spam: omitir si ya se mandó un recordatorio en el último intervalo
             const lastTime = await getLastPendingReminderTime();
@@ -31,6 +36,8 @@ export function usePendingReminder() {
             }
         } catch (err) {
             console.error('[usePendingReminder]', err.message);
+        } finally {
+            _isChecking = false;
         }
     }
 

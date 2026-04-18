@@ -175,7 +175,7 @@ export default function PatientHistory() {
                     <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 text-center space-y-4">
                         <div className="text-6xl opacity-30">💬</div>
                         <h3 className="font-semibold text-xl text-navy-900/50">Historial Conversacional</h3>
-                        <p className="max-w-xs">Selecciona un paciente a la izquierda para ver su interacción completa con TurnIA Bot.</p>
+                        <p className="max-w-xs">Selecciona un cliente a la izquierda para ver su interacción completa con TurnIA Bot.</p>
                     </div>
                 )}
             </div>

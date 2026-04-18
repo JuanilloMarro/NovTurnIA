@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, initializeAuth } from './hooks/useAuth';
 import { useAppStore } from './store/useAppStore';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -55,6 +55,7 @@ export default function App() {
     const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus, profile } = useAppStore();
     const { canViewStats, canManageRoles, canManageServices } = usePermissions();
     const isSuperAdmin = SUPER_ADMIN_EMAIL && profile?.email === SUPER_ADMIN_EMAIL;
+    const location = useLocation();
 
     useEffect(() => {
         let subscription;
@@ -65,6 +66,9 @@ export default function App() {
             if (subscription) subscription.unsubscribe();
         };
     }, []);
+
+    // Guard: si el perfil aún no cargó, no evalúes permisos — evita redirects prematuros
+    const profileReady = !!profile;
 
     return (
         <ErrorBoundary>
@@ -83,18 +87,20 @@ export default function App() {
                             <div className="flex-1 ml-0 md:ml-[240px] flex flex-col relative w-full h-full min-w-0">
                                 <Topbar />
                                 <main className="flex-1 px-4 lg:px-6 pb-4 w-full h-full block overflow-hidden">
-                                    <Suspense fallback={<PageLoader />}>
+                                    {/* key={location.pathname} fuerza remount limpio en cada navegación,
+                                        garantizando que useEffect de cada módulo re-ejecute y cargue datos frescos */}
+                                    <Suspense fallback={<PageLoader />} key={location.pathname}>
                                         <Routes>
                                             <Route path="/" element={<Calendar />} />
                                             <Route path="/patients" element={<Patients />} />
                                             <Route path="/conversations" element={<Conversations />} />
                                             <Route path="/patients/:id/history" element={<PatientHistory />} />
-                                            <Route path="/stats" element={canViewStats ? <Stats /> : <Navigate to="/" replace />} />
-                                            <Route path="/settings" element={(canManageServices || canManageRoles) ? <Settings /> : <Navigate to="/" replace />} />
-                                            <Route path="/users" element={canManageRoles ? <Users /> : <Navigate to="/" replace />} />
-                                            <Route path="/audit-log" element={canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
-                                            <Route path="/business" element={canManageRoles ? <BusinessSettings /> : <Navigate to="/" replace />} />
-                                            <Route path="/admin/new-tenant" element={isSuperAdmin ? <AdminOnboarding /> : <Navigate to="/" replace />} />
+                                            <Route path="/stats" element={!profileReady ? <PageLoader /> : canViewStats ? <Stats /> : <Navigate to="/" replace />} />
+                                            <Route path="/settings" element={!profileReady ? <PageLoader /> : (canManageServices || canManageRoles) ? <Settings /> : <Navigate to="/" replace />} />
+                                            <Route path="/users" element={!profileReady ? <PageLoader /> : canManageRoles ? <Users /> : <Navigate to="/" replace />} />
+                                            <Route path="/audit-log" element={!profileReady ? <PageLoader /> : canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
+                                            <Route path="/business" element={!profileReady ? <PageLoader /> : canManageRoles ? <BusinessSettings /> : <Navigate to="/" replace />} />
+                                            <Route path="/admin/new-tenant" element={!profileReady ? <PageLoader /> : isSuperAdmin ? <AdminOnboarding /> : <Navigate to="/" replace />} />
                                             <Route path="*" element={<Navigate to="/" replace />} />
                                         </Routes>
                                     </Suspense>

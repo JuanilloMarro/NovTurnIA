@@ -1,21 +1,42 @@
 import { useToastStore } from '../store/useToastStore';
-import { Calendar, UserPlus, CheckCircle2, AlertCircle, Info, X, Bot } from 'lucide-react';
+import {
+    CalendarPlus, CalendarCheck, CalendarClock, CalendarX,
+    UserPlus, UserCheck, UserX, ShieldOff, ShieldCheck, Shield,
+    Layers, ToggleRight, ToggleLeft,
+    Bot, Building2, AlertTriangle, AlertCircle, Trash2, CheckCircle2, X,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const TOAST_ICONS = {
-    appointment: <Calendar size={18} />,
-    patient: <UserPlus size={18} />,
-    success: <CheckCircle2 size={18} />,
-    error: <AlertCircle size={18} />,
-    info: <Info size={18} />,
-    staff: <UserPlus size={18} />,
-    bot_pause: <Bot size={18} />,
-    bot_reactivate: <Bot size={18} />,
+    apt_new:            <CalendarPlus size={18} />,
+    apt_confirm:        <CalendarCheck size={18} />,
+    apt_edit:           <CalendarClock size={18} />,
+    apt_cancel:         <CalendarX size={18} />,
+    apt_noshow:         <UserX size={18} />,
+    apt_pending:        <CalendarClock size={18} />,
+    apt_delete:         <Trash2 size={18} />,
+    patient_new:        <UserPlus size={18} />,
+    patient_edit:       <UserCheck size={18} />,
+    patient_delete:     <UserX size={18} />,
+    patient_gdpr:       <ShieldOff size={18} />,
+    service_new:        <Layers size={18} />,
+    service_edit:       <Layers size={18} />,
+    service_activate:   <ToggleRight size={18} />,
+    service_deactivate: <ToggleLeft size={18} />,
+    service_delete:     <Trash2 size={18} />,
+    staff_perms:        <ShieldCheck size={18} />,
+    staff_role:         <Shield size={18} />,
+    bot_pause:          <Bot size={18} />,
+    bot_reactivate:     <Bot size={18} />,
+    bot_error:          <Bot size={18} />,
+    settings:           <Building2 size={18} />,
+    tenant_new:         <Building2 size={18} />,
+    validation:         <AlertTriangle size={18} />,
+    error:              <AlertCircle size={18} />,
+    success:            <CheckCircle2 size={18} />,
 };
 
-// Map status/type to colors
 const TOAST_STYLES = {
-    // Creations (Green)
     success: {
         bg: 'bg-emerald-50',
         border: 'border-emerald-200',
@@ -24,7 +45,6 @@ const TOAST_STYLES = {
         message: 'text-emerald-700',
         bar: 'bg-emerald-500',
     },
-    // Edits (Yellow)
     warning: {
         bg: 'bg-amber-50',
         border: 'border-amber-200',
@@ -33,7 +53,6 @@ const TOAST_STYLES = {
         message: 'text-amber-700',
         bar: 'bg-amber-500',
     },
-    // Deletions (Red)
     error: {
         bg: 'bg-rose-50',
         border: 'border-rose-200',
@@ -42,49 +61,19 @@ const TOAST_STYLES = {
         message: 'text-rose-700',
         bar: 'bg-rose-500',
     },
-    staff: {
-        bg: 'bg-emerald-50',
-        border: 'border-emerald-200',
-        icon: 'text-emerald-600 bg-emerald-100',
-        title: 'text-emerald-900',
-        message: 'text-emerald-700',
-        bar: 'bg-emerald-500',
-    },
-    // Special Info/Patient default
-    patient: {
-        bg: 'bg-indigo-50',
-        border: 'border-indigo-200',
-        icon: 'text-indigo-600 bg-indigo-100',
-        title: 'text-indigo-900',
-        message: 'text-indigo-700',
-        bar: 'bg-indigo-500',
-    },
-    appointment: {
-        bg: 'bg-amber-50',
-        border: 'border-amber-200',
-        icon: 'text-amber-600 bg-amber-100',
-        title: 'text-amber-900',
-        message: 'text-amber-700',
-        bar: 'bg-amber-500',
-    }
 };
 
 function SingleToast({ toast, onRemove }) {
     const [isVisible, setIsVisible] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
-    
-    // Choose style based on status FIRST, then type, then info
-    const styles = TOAST_STYLES[toast.status] || TOAST_STYLES[toast.type] || TOAST_STYLES.success;
-    
+
+    const styles = TOAST_STYLES[toast.status] || TOAST_STYLES.success;
+
     useEffect(() => {
-        // Trigger enter animation
         requestAnimationFrame(() => setIsVisible(true));
-        
-        // Start exit animation before auto-removal
         const exitTimer = setTimeout(() => {
             setIsLeaving(true);
         }, (toast.duration || 4000) - 400);
-        
         return () => clearTimeout(exitTimer);
     }, [toast.duration]);
 
@@ -99,8 +88,8 @@ function SingleToast({ toast, onRemove }) {
                 w-[380px] rounded-2xl border shadow-[0_8px_30px_rgba(0,0,0,0.08)] overflow-hidden
                 transition-all duration-300 ease-out
                 ${styles.bg} ${styles.border}
-                ${isVisible && !isLeaving 
-                    ? 'translate-x-0 opacity-100' 
+                ${isVisible && !isLeaving
+                    ? 'translate-x-0 opacity-100'
                     : 'translate-x-[120%] opacity-0'}
             `}
         >
@@ -118,20 +107,17 @@ function SingleToast({ toast, onRemove }) {
                         </div>
                     )}
                 </div>
-                <button 
+                <button
                     onClick={handleClose}
                     className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors mt-0.5"
                 >
                     <X size={12} className="text-gray-400" />
                 </button>
             </div>
-            {/* Progress bar */}
             <div className="h-[3px] w-full bg-black/5">
-                <div 
+                <div
                     className={`h-full ${styles.bar} rounded-full`}
-                    style={{ 
-                        animation: `toast-progress ${toast.duration || 4000}ms linear forwards`,
-                    }}
+                    style={{ animation: `toast-progress ${toast.duration || 4000}ms linear forwards` }}
                 />
             </div>
         </div>
@@ -140,17 +126,11 @@ function SingleToast({ toast, onRemove }) {
 
 export default function ToastContainer() {
     const { toasts, removeToast } = useToastStore();
-
     if (toasts.length === 0) return null;
-
     return (
-        <div className="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-auto">
+        <div className="fixed top-6 right-6 z-[500] flex flex-col gap-3 pointer-events-auto">
             {toasts.map(toast => (
-                <SingleToast 
-                    key={toast.id} 
-                    toast={toast} 
-                    onRemove={removeToast} 
-                />
+                <SingleToast key={toast.id} toast={toast} onRemove={removeToast} />
             ))}
         </div>
     );

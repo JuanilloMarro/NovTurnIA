@@ -10,14 +10,14 @@
 
 | Área                         |Puntaje base|Puntaje actual| Delta    |
 |------------------------------|------------|--------------|----------|
-| Base de datos (Supabase)     | 6.0/10     | **9.1/10**   | +3.1     |
+| Base de datos (Supabase)     | 6.0/10     | **9.7/10**   | +3.7     |
 | Dashboard React + Vite       | 7.0/10     | **9.3/10**   | +2.3     |
-| Producto / SaaS              | 5.0/10     | **7.2/10**   | +2.2     |
+| Producto / SaaS              | 5.0/10     | **8.5/10**   | +3.5     |
 | Bot / N8N Workflow           | 4.5/10     | **7.5/10**   | +3.0     |
-| Infraestructura / Despliegue | 6.5/10     | **6.5/10**   | —        |
-| Resiliencia                  | 4.0/10     | **5.5/10**   | +1.5     |
+| Infraestructura / Despliegue | 6.5/10     | **7.8/10**   | +1.3     |
+| Resiliencia                  | 4.0/10     | **7.0/10**   | +3.0     |
 | Modelo de negocio            | 1.0/10     | **2.5/10**   | +1.5     |
-| **PROMEDIO GLOBAL**          | **4.9/10** | **7.3/10**   | **+2.4** |
+| **PROMEDIO GLOBAL**          | **4.9/10** | **7.5/10**   | **+2.6** |
 
 ---
 
@@ -35,9 +35,9 @@
 
 ---
 
-## 2. Base de Datos (Supabase) — 9.1/10
+## 2. Base de Datos (Supabase) — 9.7/10
 
-### Sub-área: Estructura y normalización — 8.0/10
+### Sub-área: Estructura y normalización — 9.5/10
 
 | Item | Estado | Tarea |
 |------|--------|-------|
@@ -156,25 +156,25 @@
 
 ---
 
-## 4. Infraestructura y Despliegue — 6.5/10
+## 4. Infraestructura y Despliegue — 7.8/10
 
 | Sub-área | Puntaje | Estado | Notas |
 |----------|---------|--------|-------|
-| Configuración de entornos | 7 | ✅ | Vercel configurado, headers de seguridad |
+| Configuración de entornos | 8 | ✅ | Vercel configurado, headers de seguridad, UUID regex en Sentry |
 | Secrets management | 9 | ✅ | Todas las credenciales como env vars |
-| Hosting / CI-CD | 7 | ✅ | Preview Deployments en Vercel |
-| Costos operativos | 2 | 🔴 | Sin documentación de costo por tenant |
+| Hosting / CI-CD | 8 | ✅ | Preview Deployments en Vercel + Migraciones automatizadas (T-09) |
+| Costos operativos | 4 | 🟠 | Redocido uso de RAM al eliminar MVs (Nano ready) |
 | **Blind spot crítico** | — | 🟠 | Preview deployments apuntan a DB de producción |
 
 ---
 
-## 5. Resiliencia — 5.5/10
+## 5. Resiliencia — 7.0/10
 
 | Sub-área | Puntaje | Estado | Notas |
 |----------|---------|--------|-------|
-| Fallbacks (IA, Supabase, WhatsApp) | 5 | 🟠 | ErrorBoundary ✅, sin fallback si bot no responde |
-| Reintentos y timeouts | 4 | 🟠 | Reload citas con timeout ✅, resto de queries puede colgar |
-| Picos de carga | 7.5 | 🟡 | Cache ✅ + paginación ✅ + rate limiting createStaffUser ✅ |
+| Fallbacks (IA, Supabase, WhatsApp) | 6 | 🟠 | ErrorBoundary ✅, RPC fallbacks en JS ✅ |
+| Reintentos y timeouts | 5 | 🟠 | Reload citas con timeout ✅, Rate limiting en Edge Functions ✅ |
+| Picos de carga | 9.0 | ✅ | Cache ✅ + paginación ✅ + particionamiento (T-14) ✅ + Drop MVs ✅ |
 | Realtime disconnect | 2 | 🟠 | Sin banner de aviso — T-11 pendiente (código listo, sin activar) |
 | Error propagation | 8 | ✅ | Errores originales de Supabase preservados — T-23 |
 
@@ -187,7 +187,7 @@
 
 ---
 
-## 6. Producto / SaaS — 7.2/10
+## 6. Producto / SaaS — 8.5/10
 
 | Sub-área | Puntaje | Estado | Notas |
 |----------|---------|--------|-------|
@@ -236,9 +236,9 @@
 | 2 | T-49 | `ALTER TABLE appointments ADD COLUMN cancelled_at + cancellation_reason` | Muy bajo | ✅ Ejecutado |
 | 3 | T-19 | `ADD COLUMN business_id` en `patient_phones` + backfill + NOT NULL + índice | Bajo | ✅ Ejecutado |
 | 4 | T-35 | Guard de deduplicación en trigger `handle_audit_log` | Bajo | ✅ Ejecutado |
-| 5 | T-01 | Tabla `plans` + columnas en `businesses` + RPC `get_plan_limits` | Bajo | 🔲 Pendiente |
+| 5 | T-01 | Tabla `plans` + columnas en `businesses` + RPC `get_plan_limits` | Bajo | ✅ Ejecutado |
 | 6 | T-08 | Migración INTEGER → UUID en `businesses.id` (multi-tabla) | Alto | ✅ Ejecutado |
-| 7 | T-36 | Tabla `services` con RLS + índice `business_id` | Bajo | 🔲 Pendiente (si no existe aún) |
+| 7 | T-36 | Tabla `services` con RLS + índice `business_id` | Bajo | ✅ Ejecutado |
 
 ### SQL T-01 — Plan enforcement (ejecutar para activar gate de plan)
 
@@ -329,9 +329,9 @@ CREATE POLICY "services_tenant_isolation" ON public.services
 
 Número global
 
-  ~73% para un SaaS que puede operar como negocio autónomo.
+  ~82% para un SaaS que puede operar como negocio autónomo. (Incremento por migración UUID y Plan Enforcement)
 
-  Si la meta es solo "usar el producto internamente o con clientes de confianza", estás en ~88%. Si la meta es lanzar y cobrar automáticamente a desconocidos,  
-  el número baja a ~50% porque falta todo el flujo de monetización.
+  Si la meta es solo "usar el producto internamente o con clientes de confianza", estás en ~94%. Si la meta es lanzar y cobrar automáticamente a desconocidos,  
+  el número sube a ~65% porque ya tienes la lógica de planes (falta integración Stripe T-03).
 
-  El camino más corto al 100% real: T-05 (Sentry, 30 min) → T-02 (ciclo tenant) → T-03 (Stripe). Todo lo demás es optimización.
+  El camino más corto al 100% real: T-05 (Sentry, 30 min) → T-03 (Stripe). Todo lo demás es optimización.

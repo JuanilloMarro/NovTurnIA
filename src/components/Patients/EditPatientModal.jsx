@@ -2,30 +2,22 @@ import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, User, Phone, Save, Calendar } from 'lucide-react';
 import { updatePatient } from '../../services/supabaseService';
-import { showWarningToast, showErrorToast } from '../../store/useToastStore';
+import { showPatientEditToast, showErrorToast } from '../../store/useToastStore';
 import { useModalFocus } from '../../hooks/useModalFocus';
 
-function calcAge(birthDate) {
-    if (!birthDate) return null;
-    const today = new Date();
-    const dob = new Date(birthDate + 'T12:00:00');
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-    return age;
-}
+
 
 export default function EditPatientModal({ patient, onClose, onUpdated }) {
     const [name, setName] = useState(patient.display_name || '');
     const rawPhone = (patient.patient_phones?.[0]?.phone || '').replace(/\D/g, '');
     const [phone, setPhone] = useState(rawPhone.length > 8 ? rawPhone.slice(-8) : rawPhone);
-    const [birthDate, setBirthDate] = useState(patient.birth_date || '');
+    const [notes, setNotes] = useState(patient.notes || '');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const modalRef = useRef(null);
     useModalFocus(modalRef, true, onClose);
 
-    const age = calcAge(birthDate);
+    useModalFocus(modalRef, true, onClose);
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -40,9 +32,9 @@ export default function EditPatientModal({ patient, onClose, onUpdated }) {
             await updatePatient(patient.id, {
                 display_name: name.trim(),
                 phone: `+502${cleanPhone}`,
-                birth_date: birthDate || null,
+                notes: notes.trim() || null,
             });
-            showWarningToast('Paciente Actualizado', name.trim(), 'patient');
+            showPatientEditToast(name.trim());
             onUpdated();
             onClose();
         } catch (err) {
@@ -59,7 +51,7 @@ export default function EditPatientModal({ patient, onClose, onUpdated }) {
             <div ref={modalRef} className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-md overflow-hidden animate-fade-up">
 
                 <div className="flex items-center justify-between px-6 pt-6 pb-2">
-                    <h2 className="text-lg font-bold text-navy-900 tracking-tight">Editar Paciente</h2>
+                    <h2 className="text-lg font-bold text-navy-900 tracking-tight">Editar Cliente</h2>
                     <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
                         <X size={16} />
                     </button>
@@ -74,7 +66,7 @@ export default function EditPatientModal({ patient, onClose, onUpdated }) {
                 <form onSubmit={handleSubmit}>
                     <div className="px-6 py-4 space-y-5">
                         <div>
-                            <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Nombre Completo</label>
+                            <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Nombre completo</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-navy-800/50">
                                     <User size={16} />
@@ -83,14 +75,14 @@ export default function EditPatientModal({ patient, onClose, onUpdated }) {
                                     className="w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900"
                                     value={name}
                                     onChange={e => setName(e.target.value)}
-                                    placeholder="Nombre del paciente"
+                                    placeholder="Nombre del cliente"
                                     required
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Teléfono (WhatsApp)</label>
+                            <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Teléfono (WhatsApp)</label>
                             <div className="flex items-center bg-white/40 border border-white/60 rounded-full shadow-sm focus-within:border-white focus-within:bg-white/60 focus-within:ring-1 focus-within:ring-white transition-all overflow-hidden">
                                 <span className="pl-3.5 pr-2 flex items-center gap-1.5 text-navy-700/60 text-sm font-semibold whitespace-nowrap select-none">
                                     <Phone size={14} className="text-navy-800/50 shrink-0" />
@@ -112,26 +104,16 @@ export default function EditPatientModal({ patient, onClose, onUpdated }) {
                             </div>
                         </div>
 
-                        {/* Fecha de nacimiento (opcional) */}
+
+                        {/* Notas (opcional) */}
                         <div>
-                            <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">
-                                Fecha de Nacimiento
-                                {age !== null && (
-                                    <span className="ml-2 normal-case font-semibold text-navy-500">({age} años)</span>
-                                )}
-                            </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-navy-800/50">
-                                    <Calendar size={16} />
-                                </div>
-                                <input
-                                    type="date"
-                                    className="w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm text-navy-900"
-                                    value={birthDate}
-                                    onChange={e => setBirthDate(e.target.value)}
-                                    max={new Date().toISOString().split('T')[0]}
-                                />
-                            </div>
+                            <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Notas / Observaciones</label>
+                            <textarea
+                                className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900 min-h-[100px] resize-none"
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                                placeholder="Ej: Prefiere corte con tijera, alérgico a..."
+                            />
                         </div>
                     </div>
 

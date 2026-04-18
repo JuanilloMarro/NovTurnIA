@@ -3,13 +3,14 @@ import { createPortal } from 'react-dom';
 import { X, User, Phone, Save } from 'lucide-react';
 import { createPatient } from '../../services/supabaseService';
 import { formatPhone } from '../../utils/format';
-import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
+import { showPatientNewToast, showErrorToast } from '../../store/useToastStore';
 import { usePlanLimits } from '../../hooks/usePlanLimits';
 import { useModalFocus } from '../../hooks/useModalFocus';
 
 export default function NewPatientModal({ isOpen, onClose, onCreated }) {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
+    const [notes, setNotes] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { canAddPatient, patientsLeft } = usePlanLimits();
@@ -34,13 +35,10 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
         try {
             await createPatient({
                 display_name: name.trim(),
-                phone: `+502${cleanPhone}`
+                phone: `+502${cleanPhone}`,
+                notes: notes.trim() || null
             });
-            showSuccessToast(
-                'Paciente Registrado',
-                `${name.trim()} : ${formatPhone(cleanPhone)}`,
-                'patient'
-            );
+            showPatientNewToast(`${name.trim()} : ${formatPhone(cleanPhone)}`);
             // Note: Activity log notification is auto-created by DB trigger
             onCreated();
             onClose();
@@ -59,7 +57,7 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
             <div ref={modalRef} className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-md overflow-hidden animate-fade-up">
 
                 <div className="flex items-center justify-between px-6 pt-6 pb-2">
-                    <h2 className="text-lg font-bold text-navy-900 tracking-tight">Nuevo Paciente</h2>
+                    <h2 className="text-lg font-bold text-navy-900 tracking-tight">Nuevo Cliente</h2>
                     <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
                         <X size={16} />
                     </button>
@@ -67,7 +65,7 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
 
                 {!canAddPatient && (
                     <div className="mx-6 mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700 font-semibold">
-                        Límite de pacientes alcanzado para tu plan actual. Contacta a soporte para ampliar tu plan.
+                        Límite de clientes alcanzado para tu plan actual. Contacta a soporte para ampliar tu plan.
                     </div>
                 )}
 
@@ -81,7 +79,7 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
                     <div className="px-6 py-4 space-y-5">
                         {/* Nombre */}
                         <div>
-                            <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Nombre Completo</label>
+                            <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Nombre completo</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-navy-800/50">
                                     <User size={16} />
@@ -90,15 +88,16 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
                                     className="w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900"
                                     value={name}
                                     onChange={e => setName(e.target.value)}
-                                    placeholder="Nombre del paciente"
+                                    placeholder="Nombre del cliente"
                                     required
+                                    autoFocus
                                 />
                             </div>
                         </div>
 
                         {/* Teléfono */}
                         <div>
-                            <label className="block text-[11px] font-bold text-navy-800 uppercase tracking-widest leading-none mb-3">Teléfono (WhatsApp)</label>
+                            <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Teléfono (WhatsApp)</label>
                             <div className="flex items-center bg-white/40 border border-white/60 rounded-full shadow-sm focus-within:border-white focus-within:bg-white/60 focus-within:ring-1 focus-within:ring-white transition-all overflow-hidden">
                                 <span className="pl-3.5 pr-2 flex items-center gap-1.5 text-navy-700/60 text-sm font-semibold whitespace-nowrap select-none">
                                     <Phone size={14} className="text-navy-800/50 shrink-0" />
@@ -119,6 +118,17 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
                                 />
                             </div>
                         </div>
+
+                        {/* Notas */}
+                        <div>
+                            <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Notas / Observaciones</label>
+                            <textarea
+                                className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900 min-h-[100px] resize-none custom-scrollbar"
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                                placeholder="Ej: Prefiere corte con tijera, alérgico a..."
+                            />
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-center gap-4 px-6 pb-6 pt-2">
@@ -128,9 +138,9 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
                         </button>
                         <button type="submit" disabled={loading || !canAddPatient}
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/40 border border-white/60 rounded-full text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/60 transition-all disabled:opacity-50 min-w-[100px]"
-                            title={!canAddPatient ? 'Límite de pacientes alcanzado' : undefined}>
+                            title={!canAddPatient ? 'Límite de clientes alcanzado' : undefined}>
                             <Save size={13} />
-                            {loading ? 'Registrando...' : patientsLeft !== null ? `Registrar (${patientsLeft} restantes)` : 'Registrar'}
+                            {loading ? 'Registrando...' : 'Registrar'}
                         </button>
                     </div>
                 </form>

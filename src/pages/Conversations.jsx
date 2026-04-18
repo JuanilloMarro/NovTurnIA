@@ -178,7 +178,7 @@ export default function Conversations() {
         : null;
 
     return (
-        <div className="h-full flex flex-col max-w-4xl mx-auto w-full pt-2">
+        <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
@@ -190,7 +190,7 @@ export default function Conversations() {
 
             <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
                 {/* Left Panel: Contacts */}
-                <div className="w-[320px] flex flex-col z-10">
+                <div className="w-[360px] flex flex-col z-10">
                     <div className="p-4 pb-3 space-y-2">
                         {/* Barra búsqueda + botón filtro */}
                         <div className="flex items-center gap-2">
@@ -200,7 +200,7 @@ export default function Conversations() {
                                 </div>
                                 <input
                                     className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-sm"
-                                    placeholder="Buscar paciente..."
+                                    placeholder="Buscar cliente..."
                                     value={search}
                                     onChange={e => handleSearch(e.target.value)}
                                 />
@@ -209,46 +209,46 @@ export default function Conversations() {
                             <div className="relative" ref={filterRef}>
                                 <button
                                     onClick={() => setShowFilter(v => !v)}
-                                    className={`h-10 w-10 flex items-center justify-center rounded-full border shadow-sm transition-all ${isFiltering ? 'bg-navy-900 border-navy-900 text-white' : 'bg-white/60 border-white/90 text-navy-900 hover:bg-white/80'}`}
-                                    title={`Filtro: ${filterLabel}`}
+                                    className="group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/60 backdrop-blur-card border border-white/90 rounded-full text-navy-900 font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
                                 >
-                                    <SlidersHorizontal size={14} strokeWidth={2.5} />
+                                    <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0" />
+                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[11px]">Filtros</span>
                                 </button>
 
                                 {/* Dropdown filtro */}
                                 {showFilter && (
-                                    <div className="absolute right-0 top-12 w-48 bg-white/80 backdrop-blur-2xl border border-white/80 rounded-2xl shadow-lg overflow-hidden z-50 py-2 animate-fade-up">
+                                    <div className="absolute right-0 top-12 w-52 bg-white border border-gray-100 rounded-3xl shadow-[0_8px_32px_rgba(26,58,107,0.16),0_2px_8px_rgba(0,0,0,0.06)] z-50 p-2 animate-fade-up">
                                         {/* Header limpiar */}
                                         {isFiltering && (
-                                            <div className="flex items-center justify-between px-4 pb-2 mb-1 border-b border-white/50">
-                                                <span className="text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Filtros</span>
+                                            <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
+                                                <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
                                                 <button onClick={() => { setFilter('all'); setSortOrder('a-z'); setShowFilter(false); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
                                             </div>
                                         )}
                                         {/* Sección Estado */}
-                                        <div className="px-4 pt-1 pb-1">
-                                            <span className="text-[10px] font-bold text-navy-700/40 uppercase tracking-wider">Estado</span>
+                                        <div className="px-2 pt-2 pb-1">
+                                            <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Estado</span>
                                         </div>
                                         {FILTER_OPTIONS.map(opt => (
                                             <div
                                                 key={opt.id}
                                                 onClick={() => setFilter(opt.id)}
-                                                className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${filter === opt.id ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filter === opt.id ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
                                             >
                                                 {opt.label}
                                             </div>
                                         ))}
                                         {/* Separador */}
-                                        <div className="mx-4 my-2 border-t border-white/50" />
+                                        <div className="my-1 border-t border-gray-100" />
                                         {/* Sección Orden */}
-                                        <div className="px-4 pb-1">
-                                            <span className="text-[10px] font-bold text-navy-700/40 uppercase tracking-wider">Orden</span>
+                                        <div className="px-2 pt-1 pb-1">
+                                            <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Orden</span>
                                         </div>
                                         {[{ id: 'a-z', label: 'De la A-Z' }, { id: 'z-a', label: 'De la Z-A' }].map(opt => (
                                             <div
                                                 key={opt.id}
                                                 onClick={() => setSortOrder(opt.id)}
-                                                className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${sortOrder === opt.id ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
                                             >
                                                 {opt.label}
                                             </div>
@@ -262,14 +262,8 @@ export default function Conversations() {
                         {isFiltering && (
                             <div className="flex items-center justify-between px-1">
                                 <span className="text-[11px] font-semibold text-navy-700/70">
-                                    {filteredPatients.length} de {patients.length} pacientes
+                                    {filteredPatients.length} de {patients.length} clientes
                                 </span>
-                                <button
-                                    onClick={() => { setFilter('all'); setSortOrder('a-z'); }}
-                                    className="text-[11px] font-bold text-navy-900 hover:underline"
-                                >
-                                    Limpiar
-                                </button>
                             </div>
                         )}
                     </div>
@@ -280,7 +274,7 @@ export default function Conversations() {
                                 <SlidersHorizontal size={22} strokeWidth={1.5} className="text-navy-900/30 mb-2" />
                                 <p className="text-xs font-bold text-navy-900/50">Sin resultados</p>
                                 <p className="text-[11px] font-semibold text-navy-700/40 mt-0.5">
-                                    {isFiltering ? 'Prueba otro filtro' : 'No hay pacientes que coincidan'}
+                                    {isFiltering ? 'Prueba otro filtro' : 'No hay clientes que coincidan'}
                                 </p>
                             </div>
                         ) : filteredPatients.map(p => {
@@ -330,7 +324,7 @@ export default function Conversations() {
                                     <button
                                         onClick={handleReactivateIA}
                                         className="flex items-center gap-2 px-3.5 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-[11px] font-bold shadow-sm hover:bg-amber-100 transition-all group/btn"
-                                        title="El bot está desactivado para este paciente"
+                                        title="El bot está desactivado para este cliente"
                                     >
                                         <div className="relative">
                                             <Bot size={13} strokeWidth={2.5} />
@@ -398,7 +392,7 @@ export default function Conversations() {
                                 <MessageCircle size={28} strokeWidth={1.5} className="text-navy-900/60" />
                             </div>
                             <h3 className="text-lg font-bold text-navy-900 tracking-tight">Tus conversaciones</h3>
-                            <p className="text-xs font-semibold text-navy-700/60 mt-1">Selecciona un paciente para ver su historial</p>
+                            <p className="text-xs font-semibold text-navy-700/60 mt-1">Selecciona un cliente para ver su historial</p>
                         </div>
                     )}
                 </div>

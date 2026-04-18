@@ -92,13 +92,10 @@ export function usePatients() {
     // Realtime Sync (Optimized: only re-fetch on Insert/Delete, Update locally)
     useRealtimePatients((payload) => {
         if (payload.eventType === 'UPDATE') {
-            setRawPatients(current => {
-                const newData = current.map(p => p.id === payload.new.id ? { ...p, ...payload.new } : p);
-                // Si la caché tiene datos, actualizarla también
-                const cache = useAppStore.getState()._patientsCache;
-                if (cache.data.length > 0) useAppStore.getState().setPatientsCache(newData);
-                return newData;
-            });
+            const newData = rawPatients.map(p => p.id === payload.new.id ? { ...p, ...payload.new } : p);
+            setRawPatients(newData);
+            const cache = useAppStore.getState()._patientsCache;
+            if (cache.data.length > 0) useAppStore.getState().setPatientsCache(newData);
         } else {
             // Re-fetch everything for Insert/Delete to keep consistency
             useAppStore.getState().invalidatePatientsCache();

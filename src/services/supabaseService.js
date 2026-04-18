@@ -139,7 +139,7 @@ export async function getOccupiedSlotsForDate(date) {
     // The stored ISO strings carry the local offset, so the T-portion IS the local time.
     return (data || []).map(appt => ({
         start: appt.date_start.match(/T(\d{2}:\d{2})/)?.[1] || '',
-        end:   appt.date_end.match(/T(\d{2}:\d{2})/)?.[1] || '',
+        end: appt.date_end.match(/T(\d{2}:\d{2})/)?.[1] || '',
     }));
 }
 
@@ -273,14 +273,14 @@ export async function getLostAppointments({ type = 'all', days = 30 } = {}) {
 
     const statuses = type === 'no_show' ? ['no_show']
         : type === 'cancelled' ? ['cancelled']
-        : ['no_show', 'cancelled'];
+            : ['no_show', 'cancelled'];
 
     const { data, error } = await supabase
         .from('appointments')
         .select(`
             id, date_start, date_end, status, patient_id,
             patients(
-                id, display_name, human_takeover,
+                id, display_name, human_takeover, deleted_at,
                 patient_phones(phone, is_primary)
             )
         `)
@@ -291,7 +291,7 @@ export async function getLostAppointments({ type = 'all', days = 30 } = {}) {
         .order('date_start', { ascending: false });
 
     if (error) throw error;
-    return data ?? [];
+    return (data ?? []).filter(apt => apt.patients && apt.patients.deleted_at === null);
 }
 
 // ── Patients ──────────────────────────────────────────────
@@ -417,7 +417,7 @@ export async function createPatient({ display_name, phone }) {
 
     if (error) {
         // T-23: código específico para duplicado de teléfono; resto relanza el error original
-        if (error.code === '23505') throw new Error('Ya existe un paciente con ese teléfono.');
+        if (error.code === '23505') throw new Error('Ya existe un cliente con ese teléfono.');
         throw error;
     }
 
@@ -428,14 +428,15 @@ export async function createPatient({ display_name, phone }) {
         .eq('id', patientId)
         .single();
 
-    if (fetchError) throw new Error('Paciente creado pero error al recuperar datos.');
+    if (fetchError) throw new Error('Cliente creado pero error al recuperar datos.');
     return patient;
 }
 
-export async function updatePatient(patientId, { display_name, phone, birth_date }) {
+export async function updatePatient(patientId, { display_name, phone, birth_date, notes }) {
     const patch = { display_name };
     // T-44: birth_date opcional — null limpia el campo, undefined lo omite
     if (birth_date !== undefined) patch.birth_date = birth_date || null;
+    if (notes !== undefined) patch.notes = notes || null;
 
     const { error: patientError } = await supabase
         .from('patients')
@@ -457,13 +458,13 @@ export async function updatePatient(patientId, { display_name, phone, birth_date
             .eq('is_primary', true)
             .select();
 
-        if (updateError) throw new Error('Paciente actualizado pero error al guardar teléfono.');
+        if (updateError) throw new Error('Cliente actualizado pero error al guardar teléfono.');
 
         if (!existing || existing.length === 0) {
             const { error: insertError } = await supabase
                 .from('patient_phones')
                 .insert({ patient_id: patientId, phone, is_primary: true, business_id: getBID() });
-            if (insertError) throw new Error('Paciente actualizado pero error al guardar teléfono.');
+            if (insertError) throw new Error('Cliente actualizado pero error al guardar teléfono.');
         }
     }
 }
@@ -515,7 +516,7 @@ export async function gdprDeletePatient(patientId) {
 export async function getStatsDashboard(monthStart, monthEnd) {
     const { data, error } = await supabase.rpc('get_stats_dashboard', {
         p_month_start: monthStart,
-        p_month_end:   monthEnd,
+        p_month_end: monthEnd,
     });
     if (error) {
         // Fallback to 3-query path if RPC not deployed yet
@@ -526,11 +527,11 @@ export async function getStatsDashboard(monthStart, monthEnd) {
                 getMessageCounts(monthStart, monthEnd),
             ]);
             return {
-                appt_stats:          overview.apptStats || [],
-                patient_stats:       overview.patientStats,
-                month_appointments:  apts || [],
-                sent_count:          counts.sent,
-                received_count:      counts.received,
+                appt_stats: overview.apptStats || [],
+                patient_stats: overview.patientStats,
+                month_appointments: apts || [],
+                sent_count: counts.sent,
+                received_count: counts.received,
             };
         }
         throw error;
@@ -572,17 +573,19 @@ export async function getBusinessInfo() {
 }
 
 export async function updateBusinessInfo(fields) {
-    const { data, error } = await supabase
+    const { error, count } = await supabase
         .from('businesses')
-        .update(fields)
-        .eq('id', getBID())
-        .select()
-        .single();
+        .update(fields, { count: 'exact' })
+        .eq('id', getBID());
 
     if (error) throw error;
+    if (count === 0) {
+        throw new Error('No se pudo actualizar: El registro no existe o no tienes permisos de escritura (RLS) en la tabla de negocios.');
+    }
+
     // Bust timezone cache so next toISO() picks up the new value
     _businessTimezone = null;
-    return data;
+    return fields;
 }
 
 // T-38: Query mínima SOLO para schedule_start / schedule_end.
@@ -745,7 +748,7 @@ export async function insertPendingReminderNotification(appointments) {
     });
 
     const lines = appointments.slice(0, 3).map(appt => {
-        const name = appt.patients?.display_name || 'Paciente';
+        const name = appt.patients?.display_name || 'Cliente';
         const timeStr = formatter.format(new Date(appt.date_start));
         return `${name} – ${timeStr}`;
     });
@@ -910,7 +913,7 @@ async function _trendFallback(granularity, start, end) {
         if (!map[key]) map[key] = { period: key, total: 0, completed: 0, cancelled: 0 };
         map[key].total++;
         if (row.status === 'completed') map[key].completed++;
-        if (row.status === 'cancelled')  map[key].cancelled++;
+        if (row.status === 'cancelled') map[key].cancelled++;
     });
     return Object.values(map);
 }

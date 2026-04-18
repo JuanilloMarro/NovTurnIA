@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useServices } from '../hooks/useServices';
 import { usePermissions } from '../hooks/usePermissions';
 import { Layers, Plus, Save, ToggleLeft, ToggleRight, ChevronDown, Clock, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
-import { showSuccessToast, showErrorToast } from '../store/useToastStore';
+import { showServiceNewToast, showServiceEditToast, showServiceDeleteToast, showServiceActivateToast, showServiceDeactivateToast, showErrorToast } from '../store/useToastStore';
 
 const DURATION_OPTIONS = [
-    { value: 30,  label: '30 min' },
-    { value: 60,  label: '1 hora' },
-    { value: 90,  label: '1h 30 min' },
+    { value: 30, label: '30 min' },
+    { value: 60, label: '1 hora' },
+    { value: 90, label: '1h 30 min' },
     { value: 120, label: '2 horas' },
     { value: 150, label: '2h 30 min' },
     { value: 180, label: '3 horas' },
@@ -52,8 +52,10 @@ export default function Settings() {
         if (sortOrder === 'a-z') return a.name.localeCompare(b.name, 'es');
         if (sortOrder === 'z-a') return b.name.localeCompare(a.name, 'es');
         // si es 'recent', asumiendo el id en su defecto
-        return b.id - a.id; 
+        return b.id - a.id;
     });
+
+    const isFiltering = searchStr !== '' || filterStatus !== 'all' || sortOrder !== 'recent';
 
     // Convert decimal price from DB → integer cents for the POS input
     function toCents(price) {
@@ -117,10 +119,10 @@ export default function Settings() {
             if (isNew) {
                 const created = await create(payload);
                 setSelectedId(created.id);
-                showSuccessToast('Servicio creado', created.name, 'appointment');
+                showServiceNewToast(created.name);
             } else {
                 await update(selectedId, payload);
-                showSuccessToast('Cambios guardados', payload.name, 'appointment');
+                showServiceEditToast(payload.name);
             }
         } catch (err) {
             showErrorToast('Error al guardar', err.message);
@@ -134,7 +136,7 @@ export default function Settings() {
         setDeleting(true);
         try {
             await remove(selectedService.id);
-            showSuccessToast('Servicio eliminado', selectedService.name);
+            showServiceDeleteToast(selectedService.name);
             setSelectedId(null);
             setShowDeleteConfirm(false);
         } catch (err) {
@@ -150,9 +152,9 @@ export default function Settings() {
         try {
             await toggle(selectedService.id, !selectedService.active);
             if (selectedService.active) {
-                showErrorToast('Servicio desactivado', selectedService.name);
+                showServiceDeactivateToast(selectedService.name);
             } else {
-                showSuccessToast('Servicio activado', selectedService.name);
+                showServiceActivateToast(selectedService.name);
             }
         } catch (err) {
             showErrorToast('Error', err.message);
@@ -168,7 +170,7 @@ export default function Settings() {
     );
 
     return (
-        <div className="h-full flex flex-col mx-auto w-full max-w-4xl pt-2 px-0">
+        <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-0">
             {/* Page Header */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div>
@@ -181,7 +183,7 @@ export default function Settings() {
             <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
 
                 {/* ── Left panel: service list ── */}
-                <div className="w-[300px] xl:w-[320px] flex flex-col z-10">
+                <div className="w-[360px] xl:w-[380px] flex flex-col z-10">
                     <div className="p-4 pb-3">
                         <div className="flex items-center gap-2 h-9">
                             {/* Search bar */}
@@ -197,56 +199,6 @@ export default function Settings() {
                                 />
                             </div>
 
-                            {/* Filter */}
-                            <div className="relative h-full">
-                                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
-                                    <button
-                                        onClick={() => setShowFilter(!showFilter)}
-                                        className="group h-full flex items-center justify-center gap-0 hover:gap-1.5 px-2 hover:px-3 text-navy-900 text-[11px] font-bold transition-all duration-300 overflow-hidden outline-none rounded-full"
-                                    >
-                                        <SlidersHorizontal size={14} className="shrink-0" />
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Filtros</span>
-                                    </button>
-                                </div>
-                                {showFilter && (
-                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card z-50 py-2 animate-fade-up">
-                                        <div className="px-3 pb-1 mb-1 border-b border-white/50">
-                                            <span className="text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Estado</span>
-                                        </div>
-                                        {[
-                                            { id: 'all', label: 'Todos' },
-                                            { id: 'active', label: 'Activos' },
-                                            { id: 'inactive', label: 'Inactivos' }
-                                        ].map(opt => (
-                                            <div
-                                                key={opt.id}
-                                                onClick={() => { setFilterStatus(opt.id); }}
-                                                className={`mx-1 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-colors ${filterStatus === opt.id ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
-                                            >
-                                                {opt.label}
-                                            </div>
-                                        ))}
-
-                                        <div className="px-3 pt-2 pb-1 mt-1 mb-1 border-y border-white/50">
-                                            <span className="text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Orden</span>
-                                        </div>
-                                        {[
-                                            { id: 'recent', label: 'Más recientes' },
-                                            { id: 'a-z', label: 'De la A-Z' },
-                                            { id: 'z-a', label: 'De la Z-A' }
-                                        ].map(opt => (
-                                            <div
-                                                key={opt.id}
-                                                onClick={() => { setSortOrder(opt.id); setShowFilter(false); }}
-                                                className={`mx-1 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-colors ${sortOrder === opt.id ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
-                                            >
-                                                {opt.label}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
                             {/* New Button */}
                             {canCreateServices && (
                                 <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
@@ -259,7 +211,76 @@ export default function Settings() {
                                     </button>
                                 </div>
                             )}
+
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowFilter(!showFilter)}
+                                    className="group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/60 backdrop-blur-card border border-white/90 rounded-full text-navy-900 font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
+                                >
+                                    <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0" />
+                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[11px]">Filtros</span>
+                                </button>
+                                {showFilter && (
+                                    <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 rounded-3xl shadow-[0_8px_32px_rgba(26,58,107,0.16),0_2px_8px_rgba(0,0,0,0.06)] z-50 p-2 animate-fade-up">
+                                        <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
+                                            <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
+                                            {isFiltering && (
+                                                <button
+                                                    onClick={() => { setSearchStr(''); setFilterStatus('all'); setSortOrder('recent'); setShowFilter(false); }}
+                                                    className="text-[10px] font-bold text-rose-500 hover:text-rose-600"
+                                                >
+                                                    Limpiar
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="px-2 pt-2 pb-1">
+                                            <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Estado</span>
+                                        </div>
+                                        {[
+                                            { id: 'all', label: 'Todos' },
+                                            { id: 'active', label: 'Activos' },
+                                            { id: 'inactive', label: 'Inactivos' }
+                                        ].map(opt => (
+                                            <div
+                                                key={opt.id}
+                                                onClick={() => { setFilterStatus(opt.id); }}
+                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterStatus === opt.id ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
+                                            >
+                                                {opt.label}
+                                            </div>
+                                        ))}
+
+                                        <div className="border-t border-gray-100 mt-1 pt-1">
+                                            <div className="px-2 pt-1 pb-1">
+                                                <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Orden</span>
+                                            </div>
+                                        </div>
+                                        {[
+                                            { id: 'recent', label: 'Más recientes' },
+                                            { id: 'a-z', label: 'De la A-Z' },
+                                            { id: 'z-a', label: 'De la Z-A' }
+                                        ].map(opt => (
+                                            <div
+                                                key={opt.id}
+                                                onClick={() => { setSortOrder(opt.id); setShowFilter(false); }}
+                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
+                                            >
+                                                {opt.label}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Contador de resultados */}
+                        {isFiltering && (
+                            <div className="px-5 mb-2">
+                                <span className="text-[11px] font-semibold text-navy-700/70">
+                                    {filteredServices.length} de {services.length} servicios
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pr-3 pt-0 space-y-1.5">
@@ -275,27 +296,24 @@ export default function Settings() {
                                 <button
                                     key={s.id}
                                     onClick={() => handleSelect(s)}
-                                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 text-left group border ${
-                                        isSelected
+                                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 text-left group border ${isSelected
                                             ? 'bg-white/60 border-white/80'
                                             : 'hover:bg-white/40 border-transparent hover:border-white/40'
-                                    }`}
+                                        }`}
                                 >
                                     {/* Avatar inicial */}
-                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border ${
-                                        isSelected
+                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border ${isSelected
                                             ? 'bg-navy-900 border-navy-900 text-white shadow-md shadow-navy-900/10'
                                             : s.active
-                                            ? 'bg-white/60 border-white/80 text-navy-900 group-hover:bg-navy-900 group-hover:text-white group-hover:border-navy-900'
-                                            : 'bg-white/30 border-white/40 text-navy-900/30'
-                                    }`}>
+                                                ? 'bg-white/60 border-white/80 text-navy-900 group-hover:bg-navy-900 group-hover:text-white group-hover:border-navy-900'
+                                                : 'bg-white/30 border-white/40 text-navy-900/30'
+                                        }`}>
                                         {(s.name?.[0] || '?').toUpperCase()}
                                     </div>
 
                                     <div className="flex-1 min-w-0">
-                                        <div className={`font-bold text-sm truncate ${
-                                            isSelected ? 'text-navy-900' : s.active ? 'text-navy-900/80' : 'text-navy-900/35'
-                                        }`}>
+                                        <div className={`font-bold text-sm truncate ${isSelected ? 'text-navy-900' : s.active ? 'text-navy-900/80' : 'text-navy-900/35'
+                                            }`}>
                                             {s.name}
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold tracking-tight text-navy-700/60">
@@ -334,11 +352,10 @@ export default function Settings() {
                                         </p>
                                     </div>
                                     {!isNew && selectedService && (
-                                        <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border shrink-0 ${
-                                            selectedService.active
+                                        <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border shrink-0 ${selectedService.active
                                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                                 : 'bg-rose-50 text-rose-600 border-rose-200'
-                                        }`}>
+                                            }`}>
                                             {selectedService.active ? 'Activo' : 'Inactivo'}
                                         </span>
                                     )}
@@ -403,9 +420,8 @@ export default function Settings() {
                                                 value={formatPriceDisplay(form.priceCents)}
                                                 onKeyDown={handlePriceKey}
                                                 placeholder="0.00"
-                                                className={`w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm cursor-text select-none ${
-                                                    form.priceCents ? 'text-navy-900' : 'text-navy-700/40'
-                                                }`}
+                                                className={`w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm cursor-text select-none ${form.priceCents ? 'text-navy-900' : 'text-navy-700/40'
+                                                    }`}
                                             />
                                         </div>
                                         <p className="mt-1.5 text-[10px] font-semibold text-navy-700/40 pl-1">
@@ -428,7 +444,7 @@ export default function Settings() {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* Footer actions */}
                             {(canCreateServices || canEditServices || canToggleServices) && (
                                 <div className="px-6 py-4 border-t border-white/60 flex items-center justify-end gap-3 z-20 shrink-0">
@@ -437,11 +453,10 @@ export default function Settings() {
                                         <button
                                             onClick={handleToggle}
                                             disabled={toggling}
-                                            className={`group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 border text-[11px] font-bold rounded-full shadow-sm transition-all duration-300 overflow-hidden disabled:opacity-50 ${
-                                                selectedService.active
+                                            className={`group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 border text-[11px] font-bold rounded-full shadow-sm transition-all duration-300 overflow-hidden disabled:opacity-50 ${selectedService.active
                                                     ? 'bg-white border-white/80 text-rose-500 hover:bg-rose-50 hover:border-rose-100/50'
                                                     : 'bg-white border-white/80 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100/50'
-                                            }`}
+                                                }`}
                                         >
                                             {selectedService.active
                                                 ? <ToggleLeft size={14} className="shrink-0" />

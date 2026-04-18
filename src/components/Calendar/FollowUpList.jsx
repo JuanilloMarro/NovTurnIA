@@ -76,7 +76,7 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0 })
                         </div>
                         <div className="text-center">
                             <p className="text-sm font-bold text-navy-900/60">Sin registros</p>
-                            <p className="text-[11px] font-semibold text-navy-700/40 mt-0.5">No hay pacientes perdidos en este período</p>
+                            <p className="text-[11px] font-semibold text-navy-700/40 mt-0.5">No hay clientes perdidos en este período</p>
                         </div>
                     </div>
                 ) : (

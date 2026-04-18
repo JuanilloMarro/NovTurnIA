@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../config/supabase';
-import { showSuccessToast, showErrorToast } from '../store/useToastStore';
+import { showTenantNewToast, showValidationToast, showErrorToast } from '../store/useToastStore';
 import { Building2, User, Lock, Globe, Clock } from 'lucide-react';
 
 const PLANS = ['starter', 'pro', 'enterprise'];
@@ -47,7 +47,7 @@ export default function AdminOnboarding() {
     async function handleSubmit(e) {
         e.preventDefault();
         if (form.admin_password.length < 8) {
-            showErrorToast('Contraseña inválida', 'La contraseña debe tener al menos 8 caracteres.');
+            showValidationToast('Contraseña inválida', 'La contraseña debe tener al menos 8 caracteres.');
             return;
         }
         setLoading(true);
@@ -60,7 +60,7 @@ export default function AdminOnboarding() {
             if (data?.error) throw new Error(data.error);
 
             setResult(data);
-            showSuccessToast('Tenant creado', data.message, 'business');
+            showTenantNewToast(data.message);
             setForm(f => ({ ...f, business_name: '', admin_email: '', admin_name: '', admin_password: '' }));
         } catch (err) {
             showErrorToast('Error al crear tenant', err.message);

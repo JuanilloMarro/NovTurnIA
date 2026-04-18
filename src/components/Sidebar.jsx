@@ -61,7 +61,7 @@ export default function Sidebar() {
 
                     {canViewPatients && (
                         <NavLink to="/patients" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                            <Users size={16} /> Pacientes
+                            <Users size={16} /> Clientes
                         </NavLink>
                     )}
 

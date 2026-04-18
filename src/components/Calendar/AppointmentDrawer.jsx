@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow, markRescheduled } from '../../services/supabaseService';
-import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, RotateCcw, Tag } from 'lucide-react';
+import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, RotateCcw, Tag, User } from 'lucide-react';
 import { formatDuration } from '../../pages/Settings';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -8,7 +8,7 @@ import EditAppointmentModal from './EditAppointmentModal';
 import NewAppointmentModal from './NewAppointmentModal';
 import AIStar from '../Icons/AIStar';
 import { formatPhone } from '../../utils/format';
-import { showSuccessToast, showErrorToast, showBotToast } from '../../store/useToastStore';
+import { showAptNoShowToast, showAptCancelToast, showAptConfirmToast, showAptPendingToast, showBotPauseToast, showBotReactivateToast, showErrorToast } from '../../store/useToastStore';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -42,7 +42,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
         setMarkingNoShow(true);
         try {
             await markNoShow(id);
-            showErrorToast('Paciente no se presentó', patients?.display_name || 'Paciente', 'appointment');
+            showAptNoShowToast(patients?.display_name || 'Cliente');
             onUpdated?.();
         } catch (err) {
             showErrorToast('Error al registrar', err.message);
@@ -55,11 +55,11 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
         setCanceling(true);
         try {
             await cancelAppointment(id);
-            showErrorToast('Turno Cancelado', patients?.display_name || 'Paciente', 'appointment');
+            showAptCancelToast(patients?.display_name || 'Cliente');
             onUpdated?.();
             onClose();
         } catch (error) {
-            showErrorToast('Error al cancelar', error.message, 'appointment');
+            showErrorToast('Error al cancelar', error.message);
         } finally {
             setCanceling(false);
             setShowCancelConfirm(false);
@@ -69,24 +69,24 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
     async function handleConfirm() {
         try {
             await confirmAppointment(id);
-            showSuccessToast('Turno Confirmado', patients?.display_name, 'appointment');
+            showAptConfirmToast(patients?.display_name);
             onUpdated?.();
         } catch (error) {
-            showErrorToast('Error al confirmar', error.message, 'appointment');
+            showErrorToast('Error al confirmar', error.message);
         }
     }
 
     async function handleSetScheduled() {
         try {
             await scheduledAppointment(id);
-            showSuccessToast('Turno en Pendiente', patients?.display_name, 'appointment');
+            showAptPendingToast(patients?.display_name);
             onUpdated?.();
         } catch (error) {
-            showErrorToast('Error al actualizar', error.message, 'appointment');
+            showErrorToast('Error al actualizar', error.message);
         }
     }
 
-    const drawerWidth = variant === 'followup' ? 'w-[360px]' : 'w-[420px]';
+    const drawerWidth = variant === 'followup' ? 'w-[380px]' : 'w-[450px]';
 
     return (
         <div className={`absolute top-2 right-2 bottom-2 ${drawerWidth} bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-50 flex flex-col animate-drawer-in overflow-hidden`}>
@@ -102,8 +102,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
             {/* Content scrolleable - but without scrolling */}
             <div className="flex-1 overflow-hidden px-5 py-4 flex flex-col justify-between">
                 <div>
-                    {/* Paciente hero */}
-                    {/* Paciente hero */}
+                    {/* Cliente hero */}
+                    {/* Cliente hero */}
                     <div className="flex items-center gap-3 mb-6 px-1">
                         <div className="w-12 h-12 rounded-full bg-navy-900 flex items-center justify-center text-white text-base font-bold border border-white/20 shadow-md">
                             {getInitials(patients?.display_name)}
@@ -125,7 +125,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                                 ) : status === 'no_show' ? (
                                     <div className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 border border-gray-200 px-2 py-[2px] rounded-md text-[9px] font-bold">
                                         <UserX size={10} strokeWidth={3} />
-                                        No se presentó
+                                        Ausente
                                     </div>
                                 ) : confirmed ? (
                                     <div className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-[2px] rounded-md text-[9px] font-bold">
@@ -227,6 +227,15 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                         </button>
                     )}
 
+                    {/* 1. Ver Perfil */}
+                    <button
+                        onClick={() => navigate(`/patients?id=${appointment.patient_id}`)}
+                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                    >
+                        <User size={14} className="shrink-0" />
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Perfil</span>
+                    </button>
+
                     {/* 1. Chat */}
                     {canViewConversations && (
                         <button
@@ -238,90 +247,92 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                         </button>
                     )}
 
-                        {/* 2. IA (Bot Toggle) */}
-                        {canToggleAi && appointment.patients && (
-                            <button
-                                onClick={async () => {
-                                    const newValue = !botPaused;
-                                    try {
-                                        await setHumanTakeover(appointment.patient_id, newValue);
-                                        setPatientTakeover(appointment.patient_id, newValue);
-                                        onUpdated?.();
-                                    } catch (err) {
-                                        showErrorToast('Error al actualizar bot', err.message);
-                                    }
-                                }}
-                                className={`group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 border text-[11px] font-bold rounded-full shadow-card transition-all duration-300 overflow-hidden ${botPaused
-                                    ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                                    : 'bg-white border-white/80 text-navy-900 hover:bg-white/80'
-                                    }`}
-                            >
-                                <div className="relative shrink-0 w-3.5 h-3.5 flex items-center justify-center">
-                                    <Bot size={13} />
-                                    <AIStar
-                                        size={5}
-                                        className={`absolute -top-0.5 -left-0.5 ${botPaused ? 'text-amber-500' : 'text-navy-900'}`}
-                                        strokeWidth={2.5}
-                                    />
-                                </div>
-                                <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap ml-0 group-hover:ml-0">
-                                    {botPaused ? 'Reactivar' : 'Pausar IA'}
-                                </span>
-                            </button>
-                        )}
+                    {/* 2. IA (Bot Toggle) */}
+                    {canToggleAi && appointment.patients && (
+                        <button
+                            onClick={async () => {
+                                const newValue = !botPaused;
+                                try {
+                                    await setHumanTakeover(appointment.patient_id, newValue);
+                                    setPatientTakeover(appointment.patient_id, newValue);
+                                    onUpdated?.();
+                                    if (newValue) showBotPauseToast(patients?.display_name);
+                                    else showBotReactivateToast(patients?.display_name);
+                                } catch (err) {
+                                    showErrorToast('Error al actualizar bot', err.message);
+                                }
+                            }}
+                            className={`group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 border text-[11px] font-bold rounded-full shadow-card transition-all duration-300 overflow-hidden ${botPaused
+                                ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                                : 'bg-white border-white/80 text-navy-900 hover:bg-white/80'
+                                }`}
+                        >
+                            <div className="relative shrink-0 w-3.5 h-3.5 flex items-center justify-center">
+                                <Bot size={13} />
+                                <AIStar
+                                    size={5}
+                                    className={`absolute -top-0.5 -left-0.5 ${botPaused ? 'text-amber-500' : 'text-navy-900'}`}
+                                    strokeWidth={2.5}
+                                />
+                            </div>
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap ml-0 group-hover:ml-0">
+                                {botPaused ? 'Reactivar' : 'Pausar IA'}
+                            </span>
+                        </button>
+                    )}
 
-                        {/* 3. Editar */}
-                        {canEditAppointments && status !== 'cancelled' && status !== 'no_show' && variant !== 'followup' && (
-                            <button onClick={() => setShowEdit(true)}
-                                className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
-                            >
-                                <Pencil size={14} className="shrink-0" />
-                                <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Editar</span>
-                            </button>
-                        )}
+                    {/* 3. Editar */}
+                    {canEditAppointments && status !== 'cancelled' && status !== 'no_show' && variant !== 'followup' && (
+                        <button onClick={() => setShowEdit(true)}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        >
+                            <Pencil size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Editar</span>
+                        </button>
+                    )}
 
-                        {/* 4. No se presentó — visible en turnos pasados, no en seguimiento */}
-                        {canMarkNoShow && variant !== 'followup' && (
-                            <button onClick={handleNoShow} disabled={markingNoShow}
-                                className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50"
-                            >
-                                <UserX size={14} className="shrink-0" />
-                                <span className="max-w-0 overflow-hidden group-hover:max-w-[110px] transition-all duration-300 whitespace-nowrap">
-                                    {markingNoShow ? 'Marcando...' : 'No se presentó'}
-                                </span>
-                            </button>
-                        )}
+                    {/* 4. No se presentó — visible en turnos pasados, no en seguimiento */}
+                    {canMarkNoShow && variant !== 'followup' && (
+                        <button onClick={handleNoShow} disabled={markingNoShow}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                        >
+                            <UserX size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[110px] transition-all duration-300 whitespace-nowrap">
+                                {markingNoShow ? 'Marcando...' : 'Ausente'}
+                            </span>
+                        </button>
+                    )}
 
-                        {/* 5. Pendiente (Amber Hover) */}
-                        {canSetPending && status === 'confirmed' && (
-                            <button onClick={handleSetScheduled}
-                                className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-amber-600 text-[11px] font-bold rounded-full shadow-card hover:bg-amber-50 hover:border-amber-100/50 transition-all duration-300 overflow-hidden"
-                            >
-                                <Circle size={14} className="shrink-0" />
-                                <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Pendiente</span>
-                            </button>
-                        )}
+                    {/* 5. Pendiente (Amber Hover) */}
+                    {canSetPending && status === 'confirmed' && (
+                        <button onClick={handleSetScheduled}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-amber-600 text-[11px] font-bold rounded-full shadow-card hover:bg-amber-50 hover:border-amber-100/50 transition-all duration-300 overflow-hidden"
+                        >
+                            <Circle size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Pendiente</span>
+                        </button>
+                    )}
 
-                        {/* 6. Confirmar (Emerald Hover) */}
-                        {canConfirmAppointments && status === 'scheduled' && !confirmed && (
-                            <button onClick={handleConfirm}
-                                className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-emerald-600 text-[11px] font-bold rounded-full shadow-card hover:bg-emerald-50 hover:border-emerald-100/50 transition-all duration-300 overflow-hidden"
-                            >
-                                <Check size={14} className="shrink-0" />
-                                <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Confirmar</span>
-                            </button>
-                        )}
+                    {/* 6. Confirmar (Emerald Hover) */}
+                    {canConfirmAppointments && status === 'scheduled' && !confirmed && (
+                        <button onClick={handleConfirm}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-emerald-600 text-[11px] font-bold rounded-full shadow-card hover:bg-emerald-50 hover:border-emerald-100/50 transition-all duration-300 overflow-hidden"
+                        >
+                            <Check size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Confirmar</span>
+                        </button>
+                    )}
 
-                        {/* 7. Eliminar */}
-                        {canDeleteAppointments && ['scheduled', 'confirmed'].includes(status) && (
-                            <button onClick={() => setShowCancelConfirm(true)}
-                                className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
-                            >
-                                <Trash2 size={14} className="shrink-0" />
-                                <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">Eliminar</span>
-                            </button>
-                        )}
-                    </div>
+                    {/* 7. Eliminar */}
+                    {canDeleteAppointments && ['scheduled', 'confirmed'].includes(status) && (
+                        <button onClick={() => setShowCancelConfirm(true)}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
+                        >
+                            <Trash2 size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">Eliminar</span>
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Cancel Confirmation */}

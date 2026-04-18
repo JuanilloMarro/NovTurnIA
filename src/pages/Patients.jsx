@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { usePatients } from '../hooks/usePatients';
 import PatientCard from '../components/Patients/PatientCard';
 import PatientDrawer from '../components/Patients/PatientDrawer';
@@ -16,6 +17,19 @@ export default function Patients() {
     const [showSort, setShowSort] = useState(false);
     const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
     const [exporting, setExporting] = useState(false);
+
+    const [searchParams, setSearchParams] = useSearchParams();
+    const patientIdFromUrl = searchParams.get('id');
+
+    useEffect(() => {
+        if (patientIdFromUrl && patients.length > 0) {
+            const p = patients.find(x => x.id === patientIdFromUrl);
+            if (p) {
+                setSelectedPatient(p);
+                setSearchParams({}, { replace: true });
+            }
+        }
+    }, [patientIdFromUrl, patients, setSearchParams]);
 
     async function handleExport() {
         setExporting(true);
@@ -43,8 +57,8 @@ export default function Patients() {
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
-                        <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Pacientes</h1>
-                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{patients.length} pacientes registrados</p>
+                        <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Clientes</h1>
+                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{patients.length} clientes registrados</p>
                     </div>
                 </div>
 
@@ -68,7 +82,7 @@ export default function Patients() {
                                 className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
                             >
                                 <Plus size={14} className="shrink-0" />
-                                <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Agregar Paciente</span>
+                                <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Agregar Cliente</span>
                             </button>
                         </div>
                     )}
@@ -115,10 +129,10 @@ export default function Patients() {
                                 </div>
 
                                 {showSort && (
-                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card z-50 py-2 animate-fade-up">
+                                    <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 rounded-3xl shadow-[0_8px_32px_rgba(26,58,107,0.16),0_2px_8px_rgba(0,0,0,0.06)] z-50 p-2 animate-fade-up">
                                         {hasActiveSort && (
-                                            <div className="flex items-center justify-between px-4 pb-2 mb-1 border-b border-white/50">
-                                                <span className="text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Orden</span>
+                                            <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
+                                                <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Orden</span>
                                                 <button onClick={() => { setSortOrder('recent'); setShowSort(false); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
                                             </div>
                                         )}
@@ -126,7 +140,7 @@ export default function Patients() {
                                             <div
                                                 key={opt.id}
                                                 onClick={() => setSortOrder(opt.id)}
-                                                className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${sortOrder === opt.id ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
                                             >
                                                 {opt.label}
                                             </div>
@@ -148,7 +162,7 @@ export default function Patients() {
                     <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
                         <Search size={24} className="text-gray-300" />
                     </div>
-                    <p>No se encontraron pacientes para tu búsqueda.</p>
+                    <p>No se encontraron clientes para tu búsqueda.</p>
                 </div>
             ) : (
                 <div className="space-y-3 flex-1 overflow-y-auto pr-3 custom-scrollbar pb-10">

@@ -170,30 +170,30 @@ export default function Calendar() {
                             </div>
 
                             {showFollowUpFilters && (
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card z-50 py-2 animate-fade-up">
+                                <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 rounded-3xl shadow-[0_8px_32px_rgba(26,58,107,0.16),0_2px_8px_rgba(0,0,0,0.06)] z-50 p-2 animate-fade-up">
                                     {hasActiveFilters && (
-                                        <div className="flex items-center justify-between px-4 pb-2 mb-1 border-b border-white/50">
-                                            <span className="text-[10px] font-bold text-navy-700/50 uppercase tracking-wider">Filtros</span>
+                                        <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
+                                            <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
                                             <button onClick={() => { setFollowUpType('all'); setFollowUpDays(30); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
                                         </div>
                                     )}
-                                    <p className="px-4 pt-1 pb-0.5 text-[10px] font-bold text-navy-700/40 uppercase tracking-wider">Estado</p>
+                                    <p className="px-2 pt-2 pb-1 text-[10px] font-bold text-navy-700/40 tracking-wide">Estado</p>
                                     {TYPE_OPTIONS.map(opt => (
                                         <div
                                             key={opt.value}
                                             onClick={() => setFollowUpType(opt.value)}
-                                            className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${followUpType === opt.value ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                            className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${followUpType === opt.value ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
                                         >
                                             {opt.label}
                                         </div>
                                     ))}
-                                    <div className="border-t border-white/50 mt-1 pt-1">
-                                        <p className="px-4 pt-1 pb-0.5 text-[10px] font-bold text-navy-700/40 uppercase tracking-wider">Período</p>
+                                    <div className="border-t border-gray-100 mt-1 pt-1">
+                                        <p className="px-2 pt-1 pb-1 text-[10px] font-bold text-navy-700/40 tracking-wide">Período</p>
                                         {DAYS_OPTIONS.map(opt => (
                                             <div
                                                 key={opt.value}
                                                 onClick={() => setFollowUpDays(opt.value)}
-                                                className={`mx-1 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${followUpDays === opt.value ? 'bg-navy-900 text-white' : 'text-navy-700 hover:bg-white/60'}`}
+                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${followUpDays === opt.value ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
                                             >
                                                 {opt.label}
                                             </div>

@@ -3,7 +3,7 @@ import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
 import { Shield, Check, Save, Lock, Info } from 'lucide-react';
-import { showErrorToast, showSuccessToast } from '../store/useToastStore';
+import { showStaffPermsToast, showErrorToast } from '../store/useToastStore';
 
 function getInitials(name) {
     if (!name) return '?';
@@ -32,10 +32,10 @@ function isEditableRole(role) {
 
 // ── Traducciones de roles a español ──
 const ROLE_TRANSLATIONS = {
-    'dentist': 'Dentista / Admin',
-    'barber': 'Barbero / Admin',
-    'veterinarian': 'Veterinario / Admin',
-    'doctor': 'Doctor / Admin',
+    'dentist': 'Dentista',
+    'barber': 'Barbero',
+    'veterinarian': 'Veterinario',
+    'doctor': 'Doctor',
     'secretary': 'Secretaria',
     'admin': 'Administrador',
     'staff': 'Personal'
@@ -69,7 +69,7 @@ export default function Users() {
     const canEditPermissions = canManageRoles && isEditableRole(selectedUser?.staff_roles);
 
     return (
-        <div className="h-full flex flex-col mx-auto w-full max-w-4xl pt-2 px-0">
+        <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-0">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
@@ -187,12 +187,12 @@ export default function Users() {
                                             ]
                                         },
                                         {
-                                            title: 'Pacientes',
+                                            title: 'Clientes',
                                             perms: [
-                                                { key: 'view_patients',   label: 'Ver pacientes' },
-                                                { key: 'create_patients', label: 'Agregar paciente' },
-                                                { key: 'edit_patients',   label: 'Editar paciente' },
-                                                { key: 'delete_patients', label: 'Eliminar paciente' },
+                                                { key: 'view_patients',   label: 'Ver clientes' },
+                                                { key: 'create_patients', label: 'Agregar cliente' },
+                                                { key: 'edit_patients',   label: 'Editar cliente' },
+                                                { key: 'delete_patients', label: 'Eliminar cliente' },
                                                 { key: 'export_patients', label: 'Exportar CSV' },
                                             ]
                                         },
@@ -289,7 +289,7 @@ export default function Users() {
                                             if (!selectedUser) return;
                                             try {
                                                 await changeRolePermissions(selectedUser.role_id, selectedUser.staff_roles?.permissions || {});
-                                                showSuccessToast('Permisos Guardados', `Se han actualizado los permisos de ${translateRole(selectedUser?.staff_roles?.name)}`, 'staff');
+                                                showStaffPermsToast(`Permisos actualizados para ${translateRole(selectedUser?.staff_roles?.name)}`);
                                             } catch (err) {
                                                 showErrorToast('Error al Guardar', err.message);
                                             }

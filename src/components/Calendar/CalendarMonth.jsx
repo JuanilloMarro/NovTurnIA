@@ -71,16 +71,47 @@ export default function CalendarMonth({ appointments, monthDate, loading, onEven
                                     });
                                     const name = apt.patients?.display_name || 'Sin nombre';
 
+                                    const status = apt.status === 'cancelled' ? 'cancelled'
+                                        : apt.status === 'no_show' ? 'no_show'
+                                        : apt.confirmed ? 'confirmed' : 'pending';
+
+                                    const borderColor = {
+                                        confirmed: 'border-l-emerald-500',
+                                        pending:   'border-l-amber-400',
+                                        cancelled: 'border-l-rose-400',
+                                        no_show:   'border-l-gray-300',
+                                    }[status];
+
+                                    const nameColor = {
+                                        confirmed: 'text-navy-900',
+                                        pending:   'text-navy-900',
+                                        cancelled: 'text-navy-900/60',
+                                        no_show:   'text-navy-900/50',
+                                    }[status];
+
+                                    const timeColor = {
+                                        confirmed: 'text-gray-500',
+                                        pending:   'text-gray-500',
+                                        cancelled: 'text-gray-400',
+                                        no_show:   'text-gray-400',
+                                    }[status];
+
+                                    const faded = status === 'cancelled' || status === 'no_show' ? 'opacity-50' : '';
+
                                     return (
                                         <div
                                             key={apt.id}
                                             onClick={() => onEventClick?.(apt)}
-                                            className="text-[11px] flex items-center gap-1.5 cursor-pointer hover:bg-navy-50 rounded pl-1 py-0.5 text-gray-600 truncate border-l-2 border-navy-300"
+                                            className={`flex items-center gap-1.5 cursor-pointer bg-white border-y border-r border-gray-100 border-l-[3px] rounded-r-xl rounded-l-sm px-2 py-1 shadow-sm hover:shadow-md transition-all overflow-hidden ${borderColor} ${faded}`}
                                         >
-                                            <span className="font-medium text-navy-700 shrink-0">{timeStr}</span>
-                                            <span className="truncate">{name}</span>
+                                            <span className={`font-bold text-[11px] tracking-tight truncate leading-tight ${nameColor}`}>
+                                                {name}
+                                            </span>
+                                            <span className={`text-[10px] font-medium shrink-0 ${timeColor}`}>
+                                                {timeStr}
+                                            </span>
                                         </div>
-                                    )
+                                    );
                                 })}
                             </div>
                         </div>

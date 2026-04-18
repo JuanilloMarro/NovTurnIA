@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { X, ChevronLeft, MessageCircle, Pencil, Trash2, Phone, Bot, ShieldOff } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
 import { deletePatient, gdprDeletePatient, setHumanTakeover } from '../../services/supabaseService';
-import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
+import { showPatientDeleteToast, showPatientGdprToast, showBotPauseToast, showBotReactivateToast, showErrorToast } from '../../store/useToastStore';
 import { usePermissions } from '../../hooks/usePermissions';
 import EditPatientModal from './EditPatientModal';
 import AIStar from '../Icons/AIStar';
@@ -45,7 +45,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
         setDeleting(true);
         try {
             await deletePatient(patient.id);
-            showSuccessToast('Paciente Eliminado', name);
+            showPatientDeleteToast(name);
             onClose();
             onRefresh?.();
         } catch (err) {
@@ -59,7 +59,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
         setDeleting(true);
         try {
             await gdprDeletePatient(patient.id);
-            showSuccessToast('Datos eliminados (GDPR)', `Todos los datos de ${name} han sido borrados permanentemente.`);
+            showPatientGdprToast(`Todos los datos de ${name} han sido borrados permanentemente.`);
             onClose();
             onRefresh?.();
         } catch (err) {
@@ -84,7 +84,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                 <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
                     <ChevronLeft size={16} />
                 </button>
-                <h3 className="flex-1 font-bold text-navy-900 tracking-tight text-sm text-center">Perfil del paciente</h3>
+                <h3 className="flex-1 font-bold text-navy-900 tracking-tight text-sm text-center">Perfil del cliente</h3>
                 <div className="w-7 h-7" />
             </div>
             {/* 1. Información del Cliente y Título (FIJA) */}
@@ -105,6 +105,23 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                             </div>
                         )}
                     </div>
+                </div>
+
+                <div className="flex items-center gap-3 px-1 mb-2 mt-4">
+                    <h4 className="text-[11px] font-bold text-navy-800 leading-none">
+                        Notas / Observaciones
+                    </h4>
+                    <div className="flex-1 h-px bg-navy-900/10"></div>
+                </div>
+                
+                <div className="px-1 mb-6">
+                    {patient.notes ? (
+                        <p className="text-xs text-navy-700/80 font-medium leading-relaxed bg-navy-50/50 p-3 rounded-2xl border border-navy-100/30 italic">
+                            "{patient.notes}"
+                        </p>
+                    ) : (
+                        <p className="text-[11px] text-navy-400 font-semibold italic text-center py-2 opacity-60">Sin notas registradas</p>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-3 px-1 mb-2">
@@ -175,6 +192,8 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                                 await setHumanTakeover(patient.id, newValue);
                                 setPatientTakeover(patient.id, newValue);
                                 onRefresh?.();
+                                if (newValue) showBotPauseToast(name);
+                                else showBotReactivateToast(name);
                             } catch (err) {
                                 showErrorToast('Error al actualizar IA', err.message);
                             }
@@ -233,7 +252,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
             {showDeleteConfirm && createPortal(
                 <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
                     <div className="w-full max-w-sm bg-white/30 backdrop-blur-xl border border-white/50 p-6 animate-fade-up shadow-[0_8px_32px_rgba(26,58,107,0.15)] rounded-[32px]">
-                        <p className="text-sm font-bold text-navy-900 text-center mb-1">¿Eliminar paciente?</p>
+                        <p className="text-sm font-bold text-navy-900 text-center mb-1">¿Eliminar cliente?</p>
                         <p className="text-xs text-navy-700/70 text-center mb-5 px-4">Esta acción no se puede deshacer. Se eliminará <span className="font-bold text-navy-900">{name}</span> y todos sus datos.</p>
                         <div className="flex justify-center gap-3">
                             <button
