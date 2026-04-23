@@ -49,7 +49,7 @@ export function useStats() {
                 ? (((monthApts - lastMonthCount) / lastMonthCount) * 100).toFixed(1)
                 : undefined;
             const confirmedThisMonth  = apts.filter(a => a.confirmed).length;
-            const scheduledThisMonth  = apts.filter(a => a.status === 'scheduled' && !a.confirmed).length;
+            const scheduledThisMonth  = apts.filter(a => (a.status === 'scheduled' || a.status === 'pending') && !a.confirmed).length;
             const cancelledThisMonth  = apts.filter(a => a.status === 'cancelled').length;
             const noShowThisMonth     = apts.filter(a => a.status === 'no_show').length;
             const createdByBot        = apts.filter(a => a.created_by === 'bot').length;

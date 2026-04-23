@@ -62,9 +62,18 @@ const BotIcon = ({ size = 14, color = "currentColor" }) => (
   </svg>
 );
 
-const ChevronDownIcon = ({ size = 13 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-    <path d="m6 9 6 6 6-6" />
+const LayersIcon = ({ size = 14, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+    <polyline points="2 17 12 22 22 17" />
+    <polyline points="2 12 12 17 22 12" />
+  </svg>
+);
+
+const ShieldCheckIcon = ({ size = 14, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <path d="m9 12 2 2 4-4" />
   </svg>
 );
 
@@ -80,7 +89,10 @@ const NAV_ITEMS = [
   { label: "Pacientes", Icon: UsersIcon, active: false },
   { label: "Conversaciones", Icon: MessageCircleIcon, active: true },
   { label: "Estadísticas", Icon: BarChart2Icon, active: false },
-  { label: "Configuración", Icon: SettingsIcon, active: false, hasSub: true },
+  { label: "Servicios", Icon: LayersIcon, active: false },
+  { label: "Actividad", Icon: HistoryIcon, active: false },
+  { label: "Usuarios", Icon: ShieldCheckIcon, active: false },
+  { label: "Configuración", Icon: SettingsIcon, active: false },
 ];
 
 /**
@@ -111,11 +123,20 @@ export const Scene10Conversation: React.FC = () => {
   // ── MOTION AMBIENTE ──────────────────────────────────────────────
   // Punto naranja Maggie: pulsa suavemente
   const dotPulse = 1 + Math.sin(frame * 0.07) * 0.18;
-  // Notificación campana: pulsa más rápido, como alerta
   const notifPulse = 1 + Math.sin(frame * 0.12) * 0.10;
-  // Badge IA: pop de escala cuando cambia de estado en iaReactivedTime
+
+  // Reactivación con efecto físico de clic (se hunde ligeramente y luego rebota)
   const badgePop = spring({ frame: frame - iaReactivedTime, fps, config: { damping: 8, stiffness: 220 } });
-  const badgeScale = frame >= iaReactivedTime ? interpolate(badgePop, [0, 0.4, 1], [1, 1.18, 1]) : 1;
+  const badgeScale = frame >= iaReactivedTime ? interpolate(badgePop, [0, 0.1, 0.5, 1], [0.95, 0.95, 1.15, 1]) : 1;
+
+  // ─── DOLLY ZOOM 3D EFECTO ─────────────────────────────────────
+  const dollyScale = interpolate(frame, [0, 360], [1, 1.12]);
+  const dollyRotateX = interpolate(frame, [0, 360], [0, 7.5]);
+  const dollyY = interpolate(frame, [0, 360], [0, -30]);
+
+  // ─── DEPTH OF FIELD (Desenfoque dinámico lataral ────────────────────
+  const sideBlur = interpolate(frame, [iaReactivedTime, iaReactivedTime + 20], [0, 4], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
 
   return (
     <AbsoluteFill style={{ overflow: "hidden", ...sceneExit.style }}>
@@ -136,37 +157,40 @@ export const Scene10Conversation: React.FC = () => {
         <div style={{
           width: 980, height: 780, background: "rgba(255, 255, 255, 0.45)", backdropFilter: "blur(32px)",
           borderRadius: 40, border: "1px solid rgba(255, 255, 255, 0.75)", boxShadow: "0 30px 80px rgba(15,32,68,0.12)",
-          transform: `translateY(${macroY}px) scale(${macroScale * 0.95})`, opacity: macroOpacity, display: "flex", overflow: "hidden", position: "relative",
+          transform: `perspective(1200px) translateY(${macroY + dollyY}px) scale(${macroScale * dollyScale * 0.95}) rotateX(${dollyRotateX}deg)`,
+          transformOrigin: "center center",
+          opacity: macroOpacity, display: "flex", overflow: "hidden", position: "relative",
         }}>
 
           {/* SIDEBAR (Corriendo un poco a la derecha + Margen extra) */}
-          <aside style={{ width: 220, flexShrink: 0, height: "100%", padding: "32px 24px", display: "flex", flexDirection: "column", borderRight: "1px solid rgba(255,255,255,0.35)", borderLeft: "1px solid rgba(255,255,255,0.15)" }}>
+          <aside style={{ width: 220, flexShrink: 0, height: "100%", padding: "32px 24px", display: "flex", flexDirection: "column", borderRight: "1px solid rgba(255,255,255,0.35)", borderLeft: "1px solid rgba(255,255,255,0.15)", filter: `blur(${sideBlur}px)`, transition: "filter 0.1s linear" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 36, paddingLeft: 6 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: COLORS.navy900, display: "flex", alignItems: "center", justifyContent: "center" }}><BotIcon size={17} color="white" /></div>
               <span style={{ fontFamily: "Inter", fontSize: 17, fontWeight: 800, color: COLORS.navy900, letterSpacing: "-0.03em" }}>NovTurnIA</span>
             </div>
 
             <nav style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 6 }}>
-              {NAV_ITEMS.map(({ label, Icon, active, hasSub }) => (
-                <div key={label}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 12, background: active ? "rgba(255,255,255,0.6)" : "transparent", color: active ? COLORS.navy900 : "rgba(15,32,104,0.38)", fontFamily: "Inter", fontWeight: 700, fontSize: 13.5 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}> <Icon size={14} color={active ? COLORS.navy900 : "rgba(15,32,104,0.38)"} /> {label} </div>
-                    {hasSub && <ChevronDownIcon size={12} />}
-                  </div>
-                  {hasSub && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingLeft: 40, marginTop: 5 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0", color: "rgba(15,32,104,0.25)", fontFamily: "Inter", fontSize: 12, fontWeight: 600 }}><UsersIcon size={12} /> Usuarios</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0", color: "rgba(15,32,104,0.25)", fontFamily: "Inter", fontSize: 12, fontWeight: 600 }}><HistoryIcon size={12} /> Actividad</div>
+              {NAV_ITEMS.map(({ label, Icon, active }, index) => {
+                // Entrada en cascada del menú lateral
+                const itemPop = spring({ frame: frame - (4 + index * 2), fps, config: { damping: 15, stiffness: 150 } });
+                const itemX = interpolate(itemPop, [0, 1], [-20, 0]);
+                const itemOpacity = interpolate(itemPop, [0, 1], [0, 1]);
+
+                return (
+                  <div key={label} style={{ transform: `translateX(${itemX}px)`, opacity: itemOpacity }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 12, background: active ? "rgba(255,255,255,0.6)" : "transparent", color: active ? COLORS.navy900 : "rgba(15,32,104,0.38)", fontFamily: "Inter", fontWeight: 700, fontSize: 13.5 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}> <Icon size={14} color={active ? COLORS.navy900 : "rgba(15,32,104,0.38)"} /> {label} </div>
                     </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </nav>
           </aside>
 
           {/* MAIN COLUMN CONTENT Area */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "rgba(255,255,255,0.12)", minWidth: 0 }}>
-            <div style={{ height: 78, padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 14 }}>
+            {/* TOP BAR */}
+            <div style={{ height: 78, padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 14, filter: `blur(${sideBlur}px)` }}>
               <div style={{ width: 42, height: 42, background: "rgba(255,255,255,0.75)", backdropFilter: "blur(6px)", borderRadius: 14, border: "1.2px solid rgba(255,255,255,0.8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 5px 15px rgba(0,0,0,0.05)", position: "relative" }}>
                 <BellIcon size={18} color={COLORS.navy900} />
                 <div style={{ position: "absolute", top: -2, right: -2, background: "#EF4444", width: 13, height: 13, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "white", border: "1.8px solid white", transform: `scale(${notifPulse})` }}>1</div>
@@ -176,39 +200,53 @@ export const Scene10Conversation: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ padding: "0 32px 16px 32px" }}>
+            {/* TITULO */}
+            <div style={{ padding: "0 32px 16px 32px", filter: `blur(${sideBlur}px)` }}>
               <h1 style={{ fontFamily: "Inter", fontSize: 22, fontWeight: 800, color: COLORS.navy900, margin: 0, letterSpacing: "-0.02em" }}>Conversaciones</h1>
               <p style={{ fontFamily: "Inter", fontSize: 11.5, fontWeight: 600, color: "rgba(15,32,104,0.4)" }}>Atención directa vía WhatsApp</p>
             </div>
 
             {/* INTERFAZ DE CHAT Area Area Area */}
             <div style={{ flex: 1, margin: "0 28px 28px 28px", background: "white", borderRadius: 32, border: "1px solid rgba(0,0,0,0.04)", display: "flex", overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.05)" }}>
-              <div style={{ width: 240, borderRight: "1px solid rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+              <div style={{ width: 240, borderRight: "1px solid rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", flexShrink: 0, filter: `blur(${sideBlur * 0.7}px)` }}>
                 <div style={{ padding: "16px" }}> <div style={{ height: 40, background: "rgba(255,255,255,0.6)", borderRadius: 100, border: "1px solid rgba(0,0,0,0.04)", display: "flex", alignItems: "center", padding: "0 14px", gap: 7 }}><SearchIcon size={14} color="rgba(15,32,104,0.3)" /><span style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 600, color: "rgba(15,32,104,0.2)" }}>Busca...</span></div> </div>
                 <div style={{ flex: 1, padding: "0 6px" }}>
-                  {[{ name: "Maggie Marroquín", initials: "MM", human: true, active: true }, { name: "Carlos Ruiz", initials: "CR", human: false, active: false }].map(p => (
-                    <div key={p.name} style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, background: p.active ? "rgba(29,95,173,0.05)" : "transparent", borderRadius: 14, margin: "0 6px" }}>
-                      {/* Icono: Azul si Maggie esta seleccionada (p.active), blanco para Carlos Ruiz */}
-                      <div style={{
-                        width: 35, height: 35, borderRadius: "50%",
-                        background: p.active ? COLORS.navy900 : "#F8FAFC",
-                        color: p.active ? "white" : COLORS.navy900,
-                        border: p.active ? "none" : "1px solid rgba(0,0,0,0.05)",
-                        display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 11.5
-                      }}>{p.initials}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: "Inter", fontSize: 12.5, fontWeight: 800, color: COLORS.navy900 }}>{p.name}</div>
-                        <div style={{ fontSize: 10.5, color: "rgba(0,0,0,0.3)", fontWeight: 600 }}>+502 4798</div>
+                  {[
+                    { name: "Maggie Marroquín", initials: "MM", phone: "+502 4798 1234", human: true, active: true },
+                    { name: "María López", initials: "ML", phone: "+502 5599 8811", human: false, active: false },
+                    { name: "Carlos Ruiz", initials: "CR", phone: "+502 3344 5566", human: false, active: false },
+                    { name: "Sofía Castañeda", initials: "SC", phone: "+502 5511 2233", human: false, active: false },
+                    { name: "Luis Gómez", initials: "LG", phone: "+502 4477 9900", human: false, active: false }
+                  ].map((p, index) => {
+                    // Entrada en cascada de la lista de chats desde abajo
+                    const contactPop = spring({ frame: frame - (10 + index * 3), fps, config: { damping: 14, stiffness: 140 } });
+                    const contactY = interpolate(contactPop, [0, 1], [15, 0]);
+                    const contactOpacity = interpolate(contactPop, [0, 1], [0, 1]);
+
+                    return (
+                      <div key={p.name} style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, background: p.active ? "rgba(29,95,173,0.05)" : "transparent", borderRadius: 14, margin: "0 6px", transform: `translateY(${contactY}px)`, opacity: contactOpacity }}>
+                        {/* Icono: Azul si Maggie esta seleccionada (p.active), blanco para Carlos Ruiz */}
+                        <div style={{
+                          width: 35, height: 35, borderRadius: "50%",
+                          background: p.active ? COLORS.navy900 : "#F8FAFC",
+                          color: p.active ? "white" : COLORS.navy900,
+                          border: p.active ? "none" : "1px solid rgba(0,0,0,0.05)",
+                          display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 11.5
+                        }}>{p.initials}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: "Inter", fontSize: 12.5, fontWeight: 800, color: COLORS.navy900 }}>{p.name}</div>
+                          <div style={{ fontSize: 10.5, color: "rgba(0,0,0,0.3)", fontWeight: 600 }}>{p.phone}</div>
+                        </div>
+                        {p.human && <div style={{ width: 6.5, height: 6.5, borderRadius: "50%", background: "#F59E0B", transform: `scale(${dotPulse})` }} />}
                       </div>
-                      {p.human && <div style={{ width: 6.5, height: 6.5, borderRadius: "50%", background: "#F59E0B", transform: `scale(${dotPulse})` }} />}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
               <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
                 <div style={{ height: 72, padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(0,0,0,0.04)", background: "white", zIndex: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, filter: `blur(${sideBlur}px)` }}>
                     {/* El icono de cabecera siempre blanco como pediste */}
                     <div style={{ width: 35, height: 35, borderRadius: "50%", background: "#F8FAFC", color: COLORS.navy900, border: "1px solid rgba(0,0,0,0.05)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 11.5 }}>MM</div>
                     <span style={{ fontFamily: "Inter", fontSize: 14, fontWeight: 800, color: COLORS.navy900 }}>Maggie Marroquín</span>
@@ -219,7 +257,7 @@ export const Scene10Conversation: React.FC = () => {
                 </div>
 
                 <div style={{ flex: 1, padding: "24px 36px", display: "flex", flexDirection: "column", justifyContent: "flex-end", overflow: "hidden" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14, filter: `blur(${sideBlur}px)` }}>
                     <div style={{ alignSelf: "flex-start", background: "#F1F5F9", padding: "11px 18px", borderRadius: "18px 18px 18px 4px", maxWidth: "75%" }}>
                       <p style={{ margin: 0, fontSize: 13, fontFamily: "Inter", color: COLORS.navy900, fontWeight: 500 }}>Tengo mucho dolor, necesito ver al doctor HOY 🆘</p>
                     </div>
@@ -254,14 +292,66 @@ export const Scene10Conversation: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ padding: "18px 24px", borderTop: "1px solid rgba(0,0,0,0.04)", display: "flex", gap: 14, background: "white", zIndex: 10 }}>
+                <div style={{ padding: "18px 24px", borderTop: "1px solid rgba(0,0,0,0.04)", display: "flex", gap: 14, background: "white", zIndex: 10, filter: `blur(${sideBlur}px)` }}>
                   <div style={{ flex: 1, height: 46, background: "#F8FAFC", borderRadius: 14, border: "1px solid rgba(0,0,0,0.04)", display: "flex", alignItems: "center", padding: "0 18px", fontFamily: "Inter", fontSize: 12.5, color: "#94A3B8" }}> {frame >= typingStart && frame < messageSentTime ? "¡Hola Maggie! 🤝 ¿Cómo te puedo ayudar?..." : "Escribe un mensaje..."} </div>
                   <div style={{ width: 46, height: 46, background: frame >= messageSentTime ? "#F1F5F9" : COLORS.primary, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}> <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={frame >= messageSentTime ? COLORS.navy900 : "white"} strokeWidth={2.5}><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg> </div>
                 </div>
+
+                {/* ── EFECTO CURSOR MOUSE (Micromotion Track) ── */}
+                {(() => {
+                  const cursorStartFrame = 210;
+                  const cursorMove = spring({ frame: frame - cursorStartFrame, fps, config: { damping: 15, stiffness: 80 } });
+
+                  const cursorTop = interpolate(cursorMove, [0, 1], [500, 26]);
+                  const cursorRight = interpolate(cursorMove, [0, 1], [40, 85]);
+
+                  // Click effect just at 270
+                  const isClicking = frame >= iaReactivedTime && frame < iaReactivedTime + 5;
+                  const cursorScaleStr = isClicking ? 0.85 : 1;
+
+                  // Ripple de clic
+                  const ripple = spring({ frame: frame - iaReactivedTime, fps, config: { damping: 20, stiffness: 100 } });
+                  const rippleScale = interpolate(ripple, [0, 1], [0.5, 3]);
+                  const rippleOpacity = interpolate(ripple, [0, 1], [0.6, 0]);
+
+                  return (
+                    <div style={{
+                      position: "absolute", top: cursorTop, right: cursorRight,
+                      zIndex: 100, pointerEvents: "none",
+                    }}>
+                      {/* Expansión del click (Ripple) */}
+                      {frame >= iaReactivedTime && frame < iaReactivedTime + 30 && (
+                        <div style={{
+                          position: "absolute", top: -3, left: -3, width: 16, height: 16,
+                          borderRadius: "50%", border: "2.5px solid rgba(16, 185, 129, 0.8)",
+                          transform: `scale(${rippleScale})`, opacity: rippleOpacity
+                        }} />
+                      )}
+
+                      {/* Gráfico principal del Cursor */}
+                      <div style={{
+                        transform: `scale(${cursorScaleStr})`,
+                        transformOrigin: "top left",
+                      }}>
+                        <svg width="26" height="26" viewBox="0 0 24 24" style={{ filter: "drop-shadow(0px 3px 6px rgba(0,0,0,0.35))" }}>
+                          <path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L6.35 2.86a.5.5 0 0 0-.85.35Z" fill="black" stroke="white" strokeWidth="1.5" />
+                        </svg>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
           </div>
+
+          {/* ── BARRIDO DE BRILLO (Glossy Sweep) ── */}
+          <div style={{
+            position: "absolute", top: 0, bottom: 0, left: 0, width: "15%",
+            background: "linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%)",
+            transform: `translateX(${interpolate(frame, [110, 160], [-300, 1500], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}) skewX(-25deg)`,
+            pointerEvents: "none", zIndex: 1000,
+          }} />
         </div>
       </AbsoluteFill>
     </AbsoluteFill>

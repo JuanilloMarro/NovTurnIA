@@ -80,7 +80,7 @@ export default function Login() {
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div className="space-y-2">
-                                <label className="text-[9px] font-black text-navy-900 uppercase tracking-[0.4em] ml-4 opacity-40">
+                                <label className="text-[10px] font-bold text-navy-900 tracking-wide ml-4 opacity-50">
                                     Usuario o correo electrónico
                                 </label>
                                 <div className="relative group/input">
@@ -100,7 +100,7 @@ export default function Login() {
 
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between px-4">
-                                    <label className="text-[9px] font-black text-navy-900 uppercase tracking-[0.4em] opacity-40">
+                                    <label className="text-[10px] font-bold text-navy-900 tracking-wide opacity-50">
                                         Contraseña
                                     </label>
 

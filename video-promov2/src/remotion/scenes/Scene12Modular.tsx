@@ -171,7 +171,7 @@ export const Scene12Modular: React.FC = () => {
         {/* 1 — Título */}
         <div style={{
           textAlign: "center",
-          transform: `translateY(${titleY}px)`,
+          transform: `translateY(${titleY}px) scale(${1 + Math.sin(frame / 20) * 0.01})`,
           opacity: titleOp,
           paddingBottom: 6,
         }}>

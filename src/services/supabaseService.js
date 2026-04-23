@@ -598,7 +598,7 @@ export async function getBusinessSchedule(businessId) {
         if (!id) return null;
         const { data, error } = await supabase
             .from('businesses')
-            .select('schedule_start, schedule_end, schedule_days')
+            .select('name, schedule_start, schedule_end, schedule_days')
             .eq('id', id)
             .single();
         if (error || !data) return null;
@@ -665,6 +665,24 @@ export async function getNotifications() {
 
     if (error) throw error;
     return data || [];
+}
+
+export async function markOneNotificationRead(id) {
+    const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
+}
+
+export async function deleteOneNotification(id) {
+    const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
 }
 
 export async function markNotificationsRead() {
@@ -943,10 +961,10 @@ export async function getPatientsForAuditLog() {
 export async function getPatientsForConversations() {
     const { data, error } = await supabase
         .from('patients')
-        .select('id, display_name, human_takeover, patient_phones(phone, is_primary)')
+        .select('id, display_name, human_takeover, created_at, patient_phones(phone, is_primary)')
         .eq('business_id', getBID())
         .is('deleted_at', null)
-        .order('display_name');
+        .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];

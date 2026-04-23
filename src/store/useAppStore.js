@@ -51,6 +51,9 @@ export const useAppStore = create((set) => ({
     businessId: '',
     setBusinessId: (id) => set({ businessId: id }),
 
+    businessName: '',
+    setBusinessName: (name) => set({ businessName: name }),
+
     // T-38: Horario del negocio leído de DB al login — evita hardcodear 09:00-18:00.
     // schedule_start / schedule_end vienen de businesses.schedule_start / schedule_end (TIME).
     // schedule_days: array de días habilitados (0=Dom … 6=Sáb), para deshabilitar picker.
@@ -79,6 +82,7 @@ export const useAppStore = create((set) => ({
     setBusinessStatus: (status) => set({ businessStatus: status }),
     clearAuth: () => set({
         user: null, profile: null, loading: false, businessStatus: 'active',
+        businessName: '',
         businessHours: { schedule_start: '09:00', schedule_end: '18:00', schedule_days: [1,2,3,4,5] },
     }),
 

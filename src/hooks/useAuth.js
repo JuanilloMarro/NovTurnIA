@@ -1,10 +1,12 @@
 import { useAppStore } from '../store/useAppStore';
+import { useToastStore } from '../store/useToastStore';
 import { supabase } from '../config/supabase';
 import { getBusinessStatus, getBusinessSchedule } from '../services/supabaseService';
 import * as Sentry from '@sentry/react';
 
 // T-20: setBusinessId leído del store en lugar de config/supabase.js
-const setBusinessId = (id) => useAppStore.getState().setBusinessId(id);
+const setBusinessId   = (id)   => useAppStore.getState().setBusinessId(id);
+const setBusinessName = (name) => useAppStore.getState().setBusinessName(name);
 
 // T-38: normaliza un valor de tiempo al formato 'HH:MM'.
 // Soporta: integer < 24 (horas: 8 → '08:00'),
@@ -67,7 +69,8 @@ export function useAuth() {
                 getBusinessSchedule(staffProfile.business_id),
             ]);
             setBusinessStatus(planStatus);
-            applyBusinessHours(schedule); // no-op si es null
+            applyBusinessHours(schedule);
+            if (schedule?.name) setBusinessName(schedule.name);
             setAuth(data.user, staffProfile);
             Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
         } catch (err) {
@@ -78,6 +81,7 @@ export function useAuth() {
     }
 
     async function logout() {
+        useToastStore.getState().resetForNewSession();
         await supabase.auth.signOut();
         setBusinessId('');
         clearAuth();
@@ -113,6 +117,7 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
                 ]);
                 setBusinessStatus(planStatus);
                 applyBusinessHours(schedule);
+                if (schedule?.name) setBusinessName(schedule.name);
                 setAuth(session.user, staffProfile);
                 Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
             } else {
@@ -130,6 +135,7 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
     // Escuchar cambios de sesión
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         if (event === 'SIGNED_OUT') {
+            useToastStore.getState().resetForNewSession();
             setBusinessId('');
             clearAuth();
         } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
@@ -150,6 +156,7 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
                         ]);
                         setBusinessStatus(planStatus);
                         applyBusinessHours(schedule);
+                        if (schedule?.name) setBusinessName(schedule.name);
                         setAuth(currentSession.user, profile);
                     }
                 } catch (e) {

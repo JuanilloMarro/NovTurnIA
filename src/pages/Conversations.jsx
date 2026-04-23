@@ -31,7 +31,7 @@ export default function Conversations() {
     const [patients, setPatients] = useState([]);
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('all');
-    const [sortOrder, setSortOrder] = useState('a-z');
+    const [sortOrder, setSortOrder] = useState('recent');
     const [showFilter, setShowFilter] = useState(false);
     const filterRef = useRef(null);
     const { canToggleAi } = usePermissions();
@@ -162,12 +162,15 @@ export default function Conversations() {
             return true;
         })
         .sort((a, b) => {
+            if (sortOrder === 'recent') {
+                return new Date(b.created_at) - new Date(a.created_at);
+            }
             const na = (a.display_name || '').toLowerCase();
             const nb = (b.display_name || '').toLowerCase();
             return sortOrder === 'z-a' ? nb.localeCompare(na) : na.localeCompare(nb);
         });
 
-    const isFiltering = filter !== 'all' || sortOrder !== 'a-z';
+    const isFiltering = filter !== 'all' || sortOrder !== 'recent';
     const filterLabel = FILTER_OPTIONS.find(o => o.id === filter)?.label || 'Todos';
 
     // Paciente seleccionado con override del mapa global aplicado
@@ -222,7 +225,7 @@ export default function Conversations() {
                                         {isFiltering && (
                                             <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
                                                 <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
-                                                <button onClick={() => { setFilter('all'); setSortOrder('a-z'); setShowFilter(false); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
+                                                <button onClick={() => { setFilter('all'); setSortOrder('recent'); setShowFilter(false); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
                                             </div>
                                         )}
                                         {/* Sección Estado */}
@@ -244,7 +247,7 @@ export default function Conversations() {
                                         <div className="px-2 pt-1 pb-1">
                                             <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Orden</span>
                                         </div>
-                                        {[{ id: 'a-z', label: 'De la A-Z' }, { id: 'z-a', label: 'De la Z-A' }].map(opt => (
+                                        {[{ id: 'recent', label: 'Más recientes' }, { id: 'a-z', label: 'De la A-Z' }, { id: 'z-a', label: 'De la Z-A' }].map(opt => (
                                             <div
                                                 key={opt.id}
                                                 onClick={() => setSortOrder(opt.id)}

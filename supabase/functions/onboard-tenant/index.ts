@@ -93,10 +93,10 @@ serve(async (req) => {
       admin_email,
       admin_name,
       admin_password,
-      plan = 'starter',
+      plan = 'basic',
       timezone = 'America/Guatemala',
-      schedule_start = '09:00',
-      schedule_end = '18:00',
+      schedule_start = 9,
+      schedule_end = 18,
       schedule_days = [1, 2, 3, 4, 5], // Lun–Vie
     } = await req.json();
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getNotifications, markNotificationsRead, clearNotifications } from '../services/supabaseService';
+import { getNotifications, markNotificationsRead, clearNotifications, markOneNotificationRead, deleteOneNotification } from '../services/supabaseService';
 
 let toastId = 0;
 
@@ -56,6 +56,26 @@ export const useToastStore = create((set, get) => ({
     clearActivityLog: async () => {
         set({ activityLog: [], unreadCount: 0 });
         try { await clearNotifications(); } catch (err) { console.error('Failed to clear notifications:', err.message); }
+    },
+
+    markOneRead: async (id) => {
+        set((state) => {
+            const updated = state.activityLog.map(a => a.id === id ? { ...a, read: true } : a);
+            return { activityLog: updated, unreadCount: updated.filter(a => !a.read).length };
+        });
+        try { await markOneNotificationRead(id); } catch (err) { console.error('markOneRead failed:', err.message); }
+    },
+
+    deleteOne: async (id) => {
+        set((state) => {
+            const updated = state.activityLog.filter(a => a.id !== id);
+            return { activityLog: updated, unreadCount: updated.filter(a => !a.read).length };
+        });
+        try { await deleteOneNotification(id); } catch (err) { console.error('deleteOne failed:', err.message); }
+    },
+
+    resetForNewSession: () => {
+        set({ activityLog: [], unreadCount: 0, _loaded: false });
     },
 }));
 

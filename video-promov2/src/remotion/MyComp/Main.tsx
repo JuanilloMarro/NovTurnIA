@@ -79,19 +79,19 @@ export const NovTurnVideo: React.FC = () => {
         />
       </Sequence>
 
-      {/* ── MÚSICA DE FONDO ── */}
-      {/* <Audio
-        src={staticFile("music.mp3")}
+      {/* ── MÚSICA DE FONDO ── ambiente sutil, no compite con vo ni sfx */}
+      <Audio
+        src={staticFile("music/lumen-night-hartzmann-main-version-46828-02-35.mp3")}
         loop
         volume={(f) =>
           interpolate(
             f,
             [0, fps * 1.5, durationInFrames - fps * 2, durationInFrames],
-            [0, 0.35, 0.35, 0],
+            [0, 0.15, 0.15, 0],
             { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
           )
         }
-      /> */}
+      />
 
 
       {/* ══════════════════════════════════════════════════════════

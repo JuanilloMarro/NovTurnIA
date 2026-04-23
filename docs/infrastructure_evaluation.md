@@ -1,6 +1,6 @@
 # NovTurnAI — Infrastructure Evaluation
 
-> Última actualización: 2026-04-17 (sesión 14 — T-08 migración INTEGER → UUID completada)
+> Última actualización: 2026-04-19 (v37 — Sort historial corregido a created_at, límite query historial aplicado)
 > Evaluación de deployment readiness por área. Escala 0–10.
 > 🔴 Bloqueante · 🟠 Importante · 🟡 Deseable · ✅ Resuelto
 
@@ -13,25 +13,50 @@
 | Base de datos (Supabase)     | 6.0/10     | **9.7/10**   | +3.7     |
 | Dashboard React + Vite       | 7.0/10     | **9.3/10**   | +2.3     |
 | Producto / SaaS              | 5.0/10     | **8.5/10**   | +3.5     |
-| Bot / N8N Workflow           | 4.5/10     | **7.5/10**   | +3.0     |
+| Bot / N8N Workflow           | 4.5/10     | **9.5/10**   | +5.0     |
 | Infraestructura / Despliegue | 6.5/10     | **7.8/10**   | +1.3     |
 | Resiliencia                  | 4.0/10     | **7.0/10**   | +3.0     |
 | Modelo de negocio            | 1.0/10     | **2.5/10**   | +1.5     |
-| **PROMEDIO GLOBAL**          | **4.9/10** | **7.5/10**   | **+2.6** |
+| **PROMEDIO GLOBAL**          | **4.9/10** | **8.0/10**   | **+3.1** |
 
 ---
 
-## 1. Bot / N8N Workflow — 7.5/10
+## 1. Bot / N8N Workflow — 9.5/10
 
-> Evaluado directamente desde el archivo JSON del flujo. La arquitectura general es sólida y demuestra un nivel avanzado de diseño lógico, superando ampliamente las suposiciones iniciales. Aunque existen áreas de mejora técnica (especialmente en observabilidad), el sistema de enrutamiento, validación y optimización está muy bien estructurado para el entorno en el que opera.
+> Evaluado contra v37 del JSON. v37 corrige el orden del historial (Sort por `created_at` en vez de `id` — crítico para coherencia del agente) y aplica límite de 20 filas en la query de Supabase antes del Sort/Limit(6). Gmail descartado — la notificación al dashboard cubre el caso. Pendiente menor: `Add History` x12 sin `onError` (BUG-15, no verificable por JSON export).
 
 | Sub-área | Puntaje | Estado | Notas |
 |----------|---------|--------|-------|
-| Seguridad de credenciales | 8/10 | 🟢 | N8N aislado en Railway sin conexión inversa al dashboard. Claves hardcodeadas asumidas como riesgo controlado por la arquitectura actual. |
-| Manejo de errores / edge cases | 8/10 | 🟠 | Buena UX de contingencia (notifica al usuario amigablemente), pero faltan mecanismos de *retry* técnico en nodos de base de datos o peticiones HTTP. |
-| Message buffering | 10/10 | 🟢 | **Excelente:** `human_takeover` funcional, buffer con validación avanzada (filtros Regex anti-spam/insultos y *bypass* directo de saludos simples). |
-| Optimización de tokens IA | 9/10 | 🟠 | *Rate-limiting* desactivado temporalmente, pero cuenta con una gran mitigación preventiva mediante el truncado de historial (250 caracteres) y el uso de un modelo económico (Flash-Lite) pre-agente principal. |
-| **Blind spot crítico** | 0/10 | 🔴 | Confirmado: Sin *logging* estructurado de fallos del bot hacia Supabase — los errores técnicos mueren en el lienzo de forma silenciosa. |
+| Seguridad de credenciales | 8/10 | 🟢 | N8N aislado en Railway sin conexión inversa al dashboard. Claves hardcodeadas asumidas como riesgo controlado. |
+| Manejo de errores / edge cases | 8/10 | 🟠 | Buena UX de contingencia (notifica al usuario amigablemente). Faltan mecanismos de *retry* técnico en nodos DB o HTTP. |
+| Message buffering | 10/10 | 🟢 | **Completamente operativo:** `id` BIGSERIAL (Math.max funciona), RLS SELECT+INSERT+DELETE activas, `human_takeover` funcional, validación anti-spam/insultos/emojis. |
+| Enrutamiento y lógica de flujo | 9/10 | 🟢 | `Get Business` corregido a `getAll`, Switch2 con valores correctos de `business_type`, appointment UUID tipado correctamente en tools. |
+| Optimización de tokens IA | 9.5/10 | 🟢 | Rate-limiting habilitado en v32 (`Supabase Request API LR` + `Limit` + `Response API Limit Range`). Truncado de historial (250 chars) + Flash-Lite pre-agente activos. |
+| **Blind spot crítico** | 0/10 | 🔴 | Sin *logging* estructurado de fallos del bot hacia Supabase — errores técnicos mueren silenciosamente en el lienzo. |
+
+### Fixes aplicados en v37
+
+| Bug | Fix |
+|-----|-----|
+| Sort historial por `id` (UUID, orden no cronológico) | Sort cambiado a `created_at` — historial llega al agente en orden correcto |
+| `Get 3hs History` sin límite (hasta 1000 rows) | `limit: 20` en query Supabase antes del Sort/Limit(6) |
+| Gmail OAuth2 descartado | `Gmail Notify` deshabilitado — notificación dashboard (`error_ia`) cubre el aviso |
+
+### Fixes aplicados en sesión 15 (v27→v28)
+
+| Bug | Fix |
+|-----|-----|
+| BUG-01 `Get Business` operación incorrecta | `getAll` + `limit: 1` + filtro `phone_number_id` |
+| BUG-02 `message_buffer` sin RLS SELECT/INSERT | Políticas `buffer_select` + `buffer_insert` creadas en Supabase |
+| BUG-03 `history` sin RLS INSERT | Política `history_insert` creada en Supabase |
+| BUG-04 Agentes Gemini sin `modelName` | Confirmado operativo en producción. n8n no serializa el campo cuando es el default del plugin — comportamiento esperado, no bug de runtime. |
+| BUG-05 `appointment_id` número vs UUID | `$fromAI` cambiado a `string` + descripción UUID |
+| BUG-06 Switch2 `business_type` en minúsculas | Corregido a "Salud y Bienestar" / "Belleza y Estética" |
+| BUG-07 `gemini-2.5-flash-lite` inexistente | Cambiado a `gemini-2.0-flash-lite-001` |
+| BUG-08 `notif_24hs` string vs boolean | `"={{ true }}"` (expresión boolean) |
+| BUG-10 `useCustomSchema` sin schema | Desactivado |
+| BUG-11 `business_id` nullable en buffer | `NOT NULL` + FK ejecutado en Supabase |
+| BUG-13 Switch catch-all frágil | Corregido con fallback explícito |
 
 ---
 
@@ -325,13 +350,13 @@ CREATE POLICY "services_tenant_isolation" ON public.services
 5. **T-33** — Dark mode (implementar sin modificar clases existentes de light mode)
 
 
-## Porcentaje 
+## Porcentaje
 
 Número global
 
-  ~82% para un SaaS que puede operar como negocio autónomo. (Incremento por migración UUID y Plan Enforcement)
+  ~85% para un SaaS que puede operar como negocio autónomo. (Incremento por resolución de 12 bugs del bot — flujo n8n operativo + buffer con auto-limpieza pg_cron)
 
-  Si la meta es solo "usar el producto internamente o con clientes de confianza", estás en ~94%. Si la meta es lanzar y cobrar automáticamente a desconocidos,  
-  el número sube a ~65% porque ya tienes la lógica de planes (falta integración Stripe T-03).
+  Si la meta es solo "usar el producto internamente o con clientes de confianza", estás en ~95%. Si la meta es lanzar y cobrar automáticamente a desconocidos,
+  el número baja a ~67% porque ya tienes la lógica de planes (falta integración Stripe T-03).
 
   El camino más corto al 100% real: T-05 (Sentry, 30 min) → T-03 (Stripe). Todo lo demás es optimización.

@@ -1,93 +1,33 @@
-# NovTurnAI — Tareas Pendientes n8n 
-# claude --resume ccd8a1e5-d9ce-4072-8170-4919e9454c74
-
-> Actualizado: 2026-04-13
+# NovTurnAI — Tareas Pendientes n8n
+> Actualizado: 2026-04-19 (v41 — BUG-18 resuelto; audio transcription + auto-cancel + dashboard notifications incorporados; BUG-21/22 detectados)
 > Prioridades: 🔴 Crítico · 🟠 Alto · 🟡 Medio · ⏭ Decisión tomada
 > Completadas → ver historial al final del documento
 
 ---
 
-## Resumen
+## Pendientes activos
 
-| Prioridad | Tareas | Estado |
-|-----------|--------|--------|
-| 🔴 Crítico | 1 | Pendiente |
-| 🟠 Alto | 2 | Pendiente |
-| 🟡 Medio | 1 | Pendiente |
-| ⏭ Decisión tomada | 4 | No aplica |
+| # | Bug | Prioridad | Estado |
+|---|-----|-----------|--------|
+| BUG-21 | `Groq Chat Model2` sin `model` — Text Classifier O falla en runtime | 🔴 | Pendiente |
+| BUG-22 | Notificaciones URGENCIA/QUEJA/PIDE_HUMANO/DOMICILIO con `type: error_ia` — indistinguibles en dashboard | 🟠 | Pendiente |
+| BUG-15 | `Add History` (x12) sin `onError` — fallo silencioso si Supabase rechaza INSERT | 🟡 | Sin confirmar en v41 |
+| N-06 | Billing Gemini/Groq compartido | 🟡 | Futuro |
 
 ---
 
 ## 🔴 Críticos
-
 ---
-
-### N-02 🔴 Tokens hardcodeados — Meta y Groq en texto plano
-
-**Problema:** Tres tokens están expuestos en texto plano en el JSON del workflow:
-
-| Nodo | Token | Tipo |
-|------|-------|------|
-| `HTTP Request Audio` | `Bearer EAAc5t4ma4t4...` | Meta/WhatsApp |
-| `Transcribe Audio` | `Bearer gsk_mcg9Oek...` | Groq API |
-| `Send Template Reminder` | `Bearer EAAc5t4ma4t4...` | Meta/WhatsApp (duplicado) |
-
-Riesgos: cualquier persona con acceso al JSON tiene las credenciales. Billing de Groq y Meta compartido entre todos los clientes sin visibilidad por negocio.
-
-**Solución corto plazo (MVP):** Mover a credenciales de n8n (`Credentials > HTTP Header Auth`) para que no aparezcan en el JSON exportado.
-
-**Solución largo plazo (multi-tenant real):** Guardar tokens por negocio en Supabase (`businesses.meta_token`, `businesses.groq_token`) y leerlos dinámicamente con `$('Get Business').first().json.meta_token`.
-
-**Esfuerzo:** Bajo para credenciales n8n · Alto para multi-tenant por negocio
-
----
-
-
 
 ## 🟠 Altos
 
----
 
-### N-04 🟠 Rate limiting — nodos existen pero están deshabilitados
-
-**Problema:** Los nodos de rate limiting (`Supabase Request API LR`, nodo `If` de verificación, `Response API Limit Range`) ya están creados en el workflow pero tienen `"disabled": true`. La tabla `api_rate_limits` existe en Supabase. Un usuario puede enviar mensajes sin límite, generando costos de Gemini sin control.
-
-**Solución:**
-1. Habilitar los 3 nodos deshabilitados en n8n
-2. Conectarlos al flujo principal: después del buffer y antes del AI Agent
-3. Verificar que el nodo `If` evalúa correctamente el límite por `(phone, business_id, fecha)`
-4. Verificar que `Response API Limit Range` responde al usuario cuando se supera el límite
-
-**Esfuerzo:** Medio (requiere probar el flujo con el límite activo)
-
----
-
-### N-05 🟠 Gmail OAuth2 — pendiente URL fija en Railway
-
-**Problema:** La credencial Gmail OAuth2 requiere una URL de callback fija para la autorización. En desarrollo local la URL cambia. Hasta tener el VPS en Railway con dominio fijo, Gmail no puede autorizarse correctamente.
-
-**Solución:** Una vez deployado en Railway:
-1. Obtener la URL fija del dominio
-2. Configurar la URL de callback en Google Cloud Console
-3. Re-autorizar la credencial Gmail en n8n con la nueva URL
-
-**Esfuerzo:** Bajo (configuración, no código)
-**Bloqueado por:** Deploy en Railway
-
----
-
-## 🟡 Medio
-
----
+## 🟡 Medios
 
 ### N-06 🟡 Billing Gemini/Groq compartido — sin visibilidad por cliente
 
-**Problema:** Todos los negocios usan las mismas credenciales de Gemini y Groq. No es posible saber cuánto consume cada cliente ni cobrarles proporcionalmente al uso de IA.
-
-**Solución cuando escale:** Crear credenciales separadas por cliente o instrumentar un contador de tokens por `business_id` en Supabase para facturación proporcional.
-
-**Esfuerzo:** Alto
-**Ventana:** Cuando haya 5+ clientes activos
+**Problema:** Todos los negocios usan las mismas credenciales. No hay forma de saber cuánto consume cada cliente.  
+**Ventana:** Cuando haya 5+ clientes activos.
 
 ---
 
@@ -95,47 +35,80 @@ Riesgos: cualquier persona con acceso al JSON tiene las credenciales. Billing de
 
 | Item | Decisión |
 |------|----------|
-| Recordatorios 24hs desactivados | WhatsApp cobra por templates. Confirmación manual por ahora. |
-| Get Reminder Confirmation bug (patient_id = phone) | Flujo de recordatorios desactivado — irrelevante. |
-| Emoji regex | Resuelto en v19 con rangos Unicode extendidos. |
-| Separar tokens por negocio (multi-tenant billing) | Futuro, no urgente para MVP. |
+| BUG-4 `Activate Handoff` sin `onError` | Aceptado — UPDATE simple boolean false→true, riesgo de fallo prácticamente nulo. |
+| BUG-16 `Number($json) > 5` en rate limit | Aceptado — comportamiento depende de si RPC retorna escalar; threshold=5 msg/hora es conservador. |
+| Limit historial en 6 items | Aceptado — 6 es suficiente para el contexto del agente; 10 no aporta mejora significativa. |
+| `Google Gemini Chat Model1` sin `modelName` | Mismo comportamiento que BUG-04 — n8n no serializa el modelo default; funciona en runtime. |
+| N-05 Gmail OAuth2 | Descartado — notificación al dashboard (`error_ia`) cubre el aviso al operador. |
+
+| Item | Decisión |
+|------|----------|
+| Recordatorios 24hs deshabilitados | Costo de WhatsApp templates. Nodos `disabled` intencionalmente. |
+| Tokens Meta/Groq hardcodeados | Sin dashboard público, no hay vector de ataque real. |
+| Billing separado por negocio | Futuro, no urgente para MVP. |
+| BUG-09 doble historial en handoff | **No es bug.** `Human Takeover?` y `Add History` son paths mutuamente excluyentes. Correcto. |
 
 ---
 
-## Historial de tareas completadas
+## ✅ Historial de bugs resueltos
 
-### ✅ Multi-tenant — DB
+### v41 — 2026-04-19
 
-| Task | Descripción |
-|------|-------------|
-| 5 columnas en `businesses` | `business_type`, `notification_email`, `custom_prompt`, `has_emergencias`, `plan_expires_at` |
-| `business_id` en `message_buffer` | Columna agregada, evita mezcla de mensajes entre negocios |
-| `business_id` en `patients` | Verificada y usada en Get Patient Data |
-| Clínica Novium actualizada | `business_type=salud`, `plan=pro`, `has_emergencias=true`, `notification_email` configurado |
+| Bug | Fix | Verificado |
+|-----|-----|-----------|
+| BUG-18 `Update Cancel` `business_id` en SET no WHERE | `business_id` movido a filtros WHERE + nodo repurposado para auto-cancelación programada | ✅ JSON v41 |
+| N-07 URGENCIA/QUEJA/PIDE_HUMANO/DOMICILIO sin notificación ni handoff | `Create Notification Dashboard` + `Activate Handoff` agregados al path de los 4 casos | ✅ JSON v41 |
 
-### ✅ Multi-tenant — n8n
+### v38/v39 — 2026-04-19
 
-| Task | Descripción |
-|------|-------------|
-| Revenue protection | `They pay?` verifica `plan`, `active` y `plan_expires_at` |
-| Switch por sector | `salud → belleza → otro`. Fallback a "Servicio en configuración" |
-| 3 Text Classifiers | Salud (4 cats), Belleza (5 cats + DOMICILIO), Otro (4 cats). Cada uno con Gemini |
-| 3 AI Agents | Salud, Belleza, Otro. Prompts dinámicos con nombre, horario y `custom_prompt` desde Supabase |
-| Second Switch por sector | Después de `Set History Format` rutea al agente correcto |
-| Handoff controlado | URGENCIA, QUEJA, PIDE_HUMANO y DOMICILIO notifican via Gmail siempre |
-| Gmail dinámico | `Send To` lee `notification_email` desde Supabase |
-| Horario dinámico | 3 agentes leen `schedule_days`, `schedule_start`, `schedule_end` desde Supabase |
+| Bug | Fix | Verificado |
+|-----|-----|-----------|
+| BUG-17 `Update Cancel` sin `cancelled_at` | Campo `cancelled_at: $now.toISO()` agregado | ✅ JSON v38 |
+| BUG-20 `Update Event` sin `cancelled_at` | Campo `cancelled_at: $now.toISO()` en S/B/O | ✅ JSON v39 |
+| BUG-19 `Schedule Trigger` + `Get many rows` huérfanos | `Schedule Trigger` deshabilitado hasta completar la feature | ✅ JSON v38 |
 
-### ✅ Fixes técnicos — n8n
+### v37 — 2026-04-19
 
-| Task | Descripción |
-|------|-------------|
-| Get Patient Data con `business_id` | `getAll` + filtro `business_id`, evita cruce de datos entre negocios |
-| Create/Get/Delete Message Buffer con `business_id` | Los 3 nodos filtran por negocio |
-| Error handling en 3 AI Agents | `continueErrorOutput` + `Response Error S/B/O` |
-| Historial a 10 mensajes | `Limit maxItems` actualizado de 6 a 10 |
-| Flujo cancelación multi-tenant | `Get Business F` getAll + `Loop Over Items` itera sobre todos los negocios activos |
-| Get Appointments status corregido | De `active` a `scheduled` en flujo de cancelación |
-| Get User condición vacía eliminada | Filtro limpio solo por phone |
-| Delete a row con `business_id` | Evita borrar buffer de otro negocio |
-| Emoji regex expandido | Cubre todos los rangos Unicode modernos |
+| Bug | Fix | Verificado |
+|-----|-----|-----------|
+| BUG-1 Sort historial por `id` (no cronológico) | Nodo `Sort` cambiado a `fieldName: created_at` | ✅ JSON v37 |
+| BUG-2 `Get 3hs History` sin límite en query | `limit: 20` configurado en el nodo Supabase | ✅ JSON v37 |
+| BUG-4 `Activate Handoff` sin `onError` | ⏭ Decisión: no handlearlo — UPDATE booleano de riesgo mínimo | ⏭ Aceptado |
+
+### v32 — 2026-04-19
+
+| Bug | Fix | Verificado |
+|-----|-----|-----------|
+| BUG-04 Agentes Gemini sin `modelName` | Confirmado operativo en producción. n8n no serializa `modelName` cuando es el valor por defecto del plugin LangChain — comportamiento esperado, no bug de runtime. JSON seguirá sin mostrarlo. | ✅ Bot funcional |
+| N-04 Rate limiting deshabilitado | Nodos `Supabase Request API LR`, `Limit`, `Response API Limit Range` habilitados (`disabled: false`) en v32 | ✅ JSON v32 |
+
+### v28 — 2026-04-18
+
+| Bug | Fix | Verificado |
+|-----|-----|-----------|
+| BUG-01 `Get Business` operation incorrecta | Cambiado a `getAll` + `limit: 1` + filtro `phone_number_id` | ✅ JSON v28 |
+| BUG-02 `message_buffer` sin RLS SELECT/INSERT | Políticas creadas en Supabase | ✅ MCP confirmado |
+| BUG-03 `history` sin RLS INSERT | Política `history_insert` creada | ✅ MCP confirmado |
+| BUG-05 `appointment_id` número vs UUID | `$fromAI` cambiado a `string` con descripción UUID | ✅ JSON v28 |
+| BUG-06 Switch2 lowercase vs title case | `rightValue` corregidos a "Salud y Bienestar" etc. | ✅ JSON v28 |
+| BUG-07 `gemini-2.5-flash-lite` inexistente | Cambiado a `gemini-2.0-flash-lite-001` | ✅ JSON v28 |
+| BUG-08 `notif_24hs` string vs boolean | `keyValue` cambiado a `={{ true }}` | ✅ JSON v28 |
+| BUG-09 Doble guardado en handoff | No era bug — paths mutuamente excluyentes | ✅ Aclarado |
+| BUG-10 `useCustomSchema` sin schema | Desactivado | ✅ Confirmado |
+| BUG-11 `business_id` nullable en buffer | `NOT NULL` + FK ejecutado en Supabase | ✅ Confirmado |
+| BUG-12 `expires_at` no filtrado en buffer | `pg_cron` job activo (schedule ID 5) — limpia cada minuto | ✅ 2026-04-18 |
+| BUG-13 Switch catch-all frágil | Corregido con fallback explícito | ✅ Confirmado |
+
+### v27 — anteriores
+
+| Fix | Descripción |
+|-----|-------------|
+| `message_buffer.id` BIGSERIAL | `Math.max(id)` funciona correctamente |
+| Política `buffer_delete` | DELETE en buffer operativo |
+| `status: "active"` en Create Event | Alineado con enum `appt_status` |
+| `patient_phones` incluye `business_id` | Evita cruce entre negocios |
+| Revenue protection | `They pay?` verifica `plan`, `active`, `plan_expires_at` |
+| 3 AI Agents multi-sector | Salud, Belleza, Otro con prompts dinámicos |
+| Handoff controlado | URGENCIA/QUEJA/PIDE_HUMANO/DOMICILIO notifican Gmail |
+| Historial 10 mensajes | `Limit maxItems = 10` |
+| Buffer multi-tenant | `business_id` en Create/Get/Delete del buffer |

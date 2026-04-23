@@ -221,7 +221,8 @@ export const Scene11Outro: React.FC = () => {
               lineHeight: 1,
               whiteSpace: "nowrap",
               opacity: nameOp,
-              transform: `translateX(${nameX}px)`,
+              transform: `translateX(${nameX}px) scale(${1 + Math.sin(frame / 20) * 0.01})`,
+              transformOrigin: "left center",
             }}>
               NovTurnIA
             </span>

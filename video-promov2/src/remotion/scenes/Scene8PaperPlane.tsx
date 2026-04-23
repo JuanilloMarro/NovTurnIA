@@ -142,7 +142,7 @@ export const Scene8PaperPlane: React.FC = () => {
         label="Estado" value="Entregado con éxito"
       />
 
-      {/* ── ICONO MAIL SEND CENTRADO ── */}
+      {/* ── ICONO CAMPANA CENTRADA (NOTIFICACIÓN) ── */}
       <div style={{
         position: "absolute", left: "50%", top: "50%",
         zIndex: 5,
@@ -154,19 +154,24 @@ export const Scene8PaperPlane: React.FC = () => {
           scale(${planeScale})
         `,
       }}>
-        <svg width={220} height={140} viewBox="0 0 40 30" fill="none" style={{ filter: "drop-shadow(0 20px 45px rgba(29,173,255,0.2))" }}>
-          <defs>
-            <linearGradient id="mailBody" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="100%" stopColor="#eef4fa" />
-            </linearGradient>
-          </defs>
-          <line x1="2" y1="11" x2="10" y2="11" stroke={COLORS.primary} strokeWidth={2.4} strokeLinecap="round" />
-          <line x1="5" y1="15" x2="10" y2="15" stroke={COLORS.primary} strokeWidth={2.4} strokeLinecap="round" />
-          <line x1="7" y1="19" x2="10" y2="19" stroke={COLORS.primary} strokeWidth={2.4} strokeLinecap="round" />
-          <rect x="11" y="7" width="26" height="18" rx="2" fill="url(#mailBody)" stroke={COLORS.primary} strokeWidth={2.8} />
-          <path d="M11 9 L24 18 L37 9" stroke={COLORS.primary} strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <div style={{
+          width: 140, height: 140, borderRadius: "50%", background: "white", 
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 25px 50px rgba(15,32,104,0.15)",
+          border: "2px solid rgba(255,255,255,0.8)",
+          color: COLORS.navy900
+        }}>
+          {/* Animación de campana más suave, sincronizada con el ritmo de aparición */}
+          <div style={{ 
+            transform: `rotate(${Math.sin(frame / 8) * 12}deg)`,
+            transformOrigin: "top center"
+          }}>
+            <svg width={64} height={64} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+          </div>
+        </div>
       </div>
     </AbsoluteFill>
   );

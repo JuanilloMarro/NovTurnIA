@@ -13,7 +13,7 @@ export const defaultMyCompProps: z.infer<typeof CompositionProps> = {
 // ~65 seconds × 60fps = 3900 frames (TransitionSeries subtracts overlaps)
 export const DURATION_IN_FRAMES = 3900;
 export const VIDEO_WIDTH = 1080;
-export const VIDEO_HEIGHT = 1350;
+export const VIDEO_HEIGHT = 1920;
 export const VIDEO_FPS = 60;
 
 // Design tokens — mirrors NovTurnIA system

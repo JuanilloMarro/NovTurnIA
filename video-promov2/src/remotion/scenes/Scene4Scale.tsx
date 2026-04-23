@@ -110,38 +110,42 @@ export const Scene4Scale: React.FC = () => {
         7. Der abajo        (145)
         8. Abajo centro     (160)
       */}
-      <ChatGroup x={540} y={320} delay={25} scale={0.78} rotation={1} />
+      <ChatGroup x={540} y={550} delay={25} scale={0.78} rotation={1} />
 
-      <ChatGroup x={180} y={410} delay={45} scale={0.85} rotation={2} />
-      <ChatGroup x={900} y={410} delay={65} scale={0.7} rotation={-2} />
+      <ChatGroup x={180} y={700} delay={45} scale={0.85} rotation={2} />
+      <ChatGroup x={900} y={700} delay={65} scale={0.7} rotation={-2} />
 
-      <ChatGroup x={260} y={670} delay={85} scale={0.75} rotation={-4} />
-      <ChatGroup x={820} y={670} delay={105} scale={0.85} rotation={5} />
+      <ChatGroup x={260} y={960} delay={85} scale={0.75} rotation={-4} />
+      <ChatGroup x={820} y={960} delay={105} scale={0.85} rotation={5} />
 
-      <ChatGroup x={200} y={930} delay={125} scale={0.8} rotation={3} />
-      <ChatGroup x={880} y={930} delay={145} scale={0.75} rotation={-4} />
+      <ChatGroup x={200} y={1220} delay={125} scale={0.8} rotation={3} />
+      <ChatGroup x={880} y={1220} delay={145} scale={0.75} rotation={-4} />
 
-      <ChatGroup x={540} y={1050} delay={160} scale={0.78} rotation={-1} />
+      <ChatGroup x={540} y={1370} delay={160} scale={0.78} rotation={-1} />
 
       {/* BLOQUE CENTRAL */}
       <AbsoluteFill style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{
-          width: 440,
-          background: "rgba(255, 255, 255, 0.5)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          borderRadius: 40,
-          padding: "50px 40px",
-          textAlign: "center",
-          border: "1px solid rgba(255, 255, 255, 0.8)",
-          boxShadow: "0 25px 60px rgba(15,32,68,0.08)",
-          transform: `scale(${interpolate(pop, [0, 1], [0.9, 1])}) translateY(${interpolate(pop, [0, 1], [20, 0])}px)`,
-          opacity: interpolate(pop, [0, 1], [0, 1]),
-          display: "flex",
-          flexDirection: "column",
-          gap: 20,
-          alignItems: "center",
-        }}>
+        {(() => {
+          const breathe = 1 + Math.sin(frame / 20) * 0.01;
+          const popScale = interpolate(pop, [0, 1], [0.9, 1]);
+          return (
+            <div style={{
+              width: 440,
+              background: "rgba(255, 255, 255, 0.5)",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+              borderRadius: 40,
+              padding: "50px 40px",
+              textAlign: "center",
+              border: "1px solid rgba(255, 255, 255, 0.8)",
+              boxShadow: "0 25px 60px rgba(15,32,68,0.08)",
+              transform: `scale(${popScale * breathe}) translateY(${interpolate(pop, [0, 1], [20, 0])}px)`,
+              opacity: interpolate(pop, [0, 1], [0, 1]),
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+              alignItems: "center",
+            }}>
           <h2 style={{
             fontFamily: "Inter", fontSize: 42, fontWeight: 800,
             color: COLORS.navy900, margin: 0, lineHeight: 1.1, letterSpacing: "-0.04em",
@@ -157,6 +161,8 @@ export const Scene4Scale: React.FC = () => {
             </span>
           </div>
         </div>
+          );
+        })()}
       </AbsoluteFill>
 
     </AbsoluteFill>

@@ -8,6 +8,7 @@ import {
   Audio,
   Sequence,
   staticFile,
+  Easing,
 } from "remotion";
 import { COLORS } from "../../../types/constants";
 
@@ -60,6 +61,21 @@ const SettingsIcon = ({ size = 14, color = "currentColor" }) => (
   </svg>
 );
 
+const LayersIcon = ({ size = 14, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+    <polyline points="2 17 12 22 22 17" />
+    <polyline points="2 12 12 17 22 12" />
+  </svg>
+);
+
+const ShieldCheckIcon = ({ size = 14, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
+
 const HistoryIcon = ({ size = 14, color = "currentColor" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
     <rect width="18" height="18" x="3" y="3" rx="2" />
@@ -72,12 +88,6 @@ const HistoryIcon = ({ size = 14, color = "currentColor" }) => (
 const ChevronLeftIcon = ({ size = 12 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
     <path d="m15 18-6-6 6-6" />
-  </svg>
-);
-
-const ChevronDownIcon = ({ size = 12 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-    <path d="m6 9 6 6 6-6" />
   </svg>
 );
 
@@ -105,6 +115,9 @@ const NAV_ITEMS = [
   { label: "Pacientes", Icon: UsersIcon, active: false },
   { label: "Conversaciones", Icon: MessageCircleIcon, active: false },
   { label: "Estadísticas", Icon: BarChart2Icon, active: false },
+  { label: "Servicios", Icon: LayersIcon, active: false },
+  { label: "Actividad", Icon: HistoryIcon, active: false },
+  { label: "Usuarios", Icon: ShieldCheckIcon, active: false },
   { label: "Configuración", Icon: SettingsIcon, active: false },
 ];
 
@@ -135,6 +148,14 @@ export const Scene5Dashboard: React.FC = () => {
     extrapolateRight: "clamp",
   });
 
+  // ─── DOLLY ZOOM 3D EFECTO ─────────────────────────────────────
+  // La escena dura unos ~250 frames típicos. Vamos a escalar con el frame.
+  const dollyScale = interpolate(frame, [0, 240], [1, 1.13]);
+  const dollyRotateX = interpolate(frame, [0, 240], [0, 8]); // Inclinar para que la parte inferior esté "cerca"
+  const dollyY = interpolate(frame, [0, 240], [0, -35]); // Sutil paneo hacia el centro/arriba
+
+  // ─── DEPTH OF FIELD (Focus Shift cuando entra la notificación) ──
+  const bgBlur = interpolate(frame, [notifTime, notifTime + 15], [0, 6], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.inOut(Easing.quad) });
 
   return (
     <AbsoluteFill style={{ overflow: "hidden", opacity: exitOpacity }}>
@@ -153,7 +174,8 @@ export const Scene5Dashboard: React.FC = () => {
           borderRadius: 40,
           border: "1px solid rgba(255, 255, 255, 0.75)",
           boxShadow: "0 30px 80px rgba(15,32,68,0.12), inset 0 2px 4px rgba(255,255,255,0.8)",
-          transform: `translateY(${macroY}px) scale(${macroScale})`,
+          transform: `perspective(1200px) translateY(${macroY + dollyY}px) scale(${macroScale * dollyScale}) rotateX(${dollyRotateX}deg)`,
+          transformOrigin: "center center",
           opacity: macroOpacity,
           display: "flex",
           overflow: "hidden",
@@ -169,6 +191,8 @@ export const Scene5Dashboard: React.FC = () => {
             display: "flex",
             flexDirection: "column",
             borderRight: "1px solid rgba(255,255,255,0.35)",
+            filter: `blur(${bgBlur}px)`,
+            transition: "filter 0.1s linear"
           }}>
             {/* Logo */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 36, paddingLeft: 6 }}>
@@ -186,289 +210,344 @@ export const Scene5Dashboard: React.FC = () => {
 
             {/* Nav */}
             <nav style={{ display: "flex", flexDirection: "column", gap: 3, paddingLeft: 6 }}>
-              {NAV_ITEMS.map(({ label, Icon, active }) => (
-                <div key={label}>
-                  <div
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "9px 14px", borderRadius: 12,
-                      background: active ? "rgba(255,255,255,0.6)" : "transparent",
-                      color: active ? COLORS.navy900 : "rgba(15,32,104,0.38)",
-                      fontFamily: "Inter", fontWeight: 700, fontSize: 12,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <Icon size={14} color={active ? COLORS.navy900 : "rgba(15,32,104,0.38)"} />
-                      {label}
-                    </div>
-                    {label === "Configuración" && <ChevronDownIcon size={11} />}
-                  </div>
+              {NAV_ITEMS.map(({ label, Icon, active }, index) => {
+                // Entrada en cascada alineada al pop del macro contenedor (que empieza en frame 50)
+                const itemPop = spring({ frame: frame - (54 + index * 2), fps, config: { damping: 15, stiffness: 150 } });
+                const itemX = interpolate(itemPop, [0, 1], [-20, 0]);
+                const itemOpacity = interpolate(itemPop, [0, 1], [0, 1]);
 
-                  {/* Submenú desplegado (Solo para Configuración) */}
-                  {label === "Configuración" && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingLeft: 38, marginTop: 4, marginBottom: 6 }}>
-                      {[
-                        { sub: "Usuarios", SubIcon: UsersIcon },
-                        { sub: "Actividad", SubIcon: HistoryIcon },
-                      ].map(({ sub, SubIcon }) => (
-                        <div key={sub} style={{
-                          display: "flex", alignItems: "center", gap: 8,
-                          padding: "6px 0", fontFamily: "Inter", fontSize: 11.5,
-                          fontWeight: 600, color: "rgba(15,32,104,0.32)"
-                        }}>
-                          <SubIcon size={12} color="rgba(15,32,104,0.25)" />
-                          {sub}
-                        </div>
-                      ))}
+                return (
+                  <div key={label} style={{ transform: `translateX(${itemX}px)`, opacity: itemOpacity }}>
+                    <div
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "9px 14px", borderRadius: 12,
+                        background: active ? "rgba(255,255,255,0.6)" : "transparent",
+                        color: active ? COLORS.navy900 : "rgba(15,32,104,0.38)",
+                        fontFamily: "Inter", fontWeight: 700, fontSize: 12,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <Icon size={14} color={active ? COLORS.navy900 : "rgba(15,32,104,0.38)"} />
+                        {label}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </nav>
           </aside>
 
           {/* ── MAIN CONTENT ── */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "rgba(255,255,255,0.12)", minWidth: 0 }}>
-
-            {/* TOPBAR */}
-            <div style={{
-              height: 64, padding: "0 24px",
-              display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12,
-            }}>
-              {/* Bell */}
+            {/* Contenedor que agrupa todo excepto el Toast para el Blur */}
+            <div style={{ display: "flex", flexDirection: "column", height: "100%", filter: `blur(${bgBlur}px)` }}>
+              {/* TOPBAR */}
               <div style={{
-                height: 36, padding: "0 4px",
-                background: "rgba(255,255,255,0.65)", borderRadius: 100,
-                border: "1px solid rgba(255,255,255,0.7)",
-                display: "flex", alignItems: "center",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                height: 64, padding: "0 24px",
+                display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12,
               }}>
+                {/* Bell */}
                 <div style={{
-                  position: "relative", width: 28, height: 28, borderRadius: "50%",
-                  background: "white", display: "flex", alignItems: "center", justifyContent: "center",
-                  color: COLORS.navy900,
+                  height: 36, padding: "0 4px",
+                  background: "rgba(255,255,255,0.65)", borderRadius: 100,
+                  border: "1px solid rgba(255,255,255,0.7)",
+                  display: "flex", alignItems: "center",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
                 }}>
-                  <BellIcon size={13} />
-                  {frame >= notifTime && (
-                    <div style={{
-                      position: "absolute", top: -2, right: -2,
-                      background: "#EF4444", width: 12, height: 12, borderRadius: "50%",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 7, fontWeight: 800, color: "white",
-                      transform: `scale(${notifScale})`,
-                      boxShadow: "0 2px 5px rgba(239,68,68,0.4)",
-                      border: "1.5px solid white",
-                    }}>1</div>
-                  )}
+                  <div style={{
+                    position: "relative", width: 28, height: 28, borderRadius: "50%",
+                    background: "white", display: "flex", alignItems: "center", justifyContent: "center",
+                    color: COLORS.navy900,
+                  }}>
+                    <BellIcon size={13} />
+                    {frame >= notifTime && (
+                      <div style={{
+                        position: "absolute", top: -2, right: -2,
+                        background: "#EF4444", width: 12, height: 12, borderRadius: "50%",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 7, fontWeight: 800, color: "white",
+                        transform: `scale(${notifScale})`,
+                        boxShadow: "0 2px 5px rgba(239,68,68,0.4)",
+                        border: "1.5px solid white",
+                      }}>1</div>
+                    )}
+                  </div>
                 </div>
+
+                {/* Avatar */}
+                <div style={{
+                  width: 36, height: 36, borderRadius: 11, background: COLORS.navy900,
+                  color: "white", display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "Inter", fontWeight: 800, fontSize: 11, letterSpacing: "0.02em",
+                }}>JD</div>
               </div>
 
-              {/* Avatar */}
-              <div style={{
-                width: 36, height: 36, borderRadius: 11, background: COLORS.navy900,
-                color: "white", display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "Inter", fontWeight: 800, fontSize: 11, letterSpacing: "0.02em",
-              }}>JD</div>
-            </div>
-
-            {/* MODULE HEADER */}
-            <div style={{ padding: "0 24px 16px 24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <h3 style={{
-                    fontFamily: "Inter", fontSize: 16, fontWeight: 800,
-                    color: COLORS.navy900, margin: "0 0 2px 0",
-                  }}>Turnos</h3>
-                  <p style={{
-                    fontFamily: "Inter", fontSize: 9.5, fontWeight: 600,
-                    color: "rgba(15,32,104,0.4)", margin: 0,
-                    textTransform: "uppercase" as const, letterSpacing: "0.04em",
-                  }}>Gestión de citas de la clínica</p>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {/* Date nav pill */}
-                  <div style={{
-                    display: "flex", alignItems: "center",
-                    background: "white", borderRadius: 100,
-                    border: "1px solid rgba(0,0,0,0.05)", padding: "3px",
-                    height: 32, boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-                  }}>
-                    <div style={{
-                      width: 26, height: 26, borderRadius: "50%",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: "#f8fafc",
-                    }}>
-                      <ChevronLeftIcon size={11} />
-                    </div>
-                    <div style={{ padding: "0 10px", display: "flex", alignItems: "center", gap: 5 }}>
-                      <CalendarIcon size={11} color={COLORS.navy900} />
-                      <span style={{
-                        fontFamily: "Inter", fontSize: 9.5, fontWeight: 800,
-                        color: COLORS.navy900, textTransform: "capitalize" as const,
-                      }}>Octubre 2026</span>
-                    </div>
-                    <div style={{
-                      width: 26, height: 26, borderRadius: "50%",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: "#f8fafc",
-                    }}>
-                      <ChevronRightIcon size={11} />
-                    </div>
+              {/* MODULE HEADER */}
+              <div style={{ padding: "0 24px 16px 24px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <h3 style={{
+                      fontFamily: "Inter", fontSize: 16, fontWeight: 800,
+                      color: COLORS.navy900, margin: "0 0 2px 0",
+                    }}>Turnos</h3>
+                    <p style={{
+                      fontFamily: "Inter", fontSize: 9.5, fontWeight: 600,
+                      color: "rgba(15,32,104,0.4)", margin: 0,
+                      textTransform: "uppercase" as const, letterSpacing: "0.04em",
+                    }}>Gestión de citas de la clínica</p>
                   </div>
 
-                  {/* View toggle pill */}
-                  <div style={{
-                    display: "flex", alignItems: "center",
-                    background: "white", borderRadius: 100,
-                    border: "1px solid rgba(0,0,0,0.05)", padding: "3px", height: 32,
-                  }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {/* Date nav pill */}
                     <div style={{
-                      padding: "0 12px", height: 26, borderRadius: 100,
+                      display: "flex", alignItems: "center",
+                      background: "white", borderRadius: 100,
+                      border: "1px solid rgba(0,0,0,0.05)", padding: "3px",
+                      height: 32, boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                    }}>
+                      <div style={{
+                        width: 26, height: 26, borderRadius: "50%",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "#f8fafc",
+                      }}>
+                        <ChevronLeftIcon size={11} />
+                      </div>
+                      <div style={{ padding: "0 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                        <CalendarIcon size={11} color={COLORS.navy900} />
+                        <span style={{
+                          fontFamily: "Inter", fontSize: 9.5, fontWeight: 800,
+                          color: COLORS.navy900, textTransform: "capitalize" as const,
+                        }}>Octubre 2026</span>
+                      </div>
+                      <div style={{
+                        width: 26, height: 26, borderRadius: "50%",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "#f8fafc",
+                      }}>
+                        <ChevronRightIcon size={11} />
+                      </div>
+                    </div>
+
+                    {/* View toggle pill */}
+                    <div style={{
+                      display: "flex", alignItems: "center",
+                      background: "white", borderRadius: 100,
+                      border: "1px solid rgba(0,0,0,0.05)", padding: "3px", height: 32,
+                    }}>
+                      <div style={{
+                        padding: "0 12px", height: 26, borderRadius: 100,
+                        background: "white", display: "flex", alignItems: "center",
+                        fontFamily: "Inter", fontSize: 9.5, fontWeight: 800, color: COLORS.navy900,
+                        border: "1px solid rgba(0,0,0,0.05)",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                      }}>Día</div>
+                      <div style={{ padding: "0 12px", fontFamily: "Inter", fontSize: 9.5, fontWeight: 700, color: "rgba(0,0,0,0.28)" }}>Semana</div>
+                      <div style={{ padding: "0 12px", fontFamily: "Inter", fontSize: 9.5, fontWeight: 700, color: "rgba(0,0,0,0.28)" }}>Mes</div>
+                    </div>
+
+                    {/* Add button */}
+                    <div style={{
+                      padding: "0 14px", height: 32, borderRadius: 100,
                       background: "white", display: "flex", alignItems: "center",
                       fontFamily: "Inter", fontSize: 9.5, fontWeight: 800, color: COLORS.navy900,
                       border: "1px solid rgba(0,0,0,0.05)",
-                      boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
-                    }}>Día</div>
-                    <div style={{ padding: "0 12px", fontFamily: "Inter", fontSize: 9.5, fontWeight: 700, color: "rgba(0,0,0,0.28)" }}>Semana</div>
-                    <div style={{ padding: "0 12px", fontFamily: "Inter", fontSize: 9.5, fontWeight: 700, color: "rgba(0,0,0,0.28)" }}>Mes</div>
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    }}>+ Agregar Turno</div>
                   </div>
-
-                  {/* Add button */}
-                  <div style={{
-                    padding: "0 14px", height: 32, borderRadius: 100,
-                    background: "white", display: "flex", alignItems: "center",
-                    fontFamily: "Inter", fontSize: 9.5, fontWeight: 800, color: COLORS.navy900,
-                    border: "1px solid rgba(0,0,0,0.05)",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                  }}>+ Agregar Turno</div>
                 </div>
               </div>
-            </div>
 
-            {/* CALENDAR PANEL */}
-            <div style={{
-              flex: 1, margin: "0 24px 24px 24px",
-              background: "white", borderRadius: 24,
-              border: "1px solid rgba(0,0,0,0.04)",
-              boxShadow: "0 8px 30px rgba(0,0,0,0.04)",
-              display: "flex", flexDirection: "column", overflow: "hidden",
-            }}>
-              {/* Day header */}
+              {/* CALENDAR PANEL */}
               <div style={{
-                height: 52, borderBottom: "1px solid rgba(0,0,0,0.04)",
-                display: "flex", alignItems: "center", padding: "0 20px", gap: 12,
+                flex: 1, margin: "0 24px 24px 24px",
+                background: "white", borderRadius: 24,
+                border: "1px solid rgba(0,0,0,0.04)",
+                boxShadow: "0 8px 30px rgba(0,0,0,0.04)",
+                display: "flex", flexDirection: "column", overflow: "hidden",
               }}>
+                {/* Day header */}
                 <div style={{
-                  width: 30, height: 30, borderRadius: 9, background: COLORS.navy900,
-                  color: "white", display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "Inter", fontWeight: 800, fontSize: 14,
-                }}>12</div>
-                <div>
+                  height: 52, borderBottom: "1px solid rgba(0,0,0,0.04)",
+                  display: "flex", alignItems: "center", padding: "0 20px", gap: 12,
+                }}>
                   <div style={{
-                    fontFamily: "Inter", fontSize: 10, fontWeight: 800,
-                    color: COLORS.navy900, textTransform: "uppercase" as const, letterSpacing: "0.04em",
-                  }}>Miércoles</div>
-                  <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "rgba(0,0,0,0.32)" }}>
-                    Octubre de 2026
+                    width: 30, height: 30, borderRadius: 9, background: COLORS.navy900,
+                    color: "white", display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "Inter", fontWeight: 800, fontSize: 14,
+                  }}>12</div>
+                  <div>
+                    <div style={{
+                      fontFamily: "Inter", fontSize: 10, fontWeight: 800,
+                      color: COLORS.navy900, textTransform: "uppercase" as const, letterSpacing: "0.04em",
+                    }}>Miércoles</div>
+                    <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "rgba(0,0,0,0.32)" }}>
+                      Octubre de 2026
+                    </div>
+                  </div>
+                </div>
+
+                {/* Time grid */}
+                <div style={{ flex: 1, display: "flex", position: "relative" }}>
+                  {/* Hour gutter */}
+                  <div style={{ width: 60, borderRight: "1px solid rgba(0,0,0,0.04)", paddingTop: 8, flexShrink: 0 }}>
+                    {[9, 10, 11, 12, 1, 2, 3].map(h => (
+                      <div key={h} style={{
+                        height: 72, textAlign: "right", paddingRight: 12,
+                        fontFamily: "Inter", fontSize: 9.5, fontWeight: 700,
+                        color: "rgba(0,0,0,0.2)",
+                      }}>{h}:00</div>
+                    ))}
+                  </div>
+
+                  {/* Grid cells + events */}
+                  <div style={{ flex: 1, position: "relative" }}>
+                    {/* Hour lines */}
+                    {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} style={{
+                        position: "absolute", top: i * 72, left: 0, right: 0,
+                        height: 1, background: "rgba(0,0,0,0.025)",
+                      }} />
+                    ))}
+
+                    {/* Evento 1 — María López (confirmado, borde emerald) */}
+                    {(() => {
+                      const evt1Pop = spring({ frame: frame - 60, fps, config: { damping: 15, stiffness: 140 } });
+                      return (
+                        <div style={{
+                          position: "absolute", top: 8, left: 10, right: 10, height: 56,
+                          background: "white",
+                          border: "1px solid rgba(0,0,0,0.04)",
+                          borderLeft: `3px solid #10B981`,
+                          borderRadius: "2px 12px 12px 2px",
+                          padding: "10px 14px",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                          transform: `translateY(${interpolate(evt1Pop, [0, 1], [15, 0])}px)`,
+                          opacity: interpolate(evt1Pop, [0, 1], [0, 1])
+                        }}>
+                          <div style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 800, color: COLORS.navy900, marginBottom: 2 }}>
+                            María López
+                          </div>
+                          <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "#10B981" }}>
+                            9:00 AM · Confirmado
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Evento 2 — Juan Pérez (agendado por IA, pop in) */}
+                    {frame >= eventTime && (() => {
+                      const popEvent = spring({ frame: frame - eventTime, fps, config: { damping: 10, stiffness: 120 } });
+                      return (
+                        <div style={{
+                          position: "absolute", top: 80, left: 10, right: 10, height: 56,
+                          background: "white",
+                          border: "1px solid rgba(16,185,129,0.18)",
+                          borderLeft: "3px solid #10B981",
+                          borderRadius: "2px 12px 12px 2px",
+                          padding: "10px 14px",
+                          boxShadow: "0 8px 24px rgba(16,185,129,0.12)",
+                          transform: `scale(${interpolate(popEvent, [0, 1], [0.85, 1])})`,
+                          transformOrigin: "top center",
+                          opacity: interpolate(popEvent, [0, 1], [0, 1]),
+                          zIndex: 10,
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 800, color: COLORS.navy900 }}>
+                              Juan Diego
+                            </span>
+                            <span style={{
+                              background: "#DCF8C6", padding: "1px 7px", borderRadius: 6,
+                              fontFamily: "Inter", fontSize: 8, fontWeight: 800, color: "#166534",
+                              letterSpacing: "0.02em",
+                            }}>IA ✨</span>
+                          </div>
+                          <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "#10B981", marginTop: 2 }}>
+                            10:00 AM · Confirmado
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Evento 3 — Carlos Ruiz (pendiente, borde amarillo) */}
+                    {(() => {
+                      const evt3Pop = spring({ frame: frame - 65, fps, config: { damping: 15, stiffness: 140 } });
+                      return (
+                        <div style={{
+                          position: "absolute", top: 152, left: 10, right: 10, height: 56,
+                          background: "white",
+                          border: "1px solid rgba(0,0,0,0.04)",
+                          borderLeft: `3px solid #F59E0B`,
+                          borderRadius: "2px 12px 12px 2px",
+                          padding: "10px 14px",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                          transform: `translateY(${interpolate(evt3Pop, [0, 1], [15, 0])}px)`,
+                          opacity: interpolate(evt3Pop, [0, 1], [0, 1])
+                        }}>
+                          <div style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 800, color: COLORS.navy900, marginBottom: 2 }}>
+                            Carlos Ruiz
+                          </div>
+                          <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "#F59E0B" }}>
+                            11:00 AM · Pendiente
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Evento 4 — Sofía C. (Cancelado, Rojo sin esconderse) */}
+                    {(() => {
+                      const evt4Pop = spring({ frame: frame - 70, fps, config: { damping: 15, stiffness: 140 } });
+                      return (
+                        <div style={{
+                          position: "absolute", top: 224, left: 10, right: 10, height: 56,
+                          background: "white",
+                          border: "1px solid rgba(0,0,0,0.04)",
+                          borderLeft: `3px solid #EF4444`,
+                          borderRadius: "2px 12px 12px 2px",
+                          padding: "10px 14px",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                          transform: `translateY(${interpolate(evt4Pop, [0, 1], [15, 0])}px)`,
+                          opacity: interpolate(evt4Pop, [0, 1], [0, 1])
+                        }}>
+                          <div style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 800, color: COLORS.navy900, marginBottom: 2, textDecoration: "line-through" }}>
+                            Sofía Castañeda
+                          </div>
+                          <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "#EF4444" }}>
+                            12:00 PM · Cancelado
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Evento 5 — Luis Gómez (Ausente, Gris super escondido) */}
+                    {(() => {
+                      const evt5Pop = spring({ frame: frame - 75, fps, config: { damping: 15, stiffness: 140 } });
+                      return (
+                        <div style={{
+                          position: "absolute", top: 296, left: 10, right: 10, height: 56,
+                          background: "white",
+                          border: "1px solid rgba(0,0,0,0.04)",
+                          borderLeft: `3px solid #94A3B8`,
+                          borderRadius: "2px 12px 12px 2px",
+                          padding: "10px 14px",
+                          boxShadow: "none",
+                          transform: `translateY(${interpolate(evt5Pop, [0, 1], [15, 0])}px)`,
+                          opacity: interpolate(evt5Pop, [0, 1], [0, 0.3])
+                        }}>
+                          <div style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 800, color: "#94A3B8", marginBottom: 2 }}>
+                            Luis Gómez
+                          </div>
+                          <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "#94A3B8" }}>
+                            1:00 PM · Ausente
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
 
-              {/* Time grid */}
-              <div style={{ flex: 1, display: "flex", position: "relative" }}>
-                {/* Hour gutter */}
-                <div style={{ width: 60, borderRight: "1px solid rgba(0,0,0,0.04)", paddingTop: 8, flexShrink: 0 }}>
-                  {[9, 10, 11, 12, 1, 2, 3].map(h => (
-                    <div key={h} style={{
-                      height: 72, textAlign: "right", paddingRight: 12,
-                      fontFamily: "Inter", fontSize: 9.5, fontWeight: 700,
-                      color: "rgba(0,0,0,0.2)",
-                    }}>{h}:00</div>
-                  ))}
-                </div>
-
-                {/* Grid cells + events */}
-                <div style={{ flex: 1, position: "relative" }}>
-                  {/* Hour lines */}
-                  {[0, 1, 2, 3, 4, 5, 6].map(i => (
-                    <div key={i} style={{
-                      position: "absolute", top: i * 72, left: 0, right: 0,
-                      height: 1, background: "rgba(0,0,0,0.025)",
-                    }} />
-                  ))}
-
-                  {/* Evento 1 — María López (confirmado, borde emerald) */}
-                  <div style={{
-                    position: "absolute", top: 8, left: 10, right: 10, height: 56,
-                    background: "white",
-                    border: "1px solid rgba(0,0,0,0.04)",
-                    borderLeft: `3px solid #10B981`,
-                    borderRadius: "2px 12px 12px 2px",
-                    padding: "10px 14px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-                  }}>
-                    <div style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 800, color: COLORS.navy900, marginBottom: 2 }}>
-                      María López
-                    </div>
-                    <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "#10B981" }}>
-                      9:00 AM · Confirmado ✅
-                    </div>
-                  </div>
-
-                  {/* Evento 2 — Juan Pérez (agendado por IA, pop in) */}
-                  {frame >= eventTime && (() => {
-                    const popEvent = spring({ frame: frame - eventTime, fps, config: { damping: 10, stiffness: 120 } });
-                    return (
-                      <div style={{
-                        position: "absolute", top: 80, left: 10, right: 10, height: 56,
-                        background: "white",
-                        border: "1px solid rgba(16,185,129,0.18)",
-                        borderLeft: "3px solid #10B981",
-                        borderRadius: "2px 12px 12px 2px",
-                        padding: "10px 14px",
-                        boxShadow: "0 8px 24px rgba(16,185,129,0.12)",
-                        transform: `scale(${interpolate(popEvent, [0, 1], [0.85, 1])})`,
-                        transformOrigin: "top center",
-                        opacity: interpolate(popEvent, [0, 1], [0, 1]),
-                        zIndex: 10,
-                      }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 800, color: COLORS.navy900 }}>
-                            Juan Diego
-                          </span>
-                          <span style={{
-                            background: "#DCF8C6", padding: "1px 7px", borderRadius: 6,
-                            fontFamily: "Inter", fontSize: 8, fontWeight: 800, color: "#166534",
-                            letterSpacing: "0.02em",
-                          }}>IA ✨</span>
-                        </div>
-                        <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: "#10B981", marginTop: 2 }}>
-                          10:00 AM · Confirmado
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Evento 3 — Carlos Ruiz (pendiente, borde navy) */}
-                  <div style={{
-                    position: "absolute", top: 152, left: 10, right: 10, height: 56,
-                    background: "white",
-                    border: "1px solid rgba(0,0,0,0.04)",
-                    borderLeft: `3px solid ${COLORS.navy700}`,
-                    borderRadius: "2px 12px 12px 2px",
-                    padding: "10px 14px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-                  }}>
-                    <div style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 800, color: COLORS.navy900, marginBottom: 2 }}>
-                      Carlos Ruiz
-                    </div>
-                    <div style={{ fontFamily: "Inter", fontSize: 9.5, fontWeight: 600, color: COLORS.navy700 }}>
-                      11:00 AM · Pendiente
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Cierra el Contenedor del MAIN CONTENT que recibe el Blur */}
             </div>
 
             {/* TOAST */}
@@ -517,6 +596,14 @@ export const Scene5Dashboard: React.FC = () => {
             })()}
 
           </div>
+
+          {/* ── BARRIDO DE BRILLO (Glossy Sweep) ── */}
+          <div style={{
+            position: "absolute", top: 0, bottom: 0, left: 0, width: "15%",
+            background: "linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%)",
+            transform: `translateX(${interpolate(frame, [90, 140], [-300, 1500], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}) skewX(-25deg)`,
+            pointerEvents: "none", zIndex: 1000,
+          }} />
         </div>
       </AbsoluteFill>
     </AbsoluteFill>

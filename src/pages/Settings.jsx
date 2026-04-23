@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useServices } from '../hooks/useServices';
 import { usePermissions } from '../hooks/usePermissions';
-import { Layers, Plus, Save, ToggleLeft, ToggleRight, ChevronDown, Clock, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Layers, Plus, Save, ToggleLeft, ToggleRight, ChevronDown, Clock, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { showServiceNewToast, showServiceEditToast, showServiceDeleteToast, showServiceActivateToast, showServiceDeactivateToast, showErrorToast } from '../store/useToastStore';
 
 const DURATION_OPTIONS = [
@@ -499,30 +500,31 @@ export default function Settings() {
                             )}
 
                             {/* Confirmación eliminar */}
-                            {showDeleteConfirm && (
-                                <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-r-[32px]">
-                                    <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-6 shadow-lg mx-6 w-full max-w-xs text-center animate-fade-up">
+                            {showDeleteConfirm && createPortal(
+                                <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+                                    <div className="w-full max-w-sm bg-white/30 backdrop-blur-xl border border-white/50 p-6 animate-fade-up shadow-[0_8px_32px_rgba(26,58,107,0.15)] rounded-[32px] text-center">
                                         <p className="text-sm font-bold text-navy-900 mb-1">¿Eliminar servicio?</p>
-                                        <p className="text-xs text-navy-700/60 font-semibold mb-5">
+                                        <p className="text-xs text-navy-700/60 font-semibold mb-5 px-4">
                                             Esta acción no se puede deshacer.
                                         </p>
                                         <div className="flex justify-center gap-3">
                                             <button
                                                 onClick={() => setShowDeleteConfirm(false)}
-                                                className="px-5 py-2 bg-white/60 border border-white/80 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/80 transition-colors shadow-sm"
+                                                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm min-w-[100px]"
                                             >
-                                                Cancelar
+                                                <X size={13} /> Cancelar
                                             </button>
                                             <button
                                                 onClick={handleDelete}
                                                 disabled={deleting}
-                                                className="px-5 py-2 bg-rose-500/80 border border-rose-400 text-white text-[11px] font-bold rounded-full hover:bg-rose-600 transition-colors shadow-sm disabled:opacity-50"
+                                                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-rose-500/80 border border-rose-400 text-white text-[11px] font-bold rounded-full hover:bg-rose-600 transition-colors shadow-sm disabled:opacity-50 min-w-[100px]"
                                             >
-                                                {deleting ? 'Eliminando...' : 'Sí, eliminar'}
+                                                <Trash2 size={13} /> {deleting ? 'Eliminando...' : 'Sí, eliminar'}
                                             </button>
                                         </div>
                                     </div>
-                                </div>
+                                </div>,
+                                document.body
                             )}
                         </div>
                     ) : (
