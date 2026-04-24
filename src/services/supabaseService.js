@@ -250,15 +250,7 @@ export async function markNoShow(id) {
     if (error) throw error;
 }
 
-export async function markRescheduled(id) {
-    const { error } = await supabase
-        .from('appointments')
-        .update({ rescheduled_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('business_id', getBID());
 
-    if (error) throw error;
-}
 
 /**
  * Returns appointments with status 'no_show' or 'cancelled' for the follow-up tab.
@@ -286,7 +278,6 @@ export async function getLostAppointments({ type = 'all', days = 30 } = {}) {
         `)
         .eq('business_id', getBID())
         .in('status', statuses)
-        .is('rescheduled_at', null)
         .gte('date_start', since.toISOString())
         .order('date_start', { ascending: false });
 
@@ -432,10 +423,8 @@ export async function createPatient({ display_name, phone }) {
     return patient;
 }
 
-export async function updatePatient(patientId, { display_name, phone, birth_date, notes }) {
+export async function updatePatient(patientId, { display_name, phone, notes }) {
     const patch = { display_name };
-    // T-44: birth_date opcional — null limpia el campo, undefined lo omite
-    if (birth_date !== undefined) patch.birth_date = birth_date || null;
     if (notes !== undefined) patch.notes = notes || null;
 
     const { error: patientError } = await supabase
@@ -564,7 +553,7 @@ export async function getStatsOverview() {
 export async function getBusinessInfo() {
     const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, plan, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, has_emergencias, custom_prompt')
+        .select('id, name, plan, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, custom_prompt')
         .eq('id', getBID())
         .single();
 

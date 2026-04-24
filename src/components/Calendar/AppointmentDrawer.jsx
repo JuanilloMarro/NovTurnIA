@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow, markRescheduled } from '../../services/supabaseService';
+import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow } from '../../services/supabaseService';
 import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, RotateCcw, Tag, User } from 'lucide-react';
 import { formatDuration } from '../../pages/Settings';
 import { useState } from 'react';
@@ -382,8 +382,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     }}
                     onClose={() => setShowReschedule(false)}
                     onCreated={async () => {
-                        // Stamp rescheduled_at so this record disappears from seguimiento
-                        try { await markRescheduled(appointment.id); } catch { /* non-blocking */ }
+                        // Ya no se actualiza rescheduled_at porque se eliminó la columna
                         setShowReschedule(false);
                         onUpdated?.();
                         onClose();

@@ -235,7 +235,6 @@ export default function BusinessSettings() {
                     schedule_start: data.schedule_start ?? 9,
                     schedule_end: data.schedule_end ?? 18,
                     notification_email: data.notification_email || '',
-                    has_emergencias: data.has_emergencias ?? false,
                     custom_prompt: data.custom_prompt || '',
                 });
                 setSelectedDays(parseDays(data.schedule_days));
@@ -301,7 +300,6 @@ export default function BusinessSettings() {
                 schedule_end: Number(form.schedule_end),
                 schedule_days: serializeDays(selectedDays),
                 notification_email: emailInput || '',
-                has_emergencias: form.has_emergencias,
                 custom_prompt: form.custom_prompt.trim() || null,
             });
             showSettingsSavedToast(nameInput);
@@ -430,15 +428,7 @@ export default function BusinessSettings() {
                             </Field>
                         </Section>
 
-                        {/* Funciones */}
-                        <Section icon={Zap} title="Funciones">
-                            <div className="bg-white/40 border border-white/60 rounded-2xl px-5 py-4 shadow-sm">
-                                <p className="text-sm font-bold text-navy-900 leading-none mb-1">Atención de emergencias</p>
-                                <p className="text-[11px] text-navy-700/50 font-semibold">
-                                    Trabaja y gestiona emergencias fuera del horario habitual
-                                </p>
-                            </div>
-                        </Section>
+
 
                     </div>
                 </div>
