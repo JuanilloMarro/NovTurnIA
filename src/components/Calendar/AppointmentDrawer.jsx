@@ -90,7 +90,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
     const drawerWidth = variant === 'followup' ? 'sm:w-[380px]' : 'sm:w-[450px]';
 
     return (
-        <div className={`fixed inset-0 sm:absolute sm:top-2 sm:right-2 sm:bottom-2 sm:left-auto ${drawerWidth} bg-white/95 sm:bg-white/30 backdrop-blur-2xl border border-white/60 rounded-none sm:rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-50 flex flex-col animate-drawer-in overflow-hidden`}>
+        <div className={`fixed inset-0 sm:absolute sm:top-2 sm:right-2 sm:bottom-2 sm:left-auto ${drawerWidth} bg-white/95 sm:bg-white/30 backdrop-blur-2xl border border-white/60 rounded-none sm:rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-[120] sm:z-50 flex flex-col animate-drawer-in overflow-hidden`}>
             {/* Header */}
             <div className="flex items-center gap-2 p-4">
                 <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">

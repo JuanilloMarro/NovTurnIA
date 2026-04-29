@@ -62,8 +62,8 @@ export default function Patients() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 h-10 flex-wrap w-full lg:w-auto">
-                    <div className="relative w-full sm:w-72 h-full">
+                <div className="flex items-center gap-2 sm:gap-3 md:h-10 flex-wrap w-full lg:w-auto">
+                    <div className="relative w-full sm:w-72 h-10">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
                             <Search size={14} strokeWidth={2.5} />
                         </div>
@@ -76,7 +76,7 @@ export default function Patients() {
                     </div>
 
                     {canCreatePatients && (
-                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                             <button
                                 onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
                                 className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
@@ -88,7 +88,7 @@ export default function Patients() {
                     )}
 
                     {/* Refresh */}
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                         <button
                             onClick={() => reload(search, true, 0)}
                             disabled={loading}
@@ -101,7 +101,7 @@ export default function Patients() {
 
                     {/* Export CSV */}
                     {canExportPatients && (
-                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                             <button
                                 onClick={handleExport}
                                 disabled={exporting}
@@ -117,8 +117,8 @@ export default function Patients() {
                     {(() => {
                         const hasActiveSort = sortOrder !== 'recent';
                         return (
-                            <div className="relative h-full">
-                                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                            <div className="relative h-10">
+                                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                                     <button
                                         onClick={() => setShowSort(!showSort)}
                                         className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"

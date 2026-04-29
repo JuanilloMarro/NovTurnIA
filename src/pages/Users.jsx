@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
-import { Shield, Check, Save, Lock, Info } from 'lucide-react';
+import { Shield, Check, Save, Lock, ChevronLeft } from 'lucide-react';
 import { showStaffPermsToast, showErrorToast } from '../store/useToastStore';
 
 function getInitials(name) {
@@ -81,7 +81,7 @@ export default function Users() {
 
             <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
                 {/* Left Side: User List Navigation */}
-                <div className="w-[300px] xl:w-[320px] flex flex-col z-10">
+                <div className={`${selectedUser ? 'hidden md:flex' : 'flex'} w-full md:w-[300px] xl:w-[320px] flex-col z-10 border-r border-white/40 md:border-r-0`}>
                     <div className="p-6">
                         <div className="flex items-center justify-between">
                             <h3 className="font-bold text-navy-900 text-[13px] tracking-tight">Personal Activo</h3>
@@ -119,17 +119,24 @@ export default function Users() {
                 </div>
 
                 {/* Right Panel: Permissions & Settings */}
-                <div className="flex-1 flex flex-col relative min-w-0">
+                <div className={`${selectedUser ? 'flex' : 'hidden md:flex'} flex-1 flex-col relative min-w-0`}>
                     {selectedUser ? (
                         <div className="flex flex-col h-full overflow-hidden">
                             {/* User Profile Header */}
-                            <div className="p-8 pb-3 shrink-0 z-10 relative animate-fade-down">
+                            <div className="p-4 md:p-8 pb-3 shrink-0 z-10 relative animate-fade-down">
                                 <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6 xl:gap-0 mb-4">
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-md bg-navy-900">
+                                    <div className="flex items-center gap-3 md:gap-5">
+                                        <button
+                                            onClick={() => setSelectedUser(null)}
+                                            className="md:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-700 hover:bg-white/80 shadow-sm shrink-0"
+                                            aria-label="Volver al listado"
+                                        >
+                                            <ChevronLeft size={16} />
+                                        </button>
+                                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-white text-base md:text-lg font-bold shadow-md bg-navy-900 shrink-0">
                                             {getInitials(selectedUser.full_name)}
                                         </div>
-                                        <div>
+                                        <div className="min-w-0">
                                             <h2 className="text-lg font-bold text-navy-900 tracking-tight">{selectedUser.full_name}</h2>
                                             <div className="flex items-center gap-2.5 mt-1.5">
                                                 {selectedUser.email && (
@@ -165,7 +172,7 @@ export default function Users() {
                             </div>
 
                             {/* Scrollable Permissions Checkboxes */}
-                            <div className="flex-1 overflow-y-auto px-8 py-4 custom-scrollbar relative animate-fade-up">
+                            <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4 custom-scrollbar relative animate-fade-up">
                                 <div className="space-y-10 pb-12 pt-2">
                                     {[
                                         {
@@ -283,7 +290,7 @@ export default function Users() {
 
                             {/* Footer: Guardar (solo si es editable) */}
                             {canEditPermissions && (
-                                <div className="mt-6 px-8 pb-10 flex items-center justify-end gap-3 z-20">
+                                <div className="mt-6 px-4 md:px-8 pb-6 md:pb-10 flex items-center justify-end gap-3 z-20">
                                     <button
                                         onClick={async () => {
                                             if (!selectedUser) return;

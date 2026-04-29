@@ -77,7 +77,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
     const appointments = (patient.appointments || []).sort((a, b) => new Date(b.date_start) - new Date(a.date_start));
 
     return (
-        <div className="fixed inset-0 sm:absolute sm:top-2 sm:right-2 sm:bottom-2 sm:left-auto sm:w-[360px] bg-white/95 sm:bg-white/30 backdrop-blur-2xl border border-white/60 rounded-none sm:rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-50 flex flex-col animate-drawer-in overflow-hidden">
+        <div className="fixed inset-0 sm:absolute sm:top-2 sm:right-2 sm:bottom-2 sm:left-auto sm:w-[360px] bg-white/95 sm:bg-white/30 backdrop-blur-2xl border border-white/60 rounded-none sm:rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-[120] sm:z-50 flex flex-col animate-drawer-in overflow-hidden">
 
             {/* Header */}
             <div className="flex items-center gap-2 p-4">
