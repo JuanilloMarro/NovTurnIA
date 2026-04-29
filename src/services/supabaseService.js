@@ -277,11 +277,12 @@ export async function getLostAppointments({ type = 'all', days = 30 } = {}) {
     const { data, error } = await supabase
         .from('appointments')
         .select(`
-            id, date_start, date_end, status, patient_id,
+            id, date_start, date_end, status, patient_id, service_id,
             patients(
                 id, display_name, human_takeover, deleted_at,
                 patient_phones(phone, is_primary)
-            )
+            ),
+            services(id, name, duration_minutes, price)
         `)
         .eq('business_id', getBID())
         .in('status', statuses)
