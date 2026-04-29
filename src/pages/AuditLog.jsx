@@ -293,9 +293,9 @@ export default function AuditLog() {
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
                     <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{filtered.length} registros</p>
                 </div>
-                <div className="flex items-center gap-2 h-10 flex-wrap w-full lg:w-auto">
+                <div className="flex items-center gap-2 lg:h-10 flex-wrap w-full lg:w-auto">
                     {/* Search bar */}
-                    <div className="relative w-full sm:w-64 h-full">
+                    <div className="relative w-full sm:w-64 h-10">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
                             <Search size={14} strokeWidth={2.5} />
                         </div>

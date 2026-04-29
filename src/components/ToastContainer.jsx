@@ -91,7 +91,7 @@ function SingleToast({ toast, onRemove }) {
     return (
         <div
             className={`
-                w-[380px] rounded-2xl border shadow-[0_8px_30px_rgba(0,0,0,0.08)] overflow-hidden
+                w-full sm:w-[380px] rounded-xl sm:rounded-2xl border shadow-[0_8px_30px_rgba(0,0,0,0.08)] overflow-hidden
                 transition-all duration-300 ease-out
                 ${styles.bg} ${styles.border}
                 ${isVisible && !isLeaving
@@ -99,28 +99,28 @@ function SingleToast({ toast, onRemove }) {
                     : 'translate-x-[120%] opacity-0'}
             `}
         >
-            <div className="flex items-start gap-3 p-4">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${styles.icon}`}>
+            <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-4">
+                <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${styles.icon}`}>
                     {TOAST_ICONS[toast.type] || TOAST_ICONS.success}
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
-                    <div className={`font-bold text-[13px] leading-tight ${styles.title}`}>
+                    <div className={`font-bold text-[12px] sm:text-[13px] leading-tight ${styles.title}`}>
                         {toast.title}
                     </div>
                     {toast.message && (
-                        <div className={`text-[12px] font-medium mt-1 truncate ${styles.message}`}>
+                        <div className={`text-[11px] sm:text-[12px] font-medium mt-0.5 sm:mt-1 truncate ${styles.message}`}>
                             {toast.message}
                         </div>
                     )}
                 </div>
                 <button
                     onClick={handleClose}
-                    className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors mt-0.5"
+                    className="shrink-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors mt-0.5"
                 >
                     <X size={12} className="text-gray-400" />
                 </button>
             </div>
-            <div className="h-[3px] w-full bg-black/5">
+            <div className="h-[2px] sm:h-[3px] w-full bg-black/5">
                 <div
                     className={`h-full ${styles.bar} rounded-full`}
                     style={{ animation: `toast-progress ${toast.duration || 4000}ms linear forwards` }}
@@ -134,7 +134,7 @@ export default function ToastContainer() {
     const { toasts, removeToast } = useToastStore();
     if (toasts.length === 0) return null;
     return (
-        <div className="fixed top-6 right-6 z-[500] flex flex-col gap-3 pointer-events-auto">
+        <div className="fixed top-2 right-2 left-2 sm:top-6 sm:right-6 sm:left-auto z-[500] flex flex-col gap-2 sm:gap-3 pointer-events-auto">
             {toasts.map(toast => (
                 <SingleToast key={toast.id} toast={toast} onRemove={removeToast} />
             ))}

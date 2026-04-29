@@ -34,12 +34,12 @@ export default function Sidebar() {
         <>
             {isSidebarOpen && (
                 <div
-                    className="md:hidden fixed inset-0 bg-navy-900/20 backdrop-blur-sm z-[19] cursor-pointer"
+                    className="md:hidden fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[19] cursor-pointer"
                     onClick={toggleSidebar}
                 />
             )}
 
-            <aside className={`absolute left-0 top-0 bottom-0 w-[240px] p-6 flex flex-col z-20 bg-transparent transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+            <aside className={`absolute left-0 top-0 bottom-0 w-[240px] p-6 flex flex-col z-20 bg-white/30 backdrop-blur-xl border-r border-white/60 md:bg-transparent md:backdrop-blur-none md:border-0 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
                 <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer transition-transform hover:scale-[1.02] group/logo">
                     <div className="w-9 h-9 rounded-[10px] bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card transition-all duration-500 group-hover/logo:-translate-y-1">
                         <div className="relative">

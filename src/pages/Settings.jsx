@@ -2,17 +2,12 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useServices } from '../hooks/useServices';
 import { usePermissions } from '../hooks/usePermissions';
-import { Layers, Plus, Save, ToggleLeft, ToggleRight, ChevronDown, Clock, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { Layers, Plus, Save, ToggleLeft, ToggleRight, ChevronLeft, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { showServiceNewToast, showServiceEditToast, showServiceDeleteToast, showServiceActivateToast, showServiceDeactivateToast, showErrorToast } from '../store/useToastStore';
+import WheelColumn from '../components/ui/WheelColumn';
 
-const DURATION_OPTIONS = [
-    { value: 30, label: '30 min' },
-    { value: 60, label: '1 hora' },
-    { value: 90, label: '1h 30 min' },
-    { value: 120, label: '2 horas' },
-    { value: 150, label: '2h 30 min' },
-    { value: 180, label: '3 horas' },
-];
+// Wheel picker durations: 15-min steps from 15 min to 4h
+const DURATION_VALUES = Array.from({ length: 16 }, (_, i) => (i + 1) * 15);
 
 export function formatDuration(minutes) {
     if (!minutes) return '—';
@@ -339,9 +334,16 @@ export default function Settings() {
                     {isFormOpen ? (
                         <div className="flex flex-col h-full overflow-hidden">
                             {/* Form header */}
-                            <div className="p-8 pb-3 shrink-0 z-10 relative animate-fade-down">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
+                            <div className="p-4 sm:p-8 pb-3 shrink-0 z-10 relative animate-fade-down">
+                                <div className="flex items-start gap-2 sm:gap-4">
+                                    <button
+                                        onClick={() => setSelectedId(null)}
+                                        className="md:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-700 hover:bg-white/80 shadow-sm shrink-0 mt-0.5"
+                                        aria-label="Volver al listado"
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
+                                    <div className="flex-1 min-w-0">
                                         <h2 className="text-lg font-bold text-navy-900 tracking-tight">
                                             {isNew ? 'Nuevo Servicio' : (selectedService?.name || '—')}
                                         </h2>
@@ -386,22 +388,13 @@ export default function Settings() {
                                         <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
                                             Duración
                                         </label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700/50">
-                                                <Clock size={14} />
-                                            </div>
-                                            <select
-                                                value={form.duration_minutes}
-                                                onChange={e => setField('duration_minutes', Number(e.target.value))}
-                                                className="w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-10 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all appearance-none shadow-sm"
-                                            >
-                                                {DURATION_OPTIONS.map(opt => (
-                                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-navy-800">
-                                                <ChevronDown size={14} />
-                                            </div>
+                                        <div className="bg-white/40 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
+                                            <WheelColumn
+                                                items={DURATION_VALUES}
+                                                selected={Number(form.duration_minutes) || 30}
+                                                displayFn={formatDuration}
+                                                onSelect={v => setField('duration_minutes', Number(v))}
+                                            />
                                         </div>
                                     </div>
 

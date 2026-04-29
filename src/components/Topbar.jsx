@@ -66,7 +66,7 @@ export default function Topbar() {
     };
 
     return (
-        <header className="h-[72px] px-6 flex items-center justify-between md:justify-end z-[100] transition-all sticky top-0 bg-transparent">
+        <header className="h-[72px] px-4 sm:px-6 flex items-center justify-between md:justify-end z-30 transition-all sticky top-0 bg-white/30 backdrop-blur-xl border-b border-white/40 md:bg-transparent md:backdrop-blur-none md:border-0">
             {/* Hamburger — solo mobile */}
             <button
                 onClick={toggleSidebar}
