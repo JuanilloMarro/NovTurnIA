@@ -21,7 +21,8 @@
       "Bash(node *)",
       "mcp__supabase__list_migrations",
       "mcp__supabase__list_edge_functions",
-      "Bash(supabase migration *)"
+      "Bash(supabase migration *)",
+      "mcp__supabase__list_extensions"
     ]
   },
   "enableAllProjectMcpServers": true,
