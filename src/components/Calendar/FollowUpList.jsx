@@ -25,7 +25,7 @@ function StatusBadge({ status }) {
     );
 }
 
-export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0 }) {
+export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, onLoadingChange, onAppointmentSelected }) {
     const navigate = useNavigate();
     const { canViewConversations, canEditAppointments } = usePermissions();
 
@@ -33,6 +33,10 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0 })
     const [loading, setLoading] = useState(true);
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [rescheduleTarget, setRescheduleTarget] = useState(null);
+
+    // Notificar al padre del estado loading para que pueda mostrar el spinner
+    // del botón "Actualizar" en Calendar.jsx (que vive fuera de este componente).
+    useEffect(() => { onLoadingChange?.(loading); }, [loading, onLoadingChange]);
 
     const load = useCallback(async () => {
         setLoading(true);

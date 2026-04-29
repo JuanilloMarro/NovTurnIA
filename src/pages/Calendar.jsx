@@ -52,6 +52,7 @@ export default function Calendar() {
     const [followUpDays, setFollowUpDays] = useState(30);
     const [showFollowUpFilters, setShowFollowUpFilters] = useState(false);
     const [followUpReloadKey, setFollowUpReloadKey] = useState(0);
+    const [followUpLoading, setFollowUpLoading] = useState(false);
 
     const hasActiveFilters = followUpType !== 'all' || followUpDays !== 30;
 
@@ -152,9 +153,10 @@ export default function Calendar() {
                         <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-10">
                             <button
                                 onClick={() => setFollowUpReloadKey(k => k + 1)}
-                                className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 active:scale-95 transition-all duration-300 overflow-hidden"
+                                disabled={followUpLoading}
+                                className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 active:scale-95 transition-all duration-300 overflow-hidden disabled:opacity-40"
                             >
-                                <RefreshCw size={14} className="shrink-0" />
+                                <RefreshCw size={14} className={`shrink-0 ${followUpLoading ? 'animate-spin' : ''}`} />
                                 <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
                             </button>
                         </div>
@@ -209,7 +211,13 @@ export default function Calendar() {
 
             <div className="flex-1 relative min-h-0 overflow-hidden rounded-[24px]">
                 {tab === 'followup' ? (
-                    <FollowUpList type={followUpType} days={followUpDays} reloadKey={followUpReloadKey} onAppointmentSelected={setSelectedAppointment} />
+                    <FollowUpList
+                        type={followUpType}
+                        days={followUpDays}
+                        reloadKey={followUpReloadKey}
+                        onAppointmentSelected={setSelectedAppointment}
+                        onLoadingChange={setFollowUpLoading}
+                    />
                 ) : viewMode === 'week' ? (
                     <CalendarWeek
                         appointments={appointments}
