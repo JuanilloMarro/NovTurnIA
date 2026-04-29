@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers } from 'lucide-react';
+import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard } from 'lucide-react';
 import AIStar from './Icons/AIStar';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../store/useAppStore';
 import { getBusinessInfo } from '../services/supabaseService';
 
-export default function Sidebar() {
+export default function Sidebar({ onOpenPlans }) {
     const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations } = usePermissions();
     const { profile } = useAuth();
     const { isSidebarOpen, toggleSidebar } = useAppStore();
@@ -85,7 +85,6 @@ export default function Sidebar() {
 
                     {canManageRoles && (
                         <>
-
                             <NavLink to="/audit-log" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
                                 <List size={16} /> Actividad
                             </NavLink>
@@ -99,6 +98,13 @@ export default function Sidebar() {
                             </NavLink>
                         </>
                     )}
+
+                    <button
+                        onClick={() => { onOpenPlans(); closeMobile(); }}
+                        className={normalClass}
+                    >
+                        <CreditCard size={16} /> Planes
+                    </button>
                 </nav>
 
                 <div className="mt-auto pt-6 px-5 border-t border-white/20">
