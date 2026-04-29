@@ -70,7 +70,7 @@ export default function Calendar() {
     const monthName = anchorDate.toLocaleDateString('es-GT', { month: 'long', year: 'numeric' });
 
     return (
-        <div className={`h-full flex flex-col px-2 relative transition-all duration-300 ${tab === 'followup' && selectedAppointment ? 'pr-[380px]' : ''}`}>
+        <div className={`h-full flex flex-col px-2 relative transition-all duration-300 ${tab === 'followup' && selectedAppointment ? 'sm:pr-[380px]' : ''}`}>
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
@@ -79,7 +79,7 @@ export default function Calendar() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto justify-start lg:justify-end overflow-x-auto lg:overflow-visible">
                     {/* 1. Tab Calendario / Seguimiento */}
                     <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-[11px] font-bold text-navy-900 shadow-sm h-10">
                         <button

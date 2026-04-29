@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getStatsDashboard } from '../services/supabaseService';
 import { useAppStore } from '../store/useAppStore';
+import { withTimeout } from '../utils/withTimeout';
 
 // T-29: Eliminadas las 3 llamadas directas a supabase — ahora pasan por supabaseService.js.
 // T-50: getMessageCounts filtra por mes para evitar COUNT(*) sin fecha.
@@ -31,7 +32,11 @@ export function useStats() {
             const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
 
             // T-17: 1 RPC en lugar de 3 round-trips paralelos
-            const dashboard = await getStatsDashboard(monthStart, monthEnd);
+            const dashboard = await withTimeout(
+                getStatsDashboard(monthStart, monthEnd),
+                12_000,
+                'getStatsDashboard'
+            );
 
             const apptStats    = dashboard.appt_stats   || [];
             const patientStats = dashboard.patient_stats ?? null;

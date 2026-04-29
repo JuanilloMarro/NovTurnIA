@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getLostAppointments } from '../../services/supabaseService';
 import { formatPhone } from '../../utils/format';
 import { usePermissions } from '../../hooks/usePermissions';
+import { withTimeout } from '../../utils/withTimeout';
 import { UserX, X, RotateCcw, MessageCircle, ChevronRight } from 'lucide-react';
 import NewAppointmentModal from './NewAppointmentModal';
 import AppointmentDrawer from './AppointmentDrawer';
@@ -36,10 +37,14 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0 })
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await getLostAppointments({ type, days });
+            const data = await withTimeout(
+                getLostAppointments({ type, days }),
+                12_000,
+                'getLostAppointments'
+            );
             setAppointments(data);
-        } catch {
-            // silently ignore — user sees empty state
+        } catch (err) {
+            console.error('[FollowUpList] load error:', err);
         } finally {
             setLoading(false);
         }
@@ -62,7 +67,7 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0 })
     }
 
     return (
-        <div className={`h-full flex flex-col min-h-0 w-full pt-2 transition-all duration-300 ${selectedAppointment ? 'pr-[380px]' : ''}`}>
+        <div className={`h-full flex flex-col min-h-0 w-full pt-2 transition-all duration-300 ${selectedAppointment ? 'sm:pr-[380px]' : ''}`}>
             {/* Scrollable list */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pb-10 space-y-2 pr-3">
                 {loading ? (

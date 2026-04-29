@@ -3,6 +3,7 @@ import { getAuditLog, getStaffUsers, getPatientsForAuditLog } from '../services/
 import { Search, Database, SlidersHorizontal, Plus, Edit2, Trash2, X, Download, RefreshCw } from 'lucide-react';
 import { formatPhone } from '../utils/format';
 import { downloadCSV } from '../utils/export';
+import { withTimeout } from '../utils/withTimeout';
 
 // ── Módulos ──
 const MODULES = {
@@ -186,11 +187,15 @@ export default function AuditLog() {
     async function fetchData() {
         setLoading(true);
         try {
-            const [{ data: logData, hasMore: more }, staffData, patientsData] = await Promise.all([
-                getAuditLog({ page: 0 }),
-                getStaffUsers(),
-                getPatientsForAuditLog()
-            ]);
+            const [{ data: logData, hasMore: more }, staffData, patientsData] = await withTimeout(
+                Promise.all([
+                    getAuditLog({ page: 0 }),
+                    getStaffUsers(),
+                    getPatientsForAuditLog()
+                ]),
+                15_000,
+                'auditLogFetchData'
+            );
 
             const sMap = {};
             (staffData || []).forEach(u => { sMap[u.id] = u.full_name || u.email || 'Staff'; });
@@ -288,9 +293,9 @@ export default function AuditLog() {
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
                     <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{filtered.length} registros</p>
                 </div>
-                <div className="flex items-center gap-2 h-10">
+                <div className="flex items-center gap-2 h-10 flex-wrap w-full lg:w-auto">
                     {/* Search bar */}
-                    <div className="relative w-64 h-full">
+                    <div className="relative w-full sm:w-64 h-full">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
                             <Search size={14} strokeWidth={2.5} />
                         </div>

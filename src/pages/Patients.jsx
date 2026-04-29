@@ -53,7 +53,7 @@ export default function Patients() {
     const sortLabel = sortOptions.find(o => o.id === sortOrder)?.label || 'Ordenar';
 
     return (
-        <div className={`h-full flex flex-col w-full pt-2 relative transition-all duration-300 ${selectedPatient ? 'pr-[380px]' : 'px-4'}`}>
+        <div className={`h-full flex flex-col w-full pt-2 relative transition-all duration-300 ${selectedPatient ? 'sm:pr-[380px] px-2 sm:px-0' : 'px-4'}`}>
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
@@ -62,8 +62,8 @@ export default function Patients() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 h-10">
-                    <div className="relative w-72 h-full">
+                <div className="flex items-center gap-3 h-10 flex-wrap w-full lg:w-auto">
+                    <div className="relative w-full sm:w-72 h-full">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
                             <Search size={14} strokeWidth={2.5} />
                         </div>
@@ -205,7 +205,7 @@ export default function Patients() {
                         const data = await reload(search, true); // forceRefresh — salta el cache de 1 min
                         const updated = data.find(p => p.id === selectedPatient.id);
                         if (updated) setSelectedPatient(updated);
-                    }} 
+                    }}
                 />
             )}
         </div>

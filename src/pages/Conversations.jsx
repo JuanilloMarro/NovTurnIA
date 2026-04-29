@@ -192,8 +192,8 @@ export default function Conversations() {
             </div>
 
             <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
-                {/* Left Panel: Contacts */}
-                <div className="w-[360px] flex flex-col z-10">
+                {/* Left Panel: Contacts — en mobile se oculta cuando hay un paciente seleccionado */}
+                <div className={`${selectedPatient ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] flex-col z-10 border-r border-white/40 md:border-r-0`}>
                     <div className="p-4 pb-3 space-y-2">
                         {/* Barra búsqueda + botón filtro */}
                         <div className="flex items-center gap-2">
@@ -307,13 +307,21 @@ export default function Conversations() {
                     </div>
                 </div>
 
-                {/* Right Panel: Chat */}
-                <div className="flex-1 flex flex-col relative min-w-0">
+                {/* Right Panel: Chat — en mobile solo se ve si hay paciente seleccionado */}
+                <div className={`${selectedPatient ? 'flex' : 'hidden md:flex'} flex-1 flex-col relative min-w-0`}>
                     {selectedPatient ? (
                         <>
                             {/* Chat Header */}
-                            <div className="h-[72px] px-6 flex items-center justify-between shrink-0 z-10">
+                            <div className="h-[72px] px-4 md:px-6 flex items-center justify-between shrink-0 z-10">
                                 <div className="flex items-center gap-3">
+                                    {/* Back button — solo mobile */}
+                                    <button
+                                        onClick={() => setSelectedPatient(null)}
+                                        className="md:hidden w-9 h-9 rounded-full bg-white/60 border border-white/80 flex items-center justify-center text-navy-900 shadow-sm hover:bg-white/80 transition-colors"
+                                        aria-label="Volver"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                                    </button>
                                     <div className="w-11 h-11 rounded-full bg-white border border-white/60 flex items-center justify-center text-navy-900 text-xs font-bold shadow-sm">
                                         {getInitials(selectedPatient.display_name)}
                                     </div>

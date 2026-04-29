@@ -13,7 +13,8 @@ export default function CalendarWeek({ appointments, weekStart, loading, onEvent
 
     return (
         <div className="bg-white border border-white/90 rounded-2xl shadow-card flex flex-col h-full overflow-hidden">
-
+          <div className="flex-1 flex flex-col overflow-x-auto md:overflow-x-hidden">
+            <div className="min-w-[640px] md:min-w-0 flex-1 flex flex-col">
             {/* Header días */}
             <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-100/50 bg-white">
                 <div className="py-2 text-[9px] uppercase text-gray-400 font-bold text-center flex items-center justify-center">GMT-6</div>
@@ -72,6 +73,7 @@ export default function CalendarWeek({ appointments, weekStart, loading, onEvent
                     </div>
                 </div>
             </div>
-        </div>
-    );
+            </div>
+          </div>
+        </div>    );
 }

@@ -7,6 +7,7 @@ import {
     updateStaffUserRole,
     updateRolePermissions
 } from '../services/supabaseService';
+import { withTimeout } from '../utils/withTimeout';
 
 export function useUsers() {
     const [users, setUsers] = useState([]);
@@ -20,11 +21,15 @@ export function useUsers() {
     async function loadData() {
         setLoading(true);
         try {
-            const [u, r] = await Promise.all([getStaffUsers(), getStaffRoles()]);
+            const [u, r] = await withTimeout(
+                Promise.all([getStaffUsers(), getStaffRoles()]),
+                12_000,
+                'loadUsers'
+            );
             setUsers(u || []);
             setRoles(r || []);
         } catch (err) {
-            console.error('Error loading users/roles:', err.message);
+            console.error('Error loading users/roles:', err?.message || err);
         } finally {
             setLoading(false);
         }

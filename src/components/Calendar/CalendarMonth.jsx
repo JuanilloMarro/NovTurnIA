@@ -37,6 +37,8 @@ export default function CalendarMonth({ appointments, monthDate, loading, onEven
 
     return (
         <div className="bg-white border border-white/90 rounded-2xl shadow-card overflow-hidden h-full flex flex-col">
+          <div className="flex-1 flex flex-col overflow-x-auto md:overflow-x-hidden">
+            <div className="min-w-[560px] md:min-w-0 flex-1 flex flex-col">
             {/* Header días */}
             <div className="grid grid-cols-7 border-b border-gray-100 bg-white">
                 {DAYS_ES.map((dayName, idx) => (
@@ -118,6 +120,8 @@ export default function CalendarMonth({ appointments, monthDate, loading, onEven
                     );
                 })}
             </div>
+            </div>
+          </div>
         </div>
     );
 }

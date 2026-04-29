@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { getAppointmentsByWeek } from '../services/supabaseService';
 import { useRealtimeAppointments } from './useRealtime';
+import { withTimeout } from '../utils/withTimeout';
 
 function getMonday(date) {
     const d = new Date(date);
@@ -56,9 +57,15 @@ export function useAppointments() {
     const load = useCallback(async (force = false) => {
         if (!hasLoadedRef.current || force) setLoading(true);
         try {
-            const data = await getAppointmentsByWeek(
-                rangeStart.toISOString().slice(0, 10),
-                rangeEnd.toISOString().slice(0, 10)
+            // Timeout evita que la pantalla quede en skeleton/spinner si la petición
+            // se cuelga (suspensión de pestaña, red intermitente, etc).
+            const data = await withTimeout(
+                getAppointmentsByWeek(
+                    rangeStart.toISOString().slice(0, 10),
+                    rangeEnd.toISOString().slice(0, 10)
+                ),
+                12_000,
+                'getAppointmentsByWeek'
             );
             setAppointments(data);
             hasLoadedRef.current = true;
@@ -74,15 +81,14 @@ export function useAppointments() {
     const reload = useCallback(async () => {
         setReloading(true);
         try {
-            const data = await Promise.race([
+            const data = await withTimeout(
                 getAppointmentsByWeek(
                     rangeStart.toISOString().slice(0, 10),
                     rangeEnd.toISOString().slice(0, 10)
                 ),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('timeout')), 10_000)
-                ),
-            ]);
+                10_000,
+                'reloadAppointments'
+            );
             setAppointments(data);
         } catch (err) {
             console.error("Error reloading appointments:", err);

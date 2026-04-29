@@ -95,7 +95,7 @@ export default function Topbar() {
                     </div>
 
                     {showNotif && (
-                        <div className="absolute top-14 right-0 w-[400px] sm:w-[440px] bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 p-3 animate-fade-up z-[110] overflow-hidden">
+                        <div className="fixed sm:absolute top-[64px] sm:top-14 left-2 right-2 sm:left-auto sm:right-0 sm:w-[400px] md:w-[440px] bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 p-3 animate-fade-up z-[110] overflow-hidden">
                             <div className="flex justify-between items-center mb-3 px-3 pt-1">
                                 <h3 className="font-bold text-navy-900 text-base">Actividad</h3>
                                 {activityLog.length > 0 && (
@@ -109,7 +109,7 @@ export default function Topbar() {
                                 )}
                             </div>
 
-                            <div className="max-h-[340px] overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+                            <div className="max-h-[480px] overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
                                 {activityLog.length === 0 ? (
                                     <div className="text-center text-navy-800/60 py-8 text-xs font-bold">Sin actividad reciente</div>
                                 ) : (
@@ -267,9 +267,17 @@ function NotifCard({ entry, onMarkRead, onDelete }) {
                     )}
                 </div>
                 {entry.message && (
-                    <p className="text-navy-800/65 text-[11px] truncate mt-0.5 font-medium">
-                        {entry.message}
-                    </p>
+                    isReminder ? (
+                        <div className="flex flex-col gap-0.5 mt-0.5">
+                            {entry.message.split(' · ').map((line, i) => (
+                                <p key={i} className="text-navy-800/65 text-[11px] font-medium leading-snug">{line}</p>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-navy-800/65 text-[11px] truncate mt-0.5 font-medium">
+                            {entry.message}
+                        </p>
+                    )
                 )}
                 <p className="text-navy-800/40 text-[10px] font-bold mt-0.5">
                     {getTimeAgo(entry.created_at || entry.timestamp)}

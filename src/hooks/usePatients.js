@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { getPatients } from '../services/supabaseService';
 import { useRealtimePatients } from './useRealtime';
 import { useAppStore } from '../store/useAppStore';
+import { withTimeout } from '../utils/withTimeout';
 
 export function usePatients() {
     const [rawPatients, setRawPatients] = useState([]);
@@ -38,7 +39,13 @@ export function usePatients() {
 
         if (!hasDataRef.current || forceRefresh) setLoading(true);
         try {
-            const { data, count, hasMore: more } = await getPatients(q, { page: pageNum });
+            // withTimeout evita que el botón "Actualizar" se quede girando indefinidamente
+            // si la petición se cuelga (red caída, suspensión del navegador, etc).
+            const { data, count, hasMore: more } = await withTimeout(
+                getPatients(q, { page: pageNum }),
+                12_000,
+                'getPatients'
+            );
             if (pageNum === 0) {
                 setRawPatients(data);
             } else {
@@ -53,6 +60,11 @@ export function usePatients() {
                 useAppStore.getState().setPatientsCache(data);
             }
             return data;
+        } catch (err) {
+            // Captura para que el `finally` se ejecute siempre y para no propagar
+            // el rechazo a manejadores onClick que no usan await/catch.
+            console.error('[usePatients] reload error:', err);
+            return [];
         } finally {
             setLoading(false);
         }

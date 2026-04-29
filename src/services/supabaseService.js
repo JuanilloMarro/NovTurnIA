@@ -173,9 +173,13 @@ export async function createAppointment({ patientId, serviceId, date, startTime,
         .single();
 
     if (error) {
-        // Exclusion constraint violation = double booking
-        if (error.code === '23P01') {
+        // Doble booking detectado por validate_appointment() (RAISE EXCEPTION → P0001)
+        // o por una eventual exclusion_constraint (23P01). Cubrimos ambos casos.
+        if (error.code === '23P01' || /turno activo en ese horario/i.test(error.message || '')) {
             throw new Error('Este horario ya está ocupado. Seleccioná otro.');
+        }
+        if (/horario del negocio/i.test(error.message || '')) {
+            throw new Error('El turno está fuera del horario del negocio.');
         }
         console.error('Insert Error — code:', error.code, '| message:', error.message, '| details:', error.details, '| hint:', error.hint);
         throw error;
@@ -198,8 +202,11 @@ export async function updateAppointment(id, { date, startTime, endTime, serviceI
         .single();
 
     if (error) {
-        if (error.code === '23P01') {
+        if (error.code === '23P01' || /turno activo en ese horario/i.test(error.message || '')) {
             throw new Error('Este horario ya está ocupado. Seleccioná otro.');
+        }
+        if (/horario del negocio/i.test(error.message || '')) {
+            throw new Error('El turno está fuera del horario del negocio.');
         }
         throw error;
     }
@@ -553,7 +560,7 @@ export async function getStatsOverview() {
 export async function getBusinessInfo() {
     const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, plan, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, custom_prompt')
+        .select('id, name, plan, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, custom_prompt, feature_flags')
         .eq('id', getBID())
         .single();
 
@@ -587,7 +594,7 @@ export async function getBusinessSchedule(businessId) {
         if (!id) return null;
         const { data, error } = await supabase
             .from('businesses')
-            .select('name, schedule_start, schedule_end, schedule_days')
+            .select('name, schedule_start, schedule_end, schedule_days, feature_flags')
             .eq('id', id)
             .single();
         if (error || !data) return null;
@@ -754,12 +761,11 @@ export async function insertPendingReminderNotification(appointments) {
         hour12: false
     });
 
-    const lines = appointments.slice(0, 3).map(appt => {
+    const lines = appointments.map(appt => {
         const name = appt.patients?.display_name || 'Cliente';
         const timeStr = formatter.format(new Date(appt.date_start));
         return `${name} – ${timeStr}`;
     });
-    if (count > 3) lines.push(`...y ${count - 3} más`);
 
     // Evitar acumular o duplicar notificaciones en modo estricto/recargas: 
     // Borramos cualquier recordatorio anterior que siga sin leer antes de insertar el nuevo.

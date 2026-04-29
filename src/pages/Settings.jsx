@@ -183,8 +183,8 @@ export default function Settings() {
             {/* Main card */}
             <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
 
-                {/* ── Left panel: service list ── */}
-                <div className="w-[360px] xl:w-[380px] flex flex-col z-10">
+                {/* ── Left panel: service list — toggle con form en mobile ── */}
+                <div className={`${isFormOpen ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] xl:w-[380px] flex-col z-10 border-r border-white/40 md:border-r-0`}>
                     <div className="p-4 pb-3">
                         <div className="flex items-center gap-2 h-9">
                             {/* Search bar */}
@@ -335,7 +335,7 @@ export default function Settings() {
                 </div>
 
                 {/* ── Right panel: form / empty state ── */}
-                <div className="flex-1 flex flex-col relative min-w-0">
+                <div className={`${isFormOpen ? 'flex' : 'hidden md:flex'} flex-1 flex-col relative min-w-0`}>
                     {isFormOpen ? (
                         <div className="flex flex-col h-full overflow-hidden">
                             {/* Form header */}
