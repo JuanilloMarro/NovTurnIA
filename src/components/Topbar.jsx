@@ -66,7 +66,7 @@ export default function Topbar() {
     };
 
     return (
-        <header className="h-[72px] px-4 sm:px-6 flex items-center justify-between md:justify-end z-30 transition-all sticky top-0 bg-white/30 backdrop-blur-xl border-b border-white/40 md:bg-transparent md:backdrop-blur-none md:border-0">
+        <header className="h-[72px] px-4 md:px-6 flex items-center justify-between md:justify-end z-[100] transition-all sticky top-0 bg-white/80 backdrop-blur-xl border-b border-white/60 md:bg-transparent md:backdrop-blur-none md:border-0">
             {/* Hamburger — solo mobile */}
             <button
                 onClick={toggleSidebar}
@@ -95,7 +95,7 @@ export default function Topbar() {
                     </div>
 
                     {showNotif && (
-                        <div className="fixed sm:absolute top-[64px] sm:top-14 left-2 right-2 sm:left-auto sm:right-0 sm:w-[400px] md:w-[440px] bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 p-3 animate-fade-up z-[110] overflow-hidden">
+                        <div className="fixed md:absolute top-[64px] md:top-14 left-2 right-2 md:left-auto md:right-0 md:w-[440px] bg-white/90 md:bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 p-3 animate-fade-up z-[110] overflow-hidden">
                             <div className="flex justify-between items-center mb-3 px-3 pt-1">
                                 <h3 className="font-bold text-navy-900 text-base">Actividad</h3>
                                 {activityLog.length > 0 && (
@@ -138,7 +138,7 @@ export default function Topbar() {
                     </button>
 
                     {showProfile && (
-                        <div className="absolute top-14 right-0 w-64 bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 overflow-hidden animate-fade-up z-[110]">
+                        <div className="absolute top-14 right-0 w-64 bg-white/90 md:bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 overflow-hidden animate-fade-up z-[110]">
 
                             {/* Info del usuario */}
                             <div className="px-4 pt-4 pb-3 flex flex-col items-center text-center gap-1.5">

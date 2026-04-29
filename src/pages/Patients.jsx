@@ -62,7 +62,7 @@ export default function Patients() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 lg:h-10 flex-wrap w-full lg:w-auto">
+                <div className="flex items-center gap-2 sm:gap-3 md:h-10 flex-wrap w-full lg:w-auto">
                     <div className="relative w-full sm:w-72 h-10">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
                             <Search size={14} strokeWidth={2.5} />
@@ -88,7 +88,7 @@ export default function Patients() {
                     )}
 
                     {/* Refresh */}
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
+                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                         <button
                             onClick={() => reload(search, true, 0)}
                             disabled={loading}

@@ -334,8 +334,8 @@ export default function Settings() {
                     {isFormOpen ? (
                         <div className="flex flex-col h-full overflow-hidden">
                             {/* Form header */}
-                            <div className="p-4 sm:p-8 pb-3 shrink-0 z-10 relative animate-fade-down">
-                                <div className="flex items-start gap-2 sm:gap-4">
+                            <div className="p-4 md:p-8 pb-3 shrink-0 z-10 relative animate-fade-down">
+                                <div className="flex items-start gap-2 md:gap-4">
                                     <button
                                         onClick={() => setSelectedId(null)}
                                         className="md:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-700 hover:bg-white/80 shadow-sm shrink-0 mt-0.5"

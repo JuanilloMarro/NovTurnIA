@@ -33,7 +33,7 @@ export default function Stats() {
     const { kpi, donut } = stats;
 
     return (
-        <div className="h-full flex flex-col w-full pt-2 overflow-y-auto lg:overflow-hidden px-2 pb-4">
+        <div className="h-full flex flex-col w-full pt-2 overflow-y-auto md:overflow-hidden px-2 md:pb-0 pb-4">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
@@ -43,7 +43,7 @@ export default function Stats() {
                 </div>
             </div>
 
-            <div className="lg:flex-1 lg:overflow-hidden flex flex-col gap-4">
+            <div className="md:flex-1 md:overflow-hidden flex flex-col gap-4">
                 {/* KPI Cards Row */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-1 mb-2">
                     <KpiCard
@@ -77,11 +77,11 @@ export default function Stats() {
                 </div>
 
                 {/* Charts Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:flex-1 lg:min-h-0 pb-2 px-1">
-                    <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-4 sm:p-6 min-h-[360px] lg:min-h-0">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:flex-1 md:min-h-0 pb-2 px-1">
+                    <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
                         <MainChart />
                     </div>
-                    <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-4 sm:p-6 min-h-[360px] lg:min-h-0">
+                    <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
                         <AppointmentStatusChart data={donut.data} confRate={donut.confRate} />
                     </div>
                 </div>
