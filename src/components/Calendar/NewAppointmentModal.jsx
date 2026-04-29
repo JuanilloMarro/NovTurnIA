@@ -126,7 +126,7 @@ function getInitials(name) {
     return name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-export default function NewAppointmentModal({ isOpen, onClose, onCreated, initialPatient = null }) {
+export default function NewAppointmentModal({ isOpen, onClose, onCreated, initialPatient = null, initialServiceId = null }) {
     const businessHoursRaw = useAppStore((state) => state.businessHours);
     const businessHours = businessHoursRaw ?? { schedule_start: '09:00', schedule_end: '18:00' };
     const schedule_start = businessHours.schedule_start || '09:00';
@@ -149,7 +149,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
         const em = h * 60 + m + 60;
         return `${String(Math.floor(em / 60)).padStart(2, '0')}:${String(em % 60).padStart(2, '0')}`;
     });
-    const [serviceId, setServiceId] = useState(null);
+    const [serviceId, setServiceId] = useState(initialServiceId);
     const [services, setServices] = useState([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -180,8 +180,17 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
     const selectedService = serviceId ? services.find(s => s.id === serviceId) ?? null : null;
     const hasServiceDuration = (selectedService?.duration_minutes ?? 0) > 0;
 
+    const daysInMonth = (monthVal && yearVal?.length === 4)
+        ? new Date(Number(yearVal), Number(monthVal), 0).getDate()
+        : 31;
+    const DAYS_FOR_MONTH = Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, '0'));
+
     function syncDate(d, m, y) {
-        if (d && m && y.length === 4) setDate(`${y}-${m}-${d}`);
+        if (!d || !m || y?.length !== 4) return;
+        const maxDay = new Date(Number(y), Number(m), 0).getDate();
+        const clampedDay = String(Math.min(Number(d), maxDay)).padStart(2, '0');
+        if (clampedDay !== d) setDayVal(clampedDay);
+        setDate(`${y}-${m}-${clampedDay}`);
     }
 
     function calcEnd(start, duration) {
@@ -339,7 +348,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                             <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3">Fecha</label>
                             <div className="flex bg-white/30 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
                                 <WheelColumn
-                                    items={DAYS}
+                                    key={`days-${daysInMonth}`}
+                                    items={DAYS_FOR_MONTH}
                                     selected={dayVal}
                                     onSelect={d => { setDayVal(d); syncDate(d, monthVal, yearVal); }}
                                 />

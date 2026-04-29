@@ -166,8 +166,17 @@ export default function EditAppointmentModal({ appointment, onClose, onUpdated }
     const modalRef = useRef(null);
     useModalFocus(modalRef, true, onClose);
 
+    const daysInMonth = (monthVal && yearVal?.length === 4)
+        ? new Date(Number(yearVal), Number(monthVal), 0).getDate()
+        : 31;
+    const DAYS_FOR_MONTH = Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, '0'));
+
     function syncDate(d, m, y) {
-        if (d && m && y.length === 4) setDate(`${y}-${m}-${d}`);
+        if (!d || !m || y?.length !== 4) return;
+        const maxDay = new Date(Number(y), Number(m), 0).getDate();
+        const clampedDay = String(Math.min(Number(d), maxDay)).padStart(2, '0');
+        if (clampedDay !== d) setDayVal(clampedDay);
+        setDate(`${y}-${m}-${clampedDay}`);
     }
 
     // Load active services on mount
@@ -278,7 +287,8 @@ export default function EditAppointmentModal({ appointment, onClose, onUpdated }
                             <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3">Fecha</label>
                             <div className="flex bg-white/40 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
                                 <WheelColumn
-                                    items={DAYS}
+                                    key={`days-${daysInMonth}`}
+                                    items={DAYS_FOR_MONTH}
                                     selected={dayVal}
                                     onSelect={d => { setDayVal(d); syncDate(d, monthVal, yearVal); }}
                                 />
