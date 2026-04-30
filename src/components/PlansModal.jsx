@@ -200,7 +200,7 @@ export default function PlansModal({ isOpen, onClose }) {
                     </div>
 
                     <div className="flex justify-center mt-0 mb-8">
-                        <button
+                        <button 
                             onClick={scrollToDetails}
                             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-navy-900/30 hover:text-navy-900 hover:translate-y-1 transition-all duration-300 group"
                         >
@@ -243,25 +243,22 @@ export default function PlansModal({ isOpen, onClose }) {
                                                 { name: 'Seguimiento de Cancelaciones / No Presentes', basic: false, pro: true, enterprise: true },
                                                 { name: 'Agente IA (Agendamiento)', basic: 'Ilimitado', pro: 'Ilimitado', enterprise: 'Ilimitado' },
                                             ].map((row, i) => (
-                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-white/40 transition-colors">
-                                                    <td className="p-6 text-[12px] font-bold text-navy-900">{row.name}</td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.basic === 'boolean'
-                                                            ? (row.basic ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.basic}</span>
-                                                        }
+                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-navy-900/[0.02] transition-colors">
+                                                    <td className="p-6 text-[11px] font-bold text-navy-700">{row.name}</td>
+                                                    <td className="p-6 text-center italic">
+                                                        {typeof row.basic === 'boolean' ? (
+                                                            row.basic ? <Check size={14} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={14} className="mx-auto text-navy-900/20" />
+                                                        ) : <span className="text-[10px] font-black text-navy-900/60 uppercase">{row.basic}</span>}
                                                     </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.pro === 'boolean'
-                                                            ? (row.pro ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.pro}</span>
-                                                        }
+                                                    <td className="p-6 text-center italic">
+                                                        {typeof row.pro === 'boolean' ? (
+                                                            row.pro ? <Check size={14} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={14} className="mx-auto text-navy-900/20" />
+                                                        ) : <span className="text-[10px] font-black text-navy-900/60 uppercase">{row.pro}</span>}
                                                     </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.enterprise === 'boolean'
-                                                            ? (row.enterprise ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.enterprise}</span>
-                                                        }
+                                                    <td className="p-6 text-center italic">
+                                                        {typeof row.enterprise === 'boolean' ? (
+                                                            row.enterprise ? <Check size={14} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={14} className="mx-auto text-navy-900/20" />
+                                                        ) : <span className="text-[10px] font-black text-navy-900/60 uppercase">{row.enterprise}</span>}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -272,7 +269,7 @@ export default function PlansModal({ isOpen, onClose }) {
                         </div>
 
                         {/* 2. Módulo de Clientes */}
-                        <div className="animate-fade-up">
+                        <div className="animate-fade-up" style={{ animationDelay: '100ms' }}>
                             <div className="flex items-center gap-3 mb-8">
                                 <div className="w-10 h-10 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900">
                                     <Users size={20} />
@@ -296,31 +293,28 @@ export default function PlansModal({ isOpen, onClose }) {
                                         </thead>
                                         <tbody>
                                             {[
-                                                { name: 'Base de Datos Centralizada', basic: true, pro: true, enterprise: true },
-                                                { name: 'Historial de Turnos', basic: true, pro: true, enterprise: true },
-                                                { name: 'Etiquetas y Notas', basic: false, pro: true, enterprise: true },
-                                                { name: 'Campos Personalizados', basic: false, pro: true, enterprise: true },
-                                                { name: 'Límite de Clientes Visibles', basic: '100', pro: '500', enterprise: 'Ilimitados' },
+                                                { name: 'Historial de Conversaciones', basic: true, pro: true, enterprise: true },
+                                                { name: 'Base de Datos de Clientes', basic: 'Hasta 100', pro: 'Hasta 500', enterprise: 'Ilimitado' },
+                                                { name: 'Toma de Control Humano', basic: true, pro: true, enterprise: true },
+                                                { name: 'Notas y Perfiles Detallados', basic: true, pro: true, enterprise: true },
+                                                { name: 'GDPR / Borrado Seguro de Datos', basic: true, pro: true, enterprise: true },
                                             ].map((row, i) => (
-                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-white/40 transition-colors">
-                                                    <td className="p-6 text-[12px] font-bold text-navy-900">{row.name}</td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.basic === 'boolean'
-                                                            ? (row.basic ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.basic}</span>
-                                                        }
+                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-navy-900/[0.02] transition-colors">
+                                                    <td className="p-6 text-[11px] font-bold text-navy-700">{row.name}</td>
+                                                    <td className="p-6 text-center italic">
+                                                        {typeof row.basic === 'boolean' ? (
+                                                            row.basic ? <Check size={14} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={14} className="mx-auto text-navy-900/20" />
+                                                        ) : <span className="text-[10px] font-black text-navy-900/60 uppercase">{row.basic}</span>}
                                                     </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.pro === 'boolean'
-                                                            ? (row.pro ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.pro}</span>
-                                                        }
+                                                    <td className="p-6 text-center italic">
+                                                        {typeof row.pro === 'boolean' ? (
+                                                            row.pro ? <Check size={14} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={14} className="mx-auto text-navy-900/20" />
+                                                        ) : <span className="text-[10px] font-black text-navy-900/60 uppercase">{row.pro}</span>}
                                                     </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.enterprise === 'boolean'
-                                                            ? (row.enterprise ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.enterprise}</span>
-                                                        }
+                                                    <td className="p-6 text-center italic">
+                                                        {typeof row.enterprise === 'boolean' ? (
+                                                            row.enterprise ? <Check size={14} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={14} className="mx-auto text-navy-900/20" />
+                                                        ) : <span className="text-[10px] font-black text-navy-900/60 uppercase">{row.enterprise}</span>}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -330,309 +324,15 @@ export default function PlansModal({ isOpen, onClose }) {
                             </div>
                         </div>
 
-                        {/* 3. Módulo de Conversaciones */}
-                        <div className="animate-fade-up">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="w-10 h-10 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900">
-                                    <MessageCircle size={20} />
-                                </div>
-                                <div>
-                                    <h4 className="text-lg font-black text-navy-900 tracking-tight leading-none mb-1">Conversaciones</h4>
-                                    <p className="text-[11px] text-navy-700/50 font-bold uppercase tracking-wider">IA y Mensajería</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-white/40 border border-white/80 rounded-[32px] overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto custom-scrollbar">
-                                    <table className="w-full text-left border-collapse min-w-[600px]">
-                                        <thead>
-                                            <tr className="border-b border-navy-900/5">
-                                                <th className="p-6 text-[11px] font-black text-navy-900/40 uppercase tracking-widest">Característica</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Básico</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Pro</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Enterprise</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[
-                                                { name: 'Bandeja Unificada', basic: true, pro: true, enterprise: true },
-                                                { name: 'Manejo de Emergencias', basic: true, pro: true, enterprise: true },
-                                                { name: 'Auto-Respuestas Inteligentes', basic: true, pro: true, enterprise: true },
-                                                { name: 'IA con Contexto Completo', basic: false, pro: true, enterprise: true },
-                                                { name: 'Confirmación Automática por WhatsApp', basic: false, pro: false, enterprise: true },
-                                                { name: 'Límite de Mensajes', basic: '500 / mes', pro: '2,500 / mes', enterprise: 'Ilimitados' },
-                                            ].map((row, i) => (
-                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-white/40 transition-colors">
-                                                    <td className="p-6 text-[12px] font-bold text-navy-900">{row.name}</td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.basic === 'boolean'
-                                                            ? (row.basic ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.basic}</span>
-                                                        }
-                                                    </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.pro === 'boolean'
-                                                            ? (row.pro ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.pro}</span>
-                                                        }
-                                                    </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.enterprise === 'boolean'
-                                                            ? (row.enterprise ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.enterprise}</span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 4. Módulo de Estadísticas */}
-                        <div className="animate-fade-up">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="w-10 h-10 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900">
-                                    <BarChart2 size={20} />
-                                </div>
-                                <div>
-                                    <h4 className="text-lg font-black text-navy-900 tracking-tight leading-none mb-1">Estadísticas</h4>
-                                    <p className="text-[11px] text-navy-700/50 font-bold uppercase tracking-wider">Reportes y métricas</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-white/40 border border-white/80 rounded-[32px] overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto custom-scrollbar">
-                                    <table className="w-full text-left border-collapse min-w-[600px]">
-                                        <thead>
-                                            <tr className="border-b border-navy-900/5">
-                                                <th className="p-6 text-[11px] font-black text-navy-900/40 uppercase tracking-widest">Característica</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Básico</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Pro</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Enterprise</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[
-                                                { name: 'Dashboard de Métricas (Turnos y Clientes)', basic: false, pro: true, enterprise: true },
-                                                { name: 'Métricas de Mensajes (IA)', basic: false, pro: true, enterprise: true },
-                                                { name: 'Tasa de Confirmación y Cancelaciones', basic: false, pro: true, enterprise: true },
-                                                { name: 'Histórico Comparativo Mensual', basic: false, pro: true, enterprise: true },
-                                                { name: 'Exportación de Reportes PDF/Excel', basic: false, pro: false, enterprise: true },
-                                            ].map((row, i) => (
-                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-white/40 transition-colors">
-                                                    <td className="p-6 text-[12px] font-bold text-navy-900">{row.name}</td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.basic === 'boolean'
-                                                            ? (row.basic ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.basic}</span>
-                                                        }
-                                                    </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.pro === 'boolean'
-                                                            ? (row.pro ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.pro}</span>
-                                                        }
-                                                    </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.enterprise === 'boolean'
-                                                            ? (row.enterprise ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.enterprise}</span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 5. Módulo de Servicios */}
-                        <div className="animate-fade-up">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="w-10 h-10 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900">
-                                    <Layers size={20} />
-                                </div>
-                                <div>
-                                    <h4 className="text-lg font-black text-navy-900 tracking-tight leading-none mb-1">Servicios</h4>
-                                    <p className="text-[11px] text-navy-700/50 font-bold uppercase tracking-wider">Catálogo y precios</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-white/40 border border-white/80 rounded-[32px] overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto custom-scrollbar">
-                                    <table className="w-full text-left border-collapse min-w-[600px]">
-                                        <thead>
-                                            <tr className="border-b border-navy-900/5">
-                                                <th className="p-6 text-[11px] font-black text-navy-900/40 uppercase tracking-widest">Característica</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Básico</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Pro</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Enterprise</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[
-                                                { name: 'Gestión de Servicios Ilimitados', basic: true, pro: true, enterprise: true },
-                                                { name: 'Activar / Desactivar Servicios', basic: true, pro: true, enterprise: true },
-                                                { name: 'Descripción Detallada (Contexto para IA)', basic: false, pro: true, enterprise: true },
-                                                { name: 'Precios Dinámicos / Ofertas', basic: false, pro: true, enterprise: true },
-                                                { name: 'Servicios VIP / Privados', basic: false, pro: false, enterprise: true },
-                                            ].map((row, i) => (
-                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-white/40 transition-colors">
-                                                    <td className="p-6 text-[12px] font-bold text-navy-900">{row.name}</td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.basic === 'boolean'
-                                                            ? (row.basic ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.basic}</span>
-                                                        }
-                                                    </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.pro === 'boolean'
-                                                            ? (row.pro ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.pro}</span>
-                                                        }
-                                                    </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.enterprise === 'boolean'
-                                                            ? (row.enterprise ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.enterprise}</span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 6. Módulo de Actividad */}
-                        <div className="animate-fade-up">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="w-10 h-10 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900">
-                                    <List size={20} />
-                                </div>
-                                <div>
-                                    <h4 className="text-lg font-black text-navy-900 tracking-tight leading-none mb-1">Actividad</h4>
-                                    <p className="text-[11px] text-navy-700/50 font-bold uppercase tracking-wider">Auditoría y control</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-white/40 border border-white/80 rounded-[32px] overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto custom-scrollbar">
-                                    <table className="w-full text-left border-collapse min-w-[600px]">
-                                        <thead>
-                                            <tr className="border-b border-navy-900/5">
-                                                <th className="p-6 text-[11px] font-black text-navy-900/40 uppercase tracking-widest">Característica</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Básico</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Pro</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Enterprise</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[
-                                                { name: 'Registro de Actividad General', basic: false, pro: true, enterprise: true },
-                                                { name: 'Historial de Cambios en Clientes', basic: false, pro: true, enterprise: true },
-                                                { name: 'Historial de Cambios en Turnos', basic: false, pro: true, enterprise: true },
-                                                { name: 'Auditoría de Acciones de Staff', basic: false, pro: true, enterprise: true },
-                                                { name: 'Exportación de Logs (CSV/Excel)', basic: false, pro: false, enterprise: true },
-                                            ].map((row, i) => (
-                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-white/40 transition-colors">
-                                                    <td className="p-6 text-[12px] font-bold text-navy-900">{row.name}</td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.basic === 'boolean'
-                                                            ? (row.basic ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.basic}</span>
-                                                        }
-                                                    </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.pro === 'boolean'
-                                                            ? (row.pro ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.pro}</span>
-                                                        }
-                                                    </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.enterprise === 'boolean'
-                                                            ? (row.enterprise ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.enterprise}</span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 7. Módulo de Usuarios */}
-                        <div className="animate-fade-up">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="w-10 h-10 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900">
-                                    <ShieldCheck size={20} />
-                                </div>
-                                <div>
-                                    <h4 className="text-lg font-black text-navy-900 tracking-tight leading-none mb-1">Usuarios</h4>
-                                    <p className="text-[11px] text-navy-700/50 font-bold uppercase tracking-wider">Roles y acceso</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-white/40 border border-white/80 rounded-[32px] overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto custom-scrollbar">
-                                    <table className="w-full text-left border-collapse min-w-[600px]">
-                                        <thead>
-                                            <tr className="border-b border-navy-900/5">
-                                                <th className="p-6 text-[11px] font-black text-navy-900/40 uppercase tracking-widest">Característica</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Básico</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Pro</th>
-                                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Enterprise</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[
-                                                { name: 'Gestión de Personal', basic: true, pro: true, enterprise: true },
-                                                { name: 'Roles (Admin, Editor, Viewer)', basic: 'Admin únicamente', pro: 'Roles Personalizables', enterprise: 'Roles Personalizables' },
-                                                { name: 'Límite de Usuarios', basic: '1', pro: 'Hasta 5', enterprise: 'Ilimitados' },
-                                            ].map((row, i) => (
-                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-white/40 transition-colors">
-                                                    <td className="p-6 text-[12px] font-bold text-navy-900">{row.name}</td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.basic === 'boolean'
-                                                            ? (row.basic ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.basic}</span>
-                                                        }
-                                                    </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.pro === 'boolean'
-                                                            ? (row.pro ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.pro}</span>
-                                                        }
-                                                    </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.enterprise === 'boolean'
-                                                            ? (row.enterprise ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.enterprise}</span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 8. Módulo de Configuración */}
-                        <div className="animate-fade-up">
+                        {/* 3. Módulo de Empresa & Usuarios */}
+                        <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
                             <div className="flex items-center gap-3 mb-8">
                                 <div className="w-10 h-10 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900">
                                     <Settings size={20} />
                                 </div>
                                 <div>
-                                    <h4 className="text-lg font-black text-navy-900 tracking-tight leading-none mb-1">Configuración</h4>
-                                    <p className="text-[11px] text-navy-700/50 font-bold uppercase tracking-wider">Personalización del negocio</p>
+                                    <h4 className="text-lg font-black text-navy-900 tracking-tight leading-none mb-1">Empresa</h4>
+                                    <p className="text-[11px] text-navy-700/50 font-bold uppercase tracking-wider">Control y Acceso</p>
                                 </div>
                             </div>
 
@@ -649,31 +349,28 @@ export default function PlansModal({ isOpen, onClose }) {
                                         </thead>
                                         <tbody>
                                             {[
-                                                { name: 'Perfil de Negocio Completo', basic: true, pro: true, enterprise: true },
-                                                { name: 'Horarios de Atención', basic: true, pro: true, enterprise: true },
-                                                { name: 'Personalización de IA (Contexto)', basic: false, pro: true, enterprise: true },
-                                                { name: 'Integración con Gmail', basic: false, pro: true, enterprise: true },
-                                                { name: 'Multi-Sede (Sucursales)', basic: false, pro: false, enterprise: true },
+                                                { name: 'Cuentas de Usuarios', basic: '1', pro: 'Hasta 5', enterprise: 'Ilimitados' },
+                                                { name: 'Roles y Permisos Personalizados', basic: false, pro: true, enterprise: true },
+                                                { name: 'Auditoría de Acciones (Logs)', basic: false, pro: true, enterprise: true },
+                                                { name: 'Dashboard de Estadísticas', basic: 'Básico', pro: 'Completo', enterprise: 'Completo' },
+                                                { name: 'Configuración de Horarios', basic: true, pro: true, enterprise: true },
                                             ].map((row, i) => (
-                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-white/40 transition-colors">
-                                                    <td className="p-6 text-[12px] font-bold text-navy-900">{row.name}</td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.basic === 'boolean'
-                                                            ? (row.basic ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.basic}</span>
-                                                        }
+                                                <tr key={i} className="border-b border-navy-900/5 last:border-0 hover:bg-navy-900/[0.02] transition-colors">
+                                                    <td className="p-6 text-[11px] font-bold text-navy-700">{row.name}</td>
+                                                    <td className="p-6 text-center italic">
+                                                        {typeof row.basic === 'boolean' ? (
+                                                            row.basic ? <Check size={14} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={14} className="mx-auto text-navy-900/20" />
+                                                        ) : <span className="text-[10px] font-black text-navy-900/60 uppercase">{row.basic}</span>}
                                                     </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.pro === 'boolean'
-                                                            ? (row.pro ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.pro}</span>
-                                                        }
+                                                    <td className="p-6 text-center italic">
+                                                        {typeof row.pro === 'boolean' ? (
+                                                            row.pro ? <Check size={14} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={14} className="mx-auto text-navy-900/20" />
+                                                        ) : <span className="text-[10px] font-black text-navy-900/60 uppercase">{row.pro}</span>}
                                                     </td>
-                                                    <td className="p-6 text-center">
-                                                        {typeof row.enterprise === 'boolean'
-                                                            ? (row.enterprise ? <Check size={16} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={16} className="mx-auto text-navy-900/20" />)
-                                                            : <span className="text-[12px] font-bold text-navy-900/60">{row.enterprise}</span>
-                                                        }
+                                                    <td className="p-6 text-center italic">
+                                                        {typeof row.enterprise === 'boolean' ? (
+                                                            row.enterprise ? <Check size={14} className="mx-auto text-emerald-500" strokeWidth={3} /> : <X size={14} className="mx-auto text-navy-900/20" />
+                                                        ) : <span className="text-[10px] font-black text-navy-900/60 uppercase">{row.enterprise}</span>}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -683,6 +380,13 @@ export default function PlansModal({ isOpen, onClose }) {
                             </div>
                         </div>
 
+                        {/* Pie de Tabla */}
+                        <div className="flex flex-col items-center justify-center pt-8 border-t border-navy-900/5">
+                            <Zap size={24} className="text-navy-900/20 mb-4" />
+                            <p className="text-[12px] font-bold text-navy-900/40 text-center max-w-lg">
+                                ¿Necesitas algo a medida? Contáctanos para soluciones Enterprise personalizadas.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
