@@ -382,10 +382,10 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 
 #### 🔴 Prioridad alta
 
-1. **Subir Básico a Q599 o reducir features.**
+1. **Subir Básico a Q599 o reducir features.** ✅
    El margen del 10% es insostenible. Propuesta:
    - **Opción A**: Subir a Q599 → margen 25% (más cómodo)
-   - **Opción B**: Mantener Q499 pero quitar "Sincronización con Calendarios" e "Integración de Modulos a la Medida" (ambas requieren trabajo custom)
+   - **Opción B**: Mantener Q499 pero quitar "Sincronización con Calendarios" e "Integración de Modulos a la Medida" (ambas requieren trabajo custom) ✅
 
 2. **Replantear "Confirmaciones automáticas" en Enterprise.**
    Si implica mensajes salientes WhatsApp fuera de 24h, **destruye el margen** (puede costar $90–390/mes/cliente). Opciones:
@@ -393,7 +393,7 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
    - Usar SMS Twilio o email en vez de WhatsApp template
    - Restringir a confirmaciones DENTRO de la ventana 24h (cuando el cliente ya escribió)
 
-3. **"Página Web" en Enterprise — sacar como add-on.**
+3. **"Página Web" en Enterprise — sacar como add-on.** ✅
    Una web custom no es un feature de SaaS, es un proyecto. Cobrar setup fee Q3,000–5,000 separado o usar template estándar.
 
 4. **Implementar T-03 Stripe.** Sin esto, el cobro manual limita escalabilidad real a ~10 clientes.
@@ -402,13 +402,13 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 
 5. **Agregar plan TRIAL 14 días** del Pro completo. Reduce fricción de venta — estándar SaaS. Sin tarjeta para empezar (hooks: T-03 ya lo permite cuando esté).
 
-6. **Onboarding fee opcional para Enterprise** (Q2,500–5,000 una vez). Cubre setup técnico + capacitación + customización. Mejora cashflow inicial.
+6. **Onboarding fee opcional para Enterprise** (Q2,500–5,000 una vez). Cubre setup técnico + capacitación + customización. Mejora cashflow inicial. ✅
 
-7. **Anual con descuento**: 10 meses al precio de 12 (16% off). Mejora retention y LTV.
+7. **Anual con descuento**: 10 meses al precio de 12 (16% off). Mejora retention y LTV. ✅
 
-8. **Naming consistente de modelos IA**:
+8. **Naming consistente de modelos IA**: ✅
    - "Gemini 2.5 Flash Pro" no existe — es "Gemini 2.5 Pro" (sin "Flash")
-   - Considerar ocultar el nombre técnico al cliente final ("IA Estándar / Avanzada / Premium")
+   - Considerar ocultar el nombre técnico al cliente final ("IA Estándar / Avanzada / Premium") ✅
 
 #### 🟡 Mejoras estratégicas
 
@@ -428,8 +428,6 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 ### Pendientes (resumen)
 - 🔴 **T-03 Stripe** — sin pagos automáticos, cobro manual limita escalabilidad
 - 🔴 Recalcular costo de "Confirmaciones automáticas" Enterprise con escenario WhatsApp template
-- 🟠 Subir Básico a Q599 o reducir alcance del plan
-- 🟠 Sacar "Página Web" del plan Enterprise (vender como servicio aparte)
 - 🟠 Definir trial 14 días + plan anual con descuento
 - 🟡 Métricas SaaS (MRR/churn/LTV/CAC) sin instrumentar
 
@@ -467,26 +465,8 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 
 ## Porcentaje global
 
-- **~92%** para operar como negocio autónomo (planes definidos + costos calculados)
-- **~96%** para uso interno o clientes de confianza
-- **~75%** para lanzamiento público con cobro automático (falta Stripe + ajuste pricing Básico)
+- **~86%** para operar como negocio autónomo
+- **~95%** para uso interno o clientes de confianza
+- **~68%** para lanzamiento público con cobro automático (falta Stripe)
 
-Camino más corto al 100%:
-1. Hardening técnico: DSN Sentry → sourcemaps → no-store opt-in → branch DB preview **(≈3h)**
-2. Negocio: subir Básico a Q599 o quitar features pesadas **(decisión, 0h)**
-3. Quitar "Página Web" + "Confirmaciones automáticas" del Enterprise (o limitarlas) **(1h)**
-4. T-03 Stripe + plan anual + trial 14 días **(~1 semana)**
-
----
-
-## Apéndice — Resumen ejecutivo de tu hipótesis
-
-> **"Con 1 cliente cubro toda mi mensualidad"**
-
-| Plan | ¿Cubre $59 fijos? | Margen real |
-|------|-------------------|-------------|
-| 1 Básico Q499 | ✅ Apenas (Q49 sobra) | 10% — frágil |
-| 1 Pro Q999    | ✅ Sí (Q549 sobra) | 55% — sano |
-| 1 Enterprise Q1,999 | ✅ Sí (Q1,548 sobra) | 77% — excelente |
-
-**Veredicto**: la hipótesis es cierta, pero **el Básico te deja sin colchón**. Apunta a que el MIX de clientes sea mayoritariamente Pro; el Básico debería usarse como gancho de entrada, no como producto principal.
+Camino más corto al 100%: DSN Sentry → sourcemaps → no-store opt-in → commit index.html → branch DB preview **(≈3h)** → T-03 Stripe **(~1 semana)**.
