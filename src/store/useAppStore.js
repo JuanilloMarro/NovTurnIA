@@ -74,6 +74,11 @@ export const useAppStore = create((set) => ({
         businessName: '',
         businessHours: { schedule_start: '09:00', schedule_end: '18:00', schedule_days: [1,2,3,4,5] },
         featureFlags: {},
+        // Limpiar todos los caches de datos para evitar data stale al cambiar de cuenta
+        _patientsCache: { data: [], fetchedAt: 0 },
+        _conversationsCache: { data: [], fetchedAt: 0 },
+        _statsCache: { data: null, fetchedAt: 0 },
+        humanTakeoverMap: {},
     }),
 
     realtimeStatus: 'connected',

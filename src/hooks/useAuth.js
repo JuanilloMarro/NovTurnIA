@@ -1,7 +1,7 @@
 import { useAppStore } from '../store/useAppStore';
 import { useToastStore } from '../store/useToastStore';
 import { supabase } from '../config/supabase';
-import { getBusinessStatus, getBusinessSchedule } from '../services/supabaseService';
+import { getBusinessStatus, getBusinessSchedule, resetServiceCaches } from '../services/supabaseService';
 import * as Sentry from '@sentry/react';
 
 const setBusinessId   = (id)   => useAppStore.getState().setBusinessId(id);
@@ -71,6 +71,7 @@ export function useAuth() {
 
     async function logout() {
         useToastStore.getState().resetForNewSession();
+        resetServiceCaches();
         await supabase.auth.signOut();
         setBusinessId('');
         clearAuth();
@@ -120,6 +121,7 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         if (event === 'SIGNED_OUT') {
             useToastStore.getState().resetForNewSession();
+            resetServiceCaches();
             setBusinessId('');
             clearAuth();
             return;

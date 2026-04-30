@@ -9,6 +9,11 @@ const getBID = () => useAppStore.getState().businessId;
 // T-60: getBusinessTimezone reutiliza getBusinessInfo en lugar de hacer una query separada
 let _businessTimezone = null;
 
+// Limpiar caches module-level al cerrar sesión — evita data stale al cambiar de cuenta
+export function resetServiceCaches() {
+    _businessTimezone = null;
+}
+
 async function getBusinessTimezone() {
     if (_businessTimezone) return _businessTimezone;
     const info = await getBusinessInfo();
