@@ -563,15 +563,30 @@ export async function getStatsOverview() {
 
 // ── Business Info ────────────────────────────────────────
 // T-60: incluye timezone para que getBusinessTimezone() reutilice esta query
+// T-08: join con plans para traer plan completo (tier, name, limits, features)
 export async function getBusinessInfo() {
     const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, plan, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, custom_prompt, feature_flags')
+        .select('id, name, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, custom_prompt, feature_flags, plans(id, tier, name, monthly_price, annual_discount, max_patients, max_staff, max_appointments, max_conversations, features)')
         .eq('id', getBID())
         .single();
 
     if (error) throw error;
+    // Compatibilidad: exponer plan como string para código legacy que lea data.plan
+    if (data) data.plan = data.plans?.tier || null;
     return data;
+}
+
+// ── Plans (catálogo) ─────────────────────────────────────
+export async function getPlans() {
+    const { data, error } = await supabase
+        .from('plans')
+        .select('id, tier, name, monthly_price, annual_discount, max_patients, max_staff, max_appointments, max_conversations, features, display_order')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
 }
 
 export async function updateBusinessInfo(fields) {

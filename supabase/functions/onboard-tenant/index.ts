@@ -114,12 +114,26 @@ serve(async (req) => {
       );
     }
 
+    // ── PASO 0.5: Obtener el plan_id ────────────────────────────────────────
+    const { data: planRecord, error: planError } = await (supabaseAdmin as any)
+      .from('plans')
+      .select('id')
+      .eq('tier', plan)
+      .single();
+
+    if (planError || !planRecord) {
+      return new Response(
+        JSON.stringify({ error: `Plan '${plan}' no existe.` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // ── PASO 1: Crear el negocio ─────────────────────────────────────────────
-    const { data: business, error: bizError } = await supabaseAdmin
+    const { data: business, error: bizError } = await (supabaseAdmin as any)
       .from('businesses')
       .insert({
         name: business_name,
-        plan,
+        plan_id: planRecord.id,
         plan_status: 'active',
         timezone,
         schedule_start,
