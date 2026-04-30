@@ -1,6 +1,6 @@
 # NovTurnAI — Evaluación de Estado
 
-> Versión: 1.1 · Fecha: 2026-04-28
+> Versión: 1.2 · Fecha: 2026-04-29
 > Escala 0–10 · 🔴 Bloqueante · 🟠 Importante · 🟡 Deseable · ✅ Resuelto
 
 ---
@@ -15,8 +15,8 @@
 | Infraestructura / Despliegue| 8.0/10   | Estable   |
 | Producto / SaaS             | 8.7/10   | Estable   |
 | Resiliencia                 | 7.2/10   | Estable   |
-| Modelo de negocio           | 2.5/10   | Pendiente |
-| **PROMEDIO GLOBAL**         | **8.1/10** |         |
+| Modelo de negocio           | 6.5/10   | ↑ Plans + costos definidos, falta Stripe |
+| **PROMEDIO GLOBAL**         | **8.7/10** |         |
 
 **Estado:** Apto para producción con clientes controlados. Para cobro automático falta Stripe (T-03).
 
@@ -318,27 +318,120 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 
 ---
 
-## 7. Modelo de Negocio — 2.5/10
+## 7. Modelo de Negocio — 6.5/10
 
-### Costos operativos (referencia)
+### 7.1 Estructura de planes (definida en `PlansModal.jsx`)
 
-| Servicio        | Fase 1 (≤10 clientes) | Fase 2 (10–100) | Fase 3 (100–500) |
-|-----------------|----------------------|-----------------|------------------|
-| Supabase Pro    | $25                  | $40             | $60+             |
-| Elestio N8N     | $7                   | $14             | $30 (×2)         |
-| Vercel          | $0                   | $0–20           | $20+             |
-| Sentry          | $0                   | $0–26           | $26              |
-| IA (Gemini)     | <$1                  | ~$5–15          | ~$20–30          |
-| **Total**       | **~$32–35**          | **~$74–115**    | **~$300–800**    |
+| Plan       | Precio  | IA Model            | Usuarios | Mensajes/mes | Clientes |
+|------------|---------|---------------------|----------|--------------|----------|
+| Básico     | Q499    | Gemini 2.5 Flash Lite | 1      | 500          | 100      |
+| Pro        | Q999    | Gemini 2.5 Flash    | 5        | 2,500        | 500      |
+| Enterprise | Q1,999  | Gemini 2.5 Pro      | ∞        | Ilimitados   | ∞        |
 
-Costo IA a escala (1,000 clientes, escenario realista): ~$20.50/mes total · $0.02/cliente.
-WhatsApp: $0 — modelo basado en ventana de 24hrs (cliente inicia la conversación).
+### 7.2 Costos fijos mensuales (independientes del # clientes)
 
-### Pendientes
-- 🔴 **T-03 Stripe** — sin integración de pagos, cobro es manual. Bloquea monetización real.
-- 🔴 Costos reales por tenant no calculados (Supabase compute + IA tokens)
-- 🟠 Pricing por plan sin definir públicamente
-- 🟠 Estrategia de adquisición: solo onboarding manual actualmente
+| Concepto       | Costo USD | Costo Q (a 7.65) |
+|----------------|-----------|------------------|
+| Supabase Pro   | $25       | Q191             |
+| Elestio Pro N8N| $14       | Q107             |
+| Vercel Pro     | $20       | Q153             |
+| **TOTAL FIJO** | **$59**   | **~Q450**        |
+
+### 7.3 Costo IA por cliente individual
+
+| Plan       | Modelo Gemini       | $/cliente/mes | Q/cliente |
+|------------|---------------------|---------------|-----------|
+| Básico     | Flash Lite          | $0.006–0.009  | Q0.05–0.07|
+| Pro        | Flash               | $0.020–0.031  | Q0.15–0.24|
+| Enterprise | Pro                 | $0.084–0.127  | Q0.64–0.97|
+
+### 7.4 Unit economics — margen por 1 cliente
+
+| Plan       | Ingreso | Costo (fijo+IA) | Margen Q | Margen % |
+|------------|---------|-----------------|----------|----------|
+| Básico     | Q499    | ~Q450           | **Q49**  | **~10%** ⚠️ |
+| Pro        | Q999    | ~Q450           | **Q549** | **~55%** ✅ |
+| Enterprise | Q1,999  | ~Q451           | **Q1,548**| **~77%** ✅ |
+
+> **Tu hipótesis "1 cliente cubre la mensualidad" es correcta sólo desde Pro hacia arriba.**
+> Con 1 cliente Básico, el margen de Q49 lo come fácilmente: Stripe fee (~Q20) + 1 hora de soporte + 1 reembolso ocasional.
+
+### 7.5 Escenarios de break-even y escala
+
+| Cantidad clientes        | Ingreso mensual | Costo total | Margen | Margen % |
+|--------------------------|-----------------|-------------|--------|----------|
+| 1 Básico                 | Q499            | Q450        | Q49    | 10%      |
+| 1 Pro                    | Q999            | Q450        | Q549   | 55%      |
+| 5 Básico + 5 Pro         | Q7,490          | Q452        | Q7,038 | 94%      |
+| 10 Pro                   | Q9,990          | Q452        | Q9,538 | 95%      |
+| 100 Pro                  | Q99,900         | Q474        | Q99,426| 99%      |
+| 1 Enterprise             | Q1,999          | Q451        | Q1,548 | 77%      |
+
+### 7.6 Riesgos de costo NO contemplados en el Excel
+
+| Riesgo | Impacto estimado |
+|--------|------------------|
+| 🔴 **WhatsApp templates salientes** (Enterprise dice "confirmaciones automáticas") | $0.03–0.13 por mensaje template fuera de ventana 24h. 100 confirmaciones/día = **$90–390/mes** por cliente Enterprise |
+| 🟠 Stripe fees (3.4% + Q3 por txn) | Pro: ~Q37/mes; Enterprise: ~Q71/mes |
+| 🟠 Soporte humano (no facturado) | 1h/cliente/mes ≈ Q50–100 de costo oportunidad |
+| 🟠 Email transaccional (Resend) | $0 hasta 3K/mes; $20/mes después |
+| 🟡 Dominio + SSL | ~$15/año (despreciable) |
+| 🟡 Backups offsite extra | Supabase PITR add-on $10/mes (cuando crezca el data) |
+
+### 7.7 Recomendaciones al modelo de negocio
+
+#### 🔴 Prioridad alta
+
+1. **Subir Básico a Q599 o reducir features.**
+   El margen del 10% es insostenible. Propuesta:
+   - **Opción A**: Subir a Q599 → margen 25% (más cómodo)
+   - **Opción B**: Mantener Q499 pero quitar "Sincronización con Calendarios" e "Integración de Modulos a la Medida" (ambas requieren trabajo custom)
+
+2. **Replantear "Confirmaciones automáticas" en Enterprise.**
+   Si implica mensajes salientes WhatsApp fuera de 24h, **destruye el margen** (puede costar $90–390/mes/cliente). Opciones:
+   - Limitar a X confirmaciones/mes incluidas, cobrar el resto como overage
+   - Usar SMS Twilio o email en vez de WhatsApp template
+   - Restringir a confirmaciones DENTRO de la ventana 24h (cuando el cliente ya escribió)
+
+3. **"Página Web" en Enterprise — sacar como add-on.**
+   Una web custom no es un feature de SaaS, es un proyecto. Cobrar setup fee Q3,000–5,000 separado o usar template estándar.
+
+4. **Implementar T-03 Stripe.** Sin esto, el cobro manual limita escalabilidad real a ~10 clientes.
+
+#### 🟠 Prioridad media
+
+5. **Agregar plan TRIAL 14 días** del Pro completo. Reduce fricción de venta — estándar SaaS. Sin tarjeta para empezar (hooks: T-03 ya lo permite cuando esté).
+
+6. **Onboarding fee opcional para Enterprise** (Q2,500–5,000 una vez). Cubre setup técnico + capacitación + customización. Mejora cashflow inicial.
+
+7. **Anual con descuento**: 10 meses al precio de 12 (16% off). Mejora retention y LTV.
+
+8. **Naming consistente de modelos IA**:
+   - "Gemini 2.5 Flash Pro" no existe — es "Gemini 2.5 Pro" (sin "Flash")
+   - Considerar ocultar el nombre técnico al cliente final ("IA Estándar / Avanzada / Premium")
+
+#### 🟡 Mejoras estratégicas
+
+9. **Analizar competencia local**:
+   - Calendly: $10–20 USD = Q76–153 → tu Básico (Q499) está 3x arriba
+   - Setmore: $0–12 USD = Q0–92 → idem
+   - **Diferenciador**: WhatsApp en español + IA contextual + multi-tenant. Justifica el premium, pero comunícalo claro.
+
+10. **Métricas a trackear desde día 1**:
+    - MRR (Monthly Recurring Revenue)
+    - Churn rate (% cancela/mes) — debajo del 5% mensual es bueno
+    - LTV (Lifetime Value) — mínimo 3x CAC
+    - CAC (Customer Acquisition Cost)
+
+11. **Caso "1000 clientes" del Excel está sobreestimado en mensajes** (50–75K tokens/cliente/mes). Asegúrate de medir tokens reales en producción para ajustar tier de modelo.
+
+### Pendientes (resumen)
+- 🔴 **T-03 Stripe** — sin pagos automáticos, cobro manual limita escalabilidad
+- 🔴 Recalcular costo de "Confirmaciones automáticas" Enterprise con escenario WhatsApp template
+- 🟠 Subir Básico a Q599 o reducir alcance del plan
+- 🟠 Sacar "Página Web" del plan Enterprise (vender como servicio aparte)
+- 🟠 Definir trial 14 días + plan anual con descuento
+- 🟡 Métricas SaaS (MRR/churn/LTV/CAC) sin instrumentar
 
 ---
 
@@ -374,8 +467,26 @@ WhatsApp: $0 — modelo basado en ventana de 24hrs (cliente inicia la conversaci
 
 ## Porcentaje global
 
-- **~86%** para operar como negocio autónomo
-- **~95%** para uso interno o clientes de confianza
-- **~68%** para lanzamiento público con cobro automático (falta Stripe)
+- **~92%** para operar como negocio autónomo (planes definidos + costos calculados)
+- **~96%** para uso interno o clientes de confianza
+- **~75%** para lanzamiento público con cobro automático (falta Stripe + ajuste pricing Básico)
 
-Camino más corto al 100%: DSN Sentry → sourcemaps → no-store opt-in → commit index.html → branch DB preview **(≈3h)** → T-03 Stripe **(~1 semana)**.
+Camino más corto al 100%:
+1. Hardening técnico: DSN Sentry → sourcemaps → no-store opt-in → branch DB preview **(≈3h)**
+2. Negocio: subir Básico a Q599 o quitar features pesadas **(decisión, 0h)**
+3. Quitar "Página Web" + "Confirmaciones automáticas" del Enterprise (o limitarlas) **(1h)**
+4. T-03 Stripe + plan anual + trial 14 días **(~1 semana)**
+
+---
+
+## Apéndice — Resumen ejecutivo de tu hipótesis
+
+> **"Con 1 cliente cubro toda mi mensualidad"**
+
+| Plan | ¿Cubre $59 fijos? | Margen real |
+|------|-------------------|-------------|
+| 1 Básico Q499 | ✅ Apenas (Q49 sobra) | 10% — frágil |
+| 1 Pro Q999    | ✅ Sí (Q549 sobra) | 55% — sano |
+| 1 Enterprise Q1,999 | ✅ Sí (Q1,548 sobra) | 77% — excelente |
+
+**Veredicto**: la hipótesis es cierta, pero **el Básico te deja sin colchón**. Apunta a que el MIX de clientes sea mayoritariamente Pro; el Básico debería usarse como gancho de entrada, no como producto principal.
