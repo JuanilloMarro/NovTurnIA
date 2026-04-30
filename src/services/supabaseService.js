@@ -567,7 +567,7 @@ export async function getStatsOverview() {
 export async function getBusinessInfo() {
     const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, custom_prompt, feature_flags, plans(id, tier, name, monthly_price, annual_discount, max_patients, max_staff, max_appointments, max_conversations, features)')
+        .select('id, name, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, custom_prompt, feature_flags, plans(id, tier, name, monthly_price, max_patients, max_staff, features)')
         .eq('id', getBID())
         .single();
 
@@ -581,7 +581,7 @@ export async function getBusinessInfo() {
 export async function getPlans() {
     const { data, error } = await supabase
         .from('plans')
-        .select('id, tier, name, monthly_price, annual_discount, max_patients, max_staff, max_appointments, max_conversations, features, display_order')
+        .select('id, tier, name, monthly_price, max_patients, max_staff, features, display_order')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
