@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import FeatureLock from '../FeatureLock';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, MessageCircle, Pencil, Trash2, Phone, Bot, ShieldOff } from 'lucide-react';
@@ -46,6 +47,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
         try {
             await deletePatient(patient.id);
             showPatientDeleteToast(name);
+            useAppStore.getState().invalidatePlanLimitsCache();
             onClose();
             onRefresh?.();
         } catch (err) {
@@ -60,6 +62,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
         try {
             await gdprDeletePatient(patient.id);
             showPatientGdprToast(`Todos los datos de ${name} han sido borrados permanentemente.`);
+            useAppStore.getState().invalidatePlanLimitsCache();
             onClose();
             onRefresh?.();
         } catch (err) {
@@ -115,13 +118,17 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                 </div>
                 
                 <div className="px-1 mb-6">
-                    {patient.notes ? (
-                        <p className="text-xs text-navy-700/80 font-medium leading-relaxed bg-navy-50/50 p-3 rounded-2xl border border-navy-100/30 italic">
-                            "{patient.notes}"
-                        </p>
-                    ) : (
-                        <p className="text-[11px] text-navy-400 font-semibold italic text-center py-2 opacity-60">Sin notas registradas</p>
-                    )}
+                    <FeatureLock feature="patient_notes" requiredPlan="Pro">
+                        <div className="min-h-[64px] flex flex-col justify-center">
+                            {patient.notes ? (
+                                <p className="text-xs text-navy-700/80 font-medium leading-relaxed bg-navy-50/50 p-3 rounded-2xl border border-navy-100/30 italic w-full">
+                                    "{patient.notes}"
+                                </p>
+                            ) : (
+                                <p className="text-[11px] text-navy-400 font-semibold italic text-center py-4 opacity-60 w-full">Sin notas registradas</p>
+                            )}
+                        </div>
+                    </FeatureLock>
                 </div>
 
                 <div className="flex items-center gap-3 px-1 mb-2">

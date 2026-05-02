@@ -7,6 +7,7 @@ import { getPatientHistory, setHumanTakeover, getPatientsForConversations } from
 import { showErrorToast } from '../store/useToastStore';
 import { formatPhone } from '../utils/format';
 import { useAppStore } from '../store/useAppStore';
+import { usePlanLimits } from '../hooks/usePlanLimits';
 
 const CONV_STALE_MS = 2 * 60_000; // 2 minutos
 
@@ -35,6 +36,7 @@ export default function Conversations() {
     const [showFilter, setShowFilter] = useState(false);
     const filterRef = useRef(null);
     const { canToggleAi } = usePermissions();
+    const { maxConversations, patientsUsed } = usePlanLimits();
     const humanTakeoverMap = useAppStore(s => s.humanTakeoverMap);
 
     // Cierra el dropdown al hacer click fuera
@@ -186,7 +188,13 @@ export default function Conversations() {
                 <div className="flex items-center gap-4">
                     <div>
                         <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Conversaciones</h1>
-                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Atención directa vía WhatsApp</p>
+                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">
+                            {maxConversations !== null && patientsUsed > maxConversations ? (
+                                `Mostrando últimas ${maxConversations} conversaciones`
+                            ) : (
+                                "Atención directa vía WhatsApp"
+                            )}
+                        </p>
                     </div>
                 </div>
             </div>

@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
 import { Shield, Check, Save, Lock, ChevronLeft } from 'lucide-react';
 import { showStaffPermsToast, showErrorToast } from '../store/useToastStore';
+import { usePlanLimits } from '../hooks/usePlanLimits';
 
 function getInitials(name) {
     if (!name) return '?';
@@ -48,6 +49,7 @@ export default function Users() {
     const { users, roles, loading, changeRole, changeRolePermissions } = useUsers();
     const { user: currentUser } = useAuth();
     const { canManageRoles } = usePermissions();
+    const { staffUsed, maxStaff } = usePlanLimits();
     const [selectedUser, setSelectedUser] = useState(null);
 
     const getRoleBadge = (user) => {

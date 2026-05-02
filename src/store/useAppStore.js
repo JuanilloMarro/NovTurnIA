@@ -84,6 +84,11 @@ export const useAppStore = create((set) => ({
     realtimeStatus: 'connected',
     setRealtimeStatus: (realtimeStatus) => set({ realtimeStatus }),
 
+    // Modal de planes — global para que FeatureLock (cualquier página) pueda abrirlo
+    isPlansOpen: false,
+    openPlans: () => set({ isPlansOpen: true }),
+    closePlans: () => set({ isPlansOpen: false }),
+
     _patientsCache: { data: [], fetchedAt: 0 },
     setPatientsCache: (data) => set({ _patientsCache: { data, fetchedAt: Date.now() } }),
     invalidatePatientsCache: () => set({ _patientsCache: { data: [], fetchedAt: 0 } }),
@@ -95,6 +100,10 @@ export const useAppStore = create((set) => ({
     _statsCache: { data: null, fetchedAt: 0 },
     setStatsCache: (data) => set({ _statsCache: { data, fetchedAt: Date.now() } }),
     invalidateStatsCache: () => set({ _statsCache: { data: null, fetchedAt: 0 } }),
+    
+    _planLimitsCache: { data: null, fetchedAt: 0 },
+    setPlanLimitsCache: (data) => set({ _planLimitsCache: { data, fetchedAt: Date.now() } }),
+    invalidatePlanLimitsCache: () => set({ _planLimitsCache: { data: null, fetchedAt: 0 } }),
 
     humanTakeoverMap: {},
     setPatientTakeover: (patientId, value) => set(state => ({

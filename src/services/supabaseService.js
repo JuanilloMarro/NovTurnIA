@@ -9,9 +9,52 @@ const getBID = () => useAppStore.getState().businessId;
 // T-60: getBusinessTimezone reutiliza getBusinessInfo en lugar de hacer una query separada
 let _businessTimezone = null;
 
+// M-010: cache de IDs visibles según el plan (TTL corto para reflejar altas/bajas)
+let _visiblePatientIds = { ids: null, ts: 0 };
+let _visibleStaffIds = { ids: null, ts: 0 };
+const VISIBLE_TTL_MS = 30_000;
+
 // Limpiar caches module-level al cerrar sesión — evita data stale al cambiar de cuenta
 export function resetServiceCaches() {
     _businessTimezone = null;
+    _visiblePatientIds = { ids: null, ts: 0 };
+    _visibleStaffIds = { ids: null, ts: 0 };
+}
+
+// Invalida los caches de visibilidad — llamado tras crear/borrar pacientes o staff
+export function invalidateVisibilityCache() {
+    _visiblePatientIds = { ids: null, ts: 0 };
+    _visibleStaffIds = { ids: null, ts: 0 };
+    useAppStore.getState().invalidatePlanLimitsCache();
+    // También invalida el cache del hook useVisiblePatients (import dinámico
+    // para evitar dependencia circular service ↔ hook).
+    import('../hooks/useVisiblePatients').then(m => m.invalidateVisiblePatients?.()).catch(() => {});
+}
+
+// M-010: devuelve los IDs de pacientes visibles para el plan actual.
+// null = sin límite o RPC no disponible → no aplicar filtro en la query principal.
+async function getVisiblePatientIds() {
+    const now = Date.now();
+    if (Array.isArray(_visiblePatientIds.ids) && now - _visiblePatientIds.ts < VISIBLE_TTL_MS) {
+        return _visiblePatientIds.ids;
+    }
+    const { data, error } = await supabase.rpc('get_visible_patient_ids', { p_business_id: getBID() });
+    if (error) return null; // degradación segura: RPC ausente o error → sin filtro
+    const ids = Array.isArray(data) ? data : [];
+    _visiblePatientIds = { ids, ts: now };
+    return ids;
+}
+
+async function getVisibleStaffIds() {
+    const now = Date.now();
+    if (Array.isArray(_visibleStaffIds.ids) && now - _visibleStaffIds.ts < VISIBLE_TTL_MS) {
+        return _visibleStaffIds.ids;
+    }
+    const { data, error } = await supabase.rpc('get_visible_staff_ids', { p_business_id: getBID() });
+    if (error) return null;
+    const ids = Array.isArray(data) ? data : [];
+    _visibleStaffIds = { ids, ts: now };
+    return ids;
 }
 
 async function getBusinessTimezone() {
@@ -303,6 +346,10 @@ export async function getPatients(search = '', { page = 0, pageSize = 50 } = {})
     const from = page * pageSize;
     const to = from + pageSize - 1;
 
+    // M-010: aplicar visibilidad por plan — los pacientes fuera del top-N quedan
+    // ocultos hasta que el negocio suba de plan (la data sigue intacta en DB).
+    const visibleIds = await getVisiblePatientIds();
+
     let query = supabase
         .from('patients')
         .select(`
@@ -316,6 +363,11 @@ export async function getPatients(search = '', { page = 0, pageSize = 50 } = {})
         .order('date_start', { referencedTable: 'appointments', ascending: false })
         .limit(5, { referencedTable: 'appointments' })
         .range(from, to);
+
+    if (Array.isArray(visibleIds)) {
+        // Lista vacía requiere un sentinel para que PostgREST no devuelva todo
+        query = query.in('id', visibleIds.length ? visibleIds : ['00000000-0000-0000-0000-000000000000']);
+    }
 
     if (search) {
         // Escapar caracteres especiales de PostgREST antes de interpolar en el filtro.
@@ -433,6 +485,7 @@ export async function createPatient({ display_name, phone }) {
         .single();
 
     if (fetchError) throw new Error('Cliente creado pero error al recuperar datos.');
+    invalidateVisibilityCache();
     return patient;
 }
 
@@ -479,6 +532,7 @@ export async function deletePatient(patientId) {
         .eq('business_id', getBID());
     // T-23: relanzar error original en lugar de ocultar el código de Supabase
     if (error) throw error;
+    invalidateVisibilityCache();
 }
 
 /**
@@ -637,7 +691,8 @@ export async function getBusinessStatus(businessId) {
 
 // ── Staff & Roles ─────────────────────────────────────────
 export async function getStaffUsers() {
-    const { data, error } = await supabase
+    const visibleIds = await getVisibleStaffIds();
+    let q = supabase
         .from('staff_users')
         .select(`
             *,
@@ -646,7 +701,10 @@ export async function getStaffUsers() {
         .eq('business_id', getBID())
         .eq('active', true)
         .order('created_at', { ascending: true });
-
+    if (Array.isArray(visibleIds)) {
+        q = q.in('id', visibleIds.length ? visibleIds : ['00000000-0000-0000-0000-000000000000']);
+    }
+    const { data, error } = await q;
     if (error) throw error;
     return data || [];
 }
@@ -836,6 +894,7 @@ export async function createStaffUser({ email, password, full_name, role_id }) {
     });
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
+    invalidateVisibilityCache();
     return data.data;
 }
 
@@ -845,6 +904,7 @@ export async function deleteStaffUser(userId) {
     });
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
+    invalidateVisibilityCache();
 }
 
 // ── Stats queries (T-29: moved from useStats.js) ──────────
@@ -960,12 +1020,16 @@ async function _trendFallback(granularity, start, end) {
  * T-30: Replaces the full getPatients() call that pulled 5 appointments per patient.
  */
 export async function getPatientsForAuditLog() {
-    const { data, error } = await supabase
+    const visibleIds = await getVisiblePatientIds();
+    let q = supabase
         .from('patients')
         .select('id, display_name, patient_phones(phone, is_primary)')
         .eq('business_id', getBID())
         .is('deleted_at', null);
-
+    if (Array.isArray(visibleIds)) {
+        q = q.in('id', visibleIds.length ? visibleIds : ['00000000-0000-0000-0000-000000000000']);
+    }
+    const { data, error } = await q;
     if (error) throw error;
     return data || [];
 }
@@ -975,13 +1039,17 @@ export async function getPatientsForAuditLog() {
  * Only fetches id, display_name, human_takeover, and primary phone — no appointments join.
  */
 export async function getPatientsForConversations() {
-    const { data, error } = await supabase
+    const visibleIds = await getVisiblePatientIds();
+    let q = supabase
         .from('patients')
         .select('id, display_name, human_takeover, created_at, patient_phones(phone, is_primary)')
         .eq('business_id', getBID())
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
-
+    if (Array.isArray(visibleIds)) {
+        q = q.in('id', visibleIds.length ? visibleIds : ['00000000-0000-0000-0000-000000000000']);
+    }
+    const { data, error } = await q;
     if (error) throw error;
     return data || [];
 }
@@ -993,13 +1061,17 @@ export async function getPatientsForConversations() {
  * Returns flat objects ready for downloadCSV().
  */
 export async function exportAllPatients() {
-    const { data, error } = await supabase
+    const visibleIds = await getVisiblePatientIds();
+    let q = supabase
         .from('patients')
         .select('display_name, patient_phones(phone, is_primary)')
         .eq('business_id', getBID())
         .is('deleted_at', null)
         .order('display_name', { ascending: true });
-
+    if (Array.isArray(visibleIds)) {
+        q = q.in('id', visibleIds.length ? visibleIds : ['00000000-0000-0000-0000-000000000000']);
+    }
+    const { data, error } = await q;
     if (error) throw error;
 
     return (data || []).map(p => ({

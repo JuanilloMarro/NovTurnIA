@@ -4,6 +4,8 @@ import { Search, Database, SlidersHorizontal, Plus, Edit2, Trash2, X, Download, 
 import { formatPhone } from '../utils/format';
 import { downloadCSV } from '../utils/export';
 import { withTimeout } from '../utils/withTimeout';
+import FeatureLock from '../components/FeatureLock';
+import { usePlanLimits } from '../hooks/usePlanLimits';
 
 // ── Módulos ──
 const MODULES = {
@@ -155,6 +157,16 @@ function getLogSummary(log, oldP, newP, ctxPaciente) {
 }
 
 export default function AuditLog() {
+    const { hasFeature, isLoading: planLoading } = usePlanLimits();
+
+    if (planLoading) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+            </div>
+        );
+    }
+
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -285,6 +297,41 @@ export default function AuditLog() {
         }
         return true;
     });
+
+    // Plan basic no incluye registro de actividad → blur sobre el módulo real
+    if (!hasFeature('audit_log')) {
+        return (
+            <FeatureLock
+                feature="audit_log"
+                variant="blurred"
+                title="Registro de Actividad no incluido en tu plan Básico"
+                description="El historial de acciones (creaciones, ediciones, eliminaciones) y la auditoría del staff están disponibles en Pro y Enterprise."
+                requiredPlan="Pro"
+            >
+                {/* Vista previa estática del registro — sólo se ve borrosa de fondo */}
+                <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-0">
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
+                            <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Vista previa del plan Pro</p>
+                        </div>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-2 px-2">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <div key={i} className="bg-white/40 backdrop-blur-2xl border border-white/60 rounded-3xl p-4 flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-navy-900/10" />
+                                <div className="flex-1 flex flex-col gap-2">
+                                    <div className="h-3 w-2/3 bg-navy-900/15 rounded-full" />
+                                    <div className="h-2 w-1/3 bg-navy-900/10 rounded-full" />
+                                </div>
+                                <div className="h-6 w-20 rounded-full bg-emerald-500/20" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </FeatureLock>
+        );
+    }
 
     return (
         <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-0">

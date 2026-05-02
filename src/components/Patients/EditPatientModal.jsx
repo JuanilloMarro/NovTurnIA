@@ -4,6 +4,8 @@ import { X, User, Phone, Save, Calendar } from 'lucide-react';
 import { updatePatient } from '../../services/supabaseService';
 import { showPatientEditToast, showErrorToast } from '../../store/useToastStore';
 import { useModalFocus } from '../../hooks/useModalFocus';
+import { usePlanLimits } from '../../hooks/usePlanLimits';
+import FeatureLock from '../FeatureLock';
 
 
 
@@ -14,9 +16,8 @@ export default function EditPatientModal({ patient, onClose, onUpdated }) {
     const [notes, setNotes] = useState(patient.notes || '');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const { hasFeature } = usePlanLimits();
     const modalRef = useRef(null);
-    useModalFocus(modalRef, true, onClose);
-
     useModalFocus(modalRef, true, onClose);
 
     async function handleSubmit(e) {
@@ -108,12 +109,15 @@ export default function EditPatientModal({ patient, onClose, onUpdated }) {
                         {/* Notas (opcional) */}
                         <div>
                             <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Notas / Observaciones</label>
-                            <textarea
-                                className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900 min-h-[100px] resize-none"
-                                value={notes}
-                                onChange={e => setNotes(e.target.value)}
-                                placeholder="Ej: Prefiere corte con tijera, alérgico a..."
-                            />
+                            <FeatureLock feature="patient_notes" requiredPlan="Pro">
+                                <textarea
+                                    className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900 min-h-[100px] resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                    value={notes}
+                                    onChange={e => setNotes(e.target.value)}
+                                    placeholder="Ej: Prefiere corte con tijera, alérgico a..."
+                                    disabled={!hasFeature('patient_notes')}
+                                />
+                            </FeatureLock>
                         </div>
                     </div>
 

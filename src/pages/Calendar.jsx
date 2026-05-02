@@ -9,6 +9,8 @@ import FollowUpList from '../components/Calendar/FollowUpList';
 import Button from '../components/ui/Button';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, UserX, Plus, SlidersHorizontal } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
+import { usePlanLimits } from '../hooks/usePlanLimits';
+import { Lock } from 'lucide-react';
 
 const TYPE_OPTIONS = [
     { value: 'all',       label: 'Todos' },
@@ -25,6 +27,8 @@ const DAYS_OPTIONS = [
 
 export default function Calendar() {
     const { canCreateAppointments, canViewFollowUp } = usePermissions();
+    const { hasFeature } = usePlanLimits();
+    const followUpUnlocked = hasFeature('followup');
     const {
         appointments,
         loading,
@@ -92,10 +96,12 @@ export default function Calendar() {
                         </button>
                         {canViewFollowUp && (
                             <button
-                                onClick={() => setTab('followup')}
-                                className={`px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${tab === 'followup' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}
+                                onClick={() => followUpUnlocked && setTab('followup')}
+                                disabled={!followUpUnlocked}
+                                title={followUpUnlocked ? '' : 'Función disponible en Pro — sube de plan para activar Seguimiento'}
+                                className={`px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${tab === 'followup' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'} ${!followUpUnlocked ? 'opacity-60 cursor-not-allowed' : ''}`}
                             >
-                                <UserX size={12} />
+                                {followUpUnlocked ? <UserX size={12} /> : <Lock size={11} className="text-navy-900" />}
                                 Seguimiento
                             </button>
                         )}

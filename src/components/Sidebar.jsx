@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard } from 'lucide-react';
+import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock } from 'lucide-react';
 import AIStar from './Icons/AIStar';
 import { usePermissions } from '../hooks/usePermissions';
+import { usePlanLimits } from '../hooks/usePlanLimits';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../store/useAppStore';
 import { getBusinessInfo } from '../services/supabaseService';
 
 export default function Sidebar({ onOpenPlans }) {
     const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations } = usePermissions();
+    const { hasFeature } = usePlanLimits();
+    const statsUnlocked = hasFeature('dashboard');
+    const auditUnlocked = hasFeature('audit_log');
     const { profile } = useAuth();
     const { isSidebarOpen, toggleSidebar } = useAppStore();
     const [businessName, setBusinessName] = useState('');
@@ -73,7 +77,9 @@ export default function Sidebar({ onOpenPlans }) {
 
                     {canViewStats && (
                         <NavLink to="/stats" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                            <BarChart2 size={16} /> Estadísticas
+                            <BarChart2 size={16} />
+                            <span className="flex-1">Estadísticas</span>
+                            {!statsUnlocked && <Lock size={11} className="text-navy-900" />}
                         </NavLink>
                     )}
 
@@ -86,7 +92,9 @@ export default function Sidebar({ onOpenPlans }) {
                     {canManageRoles && (
                         <>
                             <NavLink to="/audit-log" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                                <List size={16} /> Actividad
+                                <List size={16} />
+                                <span className="flex-1">Actividad</span>
+                                {!auditUnlocked && <Lock size={11} className="text-navy-900" />}
                             </NavLink>
 
                             <NavLink to="/users" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>

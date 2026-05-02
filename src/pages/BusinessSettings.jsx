@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { getBusinessInfo, updateBusinessInfo } from '../services/supabaseService';
 import { usePermissions } from '../hooks/usePermissions';
+import { usePlanLimits } from '../hooks/usePlanLimits';
+import FeatureLock from '../components/FeatureLock';
 import { Save, Building2, Clock, Mail, Zap, Lock, Bot, Check } from 'lucide-react';
 import { showSettingsSavedToast, showValidationToast, showErrorToast } from '../store/useToastStore';
 
@@ -218,6 +220,7 @@ function HourSelect({ value, onChange, options }) {
 
 export default function BusinessSettings() {
     const { canManageRoles } = usePermissions();
+    const { hasFeature } = usePlanLimits();
 
     const [info, setInfo] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -294,14 +297,18 @@ export default function BusinessSettings() {
 
         setSaving(true);
         try {
-            await updateBusinessInfo({
+            const payload = {
                 name: nameInput,
                 schedule_start: Number(form.schedule_start),
                 schedule_end: Number(form.schedule_end),
                 schedule_days: serializeDays(selectedDays),
                 notification_email: emailInput || '',
-                custom_prompt: form.custom_prompt.trim() || null,
-            });
+            };
+            // Defensa: si el plan no incluye custom_prompt, no enviarlo aunque el usuario haya escrito.
+            if (hasFeature('custom_prompt')) {
+                payload.custom_prompt = form.custom_prompt.trim() || null;
+            }
+            await updateBusinessInfo(payload);
             showSettingsSavedToast(nameInput);
             setDirty(false);
         } catch (err) {
@@ -401,14 +408,17 @@ export default function BusinessSettings() {
                         {/* Notificaciones */}
                         <Section icon={Mail} title="Notificaciones">
                             <Field label="Email de notificaciones">
-                                <input
-                                    type="email"
-                                    maxLength={255}
-                                    value={form.notification_email}
-                                    onChange={e => setField('notification_email', e.target.value)}
-                                    placeholder="doctor@clinica.com"
-                                    className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40"
-                                />
+                                <FeatureLock feature="notification_email" requiredPlan="Pro">
+                                    <input
+                                        type="email"
+                                        maxLength={255}
+                                        value={form.notification_email}
+                                        onChange={e => setField('notification_email', e.target.value)}
+                                        placeholder="doctor@clinica.com"
+                                        disabled={!hasFeature('notification_email')}
+                                        className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                </FeatureLock>
                             </Field>
                         </Section>
 
@@ -418,13 +428,16 @@ export default function BusinessSettings() {
                                 <p className="text-[10px] text-navy-700/60 font-semibold mb-2 leading-tight">
                                     Aquí puedes proporcionar instrucciones o contexto adicional para el asistente (ubicación, estilo de habla, entre otros). La IA usará esto como sugerencia inicial.
                                 </p>
-                                <textarea
-                                    maxLength={1500}
-                                    value={form.custom_prompt}
-                                    onChange={e => setField('custom_prompt', e.target.value)}
-                                    placeholder="Ej: Somos una clínica dental en Xela. Tratamos con amabilidad y profesionalismo. Manejamos urgencias dentales."
-                                    className="w-full h-24 bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 resize-none custom-scrollbar"
-                                />
+                                <FeatureLock feature="custom_prompt" requiredPlan="Pro">
+                                    <textarea
+                                        maxLength={1500}
+                                        value={form.custom_prompt}
+                                        onChange={e => setField('custom_prompt', e.target.value)}
+                                        disabled={!hasFeature('custom_prompt')}
+                                        placeholder="Ej: Somos una clínica dental en Xela. Tratamos con amabilidad y profesionalismo. Manejamos urgencias dentales."
+                                        className="w-full h-24 bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 resize-none custom-scrollbar disabled:cursor-not-allowed"
+                                    />
+                                </FeatureLock>
                             </Field>
                         </Section>
 
