@@ -12,6 +12,7 @@ import ToastContainer from './components/ToastContainer';
 
 // T-22: Lazy loading de rutas — los bundles de cada página se cargan solo al navegar.
 const Calendar        = lazy(() => import('./pages/Calendar'));
+const FollowUp        = lazy(() => import('./pages/FollowUp'));
 const Patients        = lazy(() => import('./pages/Patients'));
 const Conversations   = lazy(() => import('./pages/Conversations'));
 const PatientHistory  = lazy(() => import('./pages/PatientHistory'));
@@ -20,6 +21,7 @@ const Users           = lazy(() => import('./pages/Users'));
 const AuditLog        = lazy(() => import('./pages/AuditLog'));
 const AdminOnboarding = lazy(() => import('./pages/AdminOnboarding'));
 const Settings         = lazy(() => import('./pages/Settings'));
+const Offers           = lazy(() => import('./pages/Offers'));
 const BusinessSettings = lazy(() => import('./pages/BusinessSettings'));
 const Login            = lazy(() => import('./pages/Login'));
 
@@ -93,11 +95,13 @@ export default function App() {
                                     <Suspense fallback={<PageLoader />} key={location.pathname}>
                                         <Routes>
                                             <Route path="/" element={<Calendar />} />
+                                            <Route path="/followup" element={!profileReady ? <PageLoader /> : <FollowUp />} />
                                             <Route path="/patients" element={<Patients />} />
                                             <Route path="/conversations" element={<Conversations />} />
                                             <Route path="/patients/:id/history" element={<PatientHistory />} />
                                             <Route path="/stats" element={!profileReady ? <PageLoader /> : canViewStats ? <Stats /> : <Navigate to="/" replace />} />
                                             <Route path="/settings" element={!profileReady ? <PageLoader /> : (canManageServices || canManageRoles) ? <Settings /> : <Navigate to="/" replace />} />
+                                            <Route path="/offers" element={!profileReady ? <PageLoader /> : canManageServices ? <Offers /> : <Navigate to="/" replace />} />
                                             <Route path="/users" element={!profileReady ? <PageLoader /> : canManageRoles ? <Users /> : <Navigate to="/" replace />} />
                                             <Route path="/audit-log" element={!profileReady ? <PageLoader /> : canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
                                             <Route path="/business" element={!profileReady ? <PageLoader /> : canManageRoles ? <BusinessSettings /> : <Navigate to="/" replace />} />

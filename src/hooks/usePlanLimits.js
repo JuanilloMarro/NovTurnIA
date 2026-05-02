@@ -10,12 +10,21 @@ function flagEnabled(value) {
     return true;
 }
 
+let _inflight = null;
+
 export function clearPlanLimitsCache() {
+    // Anular el inflight y la cache: evita que una promesa en vuelo de la
+    // sesión anterior resuelva y sobrescriba la cache de la nueva sesión.
+    _inflight = null;
     useAppStore.getState().invalidatePlanLimitsCache();
 }
 
-const UNLIMITED = {
-    isLoading: false,
+// SAFE_DEFAULTS — devuelto durante isLoading. Bloquea por defecto
+// (hasFeature=false) en lugar de unlock por defecto, así NUNCA hay un flash
+// de contenido desbloqueado mientras se resuelve el RPC. Las páginas que
+// quieren un loading-state explícito siguen leyendo `isLoading`.
+const SAFE_DEFAULTS = {
+    isLoading: true,
     canAddPatient: true,
     canAddStaff: true,
     patientsLeft: null,
@@ -23,10 +32,8 @@ const UNLIMITED = {
     plan: null,
     planStatus: 'active',
     features: {},
-    hasFeature: () => true,
+    hasFeature: () => false,
 };
-
-let _inflight = null;
 
 export function usePlanLimits() {
     const cache = useAppStore(s => s._planLimitsCache);
@@ -55,7 +62,7 @@ export function usePlanLimits() {
         }
     }, [cache.data]);
 
-    if (isLoading || !cache.data) return { ...UNLIMITED, isLoading: true };
+    if (isLoading || !cache.data) return SAFE_DEFAULTS;
 
     const limits = cache.data;
     const maxPatients = limits.max_patients ?? null;

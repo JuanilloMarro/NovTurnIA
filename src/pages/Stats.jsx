@@ -70,7 +70,7 @@ export default function Stats() {
             <FeatureLock
                 feature="dashboard"
                 variant="blurred"
-                title="Estadísticas no incluidas en tu plan Básico"
+                title="Estadísticas"
                 description="El dashboard completo de métricas (turnos, clientes, tasa de confirmación, comparativas mensuales) está disponible en Pro y Enterprise."
                 requiredPlan="Pro"
             >

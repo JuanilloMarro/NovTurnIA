@@ -55,9 +55,10 @@ UPDATE plans SET
     "multi_branch":         false,
     "gmail_integration":    false,
     "dynamic_pricing":      false,
-    "vip_services":         false,
     "export_reports":       false,
-    "service_description":  false
+    "service_description":  false,
+    "patient_notes":        false,
+    "notification_email":   false
   }'::jsonb
 WHERE tier = 'basic';
 
@@ -82,9 +83,10 @@ UPDATE plans SET
     "multi_branch":         false,
     "gmail_integration":    false,
     "dynamic_pricing":      false,
-    "vip_services":         false,
     "export_reports":       false,
-    "service_description":  true
+    "service_description":  true,
+    "patient_notes":        true,
+    "notification_email":   false
   }'::jsonb
 WHERE tier = 'pro';
 
@@ -225,9 +227,42 @@ REVOKE ALL ON FUNCTION has_feature(TEXT, UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION has_feature(TEXT, UUID) TO authenticated;
 
 
--- enforce_feature: lanza excepción si el plan no incluye la feature.
--- Útil para que edge functions o futuros triggers protejan endpoints sensibles
--- (ej. exportar pacientes, activar gmail, etc.).
+-- ─────────────────────────────────────────────────────────────────────────────
+-- enforce_feature(p_feature, p_business_id) → VOID
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Guard de servidor: lanza RAISE EXCEPTION (ERRCODE 'PT003',
+-- HINT 'PLAN_FEATURE_LOCKED') si el plan del negocio no tiene la feature.
+-- Internamente delega en has_feature() que lee plans.features (JSONB).
+--
+-- CUÁNDO USARLA — proteger operaciones sensibles que NO deben depender solo
+-- del gating del front (<FeatureLock> / hasFeature()):
+--
+--   1) Edge Functions premium (export-patients-csv, gmail-send, content-gen):
+--        PERFORM enforce_feature('export_patients', business_id);
+--      Evita que un cliente con plan basic invoque la function por curl y
+--      obtenga el resultado aunque el botón esté oculto en la UI.
+--
+--   2) RPCs llamadas desde n8n / agentes externos cuyo efecto sea premium
+--      (auto-confirm, reminders masivos, multi_branch). Una línea adentro
+--      de la RPC y el workflow falla limpio si el negocio bajó de plan.
+--
+--   3) Triggers de DB para acciones premium si en el futuro se modela algún
+--      campo cuya activación requiera plan (ej. dynamic_pricing en services).
+--
+-- CUÁNDO NO USARLA:
+--   Si la feature es solo UI (mostrar/ocultar widgets, dashboard limited vs
+--   full), el gate del front basta. enforce_feature es para proteger DATOS
+--   o ACCIONES con efecto, no presentación.
+--
+-- CÓDIGO DE ERROR:
+--   ERRCODE='PT003', HINT='PLAN_FEATURE_LOCKED'  → detectable en el service
+--   layer para mostrar el modal de upgrade en lugar de un toast genérico.
+--
+-- ESTADO ACTUAL (2026-05-02):
+--   Definida pero no llamada en ninguna edge function ni RPC todavía. Se deja
+--   lista para cuando se construyan las primeras features premium con efecto
+--   server-side (export, gmail, content gen).
+-- ─────────────────────────────────────────────────────────────────────────────
 DROP FUNCTION IF EXISTS enforce_feature(TEXT, UUID);
 CREATE OR REPLACE FUNCTION enforce_feature(p_feature TEXT, p_business_id UUID)
 RETURNS VOID

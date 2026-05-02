@@ -5,8 +5,6 @@ import AIStar from './Icons/AIStar';
 import { getBusinessInfo } from '../services/supabaseService';
 
 export default function PlansModal({ isOpen, onClose }) {
-    if (!isOpen) return null;
-
     const detailsRef = useRef(null);
     const [currentPlan, setCurrentPlan] = useState(null);
     const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'annual'
@@ -20,6 +18,10 @@ export default function PlansModal({ isOpen, onClose }) {
             });
         }
     }, [isOpen]);
+
+    // Early return DESPUÉS de los hooks — Rules of Hooks: conteo estable
+    // entre renders independientemente de isOpen.
+    if (!isOpen) return null;
 
     const scrollToDetails = () => {
         detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -41,7 +43,7 @@ export default function PlansModal({ isOpen, onClose }) {
             perfectFor: 'Para negocios en crecimiento que necesitan control total.',
             icon: <Star size={18} />,
             active: true,
-            features: ['IA de razonamiento Avanzada', 'IA con memoria contextual', 'Dashboard: Completo', 'Hasta 5 Usuarios', 'Integración de Modulos a la Medida']
+            features: ['IA de razonamiento Avanzada', 'IA con memoria contextual', 'Dashboard: Completo', 'Hasta 5 Usuarios', 'Kanban de estados de turnos', 'Integración de Modulos a la Medida']
         },
         {
             id: 'enterprise',
@@ -49,7 +51,7 @@ export default function PlansModal({ isOpen, onClose }) {
             monthlyPrice: 1999,
             perfectFor: 'Para empresas grandes que escalan su comunicación con IA.',
             icon: <ShieldCheck size={18} />,
-            features: ['IA de razonamiento Premium', 'Confirmaciones automáticas', 'Generación de Contenido', 'Usuarios Ilimitados', 'Integración de Modulos a la Medida']
+            features: ['IA de razonamiento Premium', 'Confirmaciones automáticas', 'Generación de Contenido', 'Usuarios Ilimitados', 'Kanban de estados de turnos', 'Integración de Modulos a la Medida']
         }
     ];
 
@@ -220,6 +222,7 @@ export default function PlansModal({ isOpen, onClose }) {
                                 { name: 'Creación Manual de Turnos', basic: true, pro: true, enterprise: true },
                                 { name: 'Recordatorios Automáticos', basic: false, pro: true, enterprise: true },
                                 { name: 'Seguimiento de Cancelaciones / No Presentes', basic: false, pro: true, enterprise: true },
+                                { name: 'Kanban de estados de turnos', basic: false, pro: true, enterprise: true },
                                 { name: 'Agente IA (Agendamiento)', basic: 'Ilimitado', pro: 'Ilimitado', enterprise: 'Ilimitado' },
                             ]}
                         />
@@ -283,7 +286,6 @@ export default function PlansModal({ isOpen, onClose }) {
                                 { name: 'Precios y Duraciones Variables', basic: true, pro: true, enterprise: true },
                                 { name: 'Descripción Detallada (Contexto para IA)', basic: false, pro: true, enterprise: true },
                                 { name: 'Precios Dinámicos / Ofertas', basic: false, pro: false, enterprise: true },
-                                { name: 'Servicios VIP / Privados', basic: false, pro: false, enterprise: true },
                             ]}
                         />
 

@@ -105,7 +105,7 @@ BEGIN
       SELECT id
       FROM public.staff_users
       WHERE business_id = p_business_id AND active = true
-      ORDER BY created_at DESC
+      ORDER BY created_at ASC   -- admin (más antiguo) siempre cae en el top-N
       LIMIT v_max
     ) sub;
   END IF;

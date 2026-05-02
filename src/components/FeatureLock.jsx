@@ -21,6 +21,7 @@ export default function FeatureLock({
     title,
     description,
     requiredPlan = 'Pro',
+    compact = false,
 }) {
     const { hasFeature, isLoading } = usePlanLimits();
     const openPlans = useAppStore(s => s.openPlans);
@@ -35,7 +36,7 @@ export default function FeatureLock({
         return (
             <div className="flex items-center gap-2">
                 {children}
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/15 text-[9px] font-black uppercase tracking-widest text-navy-900">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[9px] font-black uppercase tracking-widest text-navy-900/40">
                     <Lock size={9} strokeWidth={3} /> {requiredPlan}
                 </span>
             </div>
@@ -43,13 +44,13 @@ export default function FeatureLock({
     }
 
     const LockCard = () => (
-        <div className="max-w-md mx-auto w-full bg-navy-900/5 backdrop-blur-2xl border border-white/60 rounded-[40px] shadow-[0_20px_50px_rgba(26,58,107,0.15)] p-8 flex flex-col items-center animate-fade-up">
-            <div className="w-16 h-16 rounded-[20px] bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card relative transition-transform hover:scale-105 duration-300 group mb-6">
+        <div className={`${compact ? 'max-w-xs p-6' : 'max-w-md p-8'} mx-auto w-full bg-navy-900/5 backdrop-blur-2xl border border-white/60 rounded-[40px] shadow-[0_20px_50px_rgba(26,58,107,0.15)] flex flex-col items-center animate-fade-up`}>
+            <div className={`${compact ? 'w-12 h-12 mb-4' : 'w-16 h-16 mb-6'} rounded-[20px] bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card relative transition-transform hover:scale-105 duration-300 group`}>
                 <div className="relative">
-                    <Lock size={28} strokeWidth={2.5} className="transition-transform duration-500 group-hover:scale-110" />
+                    <Lock size={compact ? 20 : 28} strokeWidth={2.5} className="transition-transform duration-500 group-hover:scale-110" />
                 </div>
             </div>
-            <h3 className="text-2xl font-black text-navy-900 tracking-tight mb-2 text-center max-w-xl">
+            <h3 className={`${compact ? 'text-lg' : 'text-2xl'} font-black text-navy-900 tracking-tight mb-2 text-center max-w-xl`}>
                 {title || 'Función no incluida'}
             </h3>
             <p className="text-navy-700/60 font-bold text-[13px] text-center max-w-2xl leading-relaxed mb-6">
@@ -57,9 +58,9 @@ export default function FeatureLock({
             </p>
             <button
                 onClick={openPlans}
-                className="px-6 py-3 rounded-full bg-transparent border border-white/80 text-navy-900/50 hover:text-navy-900 hover:bg-white/30 transition-all duration-300 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                className={`${compact ? 'px-4 py-2 text-[10px]' : 'px-6 py-3 text-[11px]'} rounded-full bg-transparent border border-white/80 text-navy-900/50 hover:text-navy-900 hover:bg-white/30 transition-all duration-300 font-black uppercase tracking-widest flex items-center justify-center gap-2`}
             >
-                <Star size={14} /> Desbloquear con {requiredPlan}
+                <Star size={compact ? 12 : 14} /> Desbloquear con {requiredPlan}
             </button>
         </div>
     );

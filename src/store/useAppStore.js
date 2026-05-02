@@ -78,6 +78,7 @@ export const useAppStore = create((set) => ({
         _patientsCache: { data: [], fetchedAt: 0 },
         _conversationsCache: { data: [], fetchedAt: 0 },
         _statsCache: { data: null, fetchedAt: 0 },
+        _planLimitsCache: { data: null, fetchedAt: 0 },
         humanTakeoverMap: {},
     }),
 

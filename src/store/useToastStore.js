@@ -106,6 +106,13 @@ export const showServiceActivateToast   = (message) => toast('success', 'service
 export const showServiceDeactivateToast = (message) => toast('warning', 'service_deactivate', 'Servicio Desactivado', message);
 export const showServiceDeleteToast     = (message) => toast('error',   'service_delete',     'Servicio Eliminado',   message);
 
+// ── Offer ─────────────────────────────────────────────────────────────────────
+export const showOfferNewToast        = (message) => toast('success', 'offer_new',        'Oferta Creada',      message);
+export const showOfferEditToast       = (message) => toast('warning', 'offer_edit',       'Oferta Actualizada', message);
+export const showOfferActivateToast   = (message) => toast('success', 'offer_activate',   'Oferta Activada',    message);
+export const showOfferDeactivateToast = (message) => toast('warning', 'offer_deactivate', 'Oferta Desactivada', message);
+export const showOfferDeleteToast     = (message) => toast('error',   'offer_delete',     'Oferta Eliminada',   message);
+
 // ── Staff ─────────────────────────────────────────────────────────────────────
 export const showStaffPermsToast = (message) => toast('success', 'staff_perms', 'Permisos Guardados', message);
 

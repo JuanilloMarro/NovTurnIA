@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAuditLog, getStaffUsers, getPatientsForAuditLog } from '../services/supabaseService';
-import { Search, Database, SlidersHorizontal, Plus, Edit2, Trash2, X, Download, RefreshCw } from 'lucide-react';
+import { Search, Database, SlidersHorizontal, Plus, Edit2, Trash2, X, Download, RefreshCw, Lock } from 'lucide-react';
 import { formatPhone } from '../utils/format';
 import { downloadCSV } from '../utils/export';
 import { withTimeout } from '../utils/withTimeout';
@@ -159,14 +159,6 @@ function getLogSummary(log, oldP, newP, ctxPaciente) {
 export default function AuditLog() {
     const { hasFeature, isLoading: planLoading } = usePlanLimits();
 
-    if (planLoading) {
-        return (
-            <div className="h-full flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
-            </div>
-        );
-    }
-
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -232,7 +224,9 @@ export default function AuditLog() {
         }
     }
 
-    useEffect(() => { fetchData(); }, []);
+    // Solo carga datos si el plan incluye audit_log. Para Basic, skip total:
+    // evita que setLoading(false) cause un re-render que parpadea el blur.
+    useEffect(() => { if (!planLoading && hasFeature('audit_log')) fetchData(); }, [planLoading]);
 
     function handleExport() {
         setExporting(true);
@@ -298,38 +292,68 @@ export default function AuditLog() {
         return true;
     });
 
-    // Plan basic no incluye registro de actividad → blur sobre el módulo real
+    // Para usuarios sin acceso al feature: FeatureLock maneja su propio isLoading
+    // (retorna null mientras carga) → transición directa null → blurred, sin parpadeo.
+    // El spinner solo aplica a usuarios con acceso que esperan datos del servidor.
     if (!hasFeature('audit_log')) {
         return (
             <FeatureLock
                 feature="audit_log"
                 variant="blurred"
-                title="Registro de Actividad no incluido en tu plan Básico"
+                title="Registro de Actividad"
                 description="El historial de acciones (creaciones, ediciones, eliminaciones) y la auditoría del staff están disponibles en Pro y Enterprise."
                 requiredPlan="Pro"
             >
-                {/* Vista previa estática del registro — sólo se ve borrosa de fondo */}
                 <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-0">
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center justify-between gap-3 mb-4">
                         <div>
                             <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
                             <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Vista previa del plan Pro</p>
                         </div>
                     </div>
-                    <div className="flex-1 flex flex-col gap-2 px-2">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                            <div key={i} className="bg-white/40 backdrop-blur-2xl border border-white/60 rounded-3xl p-4 flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-navy-900/10" />
-                                <div className="flex-1 flex flex-col gap-2">
-                                    <div className="h-3 w-2/3 bg-navy-900/15 rounded-full" />
-                                    <div className="h-2 w-1/3 bg-navy-900/10 rounded-full" />
+                    <div className="flex-1 space-y-2 pb-4">
+                        {[
+                            { who:'Admin',       summary:'Creó el turno de María González',          mod:'Turnos',        date:'2 May • 09:14',  style:'bg-emerald-500/10 text-emerald-700 border-emerald-500/20', icon:'insert' },
+                            { who:'Admin',       summary:'Actualizó el estado del turno a Cancelado',mod:'Turnos',        date:'2 May • 09:02',  style:'bg-rose-500/10 text-rose-700 border-rose-500/20',           icon:'delete' },
+                            { who:'Sistema',     summary:'Actualizó el perfil de Carlos Pérez',      mod:'Clientes',      date:'1 May • 18:45',  style:'bg-amber-500/10 text-amber-700 border-amber-500/20',        icon:'edit'   },
+                            { who:'Admin',       summary:'Creó el servicio Tinte Completo',           mod:'Servicios',     date:'1 May • 16:30',  style:'bg-emerald-500/10 text-emerald-700 border-emerald-500/20', icon:'insert' },
+                            { who:'Sistema',     summary:'Eliminó el número de Ana López',            mod:'Teléfonos',     date:'30 Abr • 11:20', style:'bg-rose-500/10 text-rose-700 border-rose-500/20',           icon:'delete' },
+                            { who:'Admin',       summary:'Actualizó el rol de Staff a Recepcionista', mod:'Roles',         date:'30 Abr • 10:55', style:'bg-amber-500/10 text-amber-700 border-amber-500/20',        icon:'edit'   },
+                            { who:'Sistema',     summary:'Creó el cliente Luis Ramírez',              mod:'Clientes',      date:'29 Abr • 14:10', style:'bg-emerald-500/10 text-emerald-700 border-emerald-500/20', icon:'insert' },
+                            { who:'Admin',       summary:'Actualizó la descripción del negocio',      mod:'Negocio',       date:'29 Abr • 09:30', style:'bg-amber-500/10 text-amber-700 border-amber-500/20',        icon:'edit'   },
+                            { who:'Sistema',     summary:'Creó el turno de Sandra Torres',            mod:'Turnos',        date:'28 Abr • 17:05', style:'bg-emerald-500/10 text-emerald-700 border-emerald-500/20', icon:'insert' },
+                            { who:'Admin',       summary:'Eliminó el servicio Depilación',            mod:'Servicios',     date:'28 Abr • 12:00', style:'bg-rose-500/10 text-rose-700 border-rose-500/20',           icon:'delete' },
+                            { who:'Sistema',     summary:'Actualizó el teléfono de Roberto Díaz',     mod:'Teléfonos',     date:'27 Abr • 08:45', style:'bg-amber-500/10 text-amber-700 border-amber-500/20',        icon:'edit'   },
+                            { who:'Admin',       summary:'Creó el usuario Recepcionista 2',           mod:'Personal',      date:'26 Abr • 16:20', style:'bg-emerald-500/10 text-emerald-700 border-emerald-500/20', icon:'insert' },
+                        ].map((r, i) => (
+                            <div key={i} className="bg-white/40 backdrop-blur-sm border border-white/60 rounded-2xl px-5 py-4 shadow-sm">
+                                <div className="flex items-center gap-3.5">
+                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${r.style}`}>
+                                        {r.icon === 'insert' ? <Plus size={16} strokeWidth={2.5} /> : r.icon === 'delete' ? <Trash2 size={16} strokeWidth={2.5} /> : <Edit2 size={16} strokeWidth={2.5} />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[13px] font-semibold text-navy-900 leading-snug">
+                                            <span className="font-bold text-navy-900/60 text-[10px] tracking-wider block mb-0.5">{r.who}</span>
+                                            {r.summary}.
+                                        </p>
+                                        <div className="flex items-center mt-1.5 text-[10px] font-bold text-navy-900/40 tracking-wider">
+                                            <span>{r.mod}</span><span className="mx-1.5 opacity-60">•</span><span>{r.date}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="h-6 w-20 rounded-full bg-emerald-500/20" />
                             </div>
                         ))}
                     </div>
                 </div>
             </FeatureLock>
+        );
+    }
+
+    if (planLoading) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+            </div>
         );
     }
 
@@ -366,14 +390,15 @@ export default function AuditLog() {
                         </button>
                     </div>
 
-                    {/* Export CSV */}
+                    {/* Export CSV — sólo Enterprise (ver Patients.jsx para mismo patrón) */}
                     <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                         <button
-                            onClick={handleExport}
-                            disabled={exporting || filtered.length === 0}
-                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                            onClick={hasFeature('export_reports') ? handleExport : undefined}
+                            disabled={exporting || filtered.length === 0 || !hasFeature('export_reports')}
+                            title={hasFeature('export_reports') ? '' : 'Exportación de actividad disponible en Enterprise'}
+                            className={`group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50 ${!hasFeature('export_reports') ? 'cursor-not-allowed' : ''}`}
                         >
-                            <Download size={14} className="shrink-0" />
+                            {hasFeature('export_reports') ? <Download size={14} className="shrink-0" /> : <Lock size={13} className="shrink-0 text-navy-900" />}
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
                         </button>
                     </div>

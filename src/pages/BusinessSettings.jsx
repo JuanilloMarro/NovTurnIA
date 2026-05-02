@@ -408,7 +408,7 @@ export default function BusinessSettings() {
                         {/* Notificaciones */}
                         <Section icon={Mail} title="Notificaciones">
                             <Field label="Email de notificaciones">
-                                <FeatureLock feature="notification_email" requiredPlan="Pro">
+                                <FeatureLock feature="notification_email" requiredPlan="Enterprise">
                                     <input
                                         type="email"
                                         maxLength={255}

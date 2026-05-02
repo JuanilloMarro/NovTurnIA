@@ -37,6 +37,10 @@ export function useAuth() {
     async function login(email, password) {
         setLoading(true);
         try {
+            // Limpiar cualquier rastro de la sesión anterior ANTES de autenticar
+            // para que no haya un instante con datos del plan viejo en pantalla.
+            resetServiceCaches();
+            clearPlanLimitsCache();
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
 
@@ -138,6 +142,11 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
             && currentProfile?.id === currentSession.user.id) {
             return;
         }
+
+        // Usuario distinto al que estaba en el store → asegurar cache fresca
+        // del plan antes de hidratar el perfil nuevo.
+        resetServiceCaches();
+        clearPlanLimitsCache();
 
         try {
             const { data: profile } = await supabase

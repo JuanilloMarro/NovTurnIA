@@ -162,6 +162,77 @@ export async function deleteService(id) {
     if (error) throw error;
 }
 
+// ── Offers (Enterprise — dynamic_pricing) ─────────────────
+// Tabla offers se enlaza 1:1 con services. La vista services_with_active_offer
+// expone effective_price para front + n8n. RLS scoped por business_id.
+
+export async function getOffers() {
+    const { data, error } = await supabase
+        .from('offers')
+        .select('*, services(id, name, price)')
+        .eq('business_id', getBID())
+        .order('starts_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+}
+
+export async function createOffer({ service_id, name, description, promo_price, starts_at, ends_at, active = true }) {
+    const { data, error } = await supabase
+        .from('offers')
+        .insert({
+            business_id: getBID(),
+            service_id,
+            name: name.trim(),
+            description: description?.trim() || null,
+            promo_price,
+            starts_at,
+            ends_at,
+            active,
+        })
+        .select('*, services(id, name, price)')
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function updateOffer(id, { service_id, name, description, promo_price, starts_at, ends_at, active }) {
+    const patch = {};
+    if (service_id  !== undefined) patch.service_id  = service_id;
+    if (name        !== undefined) patch.name        = name.trim();
+    if (description !== undefined) patch.description = description?.trim() || null;
+    if (promo_price !== undefined) patch.promo_price = promo_price;
+    if (starts_at   !== undefined) patch.starts_at   = starts_at;
+    if (ends_at     !== undefined) patch.ends_at     = ends_at;
+    if (active      !== undefined) patch.active      = active;
+    const { data, error } = await supabase
+        .from('offers')
+        .update(patch)
+        .eq('id', id)
+        .eq('business_id', getBID())
+        .select('*, services(id, name, price)')
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function toggleOfferActive(id, active) {
+    const { error } = await supabase
+        .from('offers')
+        .update({ active })
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
+}
+
+export async function deleteOffer(id) {
+    const { error } = await supabase
+        .from('offers')
+        .delete()
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
+}
+
 // ── Appointments ──────────────────────────────────────────
 
 /**
@@ -621,7 +692,7 @@ export async function getStatsOverview() {
 export async function getBusinessInfo() {
     const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, custom_prompt, feature_flags, plans(id, tier, name, monthly_price, max_patients, max_staff, features)')
+        .select('id, name, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, custom_prompt, feature_flags, plans(id, tier, name, monthly_price, annual_discount, max_patients, max_staff, max_appointments, max_conversations, features)')
         .eq('id', getBID())
         .single();
 
@@ -635,7 +706,7 @@ export async function getBusinessInfo() {
 export async function getPlans() {
     const { data, error } = await supabase
         .from('plans')
-        .select('id, tier, name, monthly_price, max_patients, max_staff, features, display_order')
+        .select('id, tier, name, monthly_price, annual_discount, max_patients, max_staff, max_appointments, max_conversations, features, display_order')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 

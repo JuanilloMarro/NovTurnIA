@@ -3,7 +3,7 @@ import {
     CalendarPlus, CalendarCheck, CalendarClock, CalendarX,
     UserPlus, UserCheck, UserX, ShieldOff, ShieldCheck, Shield,
     Layers, ToggleRight, ToggleLeft,
-    Bot, Building2, AlertTriangle, AlertCircle, Trash2, CheckCircle2, X, Siren,
+    Bot, Building2, AlertTriangle, AlertCircle, Trash2, CheckCircle2, X, Siren, Tag,
     Home, MessageSquareWarning, PhoneCall,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -25,6 +25,11 @@ const TOAST_ICONS = {
     service_activate:   <ToggleRight size={18} />,
     service_deactivate: <ToggleLeft size={18} />,
     service_delete:     <Trash2 size={18} />,
+    offer_new:          <Tag size={18} />,
+    offer_edit:         <Tag size={18} />,
+    offer_activate:     <ToggleRight size={18} />,
+    offer_deactivate:   <ToggleLeft size={18} />,
+    offer_delete:       <Trash2 size={18} />,
     staff_perms:        <ShieldCheck size={18} />,
     staff_role:         <Shield size={18} />,
     bot_pause:          <Bot size={18} />,
