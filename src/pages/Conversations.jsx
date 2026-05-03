@@ -12,8 +12,8 @@ import { usePlanLimits } from '../hooks/usePlanLimits';
 const CONV_STALE_MS = 2 * 60_000; // 2 minutos
 
 const FILTER_OPTIONS = [
-    { id: 'all',        label: 'Todos' },
-    { id: 'takeover',   label: 'Bot desactivado' },
+    { id: 'all', label: 'Todos' },
+    { id: 'takeover', label: 'Bot desactivado' },
     { id: 'bot_active', label: 'Bot activo' },
 ];
 
@@ -62,7 +62,7 @@ export default function Conversations() {
                 useAppStore.getState().setConversationsCache(data);
                 setPatients(data);
             })
-            .catch(() => {});
+            .catch(() => { });
     }, []);
 
     function handleSearch(q) { setSearch(q); }
@@ -328,7 +328,7 @@ export default function Conversations() {
                                         className="md:hidden w-9 h-9 rounded-full bg-white/60 border border-white/80 flex items-center justify-center text-navy-900 shadow-sm hover:bg-white/80 transition-colors"
                                         aria-label="Volver"
                                     >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                                     </button>
                                     <div className="w-11 h-11 rounded-full bg-white border border-white/60 flex items-center justify-center text-navy-900 text-xs font-bold shadow-sm">
                                         {getInitials(selectedPatient.display_name)}
@@ -347,11 +347,11 @@ export default function Conversations() {
                                     >
                                         <div className="relative">
                                             <Bot size={13} strokeWidth={2.5} />
-                                            <AIStar 
-                                                size={7} 
-                                                className="absolute -top-1.5 -left-1.5 text-amber-600 animate-pulse" 
+                                            <AIStar
+                                                size={7}
+                                                className="absolute -top-1.5 -left-1.5 text-amber-600 animate-pulse"
                                                 strokeWidth={2.5}
-                                             />
+                                            />
                                         </div>
                                         <span>Reactivar IA</span>
                                     </button>

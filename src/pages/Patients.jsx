@@ -196,21 +196,21 @@ export default function Patients() {
 
             {isNewPatientModalOpen && (
                 <NewPatientModal
-                    isOpen={isNewPatientModalOpen} 
-                    onClose={() => setIsNewPatientModalOpen(false)} 
+                    isOpen={isNewPatientModalOpen}
+                    onClose={() => setIsNewPatientModalOpen(false)}
                     onCreated={() => {
-                        useAppStore.getState().invalidatePlanLimitsCache(); 
+                        useAppStore.getState().invalidatePlanLimitsCache();
                         useAppStore.getState().invalidateConversationsCache();
-                        reload(search, true); 
+                        reload(search, true);
                         setIsNewPatientModalOpen(false);
                     }}
                 />
             )}
 
             {selectedPatient && (
-                <PatientDrawer 
-                    patient={selectedPatient} 
-                    onClose={() => setSelectedPatient(null)} 
+                <PatientDrawer
+                    patient={selectedPatient}
+                    onClose={() => setSelectedPatient(null)}
                     onRefresh={async () => {
                         useAppStore.getState().invalidatePlanLimitsCache();
                         useAppStore.getState().invalidateConversationsCache();

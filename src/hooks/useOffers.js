@@ -53,7 +53,8 @@ export function useOffers() {
 
     async function toggle(id, active) {
         await toggleOfferActive(id, active);
-        setOffers(prev => prev.map(o => o.id === id ? { ...o, active } : o));
+        const now = new Date().toISOString();
+        setOffers(prev => prev.map(o => o.id === id ? { ...o, active, updated_at: now } : o));
     }
 
     async function remove(id) {

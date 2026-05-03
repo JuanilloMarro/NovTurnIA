@@ -822,6 +822,15 @@ export async function markOneNotificationRead(id) {
     if (error) throw error;
 }
 
+export async function markOneNotificationUnread(id) {
+    const { error } = await supabase
+        .from('notifications')
+        .update({ read: false })
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
+}
+
 export async function deleteOneNotification(id) {
     const { error } = await supabase
         .from('notifications')
@@ -913,8 +922,8 @@ export async function insertPendingReminderNotification(appointments) {
 
     const lines = appointments.map(appt => {
         const name = appt.patients?.display_name || 'Cliente';
-        const timeStr = formatter.format(new Date(appt.date_start));
-        return `${name} – ${timeStr}`;
+        const dateStr = new Date(appt.date_start).toLocaleDateString('es', { day: '2-digit', month: 'short' });
+        return `${name} · ${dateStr}`;
     });
 
     // Evitar acumular o duplicar notificaciones en modo estricto/recargas: 

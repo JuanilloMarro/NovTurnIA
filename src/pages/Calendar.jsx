@@ -77,6 +77,7 @@ export default function Calendar() {
                         >
                             <LayoutDashboard size={12} />
                             Kanban
+                            {!kanbanUnlocked && <Lock size={10} className="text-navy-700/50" />}
                         </button>
                     </div>
 

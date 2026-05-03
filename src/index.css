@@ -144,7 +144,7 @@ body::before {
   backdrop-filter: blur(32px) saturate(200%);
   -webkit-backdrop-filter: blur(32px) saturate(200%);
   border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 
+  box-shadow:
     0 4px 24px rgba(26, 58, 107, 0.04),
     0 8px 48px rgba(26, 58, 107, 0.08);
 }
@@ -181,13 +181,11 @@ body::before {
 .lg-orb {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(
-    circle at 30% 30%,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(210, 230, 255, 0.2) 40%,
-    rgba(29, 95, 173, 0.1) 70%,
-    transparent 100%
-  );
+  background: radial-gradient(circle at 30% 30%,
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(210, 230, 255, 0.2) 40%,
+      rgba(29, 95, 173, 0.1) 70%,
+      transparent 100%);
   backdrop-filter: blur(80px) saturate(180%);
   -webkit-backdrop-filter: blur(80px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -201,8 +199,13 @@ body::before {
 
 /* Toast progress bar animation */
 @keyframes toast-progress {
-  from { width: 100%; }
-  to { width: 0%; }
+  from {
+    width: 100%;
+  }
+
+  to {
+    width: 0%;
+  }
 }
 
 /* ── Minimalist Custom Scrollbar ── */
@@ -215,7 +218,8 @@ body::before {
 /* Chrome, Edge, Safari */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
-  height: 5px; /* For horizontal scrollbars */
+  height: 5px;
+  /* For horizontal scrollbars */
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -234,9 +238,12 @@ body::before {
 
 /* Completely hidden scrollbar option (Utility) */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

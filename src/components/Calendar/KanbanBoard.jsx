@@ -36,13 +36,6 @@ function filterByPeriod(appointments, viewMode, anchorDate, weekStart) {
 
 export default function KanbanBoard({ appointments = [], onAppointmentClick, reload, viewMode = 'week', anchorDate, weekStart }) {
     const [localAppointments, setLocalAppointments] = useState([]);
-    const [reloading, setReloading] = useState(false);
-
-    const handleReload = async () => {
-        setReloading(true);
-        await reload?.();
-        setReloading(false);
-    };
 
     useEffect(() => {
         setLocalAppointments(appointments);
@@ -181,15 +174,16 @@ export default function KanbanBoard({ appointments = [], onAppointmentClick, rel
                                     const date = new Date(card.date_start).toLocaleDateString('es-GT', { day: 'numeric', month: 'short' });
                                     const name    = card.patients?.display_name || 'Sin nombre';
                                     const service = card.services?.name || 'Turno manual';
+                                    const isTerminal = col.id === 'no_show' || col.id === 'cancelled';
                                     return (
                                         <div
                                             id={`kanban-card-${card.id}`}
                                             key={card.id}
-                                            draggable
-                                            onDragStart={(e) => handleDragStart(e, card.id)}
-                                            onDragEnd={(e)   => handleDragEnd(e, card.id)}
+                                            draggable={!isTerminal}
+                                            onDragStart={!isTerminal ? (e) => handleDragStart(e, card.id) : undefined}
+                                            onDragEnd={!isTerminal ? (e) => handleDragEnd(e, card.id) : undefined}
                                             onClick={() => onAppointmentClick?.(card)}
-                                            className="bg-white/80 backdrop-blur-sm border border-white/90 p-5 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-grab active:cursor-grabbing group relative overflow-hidden"
+                                            className={`bg-white/80 backdrop-blur-sm border border-white/90 p-5 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group relative overflow-hidden ${isTerminal ? 'cursor-default opacity-80' : 'cursor-grab active:cursor-grabbing'}`}
                                         >
                                             <div className="absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b from-white/10 to-transparent" />
                                             <h4 className="font-bold text-navy-900 text-sm leading-tight mb-2 group-hover:text-navy-700 transition-colors">
