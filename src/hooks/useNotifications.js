@@ -45,7 +45,7 @@ export function useNotifications() {
                         type: entry.type,
                         title: entry.title,
                         message: entry.message,
-                        read: entry.read,
+                        read: entry.read ?? false,
                         timestamp: entry.created_at,
                         created_at: entry.created_at,
                     });
