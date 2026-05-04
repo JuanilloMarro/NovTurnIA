@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import WheelColumn from '../ui/WheelColumn';
 import { createPortal } from 'react-dom';
 import { createAppointment, getPatients, getOccupiedSlotsForDate, getServices } from '../../services/supabaseService';
 import { X, Search, Save } from 'lucide-react';
@@ -13,113 +14,10 @@ const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','
 const DAYS       = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
 const MONTHS_NUM = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
 const _cy        = new Date().getFullYear();
-const YEARS      = Array.from({ length: 5  }, (_, i) => String(_cy - 1 + i));
+const YEARS      = Array.from({ length: 5  }, (_, i) => String(_cy + i));
 const WH         = 26;
 
-function WheelColumn({ items, selected, onSelect, displayFn, disabled = false }) {
-    const containerRef = useRef(null);
-    const trackRef     = useRef(null);
-    const offsetRef    = useRef(0);
-    const drag         = useRef({ active: false, startY: 0, startOffset: 0, lastY: 0, lastTime: 0, velocity: 0, raf: null });
 
-    function applyTransform(offset) {
-        if (trackRef.current) trackRef.current.style.transform = `translateY(${WH - offset}px)`;
-    }
-
-    useLayoutEffect(() => {
-        if (drag.current.active) return;
-        const idx = items.indexOf(selected);
-        if (idx === -1) return;
-        cancelAnimationFrame(drag.current.raf);
-        const targetOffset = idx * WH;
-        offsetRef.current = targetOffset;
-        applyTransform(targetOffset);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selected]);
-
-    function snapTo(fromOffset, velocity) {
-        cancelAnimationFrame(drag.current.raf);
-        const maxOffset = (items.length - 1) * WH;
-        const projected = Math.max(0, Math.min(maxOffset, fromOffset + velocity * 100));
-        const targetIdx = Math.round(projected / WH);
-        const targetOffset = targetIdx * WH;
-        const start = performance.now();
-        const duration = 220;
-
-        function step(now) {
-            const t = Math.min(1, (now - start) / duration);
-            const eased = 1 - Math.pow(1 - t, 3);
-            const cur = fromOffset + (targetOffset - fromOffset) * eased;
-            offsetRef.current = cur;
-            applyTransform(cur);
-            if (t < 1) {
-                drag.current.raf = requestAnimationFrame(step);
-            } else {
-                offsetRef.current = targetOffset;
-                applyTransform(targetOffset);
-                onSelect(items[targetIdx]);
-            }
-        }
-        drag.current.raf = requestAnimationFrame(step);
-    }
-
-    function onPointerDown(e) {
-        cancelAnimationFrame(drag.current.raf);
-        Object.assign(drag.current, { active: true, startY: e.clientY, startOffset: offsetRef.current, lastY: e.clientY, lastTime: performance.now(), velocity: 0 });
-        containerRef.current?.setPointerCapture(e.pointerId);
-        e.preventDefault();
-    }
-
-    function onPointerMove(e) {
-        if (!drag.current.active) return;
-        const dy = e.clientY - drag.current.startY;
-        const maxOffset = (items.length - 1) * WH;
-        const raw = drag.current.startOffset - dy;
-        const clamped = raw < 0 ? raw * 0.3 : raw > maxOffset ? maxOffset + (raw - maxOffset) * 0.3 : raw;
-        offsetRef.current = clamped;
-        applyTransform(clamped);
-        const now = performance.now();
-        const dt = now - drag.current.lastTime;
-        if (dt > 0) drag.current.velocity = -(e.clientY - drag.current.lastY) / dt;
-        drag.current.lastY = e.clientY;
-        drag.current.lastTime = now;
-    }
-
-    function onPointerUp() {
-        if (!drag.current.active) return;
-        drag.current.active = false;
-        const maxOffset = (items.length - 1) * WH;
-        snapTo(Math.max(0, Math.min(maxOffset, offsetRef.current)), drag.current.velocity);
-    }
-
-    return (
-        <div
-            ref={containerRef}
-            className="relative flex-1 overflow-hidden select-none touch-none"
-            style={{ height: WH * 3, cursor: disabled ? 'default' : 'grab' }}
-            onPointerDown={disabled ? undefined : onPointerDown}
-            onPointerMove={disabled ? undefined : onPointerMove}
-            onPointerUp={disabled ? undefined : onPointerUp}
-            onPointerCancel={disabled ? undefined : onPointerUp}
-        >
-            <div className="absolute inset-x-1 pointer-events-none z-10 rounded-lg bg-white/60 border border-white/70 shadow-sm"
-                style={{ top: WH, height: WH }} />
-            <div className="absolute inset-0 pointer-events-none z-20"
-                style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.75) 0%, transparent 32%, transparent 68%, rgba(255,255,255,0.75) 100%)' }} />
-            <div ref={trackRef} className="absolute inset-x-0 top-0 will-change-transform z-30">
-                {items.map(item => {
-                    const isSelected = item === selected;
-                    return (
-                        <div key={item} style={{ height: WH }}
-                            className={`flex items-center justify-center transition-all duration-150 px-3 text-center leading-none ${isSelected ? 'text-navy-900 font-black text-[12px]' : 'text-navy-900/25 font-semibold text-[11px]'}`}>
-                            <span className="truncate w-full text-center">{displayFn ? displayFn(item) : item}</span>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
 
 function getInitials(name) {
     if (!name) return '?';
@@ -133,8 +31,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
     const schedule_end   = businessHours.schedule_end   || '18:00';
     const TIME_SLOTS = generateTimeSlots(schedule_start, schedule_end, 30);
 
-    const todayIso = new Date().toISOString().split('T')[0];
-    const [_ty, _tm, _td] = todayIso.split('-');
+    const now = new Date();
+    const _ty = now.getFullYear().toString();
+    const _tm = (now.getMonth() + 1).toString().padStart(2, '0');
+    const _td = now.getDate().toString().padStart(2, '0');
+    const todayIso = `${_ty}-${_tm}-${_td}`;
 
     const [patientObj, setPatientObj] = useState(initialPatient);
     const [patientQ, setPatientQ] = useState('');
@@ -348,13 +249,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                             <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3">Fecha</label>
                             <div className="flex bg-white/30 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
                                 <WheelColumn
-                                    key={`days-${daysInMonth}`}
+                                    key={`day-${isOpen}-${daysInMonth}`}
                                     items={DAYS_FOR_MONTH}
                                     selected={dayVal}
                                     onSelect={d => { setDayVal(d); syncDate(d, monthVal, yearVal); }}
                                 />
                                 <div className="w-px bg-white/50" />
                                 <WheelColumn
+                                    key={`month-${isOpen}`}
                                     items={MONTHS_NUM}
                                     selected={monthVal}
                                     displayFn={m => MONTHS_ES[parseInt(m) - 1]}
@@ -362,6 +264,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                                 />
                                 <div className="w-px bg-white/50" />
                                 <WheelColumn
+                                    key={`year-${isOpen}`}
                                     items={YEARS}
                                     selected={yearVal}
                                     onSelect={y => { setYearVal(y); syncDate(dayVal, monthVal, y); }}

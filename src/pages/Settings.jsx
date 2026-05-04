@@ -388,6 +388,7 @@ export default function Settings() {
                                         </label>
                                         <div className="bg-white/30 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
                                             <WheelColumn
+                                                key={`duration-${selectedId}`}
                                                 items={DURATION_VALUES}
                                                 selected={Number(form.duration_minutes) || 30}
                                                 displayFn={formatDuration}

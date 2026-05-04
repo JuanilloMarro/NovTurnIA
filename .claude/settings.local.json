@@ -6,7 +6,12 @@
       "Bash(cd /d \"C:\\\\Users\\\\Juan Diego\\\\OneDrive\\\\Documentos\\\\Antigravity Projects\\\\NovTurnAI\\\\NovTurnIA\")",
       "Bash(Get-ChildItem -Path src -Recurse -File)",
       "Bash(Select-Object FullName)",
-      "PowerShell(& 'C:\\\\Users\\\\Juan Diego\\\\Downloads\\\\build_saas_workflow.ps1' 2>&1)"
+      "PowerShell(& 'C:\\\\Users\\\\Juan Diego\\\\Downloads\\\\build_saas_workflow.ps1' 2>&1)",
+      "mcp__supabase__list_migrations"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }

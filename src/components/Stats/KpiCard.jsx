@@ -14,15 +14,15 @@ export default function KpiCard({ label, value, change, icon, color = 'navy', in
             style={{ animationDelay: `${index * 0.05}s` }}
         >
             {/* Top Row: Label and Icon */}
-            <div className="flex items-center justify-between mb-1">
-                <span className="text-navy-900 font-bold text-[11px] leading-tight">
+            <div className="flex items-start justify-between mb-1">
+                <span className="text-navy-900 font-bold text-[10px] leading-tight pt-[5px]">
                     {label}
                 </span>
-                <div className={`w-6 h-6 rounded-lg shrink-0 ${colors[color] || 'bg-navy-900'} flex items-center justify-center text-white border border-white/10 transition-transform group-hover:scale-110 shadow-sm opacity-90`}>
+                <div className="w-9 h-9 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 transition-all duration-300 group-hover:scale-110 shadow-sm">
                     {icon}
                 </div>
             </div>
-            
+
             {/* Bottom Row: Centered Number */}
             <div className="flex items-center justify-center tabular-nums">
                 <span className="text-2xl font-black text-navy-900 tracking-tighter leading-none">

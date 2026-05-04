@@ -1,45 +1,72 @@
+import { useState } from 'react';
+import { BarChart2, Brain, Lock, CalendarDays, Users, MessageSquare, Send, ChevronLeft, ChevronRight, TrendingUp, Activity } from 'lucide-react';
 import { useStats } from '../hooks/useStats';
 import KpiCard from '../components/Stats/KpiCard';
 import { AppointmentStatusChart } from '../components/Stats/AppointmentStatusChart';
 import { MainChart } from '../components/Stats/MainChart';
+import { StatsIntelligence } from '../components/Stats/StatsIntelligence';
 import FeatureLock from '../components/FeatureLock';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 
-// Datos sintéticos para mostrar la silueta del dashboard cuando el plan no
-// incluye estadísticas. Sirven sólo de fondo del overlay con candado.
+const PERIODS = [
+    { key: 'day', label: 'Día' },
+    { key: 'week', label: 'Semana' },
+    { key: 'month', label: 'Mes' },
+];
+
+const KPI_LABELS = {
+    day: { apts: 'Turnos hoy', msgs: 'Mensajes hoy' },
+    week: { apts: 'Turnos esta semana', msgs: 'Mensajes esta semana' },
+    month: { apts: 'Turnos este mes', msgs: 'Mensajes este mes' },
+};
+
 const MOCK_KPI = { monthApts: 142, totalPatients: 387, receivedMessages: 921, sentMessages: 884 };
 const MOCK_DONUT = {
     data: [
-        { label: 'Confirmados', value: 92, color: '#10b981' },
-        { label: 'Pendientes',  value: 31, color: '#f59e0b' },
-        { label: 'Cancelados',  value: 19, color: '#ef4444' },
+        { name: 'Confirmados', value: 92 },
+        { name: 'Pendientes', value: 31 },
+        { name: 'Cancelados', value: 19 },
     ],
-    confRate: 0.65,
+    confRate: 65,
 };
 
-function StatsContent({ kpi, donut, headerSubtitle = 'Rendimiento y métricas del negocio' }) {
+// ── Semana ISO ────────────────────────────────────────────
+function getISOWeek(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+// ── Label del navegador ───────────────────────────────────
+function getNavLabel(period, date) {
+    if (period === 'day') {
+        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        return `${days[date.getDay()]} ${date.getDate()}`;
+    }
+    if (period === 'week') {
+        return `Sem. ${getISOWeek(date)}`;
+    }
+    const label = date.toLocaleDateString('es-GT', { month: 'long', year: 'numeric' });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+// ── Contenido de métricas ────────────────────────────────
+function StatsContent({ kpi, donut, period, selectedYear, selectedMonth }) {
+    const labels = KPI_LABELS[period] ?? KPI_LABELS.month;
     return (
-        <div className="h-full flex flex-col w-full pt-2 overflow-y-auto md:overflow-hidden px-2 md:pb-0 pb-4">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-                <div className="flex items-center gap-4">
-                    <div>
-                        <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Estadísticas</h1>
-                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{headerSubtitle}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="md:flex-1 md:overflow-hidden flex flex-col gap-4">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-1 mb-2">
-                    <KpiCard label="Turnos mensuales"  value={kpi.monthApts}        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>} color="navy" index={0} />
-                    <KpiCard label="Clientes totales"  value={kpi.totalPatients}    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>} color="navy" index={1} />
-                    <KpiCard label="Msg Recibidos"     value={kpi.receivedMessages} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>} color="navy" index={2} />
-                    <KpiCard label="Msg Enviados"      value={kpi.sentMessages}     icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>} color="navy" index={3} />
+        <div className="h-full flex flex-col w-full overflow-y-auto md:overflow-hidden px-1 md:pb-0 pb-4">
+            <div className="md:flex-1 md:overflow-hidden flex flex-col gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-1">
+                    <KpiCard label={labels.apts} value={kpi.monthApts} icon={<CalendarDays size={14} strokeWidth={2.5} />} color="navy" index={0} />
+                    <KpiCard label="Clientes totales" value={kpi.totalPatients} icon={<Users size={14} strokeWidth={2.5} />} color="navy" index={1} />
+                    <KpiCard label="Mensajes recibidos" value={kpi.receivedMessages} icon={<MessageSquare size={14} strokeWidth={2.5} />} color="navy" index={2} />
+                    <KpiCard label="Mensajes enviados" value={kpi.sentMessages} icon={<Send size={14} strokeWidth={2.5} />} color="navy" index={3} />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:flex-1 md:min-h-0 pb-2 px-1">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:flex-1 md:min-h-0 pb-2 px-1">
                     <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
-                        <MainChart />
+                        <MainChart period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} />
                     </div>
                     <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
                         <AppointmentStatusChart data={donut.data} confRate={donut.confRate} />
@@ -50,52 +77,13 @@ function StatsContent({ kpi, donut, headerSubtitle = 'Rendimiento y métricas de
     );
 }
 
-export default function Stats() {
-    const { hasFeature, isLoading: planLoading } = usePlanLimits();
+function StatsLoaded({ period, selectedYear, selectedMonth }) {
+    const { stats } = useStats(period, selectedYear, selectedMonth);
 
-    if (planLoading) {
+    // Solo mostrar shimmer en la carga inicial; al navegar se mantiene el contenido anterior
+    if (!stats) {
         return (
-            <div className="h-full flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
-            </div>
-        );
-    }
-
-    const locked = !hasFeature('dashboard');
-
-    // Si el plan no incluye estadísticas, evitamos la query real (ahorra round-trip)
-    // y montamos la página con valores mock detrás del cristal con candado.
-    if (locked) {
-        return (
-            <FeatureLock
-                feature="dashboard"
-                variant="blurred"
-                title="Estadísticas"
-                description="El dashboard completo de métricas (turnos, clientes, tasa de confirmación, comparativas mensuales) está disponible en Pro y Enterprise."
-                requiredPlan="Pro"
-            >
-                <StatsContent kpi={MOCK_KPI} donut={MOCK_DONUT} headerSubtitle="Vista previa del plan Pro" />
-            </FeatureLock>
-        );
-    }
-
-    return <StatsLoaded />;
-}
-
-function StatsLoaded() {
-    const { stats, loading } = useStats();
-
-    if (loading || !stats) {
-        return (
-            <div className="h-full flex flex-col w-full pt-2">
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-4">
-                        <div>
-                            <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Estadísticas</h1>
-                            <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Analizando el rendimiento del negocio...</p>
-                        </div>
-                    </div>
-                </div>
+            <div className="h-full flex flex-col w-full">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {Array(4).fill(0).map((_, i) => (
                         <div key={i} className="animate-shimmer h-24 bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px]" />
@@ -109,5 +97,163 @@ function StatsLoaded() {
         );
     }
 
-    return <StatsContent kpi={stats.kpi} donut={stats.donut} />;
+    return (
+        <StatsContent
+            kpi={stats.kpi}
+            donut={stats.donut}
+            period={period}
+            selectedYear={selectedYear}
+            selectedMonth={selectedMonth}
+        />
+    );
+}
+
+// ── Export principal ─────────────────────────────────────
+export default function Stats() {
+    const { hasFeature, isLoading: planLoading } = usePlanLimits();
+    const [activeTab, setActiveTab] = useState('metricas');
+    const [period, setPeriod] = useState('month');
+    const [anchorDate, setAnchorDate] = useState(() => new Date());
+    const hasIntelligence = hasFeature('stats_intelligence');
+
+    const selectedYear = anchorDate.getFullYear();
+    const selectedMonth = anchorDate.getMonth();
+    const navLabel = getNavLabel(period, anchorDate);
+
+    const handlePeriodChange = (p) => {
+        setPeriod(p);
+        setAnchorDate(new Date());
+    };
+
+    const handlePrev = () => setAnchorDate(prev => {
+        const d = new Date(prev);
+        if (period === 'day') d.setDate(d.getDate() - 1);
+        if (period === 'week') d.setDate(d.getDate() - 7);
+        if (period === 'month') d.setMonth(d.getMonth() - 1);
+        return d;
+    });
+
+    const handleNext = () => setAnchorDate(prev => {
+        const d = new Date(prev);
+        if (period === 'day') d.setDate(d.getDate() + 1);
+        if (period === 'week') d.setDate(d.getDate() + 7);
+        if (period === 'month') d.setMonth(d.getMonth() + 1);
+        return d;
+    });
+
+    if (planLoading) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    // Controles compartidos entre ambas pestañas
+    const sharedControls = (
+        <>
+            {/* Selector de período */}
+            <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-[11px] font-bold text-navy-900 shadow-sm h-10">
+                {PERIODS.map(p => (
+                    <button
+                        key={p.key}
+                        onClick={() => handlePeriodChange(p.key)}
+                        className={`px-4 h-8 rounded-full transition-all ${period === p.key
+                            ? 'bg-white shadow-sm border border-white/80'
+                            : 'hover:bg-white/40 text-navy-900/60'
+                            }`}
+                    >
+                        {p.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Navegador de fecha */}
+            <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-10">
+                <button
+                    onClick={handlePrev}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95"
+                >
+                    <ChevronLeft size={16} />
+                </button>
+                <div className="h-8 flex items-center justify-center gap-1.5 px-3" style={{ minWidth: 110 }}>
+                    <CalendarDays size={13} className="text-navy-900 shrink-0" />
+                    <span className="text-[11px] font-bold text-navy-900 tracking-tight whitespace-nowrap leading-none capitalize">
+                        {navLabel}
+                    </span>
+                </div>
+                <button
+                    onClick={handleNext}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95"
+                >
+                    <ChevronRight size={16} />
+                </button>
+            </div>
+        </>
+    );
+
+    const header = (
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
+            <div>
+                <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">
+                    {activeTab === 'metricas' ? 'Estadísticas' : 'Inteligencia de negocio'}
+                </h1>
+                <p className="text-xs text-navy-700/60 font-semibold tracking-wide">
+                    {activeTab === 'metricas' ? 'Rendimiento y métricas del negocio' : 'Análisis inteligente de datos históricos'}
+                </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+                {sharedControls}
+
+                {/* Tabs Métricas / Inteligencia */}
+                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-[11px] font-bold text-navy-900 shadow-sm h-10">
+                    <button
+                        onClick={() => setActiveTab('metricas')}
+                        className={`px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${activeTab === 'metricas' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40 text-navy-900/60'}`}
+                    >
+                        <BarChart2 size={12} />
+                        Métricas
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('inteligencia')}
+                        className={`px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${activeTab === 'inteligencia' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40 text-navy-900/60'}`}
+                    >
+                        <Brain size={12} />
+                        Inteligencia
+                        {!hasIntelligence && <Lock size={10} className="text-navy-700/50 ml-1" />}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
+    if (!hasFeature('dashboard')) {
+        return (
+            <FeatureLock
+                feature="dashboard"
+                variant="blurred"
+                title="Estadísticas"
+                description="El dashboard completo de métricas (turnos, clientes, tasa de confirmación, comparativas mensuales) está disponible en Pro y Enterprise."
+                requiredPlan="Pro"
+            >
+                <div className="h-full flex flex-col pt-2 px-2">
+                    {header}
+                    <StatsContent kpi={MOCK_KPI} donut={MOCK_DONUT} period="month" selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                </div>
+            </FeatureLock>
+        );
+    }
+
+    return (
+        <div className="h-full flex flex-col pt-2 px-2 overflow-hidden">
+            {header}
+            <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar">
+                {activeTab === 'metricas'
+                    ? <StatsLoaded period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                    : <StatsIntelligence period={period} anchorDate={anchorDate} />
+                }
+            </div>
+        </div>
+    );
 }

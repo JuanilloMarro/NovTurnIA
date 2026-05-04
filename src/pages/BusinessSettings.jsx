@@ -1,9 +1,15 @@
-import { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { getBusinessInfo, updateBusinessInfo } from '../services/supabaseService';
+import { useState, useEffect } from 'react';
+import WheelColumn from '../components/ui/WheelColumn';
+import {
+    getBusinessInfo,
+    updateBusinessInfo,
+    parseCustomPrompt,
+    buildCustomPrompt,
+} from '../services/supabaseService';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import FeatureLock from '../components/FeatureLock';
-import { Save, Building2, Clock, Mail, Zap, Lock, Bot, Check } from 'lucide-react';
+import { Save, Building2, Clock, Mail, Lock, Bot, Check, Sparkles } from 'lucide-react';
 import { showSettingsSavedToast, showValidationToast, showErrorToast } from '../store/useToastStore';
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
@@ -11,114 +17,6 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
     label: `${String(i).padStart(2, '0')}:00`,
 }));
 
-// ── Wheel picker ──────────────────────────────────────────────────────────────
-const WH = 26;
-
-function WheelColumn({ items, selected, onSelect, displayFn, disabled = false }) {
-    const containerRef = useRef(null);
-    const trackRef     = useRef(null);
-    const offsetRef    = useRef(0);
-    const drag         = useRef({ active: false, startY: 0, startOffset: 0, lastY: 0, lastTime: 0, velocity: 0, raf: null });
-
-    function applyTransform(offset) {
-        if (trackRef.current) trackRef.current.style.transform = `translateY(${WH - offset}px)`;
-    }
-
-    useLayoutEffect(() => {
-        if (drag.current.active) return;
-        const idx = items.indexOf(selected);
-        if (idx === -1) return;
-        cancelAnimationFrame(drag.current.raf);
-        const targetOffset = idx * WH;
-        offsetRef.current = targetOffset;
-        applyTransform(targetOffset);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selected]);
-
-    function snapTo(fromOffset, velocity) {
-        cancelAnimationFrame(drag.current.raf);
-        const maxOffset = (items.length - 1) * WH;
-        const projected = Math.max(0, Math.min(maxOffset, fromOffset + velocity * 100));
-        const targetIdx = Math.round(projected / WH);
-        const targetOffset = targetIdx * WH;
-        const start = performance.now();
-        const duration = 220;
-        function step(now) {
-            const t = Math.min(1, (now - start) / duration);
-            const eased = 1 - Math.pow(1 - t, 3);
-            const cur = fromOffset + (targetOffset - fromOffset) * eased;
-            offsetRef.current = cur;
-            applyTransform(cur);
-            if (t < 1) {
-                drag.current.raf = requestAnimationFrame(step);
-            } else {
-                offsetRef.current = targetOffset;
-                applyTransform(targetOffset);
-                onSelect(items[targetIdx]);
-            }
-        }
-        drag.current.raf = requestAnimationFrame(step);
-    }
-
-    function onPointerDown(e) {
-        cancelAnimationFrame(drag.current.raf);
-        Object.assign(drag.current, { active: true, startY: e.clientY, startOffset: offsetRef.current, lastY: e.clientY, lastTime: performance.now(), velocity: 0 });
-        containerRef.current?.setPointerCapture(e.pointerId);
-        e.preventDefault();
-    }
-
-    function onPointerMove(e) {
-        if (!drag.current.active) return;
-        const dy = e.clientY - drag.current.startY;
-        const maxOffset = (items.length - 1) * WH;
-        const raw = drag.current.startOffset - dy;
-        const clamped = raw < 0 ? raw * 0.3 : raw > maxOffset ? maxOffset + (raw - maxOffset) * 0.3 : raw;
-        offsetRef.current = clamped;
-        applyTransform(clamped);
-        const now = performance.now();
-        const dt = now - drag.current.lastTime;
-        if (dt > 0) drag.current.velocity = -(e.clientY - drag.current.lastY) / dt;
-        drag.current.lastY = e.clientY;
-        drag.current.lastTime = now;
-    }
-
-    function onPointerUp() {
-        if (!drag.current.active) return;
-        drag.current.active = false;
-        const maxOffset = (items.length - 1) * WH;
-        snapTo(Math.max(0, Math.min(maxOffset, offsetRef.current)), drag.current.velocity);
-    }
-
-    return (
-        <div
-            ref={containerRef}
-            className="relative flex-1 overflow-hidden select-none touch-none"
-            style={{ height: WH * 3, cursor: disabled ? 'default' : 'grab' }}
-            onPointerDown={disabled ? undefined : onPointerDown}
-            onPointerMove={disabled ? undefined : onPointerMove}
-            onPointerUp={disabled ? undefined : onPointerUp}
-            onPointerCancel={disabled ? undefined : onPointerUp}
-        >
-            <div className="absolute inset-x-1 pointer-events-none z-10 rounded-lg bg-white/60 border border-white/70 shadow-sm"
-                style={{ top: WH, height: WH }} />
-            <div className="absolute inset-0 pointer-events-none z-20"
-                style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.75) 0%, transparent 32%, transparent 68%, rgba(255,255,255,0.75) 100%)' }} />
-            <div ref={trackRef} className="absolute inset-x-0 top-0 will-change-transform z-30">
-                {items.map(item => {
-                    const isSelected = item === selected;
-                    return (
-                        <div key={item} style={{ height: WH }}
-                            className={`flex items-center justify-center transition-all duration-150 px-3 text-center leading-none ${isSelected ? 'text-navy-900 font-black text-[12px]' : 'text-navy-900/25 font-semibold text-[11px]'}`}>
-                            <span className="truncate w-full text-center">{displayFn ? displayFn(item) : item}</span>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
-
-// Canonical day order and display labels
 const DAYS = [
     { key: 'Lun', label: 'Lunes' },
     { key: 'Mar', label: 'Martes' },
@@ -130,36 +28,24 @@ const DAYS = [
 ];
 
 const PLAN_LABELS = {
-    basic: { label: 'Básico', color: 'bg-gray-100 text-gray-600 border-gray-200' },
-    pro: { label: 'Pro', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+    basic:      { label: 'Básico',     color: 'bg-gray-100 text-gray-600 border-gray-200' },
+    pro:        { label: 'Pro',        color: 'bg-blue-50 text-blue-700 border-blue-200' },
     enterprise: { label: 'Enterprise', color: 'bg-violet-50 text-violet-700 border-violet-200' },
 };
 
-// Parse stored schedule_days string → Set of day keys
-// Accepts legacy ranges like 'Lun-Vie' or new comma-separated 'Lun,Mié,Vie'
 function parseDays(str) {
     if (!str) return new Set(['Lun', 'Mar', 'Mié', 'Jue', 'Vie']);
-
-    // Comma-separated (new format)
-    if (str.includes(',')) {
-        return new Set(str.split(',').map(s => s.trim()).filter(Boolean));
-    }
-
-    // Legacy range 'Lun-Vie' → expand
+    if (str.includes(',')) return new Set(str.split(',').map(s => s.trim()).filter(Boolean));
     if (str.includes('-')) {
         const [from, to] = str.split('-').map(s => s.trim());
         const fromIdx = DAYS.findIndex(d => d.key === from);
-        const toIdx = DAYS.findIndex(d => d.key === to);
-        if (fromIdx !== -1 && toIdx !== -1 && toIdx >= fromIdx) {
+        const toIdx   = DAYS.findIndex(d => d.key === to);
+        if (fromIdx !== -1 && toIdx !== -1 && toIdx >= fromIdx)
             return new Set(DAYS.slice(fromIdx, toIdx + 1).map(d => d.key));
-        }
     }
-
-    // Single day
     return new Set([str.trim()]);
 }
 
-// Serialize Set → comma-separated string in canonical order
 function serializeDays(set) {
     return DAYS.filter(d => set.has(d.key)).map(d => d.key).join(',');
 }
@@ -205,7 +91,7 @@ function ReadOnlyField({ label, value }) {
 }
 
 function HourSelect({ value, onChange, options }) {
-    const items = options.map(o => o.label);
+    const items    = options.map(o => o.label);
     const selected = HOUR_OPTIONS.find(o => o.value === value)?.label || '00:00';
     return (
         <div className="bg-white/30 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
@@ -222,23 +108,28 @@ export default function BusinessSettings() {
     const { canManageRoles } = usePermissions();
     const { hasFeature } = usePlanLimits();
 
-    const [info, setInfo] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [dirty, setDirty] = useState(false);
-    const [form, setForm] = useState(null);
+    const [info, setInfo]               = useState(null);
+    const [loading, setLoading]         = useState(true);
+    const [saving, setSaving]           = useState(false);
+    const [dirty, setDirty]             = useState(false);
+    const [form, setForm]               = useState(null);
     const [selectedDays, setSelectedDays] = useState(new Set());
+    // Campos desglosados del custom_prompt
+    const [agentName, setAgentName]     = useState('');
+    const [instructions, setInstructions] = useState('');
 
     useEffect(() => {
         getBusinessInfo()
             .then(data => {
                 setInfo(data);
+                const parsed = parseCustomPrompt(data.custom_prompt);
+                setAgentName(parsed.agentName);
+                setInstructions(parsed.instructions);
                 setForm({
-                    name: data.name || '',
-                    schedule_start: data.schedule_start ?? 9,
-                    schedule_end: data.schedule_end ?? 18,
+                    name:               data.name || '',
+                    schedule_start:     data.schedule_start ?? 9,
+                    schedule_end:       data.schedule_end ?? 18,
                     notification_email: data.notification_email || '',
-                    custom_prompt: data.custom_prompt || '',
                 });
                 setSelectedDays(parseDays(data.schedule_days));
             })
@@ -248,6 +139,16 @@ export default function BusinessSettings() {
 
     function setField(key, val) {
         setForm(f => ({ ...f, [key]: val }));
+        setDirty(true);
+    }
+
+    function handleAgentNameChange(val) {
+        setAgentName(val);
+        setDirty(true);
+    }
+
+    function handleInstructionsChange(val) {
+        setInstructions(val);
         setDirty(true);
     }
 
@@ -270,17 +171,22 @@ export default function BusinessSettings() {
             showValidationToast('Nombre muy largo', 'El nombre no debe exceder los 100 caracteres.');
             return;
         }
-
+        if (agentName.trim().length > 30) {
+            showValidationToast('Nombre de asistente largo', 'El nombre del asistente no debe exceder los 30 caracteres.');
+            return;
+        }
+        if (instructions.trim().length > 270) {
+            showValidationToast('Instrucciones muy largas', 'Las instrucciones no deben exceder los 270 caracteres.');
+            return;
+        }
         if (selectedDays.size === 0) {
             showValidationToast('Días inválidos', 'Debes seleccionar al menos un día de atención.');
             return;
         }
-
         if (Number(form.schedule_end) <= Number(form.schedule_start)) {
             showValidationToast('Horario inválido', 'La hora de cierre debe ser posterior a la de apertura.');
             return;
         }
-
         const emailInput = form.notification_email.trim();
         if (!emailInput) {
             showValidationToast('Email requerido', 'El correo es indispensable para el manejo de notificaciones y emergencias.');
@@ -290,30 +196,29 @@ export default function BusinessSettings() {
             showValidationToast('Email inválido', 'Revisa el formato del correo de notificaciones.');
             return;
         }
-        if (emailInput.length > 255) {
-            showValidationToast('Email muy largo', 'El correo no debe exceder los 255 caracteres.');
-            return;
-        }
 
         setSaving(true);
         try {
             const payload = {
-                name: nameInput,
-                schedule_start: Number(form.schedule_start),
-                schedule_end: Number(form.schedule_end),
-                schedule_days: serializeDays(selectedDays),
+                name:               nameInput,
+                schedule_start:     Number(form.schedule_start),
+                schedule_end:       Number(form.schedule_end),
+                schedule_days:      serializeDays(selectedDays),
                 notification_email: emailInput || '',
             };
-            // Defensa: si el plan no incluye custom_prompt, no enviarlo aunque el usuario haya escrito.
+
+            // Construir custom_prompt combinando nombre del agente + instrucciones
             if (hasFeature('custom_prompt')) {
-                payload.custom_prompt = form.custom_prompt.trim() || null;
+                // El nombre del agente solo se incluye si el plan lo permite
+                const finalAgentName = hasFeature('ai_agent_name') ? agentName.trim() : '';
+                payload.custom_prompt = buildCustomPrompt(finalAgentName, instructions.trim()) || null;
             }
+
             await updateBusinessInfo(payload);
             showSettingsSavedToast(nameInput);
             setDirty(false);
         } catch (err) {
             console.error('SERVER ERROR:', err);
-            // Replace masked error with raw message so user can see it exactly
             showErrorToast('Error de Base de Datos', err.message || 'No se pudo guardar la configuración.');
         } finally {
             setSaving(false);
@@ -330,7 +235,6 @@ export default function BusinessSettings() {
 
     return (
         <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-0">
-            {/* Header */}
             <div className="flex items-start justify-between gap-3 mb-4">
                 <div>
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Configuración del negocio</h1>
@@ -343,7 +247,6 @@ export default function BusinessSettings() {
                 )}
             </div>
 
-            {/* Main card */}
             <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex flex-col overflow-hidden mb-4 lg:mb-6 animate-fade-up">
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <div className="px-8 py-8 space-y-10">
@@ -390,11 +293,11 @@ export default function BusinessSettings() {
                                             <label key={day.key} className="flex items-center gap-3.5 cursor-pointer group select-none">
                                                 <div className="relative flex items-center justify-center shrink-0">
                                                     <input type="checkbox" checked={active} onChange={() => toggleDay(day.key)} className="sr-only" />
-                                                    <div className={`w-[16px] h-[16px] rounded-[5px] border transition-all duration-300 flex items-center justify-center shadow-sm ${active ? 'bg-navy-900 border-navy-900 shadow-sm' : 'border-navy-900/30 bg-white/60 backdrop-blur-sm group-hover:border-navy-900/50'}`}>
+                                                    <div className={`w-[16px] h-[16px] rounded-[5px] border transition-all duration-300 flex items-center justify-center shadow-sm ${active ? 'bg-navy-900 border-navy-900' : 'border-navy-900/30 bg-white/60 group-hover:border-navy-900/50'}`}>
                                                         <Check size={12} strokeWidth={4} className={`text-white transition-all duration-200 ${active ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`} />
                                                     </div>
                                                 </div>
-                                                <span className="font-bold text-[10.5px] tracking-tight leading-none pt-[1.5px] text-navy-900 transition-colors duration-300">
+                                                <span className="font-bold text-[10.5px] tracking-tight leading-none pt-[1.5px] text-navy-900">
                                                     {day.label}
                                                 </span>
                                             </label>
@@ -402,7 +305,58 @@ export default function BusinessSettings() {
                                     })}
                                 </div>
                             </Field>
-                            <ReadOnlyField label="Zona horaria" value="América/Guatemala" />
+                        </Section>
+
+                        {/* Inteligencia Artificial */}
+                        <Section icon={Bot} title="Inteligencia Artificial del Asistente">
+
+                            {/* Nombre del agente — Enterprise only */}
+                            <Field label="Nombre del asistente IA">
+                                <p className="text-[10px] text-navy-700/60 font-semibold mb-2 leading-tight">
+                                    Dale un nombre personalizado a tu asistente. Aparecerá en sus respuestas como contexto para la IA.
+                                </p>
+                                <FeatureLock feature="ai_agent_name" requiredPlan="Enterprise">
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            maxLength={30}
+                                            value={agentName}
+                                            onChange={e => handleAgentNameChange(e.target.value)}
+                                            disabled={!hasFeature('ai_agent_name')}
+                                            placeholder="Ej: Sofía, Valentina, Asistente..."
+                                            className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 pr-16 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                            <Sparkles size={12} className="text-violet-400" />
+                                            <span className="text-[10px] font-bold text-navy-900/30">
+                                                {agentName.length}/30
+                                            </span>
+                                        </div>
+                                    </div>
+                                </FeatureLock>
+                            </Field>
+
+                            {/* Instrucciones / contexto — Pro+ */}
+                            <Field label="Contexto e instrucciones base">
+                                <p className="text-[10px] text-navy-700/60 font-semibold mb-2 leading-tight">
+                                    Instrucciones adicionales para el asistente: ubicación, estilo de comunicación, información del negocio, entre otros.
+                                </p>
+                                 <FeatureLock feature="custom_prompt" requiredPlan="Pro">
+                                    <div className="relative">
+                                        <textarea
+                                            maxLength={270}
+                                            value={instructions}
+                                            onChange={e => handleInstructionsChange(e.target.value)}
+                                            disabled={!hasFeature('custom_prompt')}
+                                            placeholder="Ej: Somos una clínica dental en Xela. Tratamos con amabilidad y profesionalismo. Manejamos urgencias dentales."
+                                            className="w-full h-24 bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 resize-none custom-scrollbar disabled:cursor-not-allowed"
+                                        />
+                                        <span className="absolute bottom-3 right-4 text-[10px] font-bold text-navy-900/20">
+                                            {instructions.length}/270
+                                        </span>
+                                    </div>
+                                </FeatureLock>
+                            </Field>
                         </Section>
 
                         {/* Notificaciones */}
@@ -422,31 +376,14 @@ export default function BusinessSettings() {
                             </Field>
                         </Section>
 
-                        {/* Inteligencia Artificial */}
-                        <Section icon={Bot} title="Inteligencia Artificial del Asistente">
-                            <Field label="Contexto e ideas base">
-                                <p className="text-[10px] text-navy-700/60 font-semibold mb-2 leading-tight">
-                                    Aquí puedes proporcionar instrucciones o contexto adicional para el asistente (ubicación, estilo de habla, entre otros). La IA usará esto como sugerencia inicial.
-                                </p>
-                                <FeatureLock feature="custom_prompt" requiredPlan="Pro">
-                                    <textarea
-                                        maxLength={1500}
-                                        value={form.custom_prompt}
-                                        onChange={e => setField('custom_prompt', e.target.value)}
-                                        disabled={!hasFeature('custom_prompt')}
-                                        placeholder="Ej: Somos una clínica dental en Xela. Tratamos con amabilidad y profesionalismo. Manejamos urgencias dentales."
-                                        className="w-full h-24 bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 resize-none custom-scrollbar disabled:cursor-not-allowed"
-                                    />
-                                </FeatureLock>
-                            </Field>
+                        {/* Otros ajustes */}
+                        <Section icon={Clock} title="Localización">
+                            <ReadOnlyField label="Zona horaria" value="América/Guatemala (GMT-6)" />
                         </Section>
-
-
 
                     </div>
                 </div>
 
-                {/* Footer actions sticky but slim */}
                 {canManageRoles && (
                     <div className="px-6 py-4 bg-white/40 border-t border-white/60 backdrop-blur-md flex items-center justify-end gap-3 z-20 shrink-0">
                         <button

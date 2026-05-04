@@ -55,9 +55,9 @@ export function AppointmentStatusChart({ data, confRate }) {
                         <div key={index} className="flex justify-between items-center py-2.5 px-1 border-b border-white/20 last:border-0">
                             <div className="flex items-center gap-3">
                                 <span className="w-2 h-2 rounded-full shadow-sm" style={{ backgroundColor: PIE_COLORS[index] }}></span>
-                                <span className="text-navy-900/80 font-bold text-[12px] tracking-tight">{entry.name}</span>
+                                <span className="text-navy-900/80 font-bold text-[10px] tracking-tight">{entry.name}</span>
                             </div>
-                            <span className="font-bold text-navy-900 text-sm tracking-tighter">{percentage}%</span>
+                            <span className="font-bold text-navy-900 text-[11px] tracking-tighter">{percentage}%</span>
                         </div>
                     );
                 })}

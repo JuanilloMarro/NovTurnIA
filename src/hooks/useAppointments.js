@@ -6,12 +6,19 @@ import { withTimeout } from '../utils/withTimeout';
 
 function getMonday(date) {
     const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    d.setDate(diff);
+    const day = d.getDay(); // 0: Sun, 1: Mon, ...
+    const diff = (day + 6) % 7; // Distance to previous Monday
+    d.setDate(d.getDate() - diff);
     d.setHours(0, 0, 0, 0);
     return d;
 }
+
+const toLocalDateStr = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
 
 export function useAppointments() {
     const [anchorDate, setAnchorDate] = useState(new Date());
@@ -57,12 +64,10 @@ export function useAppointments() {
     const load = useCallback(async (force = false) => {
         if (!hasLoadedRef.current || force) setLoading(true);
         try {
-            // Timeout evita que la pantalla quede en skeleton/spinner si la petición
-            // se cuelga (suspensión de pestaña, red intermitente, etc).
             const data = await withTimeout(
                 getAppointmentsByWeek(
-                    rangeStart.toISOString().slice(0, 10),
-                    rangeEnd.toISOString().slice(0, 10)
+                    toLocalDateStr(rangeStart),
+                    toLocalDateStr(rangeEnd)
                 ),
                 12_000,
                 'getAppointmentsByWeek'
@@ -83,8 +88,8 @@ export function useAppointments() {
         try {
             const data = await withTimeout(
                 getAppointmentsByWeek(
-                    rangeStart.toISOString().slice(0, 10),
-                    rangeEnd.toISOString().slice(0, 10)
+                    toLocalDateStr(rangeStart),
+                    toLocalDateStr(rangeEnd)
                 ),
                 10_000,
                 'reloadAppointments'

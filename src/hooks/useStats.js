@@ -1,39 +1,75 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getStatsDashboard } from '../services/supabaseService';
 import { useAppStore } from '../store/useAppStore';
 import { withTimeout } from '../utils/withTimeout';
 
-// T-29: Eliminadas las 3 llamadas directas a supabase — ahora pasan por supabaseService.js.
-// T-50: getMessageCounts filtra por mes para evitar COUNT(*) sin fecha.
-// T-51: getAppointmentTrend movido a MainChart — el gráfico hace su propio fetch agregado.
-// T-17: 3 queries → 1 RPC (get_stats_dashboard). Reducción de round-trips HTTP.
-// - getStatsDashboard() → appt_stats + patient_stats + month_appointments + sent/received
+const STALE_MS = 5 * 60_000;
 
-const STALE_MS = 5 * 60_000; // 5 minutos
+// ── Helper de rango de fechas compartido con MainChart ────
+// period: 'day' | 'week' | 'month'
+// Ancla: hoy si es el mes actual, día 15 del mes seleccionado si es pasado.
+export function getStatsDateRange(period, year, month) {
+    const now            = new Date();
+    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+    const anchor         = isCurrentMonth ? now : new Date(year, month, 15);
 
-export function useStats() {
-    const [stats, setStats] = useState(null);
+    if (period === 'month') {
+        return {
+            start: new Date(year, month, 1).toISOString(),
+            end:   new Date(year, month + 1, 1).toISOString(),
+        };
+    }
+
+    // Lunes de la semana que contiene el ancla
+    const dow    = anchor.getDay();
+    const monday = new Date(anchor);
+    monday.setDate(anchor.getDate() - dow + (dow === 0 ? -6 : 1));
+    monday.setHours(0, 0, 0, 0);
+
+    if (period === 'day') {
+        const end = new Date(monday);
+        end.setDate(monday.getDate() + 7);
+        return { start: monday.toISOString(), end: end.toISOString() };
+    }
+
+    // week: 4 semanas antes del lunes ancla + 2 después
+    const start = new Date(monday);
+    start.setDate(monday.getDate() - 28);
+    const end = new Date(monday);
+    end.setDate(monday.getDate() + 14);
+    return { start: start.toISOString(), end: end.toISOString() };
+}
+
+export function useStats(period = 'month', year = new Date().getFullYear(), month = new Date().getMonth()) {
+    const [stats, setStats]     = useState(null);
     const [loading, setLoading] = useState(true);
+    const lastKey               = useRef(null);
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => { load(); }, [period, year, month]);
 
     async function load(forceRefresh = false) {
-        const cache = useAppStore.getState()._statsCache;
-        if (!forceRefresh && cache.data && Date.now() - cache.fetchedAt < STALE_MS) {
-            setStats(cache.data);
-            setLoading(false);
-            return;
+        const cacheKey     = `${period}-${year}-${month}`;
+        const keyChanged   = lastKey.current !== cacheKey;
+        const isCurrentMon = year === new Date().getFullYear() && month === new Date().getMonth();
+
+        // Caché solo para mes actual en período 'month'
+        if (!forceRefresh && !keyChanged && period === 'month' && isCurrentMon) {
+            const cache = useAppStore.getState()._statsCache;
+            if (cache.data && Date.now() - cache.fetchedAt < STALE_MS) {
+                setStats(cache.data);
+                setLoading(false);
+                return;
+            }
         }
 
+        lastKey.current = cacheKey;
         setLoading(true);
-        try {
-            const now = new Date();
-            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-            const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
 
-            // T-17: 1 RPC en lugar de 3 round-trips paralelos
+        try {
+            const { start, end } = getStatsDateRange(period, year, month);
+
             const dashboard = await withTimeout(
-                getStatsDashboard(monthStart, monthEnd),
+                getStatsDashboard(start, end),
                 12_000,
                 'getStatsDashboard'
             );
@@ -42,23 +78,26 @@ export function useStats() {
             const patientStats = dashboard.patient_stats ?? null;
             const apts         = dashboard.month_appointments || [];
 
-            // Mes pasado desde mv_business_stats (ya calculado por Postgres)
-            const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const lastMonthKey  = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
-            const lastMonthRow  = (apptStats || []).find(r => String(r.month || '').startsWith(lastMonthKey));
-            const lastMonthCount = lastMonthRow?.total_appointments ?? lastMonthRow?.count ?? 0;
+            // Variación vs período anterior (solo vista mensual en mes actual)
+            let aptsChange;
+            if (period === 'month' && year === new Date().getFullYear() && month === new Date().getMonth()) {
+                const lastMonthDate  = new Date(year, month - 1, 1);
+                const lastMonthKey   = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+                const lastMonthRow   = apptStats.find(r => String(r.month || '').startsWith(lastMonthKey));
+                const lastMonthCount = lastMonthRow?.total_appointments ?? lastMonthRow?.count ?? 0;
+                const monthApts      = apts.filter(a => a.status !== 'cancelled').length;
+                aptsChange = lastMonthCount > 0
+                    ? (((monthApts - lastMonthCount) / lastMonthCount) * 100).toFixed(1)
+                    : undefined;
+            }
 
-            // KPIs del mes actual
-            const monthApts           = apts.filter(a => a.status !== 'cancelled').length;
-            const aptsChange          = lastMonthCount > 0
-                ? (((monthApts - lastMonthCount) / lastMonthCount) * 100).toFixed(1)
-                : undefined;
-            const confirmedThisMonth  = apts.filter(a => a.confirmed).length;
-            const scheduledThisMonth  = apts.filter(a => (a.status === 'scheduled' || a.status === 'pending') && !a.confirmed).length;
-            const cancelledThisMonth  = apts.filter(a => a.status === 'cancelled').length;
-            const noShowThisMonth     = apts.filter(a => a.status === 'no_show').length;
-            const createdByBot        = apts.filter(a => a.created_by === 'bot').length;
-            const createdByStaff      = apts.filter(a => a.created_by === 'dashboard').length;
+            const monthApts          = apts.filter(a => a.status !== 'cancelled').length;
+            const confirmedThisMonth = apts.filter(a => a.confirmed).length;
+            const scheduledThisMonth = apts.filter(a => (a.status === 'scheduled' || a.status === 'pending') && !a.confirmed).length;
+            const cancelledThisMonth = apts.filter(a => a.status === 'cancelled').length;
+            const noShowThisMonth    = apts.filter(a => a.status === 'no_show').length;
+            const createdByBot       = apts.filter(a => a.created_by === 'bot').length;
+            const createdByStaff     = apts.filter(a => a.created_by === 'dashboard').length;
 
             const totalForDonut = confirmedThisMonth + scheduledThisMonth + cancelledThisMonth + noShowThisMonth;
             const confRate      = totalForDonut === 0 ? 0 : Math.round((confirmedThisMonth / totalForDonut) * 100);
@@ -84,11 +123,13 @@ export function useStats() {
                         { name: 'Pendientes',         value: Math.max(0, scheduledThisMonth) },
                         { name: 'Cancelados',         value: cancelledThisMonth },
                         { name: 'No se presentaron', value: noShowThisMonth },
-                    ]
-                }
+                    ],
+                },
             };
 
-            useAppStore.getState().setStatsCache(result);
+            if (period === 'month' && year === new Date().getFullYear() && month === new Date().getMonth()) {
+                useAppStore.getState().setStatsCache(result);
+            }
             setStats(result);
         } catch (err) {
             console.error('Error loading stats:', err);

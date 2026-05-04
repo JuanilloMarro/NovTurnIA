@@ -1190,3 +1190,66 @@ export async function getPlanLimits() {
     }
     return data;
 }
+
+// ── Inteligencia (Enterprise) ─────────────────────────────
+
+export async function getPatientLTV(startDate, endDate) {
+    const { data, error } = await supabase.rpc('get_patient_ltv', {
+        p_business_id: getBID(),
+        p_start_date:  startDate,
+        p_end_date:    endDate,
+    });
+    if (error) throw error;
+    return data || [];
+}
+
+export async function getRetentionRate(startDate, endDate) {
+    const { data, error } = await supabase.rpc('get_retention_rate', {
+        p_business_id: getBID(),
+        p_start_date:  startDate,
+        p_end_date:    endDate,
+    });
+    if (error) throw error;
+    return data?.[0] || { total_patients: 0, retained_patients: 0, retention_pct: 0, period_label: '' };
+}
+
+export async function getServiceAnalytics(startDate, endDate) {
+    const { data, error } = await supabase.rpc('get_service_analytics', {
+        p_business_id: getBID(),
+        p_start_date:  startDate,
+        p_end_date:    endDate,
+    });
+    if (error) throw error;
+    return data || [];
+}
+
+export async function getAppointmentPrediction(startDate, endDate) {
+    const { data, error } = await supabase.rpc('get_appointment_prediction', {
+        p_business_id: getBID(),
+        p_start_date:  startDate,
+        p_end_date:    endDate,
+    });
+    if (error) throw error;
+    return data || [];
+}
+
+// ── Helpers custom_prompt (nombre agente + instrucciones) ─
+
+// Separa el custom_prompt en sus dos partes editables desde el UI.
+// El formato guardado es: "Nombre del asistente: {name}\n\n{instructions}"
+// n8n lee el campo completo — no requiere cambios en la automatización.
+export function parseCustomPrompt(raw) {
+    if (!raw) return { agentName: '', instructions: '' };
+    const match = raw.match(/^Nombre del asistente:\s*(.+?)\n\n([\s\S]*)$/);
+    if (match) return { agentName: match[1].trim(), instructions: match[2].trim() };
+    return { agentName: '', instructions: raw.trim() };
+}
+
+// Combina nombre del agente e instrucciones en el string que se guarda en DB.
+export function buildCustomPrompt(agentName, instructions) {
+    const name = agentName?.trim() || '';
+    const instr = instructions?.trim() || '';
+    if (!name) return instr;
+    if (!instr) return `Nombre del asistente: ${name}`;
+    return `Nombre del asistente: ${name}\n\n${instr}`;
+}

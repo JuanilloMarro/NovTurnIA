@@ -10,15 +10,23 @@ import { showOfferNewToast, showOfferEditToast, showOfferDeleteToast, showOfferA
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function toLocalInput(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    const off = d.getTimezoneOffset();
-    return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
+function toLocalInput(dateObjOrIso) {
+    if (!dateObjOrIso) return '';
+    const d = new Date(dateObjOrIso);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${day}T${hh}:${mm}`;
 }
 function fromLocalInput(local) {
     if (!local) return null;
-    return new Date(local).toISOString();
+    // local format is YYYY-MM-DDTHH:mm
+    const [datePart, timePart] = local.split('T');
+    const [y, m, d] = datePart.split('-').map(Number);
+    const [hh, mm] = timePart.split(':').map(Number);
+    return new Date(y, m - 1, d, hh, mm).toISOString();
 }
 
 function toCents(price) {
@@ -41,19 +49,23 @@ const STATUS_BADGE = {
 const MONTHS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const MONTHS_NUM = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
 const _cy = new Date().getFullYear();
-const YEARS = Array.from({ length: 5 }, (_, i) => String(_cy - 1 + i));
+const YEARS = Array.from({ length: 5 }, (_, i) => String(_cy + i));
 
 function getDaysForMonth(m, y) {
     return Array.from({ length: new Date(Number(y), Number(m), 0).getDate() }, (_, i) => String(i + 1).padStart(2, '0'));
 }
+
+const nowForDefault = new Date();
+const nextMonthForDefault = new Date();
+nextMonthForDefault.setMonth(nowForDefault.getMonth() + 1);
 
 const EMPTY_FORM = {
     service_id: null,
     name: '',
     description: '',
     promoPriceCents: null,
-    starts_at: '',
-    ends_at: '',
+    starts_at: toLocalInput(nowForDefault),
+    ends_at: toLocalInput(nextMonthForDefault),
     active: true,
 };
 
@@ -639,6 +651,7 @@ export default function Offers() {
                                             </label>
                                             <div className="flex bg-white/30 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
                                                 <WheelColumn
+                                                    key={`start-day-${selectedId}-${getDaysForMonth(form.starts_at.slice(5, 7) || '01', form.starts_at.slice(0, 4) || _cy).length}`}
                                                     items={getDaysForMonth(form.starts_at.slice(5, 7) || '01', form.starts_at.slice(0, 4) || _cy)}
                                                     selected={form.starts_at.slice(8, 10) || '01'}
                                                     onSelect={d => {
@@ -649,6 +662,7 @@ export default function Offers() {
                                                 />
                                                 <div className="w-px bg-white/50" />
                                                 <WheelColumn
+                                                    key={`start-month-${selectedId}`}
                                                     items={MONTHS_NUM}
                                                     selected={form.starts_at.slice(5, 7) || '01'}
                                                     displayFn={m => MONTHS_ES[parseInt(m) - 1]}
@@ -660,6 +674,7 @@ export default function Offers() {
                                                 />
                                                 <div className="w-px bg-white/50" />
                                                 <WheelColumn
+                                                    key={`start-year-${selectedId}`}
                                                     items={YEARS}
                                                     selected={form.starts_at.slice(0, 4) || String(_cy)}
                                                     onSelect={y => {
@@ -677,6 +692,7 @@ export default function Offers() {
                                             </label>
                                             <div className="flex bg-white/30 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
                                                 <WheelColumn
+                                                    key={`end-day-${selectedId}-${getDaysForMonth(form.ends_at.slice(5, 7) || '01', form.ends_at.slice(0, 4) || _cy).length}`}
                                                     items={getDaysForMonth(form.ends_at.slice(5, 7) || '01', form.ends_at.slice(0, 4) || _cy)}
                                                     selected={form.ends_at.slice(8, 10) || '01'}
                                                     onSelect={d => {
@@ -687,6 +703,7 @@ export default function Offers() {
                                                 />
                                                 <div className="w-px bg-white/50" />
                                                 <WheelColumn
+                                                    key={`end-month-${selectedId}`}
                                                     items={MONTHS_NUM}
                                                     selected={form.ends_at.slice(5, 7) || '01'}
                                                     displayFn={m => MONTHS_ES[parseInt(m) - 1]}
@@ -698,6 +715,7 @@ export default function Offers() {
                                                 />
                                                 <div className="w-px bg-white/50" />
                                                 <WheelColumn
+                                                    key={`end-year-${selectedId}`}
                                                     items={YEARS}
                                                     selected={form.ends_at.slice(0, 4) || String(_cy)}
                                                     onSelect={y => {

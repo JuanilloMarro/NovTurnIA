@@ -49,7 +49,20 @@ export default function Calendar() {
         else nextWeek();
     };
 
-    const monthName = anchorDate.toLocaleDateString('es-GT', { month: 'long', year: 'numeric' });
+    const navLabel = (() => {
+        const dow    = anchorDate.getDay();
+        const monday = new Date(anchorDate);
+        monday.setDate(anchorDate.getDate() - dow + (dow === 0 ? -6 : 1));
+        if (viewMode === 'day') {
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            const fmt = d => d.toLocaleDateString('es-GT', { day: 'numeric', month: 'short' }).replace('.', '');
+            return `${fmt(monday)} – ${fmt(sunday)}`;
+        }
+        const ref   = viewMode === 'week' ? monday : anchorDate;
+        const label = ref.toLocaleDateString('es-GT', { month: 'long', year: 'numeric' });
+        return label.charAt(0).toUpperCase() + label.slice(1);
+    })();
 
     return (
         <div className={`h-full flex flex-col px-2 relative transition-all duration-300`}>
@@ -87,9 +100,9 @@ export default function Calendar() {
                                 <button onClick={handlePrev} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
                                     <ChevronLeft size={16} />
                                 </button>
-                                <div className="flex items-center gap-2 px-3 text-navy-900 font-bold">
-                                    <CalendarIcon size={14} className="text-navy-900" />
-                                    <span className="capitalize text-[11px] font-bold tracking-tight whitespace-nowrap">{monthName}</span>
+                                <div className="h-8 flex items-center justify-center gap-1.5 px-3 min-w-[120px]">
+                                    <CalendarIcon size={13} className="text-navy-900 shrink-0" />
+                                    <span className="capitalize text-[11px] font-bold text-navy-900 tracking-tight whitespace-nowrap leading-none">{navLabel}</span>
                                 </div>
                                 <button onClick={handleNext} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
                                     <ChevronRight size={16} />

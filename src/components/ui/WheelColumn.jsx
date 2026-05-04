@@ -15,13 +15,21 @@ export default function WheelColumn({ items, selected, onSelect, displayFn, disa
     useLayoutEffect(() => {
         if (drag.current.active) return;
         const idx = items.indexOf(selected);
-        if (idx === -1) return;
+        if (idx === -1) {
+            const numericSelected = parseInt(selected);
+            const foundIdx = items.findIndex(it => parseInt(it) === numericSelected);
+            if (foundIdx === -1) return;
+            const targetOffset = foundIdx * WH;
+            offsetRef.current = targetOffset;
+            applyTransform(targetOffset);
+            return;
+        }
         cancelAnimationFrame(drag.current.raf);
         const targetOffset = idx * WH;
         offsetRef.current = targetOffset;
         applyTransform(targetOffset);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selected]);
+    }, [selected, items]);
 
     function snapTo(fromOffset, velocity) {
         cancelAnimationFrame(drag.current.raf);
