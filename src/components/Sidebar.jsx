@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard } from 'lucide-react';
+import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock, Tag, History } from 'lucide-react';
 import AIStar from './Icons/AIStar';
 import { usePermissions } from '../hooks/usePermissions';
+import { usePlanLimits } from '../hooks/usePlanLimits';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../store/useAppStore';
 import { getBusinessInfo } from '../services/supabaseService';
 
 export default function Sidebar({ onOpenPlans }) {
-    const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations } = usePermissions();
+    const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations, canViewFollowUp } = usePermissions();
+    const { hasFeature } = usePlanLimits();
+    const statsUnlocked  = hasFeature('dashboard');
+    const auditUnlocked  = hasFeature('audit_log');
+    const offersUnlocked = hasFeature('dynamic_pricing');
+    const followUpUnlocked = hasFeature('followup');
     const { profile } = useAuth();
     const { isSidebarOpen, toggleSidebar } = useAppStore();
     const [businessName, setBusinessName] = useState('');
@@ -59,6 +65,14 @@ export default function Sidebar({ onOpenPlans }) {
                         <Calendar size={16} /> Turnos
                     </NavLink>
 
+                    {canViewFollowUp && (
+                        <NavLink to="/followup" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
+                            <History size={16} />
+                            <span className="flex-1">Seguimiento</span>
+                            {!followUpUnlocked && <Lock size={11} />}
+                        </NavLink>
+                    )}
+
                     {canViewPatients && (
                         <NavLink to="/patients" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
                             <Users size={16} /> Clientes
@@ -73,7 +87,9 @@ export default function Sidebar({ onOpenPlans }) {
 
                     {canViewStats && (
                         <NavLink to="/stats" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                            <BarChart2 size={16} /> Estadísticas
+                            <BarChart2 size={16} />
+                            <span className="flex-1">Estadísticas</span>
+                            {!statsUnlocked && <Lock size={11} />}
                         </NavLink>
                     )}
 
@@ -83,10 +99,20 @@ export default function Sidebar({ onOpenPlans }) {
                         </NavLink>
                     )}
 
+                    {canManageServices && (
+                        <NavLink to="/offers" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
+                            <Tag size={16} />
+                            <span className="flex-1">Ofertas</span>
+                            {!offersUnlocked && <Lock size={11} />}
+                        </NavLink>
+                    )}
+
                     {canManageRoles && (
                         <>
                             <NavLink to="/audit-log" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                                <List size={16} /> Actividad
+                                <List size={16} />
+                                <span className="flex-1">Actividad</span>
+                                {!auditUnlocked && <Lock size={11} />}
                             </NavLink>
 
                             <NavLink to="/users" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>

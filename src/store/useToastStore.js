@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getNotifications, markNotificationsRead, clearNotifications, markOneNotificationRead, deleteOneNotification } from '../services/supabaseService';
+import { getNotifications, markNotificationsRead, clearNotifications, markOneNotificationRead, markOneNotificationUnread, deleteOneNotification } from '../services/supabaseService';
 
 let toastId = 0;
 
@@ -66,6 +66,14 @@ export const useToastStore = create((set, get) => ({
         try { await markOneNotificationRead(id); } catch (err) { console.error('markOneRead failed:', err.message); }
     },
 
+    markOneUnread: async (id) => {
+        set((state) => {
+            const updated = state.activityLog.map(a => a.id === id ? { ...a, read: false } : a);
+            return { activityLog: updated, unreadCount: updated.filter(a => !a.read).length };
+        });
+        try { await markOneNotificationUnread(id); } catch (err) { console.error('markOneUnread failed:', err.message); }
+    },
+
     deleteOne: async (id) => {
         set((state) => {
             const updated = state.activityLog.filter(a => a.id !== id);
@@ -85,43 +93,50 @@ function toast(status, type, title, message, duration) {
 }
 
 // ── Appointment ───────────────────────────────────────────────────────────────
-export const showAptNewToast      = (message) => toast('success', 'apt_new',     'Turno Creado',       message);
-export const showAptConfirmToast  = (message) => toast('success', 'apt_confirm', 'Turno Confirmado',   message);
-export const showAptEditToast     = (message) => toast('warning', 'apt_edit',    'Turno Actualizado',  message);
-export const showAptCancelToast   = (message) => toast('warning', 'apt_cancel',  'Turno Cancelado',    message);
-export const showAptNoShowToast   = (message) => toast('warning', 'apt_noshow',  'Cliente Ausente',    message);
-export const showAptPendingToast  = (message) => toast('warning', 'apt_pending', 'Turno en Pendiente', message);
-export const showAptDeleteToast   = (message) => toast('error',   'apt_delete',  'Turno Eliminado',    message);
+export const showAptNewToast = (message) => toast('success', 'apt_new', 'Turno Creado', message);
+export const showAptConfirmToast = (message) => toast('success', 'apt_confirm', 'Turno Confirmado', message);
+export const showAptEditToast = (message) => toast('warning', 'apt_edit', 'Turno Actualizado', message);
+export const showAptCancelToast = (message) => toast('warning', 'apt_cancel', 'Turno Cancelado', message);
+export const showAptNoShowToast = (message) => toast('warning', 'apt_noshow', 'Cliente Ausente', message);
+export const showAptPendingToast = (message) => toast('warning', 'apt_pending', 'Turno en Pendiente', message);
+export const showAptDeleteToast = (message) => toast('error', 'apt_delete', 'Turno Eliminado', message);
 
 // ── Patient ───────────────────────────────────────────────────────────────────
-export const showPatientNewToast    = (message) => toast('success', 'patient_new',    'Cliente Registrado',     message, 5000);
-export const showPatientEditToast   = (message) => toast('warning', 'patient_edit',   'Cliente Actualizado',    message);
-export const showPatientDeleteToast = (message) => toast('error',   'patient_delete', 'Cliente Eliminado',      message);
-export const showPatientGdprToast   = (message) => toast('error',   'patient_gdpr',   'Datos Eliminados (GDPR)', message);
+export const showPatientNewToast = (message) => toast('success', 'patient_new', 'Cliente Registrado', message, 5000);
+export const showPatientEditToast = (message) => toast('warning', 'patient_edit', 'Cliente Actualizado', message);
+export const showPatientDeleteToast = (message) => toast('error', 'patient_delete', 'Cliente Eliminado', message);
+export const showPatientGdprToast = (message) => toast('error', 'patient_gdpr', 'Datos Eliminados (GDPR)', message);
 
 // ── Service ───────────────────────────────────────────────────────────────────
-export const showServiceNewToast        = (message) => toast('success', 'service_new',        'Servicio Creado',      message);
-export const showServiceEditToast       = (message) => toast('warning', 'service_edit',       'Servicio Actualizado', message);
-export const showServiceActivateToast   = (message) => toast('success', 'service_activate',   'Servicio Activado',    message);
+export const showServiceNewToast = (message) => toast('success', 'service_new', 'Servicio Creado', message);
+export const showServiceEditToast = (message) => toast('warning', 'service_edit', 'Servicio Actualizado', message);
+export const showServiceActivateToast = (message) => toast('success', 'service_activate', 'Servicio Activado', message);
 export const showServiceDeactivateToast = (message) => toast('warning', 'service_deactivate', 'Servicio Desactivado', message);
-export const showServiceDeleteToast     = (message) => toast('error',   'service_delete',     'Servicio Eliminado',   message);
+export const showServiceDeleteToast = (message) => toast('error', 'service_delete', 'Servicio Eliminado', message);
+
+// ── Offer ─────────────────────────────────────────────────────────────────────
+export const showOfferNewToast = (message) => toast('success', 'offer_new', 'Oferta Creada', message);
+export const showOfferEditToast = (message) => toast('warning', 'offer_edit', 'Oferta Actualizada', message);
+export const showOfferActivateToast = (message) => toast('success', 'offer_activate', 'Oferta Activada', message);
+export const showOfferDeactivateToast = (message) => toast('warning', 'offer_deactivate', 'Oferta Desactivada', message);
+export const showOfferDeleteToast = (message) => toast('error', 'offer_delete', 'Oferta Eliminada', message);
 
 // ── Staff ─────────────────────────────────────────────────────────────────────
 export const showStaffPermsToast = (message) => toast('success', 'staff_perms', 'Permisos Guardados', message);
 
 // ── Bot / IA ──────────────────────────────────────────────────────────────────
-export const showBotPauseToast      = (message) => toast('warning', 'bot_pause',      'IA Pausada',    message);
+export const showBotPauseToast = (message) => toast('warning', 'bot_pause', 'IA Pausada', message);
 export const showBotReactivateToast = (message) => toast('success', 'bot_reactivate', 'IA Reactivada', message);
 
 // ── Settings / Business ───────────────────────────────────────────────────────
-export const showSettingsSavedToast = (message) => toast('success', 'settings',   'Configuración Guardada', message);
-export const showTenantNewToast     = (message) => toast('success', 'tenant_new', 'Tenant Creado',          message);
+export const showSettingsSavedToast = (message) => toast('success', 'settings', 'Configuración Guardada', message);
+export const showTenantNewToast = (message) => toast('success', 'tenant_new', 'Tenant Creado', message);
 
 // ── Generic ───────────────────────────────────────────────────────────────────
 export const showValidationToast = (title, message) => toast('warning', 'validation', title, message);
-export const showErrorToast      = (title, message) => toast('error',   'error',      title, message);
-export const showSuccessToast    = (title, message) => toast('success', 'success',    title, message);
-export const showWarningToast    = (title, message) => toast('warning', 'validation', title, message);
+export const showErrorToast = (title, message) => toast('error', 'error', title, message);
+export const showSuccessToast = (title, message) => toast('success', 'success', title, message);
+export const showWarningToast = (title, message) => toast('warning', 'validation', title, message);
 
 // ── Realtime events (toast + activity log) ────────────────────────────────────
 export function showAppointmentToast(patientName, time) {

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePatients } from '../hooks/usePatients';
 import { getPatientHistory } from '../services/supabaseService';
+import FeatureLock from '../components/FeatureLock';
+import { usePlanLimits } from '../hooks/usePlanLimits';
 
 function getInitials(name) {
     if (!name) return '?';
@@ -12,6 +14,7 @@ export default function PatientHistory() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { patients, search, handleSearch } = usePatients();
+    const { hasFeature, isLoading: planLoading } = usePlanLimits();
     const [history, setHistory] = useState([]);
     const [historyHasMore, setHistoryHasMore] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(false);
@@ -69,7 +72,7 @@ export default function PatientHistory() {
         }
     }
 
-    return (
+    const content = (
         <div className="h-full flex gap-6 mt-[-1rem]">
             {/* Panel izquierdo */}
             <div className="w-[30%] min-w-[300px] flex flex-col bg-white/80 backdrop-blur-card border border-white/90 rounded-2xl shadow-card overflow-hidden">
@@ -180,5 +183,29 @@ export default function PatientHistory() {
                 )}
             </div>
         </div>
-    )
+    );
+
+    if (planLoading) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    if (!hasFeature('followup')) {
+        return (
+            <FeatureLock
+                feature="followup"
+                variant="blurred"
+                title="Seguimientos de Clientes"
+                description="El historial conversacional completo de cada cliente está disponible en Pro y Enterprise. Sube de plan para ver cada interacción con TurnIA Bot."
+                requiredPlan="Pro"
+            >
+                {content}
+            </FeatureLock>
+        );
+    }
+
+    return content;
 }

@@ -6,6 +6,7 @@ import { formatPhone } from '../../utils/format';
 import { showPatientNewToast, showErrorToast } from '../../store/useToastStore';
 import { usePlanLimits } from '../../hooks/usePlanLimits';
 import { useModalFocus } from '../../hooks/useModalFocus';
+import FeatureLock from '../FeatureLock';
 
 export default function NewPatientModal({ isOpen, onClose, onCreated }) {
     const [name, setName] = useState('');
@@ -13,7 +14,7 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
     const [notes, setNotes] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { canAddPatient, patientsLeft } = usePlanLimits();
+    const { canAddPatient, patientsLeft, hasFeature } = usePlanLimits();
     const modalRef = useRef(null);
     useModalFocus(modalRef, isOpen, onClose);
 
@@ -122,12 +123,15 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
                         {/* Notas */}
                         <div>
                             <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Notas / Observaciones</label>
-                            <textarea
-                                className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900 min-h-[100px] resize-none custom-scrollbar"
-                                value={notes}
-                                onChange={e => setNotes(e.target.value)}
-                                placeholder="Ej: Prefiere corte con tijera, alérgico a..."
-                            />
+                            <FeatureLock feature="patient_notes" requiredPlan="Pro">
+                                <textarea
+                                    className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900 min-h-[100px] resize-none custom-scrollbar disabled:opacity-50 disabled:cursor-not-allowed"
+                                    value={notes}
+                                    onChange={e => setNotes(e.target.value)}
+                                    placeholder="Ej: Prefiere corte con tijera, alérgico a..."
+                                    disabled={!hasFeature('patient_notes')}
+                                />
+                            </FeatureLock>
                         </div>
                     </div>
 

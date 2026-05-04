@@ -8,6 +8,9 @@ export function useNotifications() {
     const activityLog = useToastStore(s => s.activityLog);
     const unreadCount = useToastStore(s => s.unreadCount);
     const markAllRead = useToastStore(s => s.markAllRead);
+    const markOneRead = useToastStore(s => s.markOneRead);
+    const markOneUnread = useToastStore(s => s.markOneUnread);
+    const deleteOne = useToastStore(s => s.deleteOne);
     const loadFromDB = useToastStore(s => s.loadFromDB);
     const addActivity = useToastStore(s => s.addActivity);
     const { profile } = useAuth();
@@ -42,7 +45,7 @@ export function useNotifications() {
                         type: entry.type,
                         title: entry.title,
                         message: entry.message,
-                        read: entry.read,
+                        read: entry.read ?? false,
                         timestamp: entry.created_at,
                         created_at: entry.created_at,
                     });
@@ -58,5 +61,5 @@ export function useNotifications() {
         };
     }, [businessId]); // Re-suscribirse cuando cambia el business_id
 
-    return { activityLog, unreadCount, markAllRead };
+    return { activityLog, unreadCount, markAllRead, markOneRead, markOneUnread, deleteOne };
 }

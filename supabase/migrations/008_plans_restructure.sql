@@ -93,26 +93,29 @@ INSERT INTO plans (tier, name, monthly_price, annual_discount, max_patients, max
   'Básico',
   499,
   16,
-  10,     -- max_patients
+  10,     -- max_patients (visibles en el front, soft-limit)
   1,      -- max_staff
-  100,    -- max_appointments
-  10,     -- max_conversations
+  NULL,   -- max_appointments: ilimitado en todos los tiers (Agente IA)
+  10,     -- max_conversations (visibles en el front, soft-limit)
   '{
-    "ai_reasoning": "standard",
-    "dashboard": "limited",
-    "reminders": false,
-    "followup": false,
-    "export_patients": false,
-    "audit_log": false,
-    "custom_prompt": false,
-    "custom_roles": false,
-    "auto_confirm": false,
-    "content_gen": false,
-    "multi_branch": false,
-    "gmail_integration": false,
-    "dynamic_pricing": false,
-    "vip_services": false,
-    "export_reports": false
+    "ai_reasoning":        "standard",
+    "ai_memory":           false,
+    "dashboard":           "limited",
+    "reminders":           false,
+    "followup":            false,
+    "export_patients":     false,
+    "audit_log":           false,
+    "custom_prompt":       false,
+    "custom_roles":        false,
+    "auto_confirm":        false,
+    "content_gen":         false,
+    "multi_branch":        false,
+    "gmail_integration":   false,
+    "dynamic_pricing":     false,
+    "export_reports":      false,
+    "service_description": false,
+    "patient_notes":       false,
+    "notification_email":  false
   }'::jsonb,
   1
 ),
@@ -121,27 +124,29 @@ INSERT INTO plans (tier, name, monthly_price, annual_discount, max_patients, max
   'Pro',
   999,
   16,
-  100,    -- max_patients
+  100,    -- max_patients (visibles)
   5,      -- max_staff
-  500,    -- max_appointments
-  100,    -- max_conversations
+  NULL,   -- max_appointments: ilimitado
+  100,    -- max_conversations (visibles)
   '{
-    "ai_reasoning": "advanced",
-    "ai_memory": true,
-    "dashboard": "full",
-    "reminders": true,
-    "followup": true,
-    "export_patients": false,
-    "audit_log": true,
-    "custom_prompt": true,
-    "custom_roles": true,
-    "auto_confirm": false,
-    "content_gen": false,
-    "multi_branch": false,
-    "gmail_integration": false,
-    "dynamic_pricing": false,
-    "vip_services": false,
-    "export_reports": false
+    "ai_reasoning":        "advanced",
+    "ai_memory":           true,
+    "dashboard":           "full",
+    "reminders":           true,
+    "followup":            true,
+    "export_patients":     false,
+    "audit_log":           true,
+    "custom_prompt":       true,
+    "custom_roles":        true,
+    "auto_confirm":        false,
+    "content_gen":         false,
+    "multi_branch":        false,
+    "gmail_integration":   false,
+    "dynamic_pricing":     false,
+    "export_reports":      false,
+    "service_description": true,
+    "patient_notes":       true,
+    "notification_email":  false
   }'::jsonb,
   2
 ),
@@ -169,7 +174,6 @@ INSERT INTO plans (tier, name, monthly_price, annual_discount, max_patients, max
     "multi_branch": true,
     "gmail_integration": true,
     "dynamic_pricing": true,
-    "vip_services": true,
     "export_reports": true
   }'::jsonb,
   3
@@ -215,8 +219,8 @@ ALTER TABLE businesses ADD CONSTRAINT businesses_plan_id_fkey
 -- Índice para JOINs eficientes
 CREATE INDEX IF NOT EXISTS idx_businesses_plan_id ON businesses(plan_id);
 
--- Renombrar la columna TEXT vieja (mantener para debugging temporal)
-ALTER TABLE businesses RENAME COLUMN plan TO plan_legacy;
+-- Eliminar la columna TEXT vieja: ya no se usa, todo se rige por plan_id.
+ALTER TABLE businesses DROP COLUMN IF EXISTS plan;
 
 
 -- ─── PASO 5: Convertir plan_status TEXT → ENUM ──────────────────────────────
@@ -312,11 +316,8 @@ COMMIT;
 
 -- =====================================================
 -- POST-MIGRACIÓN:
---   1. Verificar: SELECT b.name, p.tier, b.plan_status, b.plan_legacy
+--   1. Verificar: SELECT b.name, p.tier, b.plan_status
 --                 FROM businesses b JOIN plans p ON p.id = b.plan_id;
 --
---   2. Después de confirmar que todo funciona, eliminar:
---      ALTER TABLE businesses DROP COLUMN plan_legacy;
---
---   3. Deploy del frontend actualizado
+--   2. Deploy del frontend actualizado
 -- =====================================================

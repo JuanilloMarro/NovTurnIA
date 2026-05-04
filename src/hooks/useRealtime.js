@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '../config/supabase';
 import { useAppStore } from '../store/useAppStore';
 import { useAuth } from './useAuth';
+import { invalidateVisibilityCache } from '../services/supabaseService';
 
 // T-57: Hook genérico que elimina el 90% de código duplicado entre
 // useRealtimeAppointments y useRealtimePatients.
@@ -45,4 +46,12 @@ export const useRealtimeAppointments = (onUpdate) =>
     useRealtimeTable('appointments', 'calendar-sync', onUpdate);
 
 export const useRealtimePatients = (onUpdate) =>
-    useRealtimeTable('patients', 'patients-sync', onUpdate);
+    useRealtimeTable('patients', 'patients-sync', (payload) => {
+        // M-010: cuando llegan altas/bajas externas (ej. agente n8n), el cache
+        // local de IDs visibles queda stale. Invalidar antes de propagar al
+        // consumer asegura que la próxima refetch pida la lista fresca al RPC.
+        if (payload?.eventType === 'INSERT' || payload?.eventType === 'DELETE') {
+            invalidateVisibilityCache();
+        }
+        onUpdate(payload);
+    });

@@ -5,8 +5,6 @@ import AIStar from './Icons/AIStar';
 import { getBusinessInfo } from '../services/supabaseService';
 
 export default function PlansModal({ isOpen, onClose }) {
-    if (!isOpen) return null;
-
     const detailsRef = useRef(null);
     const [currentPlan, setCurrentPlan] = useState(null);
     const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'annual'
@@ -20,6 +18,10 @@ export default function PlansModal({ isOpen, onClose }) {
             });
         }
     }, [isOpen]);
+
+    // Early return DESPUÉS de los hooks — Rules of Hooks: conteo estable
+    // entre renders independientemente de isOpen.
+    if (!isOpen) return null;
 
     const scrollToDetails = () => {
         detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -41,7 +43,7 @@ export default function PlansModal({ isOpen, onClose }) {
             perfectFor: 'Para negocios en crecimiento que necesitan control total.',
             icon: <Star size={18} />,
             active: true,
-            features: ['IA de razonamiento Avanzada', 'IA con memoria contextual', 'Dashboard: Completo', 'Hasta 5 Usuarios', 'Integración de Modulos a la Medida']
+            features: ['IA de razonamiento Avanzada', 'IA con memoria contextual', 'Dashboard: Completo', 'Hasta 5 Usuarios', 'Kanban de estados de turnos', 'Integración de Modulos a la Medida']
         },
         {
             id: 'enterprise',
@@ -49,7 +51,7 @@ export default function PlansModal({ isOpen, onClose }) {
             monthlyPrice: 1999,
             perfectFor: 'Para empresas grandes que escalan su comunicación con IA.',
             icon: <ShieldCheck size={18} />,
-            features: ['IA de razonamiento Premium', 'Confirmaciones automáticas', 'Generación de Contenido', 'Usuarios Ilimitados', 'Integración de Modulos a la Medida']
+            features: ['IA de razonamiento Premium', 'Confirmaciones automáticas', 'Generación de Contenido', 'Usuarios Ilimitados', 'Kanban de estados de turnos', 'Integración de Modulos a la Medida']
         }
     ];
 
@@ -57,14 +59,14 @@ export default function PlansModal({ isOpen, onClose }) {
         <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
             <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[40px] shadow-[0_20px_50px_rgba(26,58,107,0.15)] w-full max-w-4xl max-h-[90vh] overflow-hidden animate-fade-up flex flex-col">
                 {/* Sticky Header - Adjusted */}
-                <div className="sticky top-0 z-50 p-8 pb-4 flex items-center justify-center relative shrink-0 pointer-events-none">
+                <div className="sticky top-0 z-50 px-10 pt-8 pb-4 flex items-center justify-center relative shrink-0 pointer-events-none">
                     {/* Centered Logo */}
                     <div className="w-16 h-16 rounded-[20px] bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card relative pointer-events-auto transition-transform hover:scale-105 duration-300 group">
                         <div className="relative">
                             <Bot size={28} strokeWidth={2.5} className="transition-transform duration-500 group-hover:rotate-12" />
                             <AIStar
                                 size={14}
-                                className="absolute -top-2 -right-2 text-white transition-all duration-500 group-hover:scale-125"
+                                className="absolute -top-2 -left-2 text-white transition-all duration-500 group-hover:scale-125"
                                 strokeWidth={2.5}
                             />
                         </div>
@@ -74,7 +76,7 @@ export default function PlansModal({ isOpen, onClose }) {
                     <div className="absolute right-8 top-8 pointer-events-auto">
                         <button
                             onClick={onClose}
-                            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/50 border border-white/80 text-navy-900/40 hover:text-navy-900 hover:bg-white transition-all duration-300"
+                            className="w-10 h-10 flex items-center justify-center rounded-full bg-transparent border border-white/80 text-navy-900/40 hover:text-navy-900 hover:bg-white/30 transition-all duration-300"
                         >
                             <X size={20} strokeWidth={2.5} />
                         </button>
@@ -82,7 +84,7 @@ export default function PlansModal({ isOpen, onClose }) {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-0">
+                <div className="flex-1 overflow-y-auto custom-scrollbar pl-10 pr-8 pt-0 pb-8">
                     <div className="flex flex-col items-center justify-center mb-4">
                         <h3 className="text-2xl font-black text-navy-900 tracking-tight mb-2 text-center max-w-xl">
                             Precios increíbles, diseñados para escalar.
@@ -220,6 +222,7 @@ export default function PlansModal({ isOpen, onClose }) {
                                 { name: 'Creación Manual de Turnos', basic: true, pro: true, enterprise: true },
                                 { name: 'Recordatorios Automáticos', basic: false, pro: true, enterprise: true },
                                 { name: 'Seguimiento de Cancelaciones / No Presentes', basic: false, pro: true, enterprise: true },
+                                { name: 'Kanban de estados de turnos', basic: false, pro: true, enterprise: true },
                                 { name: 'Agente IA (Agendamiento)', basic: 'Ilimitado', pro: 'Ilimitado', enterprise: 'Ilimitado' },
                             ]}
                         />
@@ -234,9 +237,9 @@ export default function PlansModal({ isOpen, onClose }) {
                                 { name: 'Creación Manual de un Cliente', basic: true, pro: true, enterprise: true },
                                 { name: 'Historial de Turnos', basic: true, pro: true, enterprise: true },
                                 { name: 'Toma de Control Humano', basic: true, pro: true, enterprise: true },
-                                { name: 'Observaciones / Notas', basic: true, pro: true, enterprise: true },
+                                { name: 'Observaciones / Notas', basic: false, pro: true, enterprise: true },
                                 { name: 'Exportación de Información', basic: false, pro: false, enterprise: true },
-                                { name: 'Límite de Clientes Visibles', basic: '10', pro: '100', enterprise: 'Ilimitado' },
+                                { name: 'Límite de Visualización de Clientes', basic: 'Últimos 10', pro: 'Últimos 100', enterprise: 'Ilimitado' },
                             ]}
                         />
 
@@ -252,7 +255,7 @@ export default function PlansModal({ isOpen, onClose }) {
                                 { name: 'Auto-Respuestas Inteligentes', basic: true, pro: true, enterprise: true },
                                 { name: 'IA con Contexto Completo', basic: false, pro: true, enterprise: true },
                                 { name: 'Confirmación Automática por WhatsApp', basic: false, pro: false, enterprise: true },
-                                { name: 'Historial de Conversaciones', basic: '10', pro: '100', enterprise: 'Ilimitado' },
+                                { name: 'Límite de Visualización de Chats', basic: 'Últimos 10', pro: 'Últimos 100', enterprise: 'Ilimitado' },
                             ]}
                         />
 
@@ -283,7 +286,6 @@ export default function PlansModal({ isOpen, onClose }) {
                                 { name: 'Precios y Duraciones Variables', basic: true, pro: true, enterprise: true },
                                 { name: 'Descripción Detallada (Contexto para IA)', basic: false, pro: true, enterprise: true },
                                 { name: 'Precios Dinámicos / Ofertas', basic: false, pro: false, enterprise: true },
-                                { name: 'Servicios VIP / Privados', basic: false, pro: false, enterprise: true },
                             ]}
                         />
 
@@ -311,7 +313,6 @@ export default function PlansModal({ isOpen, onClose }) {
                             rows={[
                                 { name: 'Gestión de Personal', basic: true, pro: true, enterprise: true },
                                 { name: 'Roles y Permisos Personalizados', basic: false, pro: true, enterprise: true },
-                                { name: 'Cuentas de Usuarios', basic: '1', pro: 'Hasta 5', enterprise: 'Ilimitados' },
                                 { name: 'Límite de Usuarios', basic: '1', pro: 'Hasta 5', enterprise: 'Ilimitados' },
                             ]}
                         />

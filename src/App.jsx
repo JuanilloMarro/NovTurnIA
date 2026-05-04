@@ -12,6 +12,7 @@ import ToastContainer from './components/ToastContainer';
 
 // T-22: Lazy loading de rutas — los bundles de cada página se cargan solo al navegar.
 const Calendar        = lazy(() => import('./pages/Calendar'));
+const FollowUp        = lazy(() => import('./pages/FollowUp'));
 const Patients        = lazy(() => import('./pages/Patients'));
 const Conversations   = lazy(() => import('./pages/Conversations'));
 const PatientHistory  = lazy(() => import('./pages/PatientHistory'));
@@ -20,6 +21,7 @@ const Users           = lazy(() => import('./pages/Users'));
 const AuditLog        = lazy(() => import('./pages/AuditLog'));
 const AdminOnboarding = lazy(() => import('./pages/AdminOnboarding'));
 const Settings         = lazy(() => import('./pages/Settings'));
+const Offers           = lazy(() => import('./pages/Offers'));
 const BusinessSettings = lazy(() => import('./pages/BusinessSettings'));
 const Login            = lazy(() => import('./pages/Login'));
 
@@ -53,10 +55,9 @@ function ProtectedRoute({ children }) {
 const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
 
 export default function App() {
-    const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus, profile } = useAppStore();
+    const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus, profile, isPlansOpen, openPlans, closePlans } = useAppStore();
     const { canViewStats, canManageRoles, canManageServices } = usePermissions();
     const isSuperAdmin = SUPER_ADMIN_EMAIL && profile?.email === SUPER_ADMIN_EMAIL;
-    const [showPlans, setShowPlans] = useState(false);
     const location = useLocation();
 
     useEffect(() => {
@@ -84,7 +85,7 @@ export default function App() {
                     <div className="h-screen w-screen relative overflow-hidden bg-transparent p-2 sm:p-4 lg:p-6 flex items-center justify-center">
                         {/* Macro Módulo Unificado - Sensación Voladora y de Cristal */}
                         <div className="w-full max-w-[1920px] h-full rounded-[24px] sm:rounded-[32px] bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex">
-                            <Sidebar onOpenPlans={() => setShowPlans(true)} />
+                            <Sidebar onOpenPlans={openPlans} />
                             {/* ml-0 en mobile (sidebar oculto), md:ml-[240px] en desktop */}
                             <div className="flex-1 ml-0 md:ml-[240px] flex flex-col relative w-full h-full min-w-0">
                                 <Topbar />
@@ -94,11 +95,13 @@ export default function App() {
                                     <Suspense fallback={<PageLoader />} key={location.pathname}>
                                         <Routes>
                                             <Route path="/" element={<Calendar />} />
+                                            <Route path="/followup" element={!profileReady ? <PageLoader /> : <FollowUp />} />
                                             <Route path="/patients" element={<Patients />} />
                                             <Route path="/conversations" element={<Conversations />} />
                                             <Route path="/patients/:id/history" element={<PatientHistory />} />
                                             <Route path="/stats" element={!profileReady ? <PageLoader /> : canViewStats ? <Stats /> : <Navigate to="/" replace />} />
                                             <Route path="/settings" element={!profileReady ? <PageLoader /> : (canManageServices || canManageRoles) ? <Settings /> : <Navigate to="/" replace />} />
+                                            <Route path="/offers" element={!profileReady ? <PageLoader /> : canManageServices ? <Offers /> : <Navigate to="/" replace />} />
                                             <Route path="/users" element={!profileReady ? <PageLoader /> : canManageRoles ? <Users /> : <Navigate to="/" replace />} />
                                             <Route path="/audit-log" element={!profileReady ? <PageLoader /> : canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
                                             <Route path="/business" element={!profileReady ? <PageLoader /> : canManageRoles ? <BusinessSettings /> : <Navigate to="/" replace />} />
@@ -111,7 +114,7 @@ export default function App() {
                             {(businessStatus === 'suspended' || businessStatus === 'cancelled') && (
                                 <AccountStatusModal status={businessStatus} />
                             )}
-                            <PlansModal isOpen={showPlans} onClose={() => setShowPlans(false)} />
+                            <PlansModal isOpen={isPlansOpen} onClose={closePlans} />
                         </div>
                     </div>
                 </ProtectedRoute>

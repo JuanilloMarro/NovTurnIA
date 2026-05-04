@@ -2,6 +2,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useToastStore } from '../store/useToastStore';
 import { supabase } from '../config/supabase';
 import { getBusinessStatus, getBusinessSchedule, resetServiceCaches } from '../services/supabaseService';
+import { clearPlanLimitsCache } from './usePlanLimits';
 import * as Sentry from '@sentry/react';
 
 const setBusinessId   = (id)   => useAppStore.getState().setBusinessId(id);
@@ -36,6 +37,10 @@ export function useAuth() {
     async function login(email, password) {
         setLoading(true);
         try {
+            // Limpiar cualquier rastro de la sesión anterior ANTES de autenticar
+            // para que no haya un instante con datos del plan viejo en pantalla.
+            resetServiceCaches();
+            clearPlanLimitsCache();
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
 
@@ -72,6 +77,7 @@ export function useAuth() {
     async function logout() {
         useToastStore.getState().resetForNewSession();
         resetServiceCaches();
+        clearPlanLimitsCache();
         await supabase.auth.signOut();
         setBusinessId('');
         clearAuth();
@@ -122,6 +128,7 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
         if (event === 'SIGNED_OUT') {
             useToastStore.getState().resetForNewSession();
             resetServiceCaches();
+        clearPlanLimitsCache();
             setBusinessId('');
             clearAuth();
             return;
@@ -135,6 +142,11 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
             && currentProfile?.id === currentSession.user.id) {
             return;
         }
+
+        // Usuario distinto al que estaba en el store → asegurar cache fresca
+        // del plan antes de hidratar el perfil nuevo.
+        resetServiceCaches();
+        clearPlanLimitsCache();
 
         try {
             const { data: profile } = await supabase

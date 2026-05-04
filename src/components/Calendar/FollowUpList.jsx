@@ -6,7 +6,6 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { withTimeout } from '../../utils/withTimeout';
 import { UserX, X, RotateCcw, MessageCircle, ChevronRight } from 'lucide-react';
 import NewAppointmentModal from './NewAppointmentModal';
-import AppointmentDrawer from './AppointmentDrawer';
 
 function StatusBadge({ status }) {
     if (status === 'no_show') {
@@ -31,7 +30,6 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
 
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [rescheduleTarget, setRescheduleTarget] = useState(null);
 
     // Notificar al padre del estado loading para que pueda mostrar el spinner
@@ -71,7 +69,7 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
     }
 
     return (
-        <div className={`h-full flex flex-col min-h-0 w-full pt-2 transition-all duration-300 ${selectedAppointment ? 'sm:pr-[380px]' : ''}`}>
+        <div className="h-full flex flex-col min-h-0 w-full pt-2 transition-all duration-300">
             {/* Scrollable list */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pb-10 space-y-2 pr-3">
                 {loading ? (
@@ -104,7 +102,7 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
                         return (
                             <div
                                 key={apt.id}
-                                onClick={() => setSelectedAppointment(apt)}
+                                onClick={() => onAppointmentSelected?.(apt)}
                                 className="group bg-white/40 backdrop-blur-sm border border-white/60 rounded-2xl p-4 hover:bg-white/60 transition-all duration-300 cursor-pointer animate-fade-up shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
                                 style={{ animationDelay: `${index * 0.04}s` }}
                             >
@@ -146,15 +144,6 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
                     })
                 )}
             </div>
-
-            {selectedAppointment && (
-                <AppointmentDrawer
-                    appointment={selectedAppointment}
-                    variant="followup"
-                    onClose={() => setSelectedAppointment(null)}
-                    onUpdated={() => { load(); setSelectedAppointment(null); }}
-                />
-            )}
 
             {rescheduleTarget && (
                 <NewAppointmentModal

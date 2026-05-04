@@ -10,6 +10,7 @@ import AIStar from '../Icons/AIStar';
 import { formatPhone } from '../../utils/format';
 import { showAptNoShowToast, showAptCancelToast, showAptConfirmToast, showAptPendingToast, showBotPauseToast, showBotReactivateToast, showErrorToast } from '../../store/useToastStore';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useVisiblePatients } from '../../hooks/useVisiblePatients';
 import { useAppStore } from '../../store/useAppStore';
 
 function getInitials(name) {
@@ -32,6 +33,11 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
         : (appointment?.patients?.human_takeover || false);
 
     const { canViewConversations, canToggleAi, canEditAppointments, canRescheduleAppointments, canConfirmAppointments, canSetPending, canMarkNoShow, canDeleteAppointments } = usePermissions();
+    // M-010: si el paciente está fuera del top-N del plan (basic/pro) ocultamos
+    // el acceso a su perfil y a su chat — la cita sigue visible en calendario,
+    // pero el negocio no puede llegar al detalle hasta subir de plan.
+    const { isPatientVisible } = useVisiblePatients();
+    const patientWithinPlan = isPatientVisible(patientId);
 
     if (!appointment) return null;
     const { id, date_start, date_end, status, confirmed, patients } = appointment;
@@ -87,7 +93,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
     }
 
     // En mobile el drawer se vuelve un fullscreen overlay; en sm+ es un panel lateral.
-    const drawerWidth = variant === 'followup' ? 'sm:w-[380px]' : 'sm:w-[450px]';
+    const drawerWidth = variant === 'followup' ? 'sm:w-[360px]' : 'sm:w-[450px]';
 
     return (
         <div className={`fixed inset-0 sm:absolute sm:top-2 sm:right-2 sm:bottom-2 sm:left-auto ${drawerWidth} bg-white/95 sm:bg-white/30 backdrop-blur-2xl border border-white/60 rounded-none sm:rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-[120] sm:z-50 flex flex-col animate-drawer-in overflow-hidden`}>
@@ -228,17 +234,19 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                         </button>
                     )}
 
-                    {/* 1. Ver Perfil */}
-                    <button
-                        onClick={() => navigate(`/patients?id=${appointment.patient_id}`)}
-                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
-                    >
-                        <User size={14} className="shrink-0" />
-                        <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Perfil</span>
-                    </button>
+                    {/* 1. Ver Perfil — oculto si el paciente está fuera del cupo del plan */}
+                    {patientWithinPlan && (
+                        <button
+                            onClick={() => navigate(`/patients?id=${appointment.patient_id}`)}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        >
+                            <User size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Perfil</span>
+                        </button>
+                    )}
 
                     {/* 1. Chat */}
-                    {canViewConversations && (
+                    {canViewConversations && patientWithinPlan && (
                         <button
                             onClick={() => navigate(`/conversations?patient=${appointment.patient_id}`)}
                             className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"

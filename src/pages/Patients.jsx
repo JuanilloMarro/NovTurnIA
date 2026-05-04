@@ -4,14 +4,17 @@ import { usePatients } from '../hooks/usePatients';
 import PatientCard from '../components/Patients/PatientCard';
 import PatientDrawer from '../components/Patients/PatientDrawer';
 import NewPatientModal from '../components/Patients/NewPatientModal';
-import { Search, SlidersHorizontal, Download, Plus, RefreshCw } from 'lucide-react';
+import { Search, SlidersHorizontal, Download, Plus, RefreshCw, Lock } from 'lucide-react';
 import { exportAllPatients } from '../services/supabaseService';
 import { downloadCSV } from '../utils/export';
 import { usePermissions } from '../hooks/usePermissions';
+import { usePlanLimits } from '../hooks/usePlanLimits';
 import { useAppStore } from '../store/useAppStore';
 
 export default function Patients() {
     const { canCreatePatients, canExportPatients } = usePermissions();
+    const { hasFeature, maxPatients, patientsUsed } = usePlanLimits();
+    const exportUnlocked = hasFeature('export_patients');
     const { patients, loading, loadingMore, hasMore, search, handleSearch, sortOrder, setSortOrder, reload, loadMore } = usePatients();
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [showSort, setShowSort] = useState(false);
@@ -58,7 +61,13 @@ export default function Patients() {
                 <div className="flex items-center gap-4">
                     <div>
                         <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Clientes</h1>
-                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{patients.length} clientes registrados</p>
+                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">
+                            {maxPatients !== null && patientsUsed > maxPatients ? (
+                                `${patientsUsed} clientes registrados (mostrando últimos ${maxPatients})`
+                            ) : (
+                                `${patientsUsed || patients.length} clientes registrados`
+                            )}
+                        </p>
                     </div>
                 </div>
 
@@ -103,11 +112,12 @@ export default function Patients() {
                     {canExportPatients && (
                         <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                             <button
-                                onClick={handleExport}
-                                disabled={exporting}
-                                className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                                onClick={exportUnlocked ? handleExport : undefined}
+                                disabled={exporting || !exportUnlocked}
+                                title={exportUnlocked ? '' : 'Exportación de clientes disponible en Enterprise'}
+                                className={`group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50 ${!exportUnlocked ? 'cursor-not-allowed' : ''}`}
                             >
-                                <Download size={14} className="shrink-0" />
+                                {exportUnlocked ? <Download size={14} className="shrink-0" /> : <Lock size={13} className="shrink-0 text-navy-900" />}
                                 <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
                             </button>
                         </div>
@@ -186,23 +196,25 @@ export default function Patients() {
 
             {isNewPatientModalOpen && (
                 <NewPatientModal
-                    isOpen={isNewPatientModalOpen} 
-                    onClose={() => setIsNewPatientModalOpen(false)} 
+                    isOpen={isNewPatientModalOpen}
+                    onClose={() => setIsNewPatientModalOpen(false)}
                     onCreated={() => {
-                        useAppStore.getState().invalidateConversationsCache(); // nuevo paciente visible en /conversations
-                        reload(search, true); // forceRefresh — salta el cache de 1 min
+                        useAppStore.getState().invalidatePlanLimitsCache();
+                        useAppStore.getState().invalidateConversationsCache();
+                        reload(search, true);
                         setIsNewPatientModalOpen(false);
                     }}
                 />
             )}
 
             {selectedPatient && (
-                <PatientDrawer 
-                    patient={selectedPatient} 
-                    onClose={() => setSelectedPatient(null)} 
+                <PatientDrawer
+                    patient={selectedPatient}
+                    onClose={() => setSelectedPatient(null)}
                     onRefresh={async () => {
-                        useAppStore.getState().invalidateConversationsCache(); // cambios en paciente reflejados en /conversations
-                        const data = await reload(search, true); // forceRefresh — salta el cache de 1 min
+                        useAppStore.getState().invalidatePlanLimitsCache();
+                        useAppStore.getState().invalidateConversationsCache();
+                        const data = await reload(search, true);
                         const updated = data.find(p => p.id === selectedPatient.id);
                         if (updated) setSelectedPatient(updated);
                     }}

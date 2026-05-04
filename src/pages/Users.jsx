@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
 import { Shield, Check, Save, Lock, ChevronLeft } from 'lucide-react';
 import { showStaffPermsToast, showErrorToast } from '../store/useToastStore';
+import { usePlanLimits } from '../hooks/usePlanLimits';
 
 function getInitials(name) {
     if (!name) return '?';
@@ -48,6 +49,7 @@ export default function Users() {
     const { users, roles, loading, changeRole, changeRolePermissions } = useUsers();
     const { user: currentUser } = useAuth();
     const { canManageRoles } = usePermissions();
+    const { staffUsed, maxStaff } = usePlanLimits();
     const [selectedUser, setSelectedUser] = useState(null);
 
     const getRoleBadge = (user) => {
@@ -178,13 +180,13 @@ export default function Users() {
                                         {
                                             title: 'Turnos',
                                             perms: [
-                                                { key: 'create_appointments',     label: 'Agregar turno' },
-                                                { key: 'edit_appointments',       label: 'Editar turno' },
+                                                { key: 'create_appointments', label: 'Agregar turno' },
+                                                { key: 'edit_appointments', label: 'Editar turno' },
                                                 { key: 'reschedule_appointments', label: 'Reagendar turno' },
-                                                { key: 'confirm_appointments',    label: 'Confirmar turno' },
-                                                { key: 'set_pending_appointments',label: 'Marcar como pendiente' },
-                                                { key: 'mark_noshow_appointments',label: 'No se presentó' },
-                                                { key: 'delete_appointments',     label: 'Eliminar turno' },
+                                                { key: 'confirm_appointments', label: 'Confirmar turno' },
+                                                { key: 'set_pending_appointments', label: 'Marcar como pendiente' },
+                                                { key: 'mark_noshow_appointments', label: 'No se presentó' },
+                                                { key: 'delete_appointments', label: 'Eliminar turno' },
                                             ]
                                         },
                                         {
@@ -196,9 +198,9 @@ export default function Users() {
                                         {
                                             title: 'Clientes',
                                             perms: [
-                                                { key: 'view_patients',   label: 'Ver clientes' },
+                                                { key: 'view_patients', label: 'Ver clientes' },
                                                 { key: 'create_patients', label: 'Agregar cliente' },
-                                                { key: 'edit_patients',   label: 'Editar cliente' },
+                                                { key: 'edit_patients', label: 'Editar cliente' },
                                                 { key: 'delete_patients', label: 'Eliminar cliente' },
                                                 { key: 'export_patients', label: 'Exportar CSV' },
                                             ]
@@ -207,7 +209,7 @@ export default function Users() {
                                             title: 'Conversaciones e IA',
                                             perms: [
                                                 { key: 'view_conversations', label: 'Ver conversaciones' },
-                                                { key: 'toggle_ai',          label: 'Pausar IA' },
+                                                { key: 'toggle_ai', label: 'Pausar IA' },
                                             ]
                                         },
                                         {
@@ -220,7 +222,7 @@ export default function Users() {
                                             title: 'Servicios',
                                             perms: [
                                                 { key: 'create_services', label: 'Crear servicio' },
-                                                { key: 'edit_services',   label: 'Editar servicio' },
+                                                { key: 'edit_services', label: 'Editar servicio' },
                                                 { key: 'toggle_services', label: 'Activar / Desactivar servicio' },
                                             ]
                                         },
@@ -270,8 +272,8 @@ export default function Users() {
                                                                     disabled={isLocked}
                                                                 />
                                                                 <div className={`w-[16px] h-[16px] rounded-[5px] border transition-all flex items-center justify-center shadow-sm ${isChecked
-                                                                        ? 'bg-navy-900 border-navy-900 text-white'
-                                                                        : 'border-navy-900/30 bg-white/60 backdrop-blur-sm'
+                                                                    ? 'bg-navy-900 border-navy-900 text-white'
+                                                                    : 'border-navy-900/30 bg-white/60 backdrop-blur-sm'
                                                                     } ${!isLocked ? 'group-hover:border-navy-900/50' : 'opacity-90'}`}>
                                                                     <Check size={12} strokeWidth={4} className={`transition-transform duration-200 ${isChecked ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`} />
                                                                 </div>

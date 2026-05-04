@@ -159,11 +159,7 @@ export default function Settings() {
         }
     }
 
-    if (loading) return (
-        <div className="flex items-center justify-center h-full">
-            <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
-        </div>
-    );
+    // ── Render ──────────────────────────────────────────────────────────────
 
     return (
         <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-0">
@@ -177,8 +173,13 @@ export default function Settings() {
 
             {/* Main card */}
             <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
-
-                {/* ── Left panel: service list — toggle con form en mobile ── */}
+                {loading ? (
+                    <div className="flex-1 flex items-center justify-center">
+                        <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+                    </div>
+                ) : (
+                    <>
+                        {/* ── Left panel: service list — toggle con form en mobile ── */}
                 <div className={`${isFormOpen ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] xl:w-[380px] flex-col z-10 border-r border-white/40 md:border-r-0`}>
                     <div className="p-4 pb-3">
                         <div className="flex items-center gap-2 h-9">
@@ -316,11 +317,7 @@ export default function Settings() {
                                             {s.price != null ? `Q ${Number(s.price).toFixed(2)}` : 'Sin precio'}
                                             <span className="opacity-40 text-[10px]">•</span>
                                             <span>{formatDuration(s.duration_minutes)}</span>
-                                            {!s.active && (
-                                                <span className="ml-1 px-1.5 py-0.5 bg-rose-50 text-rose-500 rounded-full border border-rose-100 text-[9px] leading-none">
-                                                    Inactivo
-                                                </span>
-                                            )}
+                                            <div className={`w-1.5 h-1.5 rounded-full ml-1 shrink-0 ${s.active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'}`} title={s.active ? 'Activo' : 'Inactivo'} />
                                         </div>
                                     </div>
                                 </button>
@@ -355,12 +352,12 @@ export default function Settings() {
                                         </p>
                                     </div>
                                     {!isNew && selectedService && (
-                                        <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border shrink-0 ${selectedService.active
-                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                : 'bg-rose-50 text-rose-600 border-rose-200'
-                                            }`}>
-                                            {selectedService.active ? 'Activo' : 'Inactivo'}
-                                        </span>
+                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/40 border border-white/60 shadow-sm">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${selectedService.active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'}`} />
+                                            <span className="text-[10px] font-bold text-navy-900/60 uppercase tracking-wider">
+                                                {selectedService.active ? 'Activo' : 'Inactivo'}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -376,9 +373,10 @@ export default function Settings() {
                                         </label>
                                         <input
                                             type="text"
+                                            maxLength={60}
                                             value={form.name}
                                             onChange={e => setField('name', e.target.value)}
-                                            placeholder="Ej: Consulta general"
+                                            placeholder="Ej. Consulta Médica Especializada"
                                             className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40"
                                         />
                                     </div>
@@ -388,7 +386,7 @@ export default function Settings() {
                                         <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
                                             Duración
                                         </label>
-                                        <div className="bg-white/40 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
+                                        <div className="bg-white/30 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
                                             <WheelColumn
                                                 items={DURATION_VALUES}
                                                 selected={Number(form.duration_minutes) || 30}
@@ -431,7 +429,7 @@ export default function Settings() {
                                         <textarea
                                             value={form.description}
                                             onChange={e => setField('description', e.target.value)}
-                                            placeholder="Detalles sobre el servicio..."
+                                            placeholder="Ej. Evaluación completa de signos vitales e historial clínico para pacientes de primera vez..."
                                             rows="3"
                                             className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 resize-none custom-scrollbar"
                                         />
@@ -533,7 +531,9 @@ export default function Settings() {
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+            </>
+        )}
+    </div>
+</div>
     );
 }
