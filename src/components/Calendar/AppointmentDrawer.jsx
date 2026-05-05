@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow, deleteAppointment } from '../../services/supabaseService';
+import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow, deleteAppointment, markAsRescheduled } from '../../services/supabaseService';
 import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, RotateCcw, Tag, User } from 'lucide-react';
 import { formatDuration } from '../../pages/Settings';
 import { useState } from 'react';
@@ -414,15 +414,14 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     onClose={() => setShowReschedule(false)}
                     onCreated={async () => {
                         try {
-                            // M-021: Si se reagenda, se elimina el turno viejo (no-show/cancelado) de la DB
-                            await deleteAppointment(appointment.id);
+                            // M-021: Si se reagenda, marcamos el turno viejo como reagendado
+                            // Esto lo quita de la lista de Seguimiento sin borrar el historial.
+                            await markAsRescheduled(appointment.id);
                             setShowReschedule(false);
                             onUpdated?.();
                             onClose();
                         } catch (err) {
-                            console.error('Error deleting old appointment after reschedule:', err);
-                            // Aun si falla el borrado del viejo, el nuevo ya se creó, 
-                            // así que cerramos y actualizamos igual.
+                            console.error('Error marking old appointment as rescheduled:', err);
                             setShowReschedule(false);
                             onUpdated?.();
                             onClose();

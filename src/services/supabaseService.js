@@ -386,7 +386,15 @@ export async function deleteAppointment(id) {
     if (error) throw error;
 }
 
+export async function markAsRescheduled(id) {
+    const { error } = await supabase
+        .from('appointments')
+        .update({ is_rescheduled: true })
+        .eq('id', id)
+        .eq('business_id', getBID());
 
+    if (error) throw error;
+}
 
 /**
  * Returns appointments with status 'no_show' or 'cancelled' for the follow-up tab.
@@ -406,7 +414,7 @@ export async function getLostAppointments({ type = 'all', days = 30 } = {}) {
     const { data, error } = await supabase
         .from('appointments')
         .select(`
-            id, date_start, date_end, status, patient_id, service_id,
+            id, date_start, date_end, status, patient_id, service_id, is_rescheduled,
             patients(
                 id, display_name, human_takeover, deleted_at,
                 patient_phones(phone, is_primary)
@@ -415,6 +423,7 @@ export async function getLostAppointments({ type = 'all', days = 30 } = {}) {
         `)
         .eq('business_id', getBID())
         .in('status', statuses)
+        .eq('is_rescheduled', false)
         .gte('date_start', since.toISOString())
         .order('date_start', { ascending: false });
 
