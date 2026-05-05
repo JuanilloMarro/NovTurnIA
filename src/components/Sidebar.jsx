@@ -11,8 +11,8 @@ import { getBusinessInfo } from '../services/supabaseService';
 export default function Sidebar({ onOpenPlans }) {
     const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations, canViewFollowUp } = usePermissions();
     const { hasFeature } = usePlanLimits();
-    const statsUnlocked  = hasFeature('dashboard');
-    const auditUnlocked  = hasFeature('audit_log');
+    const statsUnlocked = hasFeature('dashboard');
+    const auditUnlocked = hasFeature('audit_log');
     const offersUnlocked = hasFeature('dynamic_pricing');
     const followUpUnlocked = hasFeature('followup');
     const { profile } = useAuth();

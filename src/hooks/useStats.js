@@ -8,10 +8,12 @@ const STALE_MS = 5 * 60_000;
 // ── Helper de rango de fechas compartido con MainChart ────
 // period: 'day' | 'week' | 'month'
 // Ancla: hoy si es el mes actual, día 15 del mes seleccionado si es pasado.
-export function getStatsDateRange(period, year, month) {
+export function getStatsDateRange(period, year, month, day = null) {
     const now            = new Date();
     const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
-    const anchor         = isCurrentMonth ? now : new Date(year, month, 15);
+    const anchor         = day != null
+        ? new Date(year, month, day)
+        : (isCurrentMonth ? now : new Date(year, month, 15));
 
     if (period === 'month') {
         return {
@@ -40,15 +42,15 @@ export function getStatsDateRange(period, year, month) {
     return { start: start.toISOString(), end: end.toISOString() };
 }
 
-export function useStats(period = 'month', year = new Date().getFullYear(), month = new Date().getMonth()) {
+export function useStats(period = 'month', year = new Date().getFullYear(), month = new Date().getMonth(), day = null) {
     const [stats, setStats]     = useState(null);
     const [loading, setLoading] = useState(true);
     const lastKey               = useRef(null);
 
-    useEffect(() => { load(); }, [period, year, month]);
+    useEffect(() => { load(); }, [period, year, month, day]);
 
     async function load(forceRefresh = false) {
-        const cacheKey     = `${period}-${year}-${month}`;
+        const cacheKey     = `${period}-${year}-${month}-${day}`;
         const keyChanged   = lastKey.current !== cacheKey;
         const isCurrentMon = year === new Date().getFullYear() && month === new Date().getMonth();
 
@@ -66,7 +68,7 @@ export function useStats(period = 'month', year = new Date().getFullYear(), mont
         setLoading(true);
 
         try {
-            const { start, end } = getStatsDateRange(period, year, month);
+            const { start, end } = getStatsDateRange(period, year, month, day);
 
             const dashboard = await withTimeout(
                 getStatsDashboard(start, end),
@@ -85,13 +87,13 @@ export function useStats(period = 'month', year = new Date().getFullYear(), mont
                 const lastMonthKey   = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
                 const lastMonthRow   = apptStats.find(r => String(r.month || '').startsWith(lastMonthKey));
                 const lastMonthCount = lastMonthRow?.total_appointments ?? lastMonthRow?.count ?? 0;
-                const monthApts      = apts.filter(a => a.status !== 'cancelled').length;
+                const monthApts      = apts.filter(a => a.status === 'scheduled' || a.status === 'confirmed').length;
                 aptsChange = lastMonthCount > 0
                     ? (((monthApts - lastMonthCount) / lastMonthCount) * 100).toFixed(1)
                     : undefined;
             }
 
-            const monthApts          = apts.filter(a => a.status !== 'cancelled').length;
+            const monthApts          = apts.filter(a => a.status === 'scheduled' || a.status === 'confirmed').length;
             const confirmedThisMonth = apts.filter(a => a.confirmed).length;
             const scheduledThisMonth = apts.filter(a => (a.status === 'scheduled' || a.status === 'pending') && !a.confirmed).length;
             const cancelledThisMonth = apts.filter(a => a.status === 'cancelled').length;

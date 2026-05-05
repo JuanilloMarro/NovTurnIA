@@ -11,7 +11,6 @@ import {
 // El backend tiene exclusion constraint: dos ofertas activas del mismo
 // servicio no pueden solapar. Acá sólo computamos labels para la UI.
 export function getOfferStatus(offer, now = new Date()) {
-    if (!offer.active) return 'inactive';
     const start = new Date(offer.starts_at);
     const end   = new Date(offer.ends_at);
     if (now < start) return 'scheduled';

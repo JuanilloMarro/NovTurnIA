@@ -60,9 +60,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
 
     useEffect(() => {
         if (!isOpen) return;
+        let cancelled = false;
         getServices()
-            .then(data => setServices(data.filter(s => s.active)))
-            .catch(() => setServices([]));
+            .then(data => { if (!cancelled) setServices(data.filter(s => s.active)); })
+            .catch(() => { if (!cancelled) setServices([]); });
+        return () => { cancelled = true; };
     }, [isOpen]);
 
     useEffect(() => {

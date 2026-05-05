@@ -11,8 +11,8 @@ import { useStats, getStatsDateRange } from '../../hooks/useStats';
 import { useStatsIntelligence } from '../../hooks/useStatsIntelligence';
 import { usePlanLimits } from '../../hooks/usePlanLimits';
 
-// ── Paleta navy ──────────────────────────────────────────
-const NAVY = ['#0F2044', '#1A3A6B', '#1D5FAD', '#5B8AC4', '#8EB3D9', '#C0D8F0'];
+// ── Paleta semáforo (emerald / amber / red) ───────────────
+const SEMAFORO = ['#10B981', '#F59E0B', '#EF4444'];
 const ACCENT = { emerald: '#10B981', amber: '#F59E0B', red: '#EF4444' };
 
 function getDisplayRange(period, anchorDate) {
@@ -82,9 +82,9 @@ function SectionError({ message }) {
 }
 
 // ── Card wrapper con Badge en esquina superior derecha ──
-function Card({ title, subtitle, icon, badge, children }) {
+function Card({ title, subtitle, icon, badge, children, minH = '' }) {
     return (
-        <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] px-6 py-[22px] flex flex-col gap-[12px] md:flex-1 md:min-h-0 relative">
+        <div className={`bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] px-6 py-[22px] flex flex-col gap-[12px] relative ${minH}`}>
             <div className="flex items-center justify-between shrink-0">
                 <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
@@ -110,50 +110,63 @@ function LTVChart({ data, loading, error }) {
     if (error) return <SectionError message={error} />;
 
     const isEmpty = !data?.length;
-    const chartData = isEmpty
-        ? [{ display_name: 'Sin datos', total_revenue: 0 }]
-        : [...data].sort((a, b) => b.total_revenue - a.total_revenue).slice(0, 3);
+    const TOP_N = 3;
+    const rawTop = isEmpty ? [] : [...data].sort((a, b) => b.total_revenue - a.total_revenue).slice(0, TOP_N);
+    const chartData = Array.from({ length: TOP_N }, (_, i) =>
+        rawTop[i] ?? { display_name: '–', total_appointments: 0, total_revenue: 0, last_visit: null }
+    );
 
     const maxRevenue = Math.max(...chartData.map(d => Number(d.total_revenue)), 1);
 
+    const CustomLabel = (props) => {
+        const { x, y, width, value, index } = props;
+        if (!value || value <= 0) return null;
+        return (
+            <text
+                x={x + width / 2}
+                y={y - 8}
+                fill={SEMAFORO[index % SEMAFORO.length]}
+                textAnchor="middle"
+                fontSize={9}
+                fontWeight={900}
+            >
+                {formatQ(value)}
+            </text>
+        );
+    };
+
     return (
         <div className="flex items-center gap-6 h-full">
-            {isEmpty ? (
-                <p className="w-full text-[11px] text-navy-900/40 font-bold text-center py-8">Sin datos suficientes.</p>
-            ) : (
-                <>
-                    <div className="w-[40%] h-full flex items-end">
-                        <ResponsiveContainer width="100%" height="85%">
-                            <BarChart data={chartData} margin={{ top: 15, right: 0, bottom: 0, left: 0 }} barSize={28}>
-                                <XAxis dataKey="display_name" hide />
-                                <YAxis hide domain={[0, maxRevenue * 1.1]} />
-                                <Bar dataKey="total_revenue" radius={[6, 6, 0, 0]}>
-                                    {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={NAVY[index % NAVY.length]} />)}
-                                    <LabelList dataKey="total_revenue" position="top" formatter={v => formatQ(v)} style={{ fontSize: 9, fontWeight: 800, fill: '#1A3A6B' }} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="w-[60%] flex flex-col gap-1.5">
-                        {chartData.map((p, i) => (
-                            <div key={i} className="bg-navy-900/3 rounded-2xl p-3 flex flex-col border border-navy-900/5">
-                                <div className="flex items-center justify-between mb-0.5">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-black text-white shrink-0 shadow-sm" style={{ backgroundColor: NAVY[i % NAVY.length] }}>{i + 1}</span>
-                                        <span className="text-[11px] font-black text-navy-900 truncate pr-2">{p.display_name}</span>
-                                    </div>
-                                    <span className="text-[11px] font-black text-navy-900 shrink-0">{formatQ(p.total_revenue)}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[9px] font-bold text-navy-900/40">{p.total_appointments} citas</span>
-                                    <span className="text-navy-900/20 text-[10px]">·</span>
-                                    <span className="text-[9px] font-bold text-navy-900/40">Último: {formatDate(p.last_visit)}</span>
-                                </div>
+            <div className="w-[40%] h-full flex items-end">
+                <ResponsiveContainer width="100%" height="85%">
+                    <BarChart data={chartData} margin={{ top: 15, right: 0, bottom: 0, left: 0 }} barSize={28}>
+                        <XAxis dataKey="display_name" hide />
+                        <YAxis hide domain={[0, maxRevenue * 1.1]} />
+                        <Bar dataKey="total_revenue" radius={[6, 6, 0, 0]}>
+                            {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={SEMAFORO[index % SEMAFORO.length]} />)}
+                            <LabelList dataKey="total_revenue" content={<CustomLabel />} />
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+            <div className="w-[60%] flex flex-col gap-1.5">
+                {chartData.map((p, i) => (
+                    <div key={i} className="bg-navy-900/3 rounded-2xl p-3 flex flex-col border border-navy-900/5">
+                        <div className="flex items-center justify-between mb-0.5">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-black text-white shrink-0 shadow-sm" style={{ backgroundColor: SEMAFORO[i % SEMAFORO.length] }}>{i + 1}</span>
+                                <span className="text-[11px] font-black text-navy-900 truncate pr-2">{p.display_name}</span>
                             </div>
-                        ))}
+                            <span className="text-[11px] font-black text-navy-900 shrink-0">{Number(p.total_revenue) > 0 ? formatQ(p.total_revenue) : '–'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-bold text-navy-900/40">{p.total_appointments} citas</span>
+                            <span className="text-navy-900/20 text-[10px]">·</span>
+                            <span className="text-[9px] font-bold text-navy-900/40">Último: {formatDate(p.last_visit)}</span>
+                        </div>
                     </div>
-                </>
-            )}
+                ))}
+            </div>
         </div>
     );
 }
@@ -199,48 +212,59 @@ function RetentionGauge({ data, loading, error }) {
     );
 }
 
-// ── 3. Análisis de Servicios (Listado Estilo Métricas con puntos w-2) ──────────────────────────────
-function ServiceTreemap({ data, loading, error }) {
+// ── 3. Análisis de Servicios ──────────────────────────────
+function ServiceTreemap({ data, loading, error, ownServices = [] }) {
     if (loading) return <SectionLoader />;
     if (error) return <SectionError message={error} />;
 
-    const isEmpty = !data?.length;
-    const chartData = [...(data || [])].sort((a, b) => b.total_revenue - a.total_revenue).slice(0, 3);
+    const TOP_N = 3;
+    const rawTop = [...(data || [])].sort((a, b) => b.total_revenue - a.total_revenue).slice(0, TOP_N);
 
-    const CustomContent = ({ x, y, width, height, index, service_name }) => (
-        <g>
-            <rect x={x} y={y} width={width} height={height} rx={10} ry={10} fill={NAVY[index % NAVY.length]} fillOpacity={0.85 - index * 0.15} stroke="white" strokeWidth={2} />
-            {width > 50 && height > 30 && <text x={x + 10} y={y + 20} fill="white" fontSize={10} fontWeight={800}>{service_name?.slice(0, 14)}</text>}
-        </g>
-    );
+    // Padding con servicios reales del negocio (ordenados por nombre) que aún no tengan stats
+    const statsNames = new Set(rawTop.map(s => s.service_name));
+    const paddingPool = ownServices
+        .filter(s => !statsNames.has(s.name))
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+    const chartData = Array.from({ length: TOP_N }, (_, i) => {
+        if (rawTop[i]) return rawTop[i];
+        const pad = paddingPool[i - rawTop.length];
+        return pad
+            ? { service_name: pad.name, appointment_count: 0, total_revenue: 0, pct_of_total: 0 }
+            : { service_name: '–', appointment_count: 0, total_revenue: 0, pct_of_total: 0 };
+    });
+    const isEmpty = rawTop.length === 0 && ownServices.length === 0;
+
+    const maxRevenue = Math.max(...chartData.map(d => Number(d.total_revenue)), 1);
 
     return (
-        <div className="flex flex-col h-full">
-            {isEmpty ? (
-                <p className="text-[11px] text-navy-900/40 font-bold text-center py-8">Sin datos.</p>
-            ) : (
-                <>
-                    <div className="flex-1 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <Treemap data={chartData} dataKey="total_revenue" nameKey="service_name" content={<CustomContent />} />
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="flex flex-col mt-4 gap-2 shrink-0">
-                        {chartData.map((s, i) => (
-                            <div key={i} className="flex items-center justify-between">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: NAVY[i % NAVY.length] }} />
-                                    <span className="text-[11px] font-bold text-navy-900 truncate">{s.service_name}</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-right">
-                                    <span className="text-[11px] font-black text-navy-900">{formatQ(s.total_revenue)}</span>
-                                    <span className="text-[10px] font-bold text-navy-900/30">{s.pct_of_total}%</span>
-                                </div>
+        <div className="flex flex-col h-full justify-center gap-3">
+            {chartData.map((s, i) => {
+                const pct = maxRevenue > 0 ? (Number(s.total_revenue) / maxRevenue) * 100 : 0;
+                const color = SEMAFORO[i % SEMAFORO.length];
+                const hasData = Number(s.total_revenue) > 0;
+                return (
+                    <div key={i} className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black text-white shadow-sm" style={{ backgroundColor: color }}>{i + 1}</span>
+                                <span className="text-[11px] font-black text-navy-900 truncate">{s.service_name}</span>
                             </div>
-                        ))}
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                                <span className="text-[11px] font-black text-navy-900">{hasData ? formatQ(s.total_revenue) : '–'}</span>
+                                {hasData && <span className="text-[10px] font-bold text-navy-900/30">{s.pct_of_total}%</span>}
+                            </div>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-navy-900/5 overflow-hidden">
+                            <div
+                                className="h-full rounded-full transition-all duration-700"
+                                style={{ width: hasData ? `${pct}%` : '8%', backgroundColor: color, opacity: hasData ? 1 : 0.2 }}
+                            />
+                        </div>
+                        <span className="text-[9px] font-bold text-navy-900/30">{s.appointment_count} {s.appointment_count === 1 ? 'cita' : 'citas'}</span>
                     </div>
-                </>
-            )}
+                );
+            })}
         </div>
     );
 }
@@ -249,6 +273,7 @@ function ServiceTreemap({ data, loading, error }) {
 function PredictionRadar({ data, loading, error }) {
     if (loading) return <SectionLoader />;
     if (error) return <SectionError message={error} />;
+    if (!data?.length) return <SectionError message="Sin datos de agenda aún." />;
 
     const top3 = [...data].sort((a, b) => b.avg_appointments - a.avg_appointments).slice(0, 3);
 
@@ -257,9 +282,9 @@ function PredictionRadar({ data, loading, error }) {
             <div className="w-[45%] h-full flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="90%">
                     <RadarChart data={data} cx="50%" cy="50%" outerRadius="80%">
-                        <PolarGrid stroke="rgba(15,32,68,0.06)" />
-                        <PolarAngleAxis dataKey="day_label" tick={{ fontSize: 10, fontWeight: 800, fill: '#1A3A6B' }} />
-                        <Radar dataKey="avg_appointments" stroke="#1A3A6B" fill="#1A3A6B" fillOpacity={0.15} strokeWidth={2} dot={{ r: 3, fill: '#1D5FAD', stroke: 'white' }} />
+                        <PolarGrid stroke="rgba(15,32,68,0.1)" />
+                        <PolarAngleAxis dataKey="day_label" tick={{ fontSize: 10, fontWeight: 900, fill: '#0F2044' }} />
+                        <Radar dataKey="avg_appointments" stroke="#0F2044" fill="#0F2044" fillOpacity={0.12} strokeWidth={2} dot={{ r: 3, fill: '#0F2044', stroke: 'white' }} />
                     </RadarChart>
                 </ResponsiveContainer>
             </div>
@@ -283,9 +308,9 @@ export function StatsIntelligence({ period = 'month', anchorDate = new Date() })
     const { hasFeature } = usePlanLimits();
     const unlocked = hasFeature('stats_intelligence');
 
-    const { start: startDate, end: endDate } = getStatsDateRange(period, anchorDate.getFullYear(), anchorDate.getMonth());
+    const { start: startDate, end: endDate } = getStatsDateRange(period, anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate());
     const label = getDisplayRange(period, anchorDate);
-    const { ltv, retention, services, prediction } = useStatsIntelligence(unlocked, startDate, endDate);
+    const { ltv, retention, services, prediction, ownServices } = useStatsIntelligence(unlocked, startDate, endDate);
 
     // Badge para avisos de datos insuficientes
     const predictionBadge = prediction.data?.some(d => !d.has_sufficient_data) ? (
@@ -295,20 +320,23 @@ export function StatsIntelligence({ period = 'month', anchorDate = new Date() })
         </div>
     ) : null;
 
+    const GRID = "grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-3 px-1";
+    const CARD_MIN = "min-h-[300px] lg:min-h-0";
+
     if (!unlocked) {
         return (
             <FeatureLock feature="stats_intelligence" variant="blurred" title="Inteligencia de Negocio" description="Análisis avanzados disponibles en plan Enterprise." requiredPlan="Enterprise">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-[10px] md:flex-1 md:min-h-0 px-1 pb-[2px]">
-                    <Card title="Valor de vida paciente" subtitle={`LTV · ${label}`} icon={<TrendingUp size={18} />}>
+                <div className={`${GRID} pb-4`}>
+                    <Card title="Valor de vida paciente" subtitle={`LTV · ${label}`} icon={<TrendingUp size={18} />} minH={CARD_MIN}>
                         <LTVChart data={MOCK_LTV} loading={false} error={null} />
                     </Card>
-                    <Card title="Tasa de retención" subtitle={label} icon={<Brain size={18} />}>
+                    <Card title="Tasa de retención" subtitle={label} icon={<Brain size={18} />} minH={CARD_MIN}>
                         <RetentionGauge data={MOCK_RETENTION} loading={false} error={null} />
                     </Card>
-                    <Card title="Análisis de servicios" subtitle={`Ingresos · ${label}`} icon={<Layers size={18} />}>
+                    <Card title="Análisis de servicios" subtitle={`Ingresos · ${label}`} icon={<Layers size={18} />} minH={CARD_MIN}>
                         <ServiceTreemap data={MOCK_SERVICES} loading={false} error={null} />
                     </Card>
-                    <Card title="Predicción de agenda" subtitle={`Patrón · ${label}`} icon={<CalendarDays size={18} />}>
+                    <Card title="Predicción de agenda" subtitle={`Patrón · ${label}`} icon={<CalendarDays size={18} />} minH={CARD_MIN}>
                         <PredictionRadar data={MOCK_PREDICTION} loading={false} error={null} />
                     </Card>
                 </div>
@@ -317,26 +345,25 @@ export function StatsIntelligence({ period = 'month', anchorDate = new Date() })
     }
 
     return (
-        <div className="flex flex-col flex-1 md:min-h-0">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-[10px] md:flex-1 md:min-h-0 px-1 pb-[2px]">
-                <Card title="Valor de vida paciente" subtitle={`LTV · ${label}`} icon={<TrendingUp size={18} />}>
-                    <LTVChart data={ltv.data} loading={ltv.loading} error={ltv.error} />
-                </Card>
-                <Card title="Tasa de retención" subtitle={label} icon={<Brain size={18} />}>
-                    <RetentionGauge data={retention.data} loading={retention.loading} error={retention.error} />
-                </Card>
-                <Card title="Análisis de servicios" subtitle={`Ingresos · ${label}`} icon={<Layers size={18} />}>
-                    <ServiceTreemap data={services.data} loading={services.loading} error={services.error} />
-                </Card>
-                <Card
-                    title="Predicción de agenda"
-                    subtitle={`Patrón · ${label}`}
-                    icon={<CalendarDays size={18} />}
-                    badge={predictionBadge}
-                >
-                    <PredictionRadar data={prediction.data} loading={prediction.loading} error={prediction.error} />
-                </Card>
-            </div>
+        <div className={`${GRID} pb-4 lg:pb-0 lg:h-full`}>
+            <Card title="Valor de vida paciente" subtitle={`LTV · ${label}`} icon={<TrendingUp size={18} />} minH={CARD_MIN}>
+                <LTVChart data={ltv.data} loading={ltv.loading} error={ltv.error} />
+            </Card>
+            <Card title="Tasa de retención" subtitle={label} icon={<Brain size={18} />} minH={CARD_MIN}>
+                <RetentionGauge data={retention.data} loading={retention.loading} error={retention.error} />
+            </Card>
+            <Card title="Análisis de servicios" subtitle={`Ingresos · ${label}`} icon={<Layers size={18} />} minH={CARD_MIN}>
+                <ServiceTreemap data={services.data} loading={services.loading} error={services.error} ownServices={ownServices} />
+            </Card>
+            <Card
+                title="Predicción de agenda"
+                subtitle={`Patrón · ${label}`}
+                icon={<CalendarDays size={18} />}
+                badge={predictionBadge}
+                minH={CARD_MIN}
+            >
+                <PredictionRadar data={prediction.data} loading={prediction.loading} error={prediction.error} />
+            </Card>
         </div>
     );
 }

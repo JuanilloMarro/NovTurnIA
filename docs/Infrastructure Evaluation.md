@@ -1,6 +1,6 @@
 # NovTurnAI — Evaluación de Estado
 
-> Versión: 1.2 · Fecha: 2026-04-29
+> Versión: 1.3 · Fecha: 2026-05-04
 > Escala 0–10 · 🔴 Bloqueante · 🟠 Importante · 🟡 Deseable · ✅ Resuelto
 
 ---
@@ -9,29 +9,29 @@
 
 | Área                        | Puntaje  | Tendencia |
 |-----------------------------|----------|-----------|
-| Base de datos (Supabase)    | 9.7/10   | ↑ BD-01 a BD-08 resueltos |
-| Dashboard React + Vite      | 9.0/10   | Estable   |
+| Base de datos (Supabase)    | 9.8/10   | ↑ RLS core tables hardened (018), RPCs con scope correcto (017) |
+| Dashboard React + Vite      | 9.1/10   | ↑ 12 bugs corregidos (críticos, altos y medios); pendientes solo de calidad/DX |
 | Bot / N8N Workflow          | 9.5/10   | Estable   |
 | Infraestructura / Despliegue| 8.0/10   | Estable   |
 | Producto / SaaS             | 8.7/10   | Estable   |
 | Resiliencia                 | 7.2/10   | Estable   |
 | Modelo de negocio           | 6.5/10   | ↑ Plans + costos definidos, falta Stripe |
-| **PROMEDIO GLOBAL**         | **8.7/10** |         |
+| **PROMEDIO GLOBAL**         | **8.9/10** |         |
 
-**Estado:** Apto para producción con clientes controlados. Para cobro automático falta Stripe (T-03).
+**Estado:** Apto para producción con clientes controlados. Auditoría completa — 12 bugs corregidos. Para cobro automático falta Stripe (T-03).
 
 ---
 
-## 1. Base de Datos (Supabase) — 9.7/10
+## 1. Base de Datos (Supabase) — 9.8/10
 
-> Auditoría vía Supabase MCP (advisors security + performance, pg_policies, pg_proc, pg_triggers, cron.job). BD-01 a BD-04, BD-06 a BD-08 resueltos.
+> Auditoría vía Supabase MCP (advisors security + performance, pg_policies, pg_proc, pg_triggers, cron.job). BD-01 a BD-04, BD-06 a BD-08 resueltos. Migración 018 arregló leak cross-business en tablas core.
 
 ### Puntaje desglosado
 
 | Sub-área                       | Puntaje | Notas |
 |--------------------------------|---------|-------|
 | 1.1 Estructura y normalización | 9.5     | UUID multi-tabla, particiones mensuales |
-| 1.2 Seguridad RLS              | 9.5     | `api_rate_limits` bloqueada para `anon`/`authenticated` |
+| 1.2 Seguridad RLS              | 9.8     | ↑ `USING(true)` eliminado en appointments/patients/services/staff_users — ahora `business_id = get_user_business_id()` |
 | 1.3 SECURITY DEFINER hygiene   | 9.0     | 10 RPCs admin/triggers sin acceso desde cliente |
 | 1.4 Rendimiento e índices      | 9.8     | Índice `notifications.appointment_id` creado |
 | 1.5 Integridad y triggers      | 9.5     | EXCLUDE constraint anti-doble-booking, audit + notify + validate |
@@ -185,7 +185,9 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 
 ---
 
-## 2. Dashboard React + Vite — 9.0/10
+## 2. Dashboard React + Vite — 9.1/10
+
+> Auditoría exhaustiva completada 2026-05-04. 12 bugs corregidos (críticos, altos y medios). Pendientes restantes son solo de calidad/DX.
 
 ### Estado actual
 
@@ -194,7 +196,8 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 | Arquitectura de componentes | 9.3   | ✅ |
 | Seguridad RBAC            | 9.5     | ✅ |
 | Estado global (Zustand)   | 8.0     | ✅ |
-| Experiencia de usuario    | 8.5     | ✅ |
+| Experiencia de usuario    | 9.0     | ↑ Bugs MEDIUM corregidos |
+| Corrección en runtime     | 9.2     | ↑ Crashes y leaks corregidos |
 
 ### Hechos clave
 - Separación limpia: Pages → Hooks → Service
@@ -205,7 +208,23 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 - Validación teléfono Guatemala (+502, 8 dígitos)
 - Paginación en Conversations y PatientHistory
 
-### Pendientes
+### Bugs corregidos (2026-05-04)
+- ✅ `KanbanBoard.jsx` — revert optimista usaba prop `appointments` en vez del snapshot pre-update (estado se perdía)
+- ✅ `AppointmentStatusChart.jsx` — `data.some()` crasheaba si `data` era null/undefined
+- ✅ `PatientDrawer.jsx` — sort por `date_start` crasheaba si algún turno tenía `date_start: null`
+- ✅ `usePlanLimits.js` — `setIsLoading(false)` corría después de unmount; ahora usa flag `mounted`
+- ✅ `getServiceAnalytics` — defensa frontend contra data cross-business en chart de servicios
+- ✅ `StatsIntelligence` — gráficos de IA nunca cargaban por parámetro RPC inexistente (`p_start_date`)
+- ✅ `MainChart` — navegación por semana congelaba (mismo year/month como deps; agregado `selectedDay`)
+- ✅ `ServiceTreemap` — fondo verde de Recharts sangraba; reemplazado con barras custom HTML/CSS
+
+### Bugs MEDIUM corregidos (2026-05-04)
+- ✅ `EditAppointmentModal.jsx` — ahora abre con la fecha real del turno en vez de la fecha de hoy
+- ✅ `NewAppointmentModal.jsx` — `getServices()` ahora tiene flag `cancelled` para evitar setState post-unmount
+- ✅ `Patients.jsx` — si el paciente del URL param no está en la página actual, se hace fetch directo por ID (`getPatientById`)
+- ✅ `supabaseService.js` — nueva función `getPatientById` para fetch directo por UUID
+
+### Pendientes de calidad
 - 🟠 `cache: 'no-store'` aplicado al cliente Supabase globalmente — anula HTTP cache en Storage y Auth innecesariamente. Mover a wrapper opt-in solo donde se necesite.
 - 🟠 `sourcemap: false` en `vite.config.js` — stack traces en Sentry son ilegibles sin sourcemaps
 - 🟡 26 `console.log/error/warn` en 18 archivos llegan a producción sin guard `import.meta.env.DEV`

@@ -424,8 +424,7 @@ export default function Offers() {
                                             { id: 'all', label: 'Todas' },
                                             { id: 'active', label: 'Activas' },
                                             { id: 'scheduled', label: 'Programadas' },
-                                            { id: 'expired', label: 'Expiradas' },
-                                            { id: 'inactive', label: 'Pausadas' }
+                                            { id: 'expired', label: 'Expiradas' }
                                         ].map(opt => (
                                             <div
                                                 key={opt.id}
@@ -501,9 +500,8 @@ export default function Offers() {
                                     </div>
 
                                     <div className="flex-1 min-w-0">
-                                        <div className={`font-bold text-sm truncate flex items-center justify-between ${isSelected ? 'text-navy-900' : offer.active ? 'text-navy-900/80' : 'text-navy-900/35'
-                                            }`}>
-                                            <span>{offer.name}</span>
+                                        <div className={`font-bold text-sm truncate flex items-center justify-between ${isSelected ? 'text-navy-900' : offer.active ? 'text-navy-900/80' : 'text-navy-900/35'}`}>
+                                            <span className="truncate">{offer.name}</span>
                                             {status === 'expired' && (
                                                 <div
                                                     onClick={(e) => { e.stopPropagation(); handleReuse(offer); }}
@@ -514,19 +512,15 @@ export default function Offers() {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold tracking-tight text-navy-700/60 truncate">
-                                            {offer.services?.name || 'Servicio eliminado'}
-                                            <span className="opacity-40 text-[10px]">•</span>
-                                            <span>Q{Number(offer.promo_price).toFixed(2)}</span>
+                                        <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold tracking-tight text-navy-700/60">
+                                            <span className="truncate">{offer.services?.name || 'Servicio eliminado'}</span>
+                                            <span className="opacity-40 text-[10px] shrink-0">•</span>
+                                            <span className="shrink-0">Q{Number(offer.promo_price).toFixed(2)}</span>
                                             <div className={`w-1.5 h-1.5 rounded-full ml-1 shrink-0 ${status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
                                                 status === 'scheduled' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
-                                                    status === 'inactive' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' :
+                                                    (status === 'inactive' || status === 'expired') ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' :
                                                         'bg-navy-400'
                                                 }`} title={badge.label} />
-                                         </div>
-                                        <div className="text-[10px] text-navy-700/50 font-semibold flex items-center gap-1 mt-0.5">
-                                            <CalendarIcon size={9} className="shrink-0" />
-                                            {new Date(offer.starts_at).toLocaleDateString('es-GT')} → {new Date(offer.ends_at).toLocaleDateString('es-GT')}
                                         </div>
                                     </div>
                                 </button>
@@ -564,7 +558,7 @@ export default function Offers() {
                                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/40 border border-white/60 shadow-sm">
                                             <div className={`w-1.5 h-1.5 rounded-full ${getOfferStatus(selected, now) === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
                                                 getOfferStatus(selected, now) === 'scheduled' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
-                                                    getOfferStatus(selected, now) === 'inactive' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' :
+                                                    (getOfferStatus(selected, now) === 'inactive' || getOfferStatus(selected, now) === 'expired') ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' :
                                                         'bg-navy-400'
                                                 }`} />
                                             <span className="text-[10px] font-bold text-navy-900/60 uppercase tracking-wider">
@@ -732,24 +726,6 @@ export default function Offers() {
 
                             {/* Footer actions */}
                             <div className="px-6 py-4 border-t border-white/60 flex items-center justify-end gap-3 z-20 shrink-0">
-                                {/* 1. Desactivar / Activar — solo edición */}
-                                {!isNew && selected && (
-                                    <button
-                                        onClick={handleToggle}
-                                        className={`group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 border text-[11px] font-bold rounded-full shadow-sm transition-all duration-300 overflow-hidden ${selected.active
-                                            ? 'bg-white border-white/80 text-rose-500 hover:bg-rose-50 hover:border-rose-100/50'
-                                            : 'bg-white border-white/80 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100/50'
-                                            }`}
-                                    >
-                                        {selected.active
-                                            ? <ToggleLeft size={14} className="shrink-0" />
-                                            : <ToggleRight size={14} className="shrink-0" />
-                                        }
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">
-                                            {selected.active ? 'Desactivar' : 'Activar'}
-                                        </span>
-                                    </button>
-                                )}
 
                                 {/* 2. Guardar cambios */}
                                 <button

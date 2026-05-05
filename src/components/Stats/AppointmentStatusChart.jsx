@@ -1,8 +1,10 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { Activity } from 'lucide-react';
 
 const PIE_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#9CA3AF'];
 
 export function AppointmentStatusChart({ data, confRate }) {
+    if (!data?.length) return null;
     const hasData = data.some(d => d.value > 0);
     // If all values are 0, use a placeholder slice so a ring is visible
     const chartData = hasData ? data : [{ name: 'Sin datos', value: 1 }];
@@ -10,9 +12,14 @@ export function AppointmentStatusChart({ data, confRate }) {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="mb-6">
-                <h3 className="font-bold text-navy-900 text-sm tracking-tight mb-1">Tasa de confirmación</h3>
-                <p className="text-[10px] text-navy-900/40 font-bold tracking-tight">Distribución de estados</p>
+            <div className="flex items-start gap-3 mb-6">
+                <div className="w-9 h-9 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
+                    <Activity size={18} />
+                </div>
+                <div className="min-w-0 pt-[5px]">
+                    <h3 className="text-[13px] font-black text-navy-900 leading-none tracking-tight">Tasa de confirmación</h3>
+                    <p className="text-[10px] font-bold text-navy-900/40 mt-0.5">Distribución de estados</p>
+                </div>
             </div>
 
             <div className="relative flex-1 flex flex-col items-center justify-center min-h-[200px]">

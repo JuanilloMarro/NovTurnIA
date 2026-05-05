@@ -94,8 +94,6 @@ export default function PlansModal({ isOpen, onClose }) {
                         </p>
 
                         {/* Billing Toggle - Compacto */}
-                        {/* Selector oculto temporalmente */}
-                        {/* 
                         <div className="mt-6 flex items-center gap-1 bg-navy-900/5 p-1 rounded-2xl border border-navy-900/10">
                             <button
                                 onClick={() => setBillingCycle('monthly')}
@@ -115,11 +113,10 @@ export default function PlansModal({ isOpen, onClose }) {
                             >
                                 Anual
                                 <span className="bg-emerald-500 text-[9px] text-white px-2 py-0.5 rounded-full animate-pulse">
-                                    -16% OFF
+                                    -16% off
                                 </span>
                             </button>
                         </div>
-                        */}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full pb-4">
@@ -138,18 +135,18 @@ export default function PlansModal({ isOpen, onClose }) {
                                             {plan.icon}
                                         </div>
                                         {plan.active && (
-                                            <span className="bg-white/10 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/10">
+                                            <span className="bg-white/10 text-[8px] font-black px-2 py-0.5 rounded-full border border-white/10">
                                                 Recomendado
                                             </span>
                                         )}
                                     </div>
 
-                                    <div className="min-h-[140px] flex flex-col">
-                                        <h4 className="font-bold text-lg mb-1 relative z-10">{plan.title}</h4>
+                                    <div className="min-h-[180px] flex flex-col">
+                                        <h4 className="font-black text-2xl mb-1 relative z-10">{plan.title}</h4>
                                         <div className="flex flex-col mb-4 relative z-10">
                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-2xl font-black text-white leading-none">Q {price.toLocaleString()}</span>
-                                                <span className="text-[10px] opacity-60 font-bold uppercase tracking-tight">/mes</span>
+                                                <span className="text-4xl font-black text-white leading-none">Q {price.toLocaleString()}</span>
+                                                <span className="text-[11px] opacity-60 font-bold">/mes</span>
                                             </div>
                                             {billingCycle === 'annual' && (
                                                 <span className="text-[9px] font-bold text-emerald-400 mt-1">
@@ -165,11 +162,11 @@ export default function PlansModal({ isOpen, onClose }) {
 
                                     <div className="pt-4 border-t border-white/10 relative z-10 flex-1 flex flex-col">
                                         {i > 0 ? (
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-4">
+                                            <p className="text-[9px] font-black text-white/40 mb-5">
                                                 Todo lo de {plans[i - 1].title} más:
                                             </p>
                                         ) : (
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-transparent mb-4 select-none">
+                                            <p className="text-[9px] font-black text-transparent mb-5 select-none">
                                                 -
                                             </p>
                                         )}
@@ -184,7 +181,7 @@ export default function PlansModal({ isOpen, onClose }) {
 
                                         <button
                                             disabled={currentPlan === plan.id}
-                                            className={`w-full mt-auto py-3 font-black text-[10px] rounded-2xl transition-all uppercase tracking-widest relative z-10 backdrop-blur-sm shadow-xl ${currentPlan === plan.id
+                                            className={`w-full mt-auto py-3 font-black text-[10px] rounded-2xl transition-all relative z-10 backdrop-blur-sm shadow-xl ${currentPlan === plan.id
                                                 ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 cursor-default flex items-center justify-center gap-2'
                                                 : 'bg-white/10 border border-white/20 text-white/90 hover:bg-white hover:text-navy-900 active:scale-95'
                                                 }`}
@@ -205,7 +202,7 @@ export default function PlansModal({ isOpen, onClose }) {
                     <div className="flex justify-center mt-2 mb-8">
                         <button
                             onClick={scrollToDetails}
-                            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-navy-900/30 hover:text-navy-900 hover:translate-y-1 transition-all duration-300 group"
+                            className="flex items-center gap-2 text-[10px] font-black text-navy-900/30 hover:text-navy-900 hover:translate-y-1 transition-all duration-300 group"
                         >
                             <span>Ver comparativa detallada</span>
                             <ChevronDown size={14} className="transition-transform" />
@@ -337,7 +334,7 @@ export default function PlansModal({ isOpen, onClose }) {
                             title={
                                 <div className="flex items-center gap-2">
                                     Sucursales
-                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest text-amber-600">
+                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-black text-amber-600">
                                         <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
                                         Próximamente
                                     </span>
@@ -397,7 +394,7 @@ function ModuleSection({ title, subtitle, icon, rows }) {
                 </div>
                 <div>
                     <h4 className="text-lg font-black text-navy-900 tracking-tight leading-none mb-1">{title}</h4>
-                    <p className="text-[11px] text-navy-700/50 font-bold uppercase tracking-wider">{subtitle}</p>
+                    <p className="text-[11px] text-navy-700/50 font-bold">{subtitle}</p>
                 </div>
             </div>
 
@@ -406,10 +403,10 @@ function ModuleSection({ title, subtitle, icon, rows }) {
                     <table className="w-full text-left border-collapse min-w-[600px]">
                         <thead>
                             <tr className="border-b border-navy-900/5">
-                                <th className="p-6 text-[11px] font-black text-navy-900/40 uppercase tracking-widest">Característica</th>
-                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Básico</th>
-                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Pro</th>
-                                <th className="p-6 text-[11px] font-black text-navy-900 uppercase tracking-widest text-center">Enterprise</th>
+                                <th className="p-6 text-[11px] font-black text-navy-900/40">Característica</th>
+                                <th className="p-6 text-[11px] font-black text-navy-900 text-center">Básico</th>
+                                <th className="p-6 text-[11px] font-black text-navy-900 text-center">Pro</th>
+                                <th className="p-6 text-[11px] font-black text-navy-900 text-center">Enterprise</th>
                             </tr>
                         </thead>
                         <tbody>

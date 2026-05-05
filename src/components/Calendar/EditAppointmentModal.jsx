@@ -34,15 +34,12 @@ export default function EditAppointmentModal({ appointment, onClose, onUpdated }
     const schedule_end   = businessHours.schedule_end   || '18:00';
     const TIME_SLOTS = generateTimeSlots(schedule_start, schedule_end, 30);
 
-    const now = new Date();
-    const _todayY = now.getFullYear().toString();
-    const _todayM = (now.getMonth() + 1).toString().padStart(2, '0');
-    const _todayD = now.getDate().toString().padStart(2, '0');
-    const todayIso = `${_todayY}-${_todayM}-${_todayD}`;
-
-    // El usuario solicitó que al modificar también salga el día de hoy por defecto
-    const [_rawYear, _rawMonth, _rawDay] = todayIso.split('-');
-    const rawDate = todayIso;
+    // Use the appointment's own date as the initial value for the date picker
+    const _aptDate = appointment.date_start ? new Date(appointment.date_start) : new Date();
+    const _rawYear  = _aptDate.getFullYear().toString();
+    const _rawMonth = (_aptDate.getMonth() + 1).toString().padStart(2, '0');
+    const _rawDay   = _aptDate.getDate().toString().padStart(2, '0');
+    const rawDate   = `${_rawYear}-${_rawMonth}-${_rawDay}`;
 
     let rawStartTime = '09:00';
     let rawEndTime = '10:00';

@@ -5,7 +5,7 @@ import PatientCard from '../components/Patients/PatientCard';
 import PatientDrawer from '../components/Patients/PatientDrawer';
 import NewPatientModal from '../components/Patients/NewPatientModal';
 import { Search, SlidersHorizontal, Download, Plus, RefreshCw, Lock } from 'lucide-react';
-import { exportAllPatients } from '../services/supabaseService';
+import { exportAllPatients, getPatientById } from '../services/supabaseService';
 import { downloadCSV } from '../utils/export';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePlanLimits } from '../hooks/usePlanLimits';
@@ -25,12 +25,17 @@ export default function Patients() {
     const patientIdFromUrl = searchParams.get('id');
 
     useEffect(() => {
-        if (patientIdFromUrl && patients.length > 0) {
-            const p = patients.find(x => x.id === patientIdFromUrl);
-            if (p) {
-                setSelectedPatient(p);
-                setSearchParams({}, { replace: true });
-            }
+        if (!patientIdFromUrl) return;
+        const p = patients.find(x => x.id === patientIdFromUrl);
+        if (p) {
+            setSelectedPatient(p);
+            setSearchParams({}, { replace: true });
+        } else if (patients.length > 0) {
+            // Not on current page — fetch directly
+            getPatientById(patientIdFromUrl)
+                .then(fetched => { if (fetched) setSelectedPatient(fetched); })
+                .catch(() => {})
+                .finally(() => setSearchParams({}, { replace: true }));
         }
     }, [patientIdFromUrl, patients, setSearchParams]);
 

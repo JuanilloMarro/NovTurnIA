@@ -112,16 +112,20 @@ export default function KanbanBoard({ appointments = [], onAppointmentClick, rel
 
         // Optimistic update
         const now = new Date().toISOString();
-        setLocalAppointments(prev => prev.map(a => {
-            if (a.id !== appointmentId) return a;
-            let newStatus = a.status;
-            let newConfirmed = a.confirmed;
-            if (targetColId === 'cancelled')  { newStatus = 'cancelled'; }
-            else if (targetColId === 'no_show')   { newStatus = 'no_show'; }
-            else if (targetColId === 'confirmed') { newStatus = 'confirmed'; newConfirmed = true; }
-            else if (targetColId === 'pending')   { newStatus = 'scheduled'; newConfirmed = false; }
-            return { ...a, status: newStatus, confirmed: newConfirmed, updated_at: now };
-        }));
+        let prevSnapshot;
+        setLocalAppointments(prev => {
+            prevSnapshot = prev;
+            return prev.map(a => {
+                if (a.id !== appointmentId) return a;
+                let newStatus = a.status;
+                let newConfirmed = a.confirmed;
+                if (targetColId === 'cancelled')  { newStatus = 'cancelled'; }
+                else if (targetColId === 'no_show')   { newStatus = 'no_show'; }
+                else if (targetColId === 'confirmed') { newStatus = 'confirmed'; newConfirmed = true; }
+                else if (targetColId === 'pending')   { newStatus = 'scheduled'; newConfirmed = false; }
+                return { ...a, status: newStatus, confirmed: newConfirmed, updated_at: now };
+            });
+        });
 
         try {
             if (targetColId === 'cancelled')  { await cancelAppointment(appointmentId);    showAptCancelToast(appointment.patients?.display_name); }
@@ -131,7 +135,7 @@ export default function KanbanBoard({ appointments = [], onAppointmentClick, rel
             reload?.();
         } catch (err) {
             showErrorToast('Error al actualizar', err.message);
-            setLocalAppointments(appointments); // revert
+            if (prevSnapshot) setLocalAppointments(prevSnapshot); // revert
         }
     };
 

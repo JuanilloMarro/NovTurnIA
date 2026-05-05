@@ -185,7 +185,7 @@ export default function Topbar() {
                             <div className="p-2">
                                 <button
                                     onClick={() => logout()}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-50 transition-all duration-200"
+                                    className="w-full flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-50 transition-all duration-200"
                                 >
                                     <LogOut size={15} />
                                     Cerrar Sesión
@@ -246,7 +246,7 @@ function NotifCard({ entry, onMarkRead, onMarkUnread, onDelete }) {
             ? 'bg-white/10 border-white/20 hover:bg-white/15'
             : 'bg-white border-white shadow-sm ring-1 ring-black/5 hover:bg-white/95'
             }`}>
-            
+
             {/* Contenido con Opacidad si está leído */}
             <div className={`flex flex-1 items-center gap-3 min-w-0 ${entry.read ? 'opacity-40' : 'opacity-100'}`}>
                 {/* Dot de color + icono */}

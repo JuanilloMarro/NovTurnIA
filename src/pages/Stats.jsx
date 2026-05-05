@@ -52,7 +52,7 @@ function getNavLabel(period, date) {
 }
 
 // ── Contenido de métricas ────────────────────────────────
-function StatsContent({ kpi, donut, period, selectedYear, selectedMonth }) {
+function StatsContent({ kpi, donut, period, selectedYear, selectedMonth, selectedDay }) {
     const labels = KPI_LABELS[period] ?? KPI_LABELS.month;
     return (
         <div className="h-full flex flex-col w-full overflow-y-auto md:overflow-hidden px-1 md:pb-0 pb-4">
@@ -66,7 +66,7 @@ function StatsContent({ kpi, donut, period, selectedYear, selectedMonth }) {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:flex-1 md:min-h-0 pb-2 px-1">
                     <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
-                        <MainChart period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                        <MainChart period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDay={selectedDay} />
                     </div>
                     <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
                         <AppointmentStatusChart data={donut.data} confRate={donut.confRate} />
@@ -77,8 +77,8 @@ function StatsContent({ kpi, donut, period, selectedYear, selectedMonth }) {
     );
 }
 
-function StatsLoaded({ period, selectedYear, selectedMonth }) {
-    const { stats } = useStats(period, selectedYear, selectedMonth);
+function StatsLoaded({ period, selectedYear, selectedMonth, selectedDay }) {
+    const { stats } = useStats(period, selectedYear, selectedMonth, selectedDay);
 
     // Solo mostrar shimmer en la carga inicial; al navegar se mantiene el contenido anterior
     if (!stats) {
@@ -104,6 +104,7 @@ function StatsLoaded({ period, selectedYear, selectedMonth }) {
             period={period}
             selectedYear={selectedYear}
             selectedMonth={selectedMonth}
+            selectedDay={selectedDay}
         />
     );
 }
@@ -248,9 +249,9 @@ export default function Stats() {
     return (
         <div className="h-full flex flex-col pt-2 px-2 overflow-hidden">
             {header}
-            <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar lg:overflow-hidden">
                 {activeTab === 'metricas'
-                    ? <StatsLoaded period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                    ? <StatsLoaded period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDay={anchorDate.getDate()} />
                     : <StatsIntelligence period={period} anchorDate={anchorDate} />
                 }
             </div>

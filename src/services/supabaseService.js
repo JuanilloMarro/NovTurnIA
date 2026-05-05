@@ -457,6 +457,20 @@ export async function getPatients(search = '', { page = 0, pageSize = 50 } = {})
     return { data: data || [], count: count || 0, hasMore: to < (count || 0) - 1 };
 }
 
+export async function getPatientById(patientId) {
+    const { data, error } = await supabase
+        .from('patients')
+        .select(`*, patient_phones(phone, is_primary), appointments(id, date_start, status, confirmed)`)
+        .eq('id', patientId)
+        .eq('business_id', getBID())
+        .is('deleted_at', null)
+        .order('date_start', { referencedTable: 'appointments', ascending: false })
+        .limit(5, { referencedTable: 'appointments' })
+        .maybeSingle();
+    if (error) throw error;
+    return data;
+}
+
 export async function getPatientAppointments(patientId) {
     const { data, error } = await supabase
         .from('appointments')
@@ -642,8 +656,9 @@ export async function gdprDeletePatient(patientId) {
  */
 export async function getStatsDashboard(monthStart, monthEnd) {
     const { data, error } = await supabase.rpc('get_stats_dashboard', {
+        p_business_id: getBID(),
         p_month_start: monthStart,
-        p_month_end: monthEnd,
+        p_month_end:   monthEnd,
     });
     if (error) {
         // Fallback to 3-query path if RPC not deployed yet
@@ -1084,9 +1099,9 @@ async function _trendFallback(granularity, start, end) {
         } else {
             key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         }
-        if (!map[key]) map[key] = { period: key, total: 0, completed: 0, cancelled: 0 };
-        map[key].total++;
-        if (row.status === 'completed') map[key].completed++;
+        if (!map[key]) map[key] = { period: key, total: 0, no_show: 0, cancelled: 0 };
+        if (row.status === 'scheduled' || row.status === 'confirmed') map[key].total++;
+        if (row.status === 'no_show')   map[key].no_show++;
         if (row.status === 'cancelled') map[key].cancelled++;
     });
     return Object.values(map);
@@ -1196,7 +1211,6 @@ export async function getPlanLimits() {
 export async function getPatientLTV(startDate, endDate) {
     const { data, error } = await supabase.rpc('get_patient_ltv', {
         p_business_id: getBID(),
-        p_start_date:  startDate,
         p_end_date:    endDate,
     });
     if (error) throw error;
@@ -1206,7 +1220,6 @@ export async function getPatientLTV(startDate, endDate) {
 export async function getRetentionRate(startDate, endDate) {
     const { data, error } = await supabase.rpc('get_retention_rate', {
         p_business_id: getBID(),
-        p_start_date:  startDate,
         p_end_date:    endDate,
     });
     if (error) throw error;
@@ -1216,17 +1229,24 @@ export async function getRetentionRate(startDate, endDate) {
 export async function getServiceAnalytics(startDate, endDate) {
     const { data, error } = await supabase.rpc('get_service_analytics', {
         p_business_id: getBID(),
-        p_start_date:  startDate,
         p_end_date:    endDate,
     });
     if (error) throw error;
-    return data || [];
+    if (!data?.length) return [];
+
+    // Defensa frontend: cruzar contra los servicios reales del negocio para
+    // evitar que un RPC sin filtro correcto devuelva datos de otro negocio.
+    const { data: ownServices } = await supabase
+        .from('services')
+        .select('name')
+        .eq('business_id', getBID());
+    const ownNames = new Set((ownServices || []).map(s => s.name).concat(['Sin servicio']));
+    return data.filter(row => ownNames.has(row.service_name));
 }
 
 export async function getAppointmentPrediction(startDate, endDate) {
     const { data, error } = await supabase.rpc('get_appointment_prediction', {
         p_business_id: getBID(),
-        p_start_date:  startDate,
         p_end_date:    endDate,
     });
     if (error) throw error;

@@ -41,6 +41,7 @@ export function usePlanLimits() {
     const [isLoading, setIsLoading] = useState(!cache.data);
 
     useEffect(() => {
+        let mounted = true;
         if (cache.data) {
             setIsLoading(false);
             return;
@@ -52,14 +53,13 @@ export function usePlanLimits() {
                     setPlanLimitsCache(data);
                     return data;
                 })
-                .catch(() => {
-                    return null;
-                })
+                .catch(() => null)
                 .finally(() => {
                     _inflight = null;
-                    setIsLoading(false);
+                    if (mounted) setIsLoading(false);
                 });
         }
+        return () => { mounted = false; };
     }, [cache.data]);
 
     if (isLoading || !cache.data) return SAFE_DEFAULTS;

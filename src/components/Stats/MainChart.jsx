@@ -5,6 +5,7 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer
 } from 'recharts';
+import { BarChart2 } from 'lucide-react';
 
 // ── Label helpers ─────────────────────────────────────────
 
@@ -18,10 +19,10 @@ function formatWeekLabel(mondayStr) {
 
 // ── Slot generation (usa el mismo ancla que getStatsDateRange) ────────────────
 
-function buildSlots(period, year, month) {
+function buildSlots(period, year, month, day = null) {
     const now            = new Date();
     const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
-    const anchor         = new Date(isCurrentMonth ? now : new Date(year, month, 15));
+    const anchor         = new Date(day != null ? new Date(year, month, day) : (isCurrentMonth ? now : new Date(year, month, 15)));
     anchor.setHours(12, 0, 0, 0);
 
     if (period === 'day') {
@@ -33,7 +34,7 @@ function buildSlots(period, year, month) {
             d.setDate(monday.getDate() + i);
             const key   = d.toISOString().split('T')[0];
             const label = d.toLocaleDateString('es-GT', { weekday: 'short', day: '2-digit' }).replace('.', '');
-            return { key, name: label, turnos: 0, completed: 0, cancelled: 0 };
+            return { key, name: label, turnos: 0, no_show: 0, cancelled: 0 };
         });
     }
 
@@ -47,7 +48,7 @@ function buildSlots(period, year, month) {
             const d   = new Date(start);
             d.setDate(start.getDate() + i * 7);
             const key = d.toISOString().split('T')[0];
-            return { key, name: formatWeekLabel(key), turnos: 0, completed: 0, cancelled: 0 };
+            return { key, name: formatWeekLabel(key), turnos: 0, no_show: 0, cancelled: 0 };
         });
     }
 
@@ -57,7 +58,7 @@ function buildSlots(period, year, month) {
         const key = `${year}-${String(i + 1).padStart(2, '0')}`;
         let label = d.toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
         label     = label.charAt(0).toUpperCase() + label.slice(1);
-        return { key, name: label, turnos: 0, completed: 0, cancelled: 0 };
+        return { key, name: label, turnos: 0, no_show: 0, cancelled: 0 };
     });
 }
 
@@ -73,7 +74,7 @@ function chartSubtitle(period, year, month) {
 
 // ── Component ─────────────────────────────────────────────
 
-export function MainChart({ period = 'week', selectedYear, selectedMonth }) {
+export function MainChart({ period = 'week', selectedYear, selectedMonth, selectedDay = null }) {
     const now   = new Date();
     const year  = selectedYear  ?? now.getFullYear();
     const month = selectedMonth ?? now.getMonth();
@@ -86,7 +87,7 @@ export function MainChart({ period = 'week', selectedYear, selectedMonth }) {
         async function fetchTrend() {
             setLoading(true);
             try {
-                const { start, end } = getStatsDateRange(period, year, month);
+                const { start, end } = getStatsDateRange(period, year, month, selectedDay);
                 const rows = await getAppointmentTrend(period, start, end);
                 if (!cancelled) setTrendData(rows);
             } catch (err) {
@@ -98,15 +99,15 @@ export function MainChart({ period = 'week', selectedYear, selectedMonth }) {
         }
         fetchTrend();
         return () => { cancelled = true; };
-    }, [period, year, month]);
+    }, [period, year, month, selectedDay]);
 
     const data = useMemo(() => {
-        const slots = buildSlots(period, year, month);
+        const slots = buildSlots(period, year, month, selectedDay);
         const map   = Object.fromEntries(slots.map(s => [s.key, s]));
         trendData.forEach(row => {
             if (map[row.period]) {
-                map[row.period].turnos    = (row.total ?? 0) - (row.cancelled ?? 0);
-                map[row.period].completed = row.completed ?? 0;
+                map[row.period].turnos    = row.total ?? 0;
+                map[row.period].no_show   = row.no_show ?? 0;
                 map[row.period].cancelled = row.cancelled ?? 0;
             }
         });
@@ -115,12 +116,13 @@ export function MainChart({ period = 'week', selectedYear, selectedMonth }) {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="flex justify-between items-start mb-6">
-                <div>
-                    <h3 className="font-bold text-navy-900 text-sm tracking-tight mb-1">Turnos por período</h3>
-                    <p className="text-[10px] text-navy-900/40 font-bold tracking-tight">
-                        {chartSubtitle(period, year, month)}
-                    </p>
+            <div className="flex items-start gap-3 mb-6">
+                <div className="w-9 h-9 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
+                    <BarChart2 size={18} />
+                </div>
+                <div className="min-w-0 pt-[5px]">
+                    <h3 className="text-[13px] font-black text-navy-900 leading-none tracking-tight">Turnos por período</h3>
+                    <p className="text-[10px] font-bold text-navy-900/40 mt-0.5">{chartSubtitle(period, year, month)}</p>
                 </div>
             </div>
 
@@ -162,17 +164,17 @@ export function MainChart({ period = 'week', selectedYear, selectedMonth }) {
                             />
                             <Tooltip
                                 contentStyle={{
-                                    background: '#1A3A6B',
+                                    background: '#065F46',
                                     border: 'none',
                                     borderRadius: 12,
                                     color: 'white',
                                     fontSize: 11,
                                     padding: '8px 12px',
-                                    boxShadow: '0 10px 25px rgba(26,58,107,0.3)',
+                                    boxShadow: '0 10px 25px rgba(16,185,129,0.25)',
                                 }}
                                 itemStyle={{ color: 'white', fontWeight: 'bold' }}
-                                labelStyle={{ color: '#9CA3AF', marginBottom: '4px', fontSize: 11 }}
-                                cursor={{ stroke: 'rgba(26,58,107,0.1)', strokeWidth: 2, fill: 'none' }}
+                                labelStyle={{ color: '#A7F3D0', marginBottom: '4px', fontSize: 11 }}
+                                cursor={{ stroke: 'rgba(16,185,129,0.15)', strokeWidth: 2, fill: 'none' }}
                             />
                             <Area
                                 type="monotone"

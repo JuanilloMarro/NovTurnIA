@@ -4,6 +4,7 @@ import {
     getRetentionRate,
     getServiceAnalytics,
     getAppointmentPrediction,
+    getServices,
 } from '../services/supabaseService';
 
 function makeSection() {
@@ -15,6 +16,7 @@ export function useStatsIntelligence(enabled = true, startDate, endDate) {
     const [retention, setRetention]   = useState(makeSection);
     const [services, setServices]     = useState(makeSection);
     const [prediction, setPrediction] = useState(makeSection);
+    const [ownServices, setOwnServices] = useState([]);
 
     const loadSection = useCallback(async (fetcher, setter) => {
         setter(s => ({ ...s, loading: true, error: null }));
@@ -28,13 +30,15 @@ export function useStatsIntelligence(enabled = true, startDate, endDate) {
 
     const load = useCallback(() => {
         if (!enabled || !startDate || !endDate) return;
-        loadSection(() => getPatientLTV(startDate, endDate),          setLtv);
-        loadSection(() => getRetentionRate(startDate, endDate),       setRetention);
-        loadSection(() => getServiceAnalytics(startDate, endDate),    setServices);
+        // Carga servicios propios del negocio para padding y validación
+        getServices().then(s => setOwnServices(s || [])).catch(() => {});
+        loadSection(() => getPatientLTV(startDate, endDate),            setLtv);
+        loadSection(() => getRetentionRate(startDate, endDate),         setRetention);
+        loadSection(() => getServiceAnalytics(startDate, endDate),      setServices);
         loadSection(() => getAppointmentPrediction(startDate, endDate), setPrediction);
     }, [enabled, startDate, endDate, loadSection]);
 
     useEffect(() => { load(); }, [load]);
 
-    return { ltv, retention, services, prediction, reload: load };
+    return { ltv, retention, services, prediction, ownServices, reload: load };
 }

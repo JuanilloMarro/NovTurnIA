@@ -7,7 +7,9 @@
       "Bash(Get-ChildItem -Path src -Recurse -File)",
       "Bash(Select-Object FullName)",
       "PowerShell(& 'C:\\\\Users\\\\Juan Diego\\\\Downloads\\\\build_saas_workflow.ps1' 2>&1)",
-      "mcp__supabase__list_migrations"
+      "mcp__supabase__list_migrations",
+      "Bash(xargs grep *)",
+      "mcp__claude_ai_Supabase__list_projects"
     ]
   },
   "enableAllProjectMcpServers": true,
