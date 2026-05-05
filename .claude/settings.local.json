@@ -9,7 +9,8 @@
       "PowerShell(& 'C:\\\\Users\\\\Juan Diego\\\\Downloads\\\\build_saas_workflow.ps1' 2>&1)",
       "mcp__supabase__list_migrations",
       "Bash(xargs grep *)",
-      "mcp__claude_ai_Supabase__list_projects"
+      "mcp__claude_ai_Supabase__list_projects",
+      "WebFetch(domain:nov-turn-ia.vercel.app)"
     ]
   },
   "enableAllProjectMcpServers": true,
