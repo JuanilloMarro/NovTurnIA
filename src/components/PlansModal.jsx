@@ -224,6 +224,7 @@ export default function PlansModal({ isOpen, onClose }) {
                                 { name: 'Seguimiento de Cancelaciones / No Presentes', basic: false, pro: true, enterprise: true },
                                 { name: 'Kanban de estados de turnos', basic: false, pro: true, enterprise: true },
                                 { name: 'Agente IA (Agendamiento)', basic: 'Ilimitado', pro: 'Ilimitado', enterprise: 'Ilimitado' },
+                                { name: 'Límite de Turnos al mes', basic: '100', pro: '500', enterprise: 'Ilimitado' },
                             ]}
                         />
 
@@ -254,6 +255,7 @@ export default function PlansModal({ isOpen, onClose }) {
                                 { name: 'IA con Contexto Completo', basic: false, pro: true, enterprise: true },
                                 { name: 'Confirmación Automática por WhatsApp', basic: false, pro: false, enterprise: true },
                                 { name: 'Límite de Visualización de Chats', basic: 'Últimos 10', pro: 'Últimos 100', enterprise: 'Ilimitado' },
+                                { name: 'Límite de Mensajes al mes (usuario + IA)', basic: '1,000', pro: '5,000', enterprise: 'Ilimitado' },
                             ]}
                         />
 
