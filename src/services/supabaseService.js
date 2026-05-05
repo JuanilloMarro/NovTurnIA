@@ -376,6 +376,16 @@ export async function markNoShow(id) {
     if (error) throw error;
 }
 
+export async function deleteAppointment(id) {
+    const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', id)
+        .eq('business_id', getBID());
+
+    if (error) throw error;
+}
+
 
 
 /**

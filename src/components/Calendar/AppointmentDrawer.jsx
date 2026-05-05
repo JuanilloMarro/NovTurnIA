@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow } from '../../services/supabaseService';
+import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow, deleteAppointment } from '../../services/supabaseService';
 import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, RotateCcw, Tag, User } from 'lucide-react';
 import { formatDuration } from '../../pages/Settings';
 import { useState } from 'react';
@@ -332,13 +332,34 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                         </button>
                     )}
 
-                    {/* 7. Eliminar */}
+                    {/* 7. Eliminar (Cancelación lógica para turnos activos) */}
                     {canDeleteAppointments && ['scheduled', 'confirmed'].includes(status) && (
                         <button onClick={() => setShowCancelConfirm(true)}
                             className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
                         >
                             <Trash2 size={14} className="shrink-0" />
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">Eliminar</span>
+                        </button>
+                    )}
+
+                    {/* 8. Borrar permanentemente (para No-show o Cancelados) */}
+                    {canDeleteAppointments && (status === 'no_show' || status === 'cancelled') && (
+                        <button
+                            onClick={async () => {
+                                if (window.confirm('¿Estás seguro de que deseas borrar permanentemente este registro de la base de datos?')) {
+                                    try {
+                                        await deleteAppointment(id);
+                                        onUpdated?.();
+                                        onClose();
+                                    } catch (err) {
+                                        showErrorToast('Error al borrar', err.message);
+                                    }
+                                }
+                            }}
+                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
+                        >
+                            <Trash2 size={14} className="shrink-0" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">Borrar registro</span>
                         </button>
                     )}
                 </div>
@@ -392,10 +413,20 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     initialServiceId={appointment.service_id ?? null}
                     onClose={() => setShowReschedule(false)}
                     onCreated={async () => {
-                        // Ya no se actualiza rescheduled_at porque se eliminó la columna
-                        setShowReschedule(false);
-                        onUpdated?.();
-                        onClose();
+                        try {
+                            // M-021: Si se reagenda, se elimina el turno viejo (no-show/cancelado) de la DB
+                            await deleteAppointment(appointment.id);
+                            setShowReschedule(false);
+                            onUpdated?.();
+                            onClose();
+                        } catch (err) {
+                            console.error('Error deleting old appointment after reschedule:', err);
+                            // Aun si falla el borrado del viejo, el nuevo ya se creó, 
+                            // así que cerramos y actualizamos igual.
+                            setShowReschedule(false);
+                            onUpdated?.();
+                            onClose();
+                        }
                     }}
                 />
             )}
