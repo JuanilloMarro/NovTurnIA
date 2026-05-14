@@ -105,7 +105,7 @@ export default function WheelColumn({ items, selected, onSelect, displayFn, disa
                     const isSelected = item === selected;
                     return (
                         <div key={item} style={{ height: WH }}
-                            className={`flex items-center justify-center transition-all duration-150 px-3 text-center leading-none ${isSelected ? 'text-navy-900 font-black text-[12px]' : 'text-navy-900/25 font-semibold text-[11px]'}`}>
+                            className={`flex items-center justify-center transition-all duration-150 px-3 text-center leading-none ${isSelected ? 'text-navy-900 font-bold text-[12px]' : 'text-navy-900/30 font-medium text-[11px]'}`}>
                             <span className="truncate w-full text-center">{displayFn ? displayFn(item) : item}</span>
                         </div>
                     );

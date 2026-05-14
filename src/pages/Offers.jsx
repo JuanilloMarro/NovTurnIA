@@ -291,17 +291,17 @@ export default function Offers() {
                             <div className="p-4 pb-3">
                                 <div className="flex items-center gap-2 h-9">
                                     <div className="relative flex-1 h-full">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-navy-900"><Search size={14} strokeWidth={2.5} /></div>
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-navy-700"><Search size={14} strokeWidth={2.5} /></div>
                                         <div className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full" />
                                     </div>
-                                    <div className="h-9 w-9 bg-white/60 border border-white/90 rounded-full shadow-sm flex items-center justify-center"><Plus size={14} className="text-navy-900" /></div>
-                                    <div className="h-9 w-9 bg-white/60 border border-white/90 rounded-full shadow-sm flex items-center justify-center"><SlidersHorizontal size={14} className="text-navy-900" /></div>
+                                    <div className="h-9 w-9 bg-white/60 border border-white/90 rounded-full shadow-sm flex items-center justify-center"><Plus size={14} className="text-navy-700" /></div>
+                                    <div className="h-9 w-9 bg-white/60 border border-white/90 rounded-full shadow-sm flex items-center justify-center"><SlidersHorizontal size={14} className="text-navy-700" /></div>
                                 </div>
                             </div>
                             <div className="flex-1 overflow-hidden p-2 pt-0 space-y-1">
                                 {MO.map((o, i) => (
                                     <div key={o.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${i === 0 ? 'bg-white/60 border-white/80' : 'border-transparent'}`}>
-                                        <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${i === 0 ? 'bg-navy-900 border-navy-900 text-white' : 'bg-white/60 border-white/80 text-navy-900'}`}>
+                                        <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${i === 0 ? 'bg-gradient-to-b from-white to-gray-200 border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900' : 'bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900'}`}>
                                             {o.name[0].toUpperCase()}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -343,8 +343,8 @@ export default function Offers() {
                                     </div>
                                 ))}
                             </div>
-                            </div>
                         </div>
+                    </div>
                 </div>
             </FeatureLock>
         );
@@ -368,12 +368,12 @@ export default function Offers() {
             <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
 
                 {/* ── Left panel: offer list ── */}
-                <div className={`${isFormOpen ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] xl:w-[380px] flex-col z-10 border-r border-white/40 md:border-r-0`}>
+                <div className={`${isFormOpen ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] xl:w-[380px] flex-col z-10 border-r border-white/50 md:border-r-0 bg-white/20`}>
                     <div className="p-4 pb-3">
                         <div className="flex items-center gap-2 h-9">
                             {/* Search bar */}
                             <div className="relative flex-1 h-full">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-navy-900">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-navy-700">
                                     <Search size={14} strokeWidth={2.5} />
                                 </div>
                                 <input
@@ -388,7 +388,7 @@ export default function Offers() {
                             <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
                                 <button
                                     onClick={handleNew}
-                                    className="group h-full flex items-center justify-center gap-0 hover:gap-1.5 px-2 hover:px-3 text-navy-900 text-[11px] font-bold transition-all duration-300 overflow-hidden outline-none rounded-full hover:bg-white/80"
+                                    className="group h-full flex items-center justify-center gap-0 hover:gap-1.5 px-2 hover:px-3 text-navy-700 text-[11px] font-bold transition-all duration-300 overflow-hidden outline-none rounded-full hover:bg-white/80"
                                 >
                                     <Plus size={14} className="shrink-0" />
                                     <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Nueva</span>
@@ -399,7 +399,7 @@ export default function Offers() {
                             <div className="relative">
                                 <button
                                     onClick={() => setShowFilter(!showFilter)}
-                                    className="group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/60 backdrop-blur-card border border-white/90 rounded-full text-navy-900 font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
+                                    className="group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/60 backdrop-blur-card border border-white/90 rounded-full text-navy-700 font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
                                 >
                                     <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0" />
                                     <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[11px]">Filtros</span>
@@ -468,7 +468,7 @@ export default function Offers() {
                         )}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pr-3 pt-0 space-y-1.5">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pr-3 pt-0 flex flex-col gap-1">
                         {filtered.length === 0 && (
                             <div className="px-4 py-8 text-center text-navy-900/40 text-xs font-bold">
                                 {offers.length === 0 ? 'Sin ofertas, creá la primera con +' : 'No se encontraron ofertas'}
@@ -484,19 +484,19 @@ export default function Offers() {
                                 <button
                                     key={offer.id}
                                     onClick={() => handleSelect(offer)}
-                                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 text-left group border ${isSelected
-                                        ? 'bg-white/60 border-white/80'
-                                        : 'hover:bg-white/40 border-transparent hover:border-white/40'
+                                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 text-left group border ${isSelected
+                                        ? 'bg-white/70 shadow-sm border-white/80'
+                                        : 'bg-white/20 border-white/40 hover:bg-white/40 hover:border-white/60'
                                         }`}
                                 >
                                     {/* Avatar inicial */}
-                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border ${isSelected
-                                        ? 'bg-navy-900 border-navy-900 text-white shadow-md shadow-navy-900/10'
-                                        : offer.active
-                                            ? 'bg-white/60 border-white/80 text-navy-900 group-hover:bg-navy-900 group-hover:text-white group-hover:border-navy-900'
-                                            : 'bg-white/30 border-white/40 text-navy-900/30'
+                                    <div className={`w-11 h-11 flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border rounded-full leading-none ${isSelected
+                                            ? 'bg-gradient-to-b from-white to-gray-200 border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900'
+                                            : offer.active
+                                                ? 'bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900 group-hover:to-gray-200 group-hover:border-gray-200'
+                                                : 'bg-white/30 border-white/40 text-navy-900/30'
                                         }`}>
-                                        {(offer.name?.[0] || '?').toUpperCase()}
+                                        <span className="block">{(offer.name?.[0] || '?').toUpperCase()}</span>
                                     </div>
 
                                     <div className="flex-1 min-w-0">
@@ -786,7 +786,7 @@ export default function Offers() {
                         /* Empty state */
                         <div className="flex-1 flex flex-col items-center justify-center text-navy-900/60 p-6 text-center animate-fade-in z-10">
                             <div className="w-16 h-16 rounded-full bg-white/40 backdrop-blur-md border border-white/60 flex items-center justify-center mb-4 shadow-sm">
-                                <Tag size={28} strokeWidth={1.5} className="text-navy-900" />
+                                <Tag size={28} strokeWidth={1.5} className="text-navy-700" />
                             </div>
                             <h3 className="text-lg font-bold text-navy-900 tracking-tight">Gestión de Ofertas</h3>
                             <p className="max-w-[280px] text-xs font-semibold mt-1">

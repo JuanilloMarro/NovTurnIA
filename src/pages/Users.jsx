@@ -100,10 +100,16 @@ export default function Users() {
                                 <button
                                     key={u.id}
                                     onClick={() => setSelectedUser(u)}
-                                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 text-left group border ${isSelected ? 'bg-white/60 border-white/80' : 'hover:bg-white/40 border-transparent hover:border-white/40'}`}
+                                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 text-left group border ${isSelected
+                                            ? 'bg-white/70 shadow-sm border-white/80'
+                                            : 'bg-white/20 border-white/40 hover:bg-white/40 hover:border-white/60'
+                                        }`}
                                 >
-                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border ${isSelected ? 'bg-navy-900 border-navy-900 text-white shadow-md shadow-navy-900/10' : 'bg-white/60 border-white/80 text-navy-900 group-hover:bg-navy-900 group-hover:text-white group-hover:border-navy-900'}`}>
-                                        {getInitials(u.full_name)}
+                                    <div className={`w-11 h-11 flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border rounded-full leading-none ${isSelected
+                                        ? 'bg-gradient-to-b from-white to-gray-200 border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900'
+                                        : 'bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900 group-hover:to-gray-200 group-hover:border-gray-200'
+                                        }`}>
+                                        <span className="block">{getInitials(u.full_name)}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
@@ -314,7 +320,7 @@ export default function Users() {
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-navy-900/60 p-6 text-center animate-fade-in z-10">
                             <div className="w-16 h-16 rounded-full bg-white/40 backdrop-blur-md border border-white/60 flex items-center justify-center mb-4 shadow-sm">
-                                <Shield size={28} strokeWidth={1.5} className="text-navy-900" />
+                                <Shield size={28} strokeWidth={1.5} className="text-navy-700" />
                             </div>
                             <h3 className="text-lg font-bold text-navy-900 tracking-tight">Centro de Control Staff</h3>
                             <p className="max-w-[280px] text-xs font-semibold mt-1">

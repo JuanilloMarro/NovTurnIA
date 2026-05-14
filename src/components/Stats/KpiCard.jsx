@@ -18,14 +18,14 @@ export default function KpiCard({ label, value, change, icon, color = 'navy', in
                 <span className="text-navy-900 font-bold text-[10px] leading-tight pt-[5px]">
                     {label}
                 </span>
-                <div className="w-9 h-9 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 transition-all duration-300 group-hover:scale-110 shadow-sm">
+                <div className="w-9 h-9 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 transition-all duration-300 group-hover:scale-110 shadow-sm">
                     {icon}
                 </div>
             </div>
 
             {/* Bottom Row: Centered Number */}
             <div className="flex items-center justify-center tabular-nums">
-                <span className="text-2xl font-black text-navy-900 tracking-tighter leading-none">
+                <span className="text-2xl font-bold text-navy-900 tracking-tighter leading-none">
                     {value}
                 </span>
             </div>

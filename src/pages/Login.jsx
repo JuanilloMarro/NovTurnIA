@@ -12,7 +12,8 @@ export default function Login() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    if (user) return <Navigate to="/" />;
+    const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
+    if (user) return <Navigate to={SUPER_ADMIN_EMAIL && user.email === SUPER_ADMIN_EMAIL ? '/admin' : '/'} />;
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -44,7 +45,7 @@ export default function Login() {
                 {/* Branding Dental Sistemático */}
                 <div className="flex flex-col items-center mb-16 px-4">
                     <div className="text-center">
-                        <h1 className="text-4xl font-light text-navy-900 tracking-tight text-center">NovTurnIA <span className="font-extrabold text-navy-900">Pro</span></h1>
+                        <h1 className="text-4xl font-light text-navy-900 tracking-tight text-center">NovTurnIA</h1>
                     </div>
                 </div>
 

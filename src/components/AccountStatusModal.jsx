@@ -44,7 +44,7 @@ export default function AccountStatusModal({ status }) {
                     )}
 
                     {/* Icono */}
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 ${isSuspended ? 'bg-amber-100/80' : 'bg-red-100/80'}`}>
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5 ${isSuspended ? 'bg-amber-100/80' : 'bg-red-100/80'}`}>
                         {isSuspended
                             ? <AlertTriangle size={26} className="text-amber-500" strokeWidth={2} />
                             : <Ban size={26} className="text-red-500" strokeWidth={2} />
@@ -52,7 +52,7 @@ export default function AccountStatusModal({ status }) {
                     </div>
 
                     {/* Título */}
-                    <h2 className="text-[17px] font-black text-navy-900 tracking-tight mb-2">
+                    <h2 className="text-[17px] font-bold text-navy-900 tracking-tight mb-2">
                         {isSuspended ? 'Cuenta suspendida' : 'Cuenta cancelada'}
                     </h2>
 
@@ -67,7 +67,7 @@ export default function AccountStatusModal({ status }) {
                     {/* Countdown — solo cancelled */}
                     {isCancelled && (
                         <div className="flex items-center justify-center gap-3 bg-red-50/60 border border-red-100/60 rounded-2xl px-4 py-3 mb-6">
-                            <span className="text-[30px] font-black text-red-500 leading-none">{daysLeft}</span>
+                            <span className="text-[30px] font-bold text-red-500 leading-none">{daysLeft}</span>
                             <span className="text-[11px] text-red-400 text-left leading-tight">días restantes<br />para el borrado de datos</span>
                         </div>
                     )}

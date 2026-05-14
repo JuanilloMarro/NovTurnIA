@@ -34,7 +34,7 @@ export default function Patients() {
             // Not on current page — fetch directly
             getPatientById(patientIdFromUrl)
                 .then(fetched => { if (fetched) setSelectedPatient(fetched); })
-                .catch(() => {})
+                .catch(() => { })
                 .finally(() => setSearchParams({}, { replace: true }));
         }
     }, [patientIdFromUrl, patients, setSearchParams]);
@@ -78,7 +78,7 @@ export default function Patients() {
 
                 <div className="flex items-center gap-2 sm:gap-3 md:h-10 flex-wrap w-full lg:w-auto">
                     <div className="relative w-full sm:w-72 h-10">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700">
                             <Search size={14} strokeWidth={2.5} />
                         </div>
                         <input
@@ -93,7 +93,7 @@ export default function Patients() {
                         <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                             <button
                                 onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
-                                className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                                className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-700 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
                             >
                                 <Plus size={14} className="shrink-0" />
                                 <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Agregar Cliente</span>
@@ -106,7 +106,7 @@ export default function Patients() {
                         <button
                             onClick={() => reload(search, true, 0)}
                             disabled={loading}
-                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 active:scale-95 transition-all duration-300 overflow-hidden disabled:opacity-40"
+                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-700 text-[11px] font-bold shadow-sm hover:bg-white/80 active:scale-95 transition-all duration-300 overflow-hidden disabled:opacity-40"
                         >
                             <RefreshCw size={14} className={`shrink-0 ${loading ? 'animate-spin' : ''}`} />
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
@@ -120,9 +120,9 @@ export default function Patients() {
                                 onClick={exportUnlocked ? handleExport : undefined}
                                 disabled={exporting || !exportUnlocked}
                                 title={exportUnlocked ? '' : 'Exportación de clientes disponible en Enterprise'}
-                                className={`group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50 ${!exportUnlocked ? 'cursor-not-allowed' : ''}`}
+                                className={`group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-700 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50 ${!exportUnlocked ? 'cursor-not-allowed' : ''}`}
                             >
-                                {exportUnlocked ? <Download size={14} className="shrink-0" /> : <Lock size={13} className="shrink-0 text-navy-900" />}
+                                {exportUnlocked ? <Download size={14} className="shrink-0" /> : <Lock size={13} className="shrink-0 text-navy-700" />}
                                 <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
                             </button>
                         </div>
@@ -136,7 +136,7 @@ export default function Patients() {
                                 <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
                                     <button
                                         onClick={() => setShowSort(!showSort)}
-                                        className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
+                                        className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-700 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
                                     >
                                         <SlidersHorizontal size={14} className="shrink-0" />
                                         <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Filtros</span>
@@ -182,7 +182,7 @@ export default function Patients() {
             ) : (
                 <div className="space-y-3 flex-1 overflow-y-auto pr-3 custom-scrollbar pb-10">
                     {patients.map((p, i) => (
-                        <PatientCard key={p.id} patient={p} index={i} onClick={setSelectedPatient} />
+                        <PatientCard key={p.id} patient={p} index={i} onClick={setSelectedPatient} isSelected={selectedPatient?.id === p.id} />
                     ))}
                     {hasMore && (
                         <div className="flex justify-center pt-2 pb-4">

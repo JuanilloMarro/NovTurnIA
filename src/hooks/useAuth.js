@@ -5,6 +5,8 @@ import { getBusinessStatus, getBusinessSchedule, resetServiceCaches } from '../s
 import { clearPlanLimitsCache } from './usePlanLimits';
 import * as Sentry from '@sentry/react';
 
+const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
+
 const setBusinessId   = (id)   => useAppStore.getState().setBusinessId(id);
 const setBusinessName = (name) => useAppStore.getState().setBusinessName(name);
 
@@ -52,6 +54,10 @@ export function useAuth() {
                 .single();
 
             if (profileError || !staffProfile) {
+                if (SUPER_ADMIN_EMAIL && data.user.email === SUPER_ADMIN_EMAIL) {
+                    setAuth(data.user, null);
+                    return;
+                }
                 await supabase.auth.signOut();
                 throw new Error('Usuario no tiene perfil de staff asignado o está desactivado.');
             }
@@ -110,6 +116,8 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
                 if (schedule?.name) setBusinessName(schedule.name);
                 setAuth(session.user, staffProfile);
                 Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
+            } else if (SUPER_ADMIN_EMAIL && session.user.email === SUPER_ADMIN_EMAIL) {
+                setAuth(session.user, null);
             } else {
                 await supabase.auth.signOut();
                 clearAuth();
@@ -166,6 +174,8 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
                 applyBusinessHours(schedule);
                 if (schedule?.name) setBusinessName(schedule.name);
                 setAuth(currentSession.user, profile);
+            } else if (SUPER_ADMIN_EMAIL && currentSession.user.email === SUPER_ADMIN_EMAIL) {
+                setAuth(currentSession.user, null);
             }
         } catch (e) {
             console.error('Error fetching on auth change', e);

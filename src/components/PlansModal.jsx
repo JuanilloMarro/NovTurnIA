@@ -86,7 +86,7 @@ export default function PlansModal({ isOpen, onClose }) {
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar pl-10 pr-8 pt-0 pb-8">
                     <div className="flex flex-col items-center justify-center mb-4">
-                        <h3 className="text-2xl font-black text-navy-900 tracking-tight mb-2 text-center max-w-xl">
+                        <h3 className="text-2xl font-bold text-navy-900 tracking-tight mb-2 text-center max-w-xl">
                             Precios increíbles, diseñados para escalar.
                         </h3>
                         <p className="text-navy-700/60 font-bold text-[13px] text-center max-w-2xl leading-relaxed">
@@ -97,7 +97,7 @@ export default function PlansModal({ isOpen, onClose }) {
                         <div className="mt-6 flex items-center gap-1 bg-navy-900/5 p-1 rounded-2xl border border-navy-900/10">
                             <button
                                 onClick={() => setBillingCycle('monthly')}
-                                className={`px-6 py-1 rounded-xl text-[11px] font-black transition-all duration-300 ${billingCycle === 'monthly'
+                                className={`px-6 py-1 rounded-xl text-[11px] font-bold transition-all duration-300 ${billingCycle === 'monthly'
                                     ? 'bg-navy-900 text-white shadow-lg'
                                     : 'text-navy-900/40 hover:text-navy-900'
                                     }`}
@@ -106,7 +106,7 @@ export default function PlansModal({ isOpen, onClose }) {
                             </button>
                             <button
                                 onClick={() => setBillingCycle('annual')}
-                                className={`px-6 py-1 rounded-xl text-[11px] font-black transition-all duration-300 flex items-center gap-2 ${billingCycle === 'annual'
+                                className={`px-6 py-1 rounded-xl text-[11px] font-bold transition-all duration-300 flex items-center gap-2 ${billingCycle === 'annual'
                                     ? 'bg-navy-900 text-white shadow-lg'
                                     : 'text-navy-900/40 hover:text-navy-900'
                                     }`}
@@ -131,21 +131,21 @@ export default function PlansModal({ isOpen, onClose }) {
                                     <div className="absolute -right-8 -top-8 w-24 h-24 bg-white/5 rounded-full blur-2xl transition-all duration-500 group-hover/card:bg-white/10" />
 
                                     <div className="flex items-center justify-between mb-4 relative z-10">
-                                        <div className="p-2 rounded-xl bg-white/10 flex items-center justify-center">
+                                        <div className="p-2 rounded-full bg-white/10 flex items-center justify-center">
                                             {plan.icon}
                                         </div>
                                         {plan.active && (
-                                            <span className="bg-white/10 text-[8px] font-black px-2 py-0.5 rounded-full border border-white/10">
+                                            <span className="bg-white/10 text-[8px] font-bold px-2 py-0.5 rounded-full border border-white/10">
                                                 Recomendado
                                             </span>
                                         )}
                                     </div>
 
                                     <div className="min-h-[180px] flex flex-col">
-                                        <h4 className="font-black text-2xl mb-1 relative z-10">{plan.title}</h4>
+                                        <h4 className="font-bold text-2xl mb-1 relative z-10">{plan.title}</h4>
                                         <div className="flex flex-col mb-4 relative z-10">
                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-4xl font-black text-white leading-none">Q {price.toLocaleString()}</span>
+                                                <span className="text-4xl font-bold text-white leading-none">Q {price.toLocaleString()}</span>
                                                 <span className="text-[11px] opacity-60 font-bold">/mes</span>
                                             </div>
                                             {billingCycle === 'annual' && (
@@ -162,11 +162,11 @@ export default function PlansModal({ isOpen, onClose }) {
 
                                     <div className="pt-4 border-t border-white/10 relative z-10 flex-1 flex flex-col">
                                         {i > 0 ? (
-                                            <p className="text-[9px] font-black text-white/40 mb-5">
+                                            <p className="text-[9px] font-bold text-white/40 mb-5">
                                                 Todo lo de {plans[i - 1].title} más:
                                             </p>
                                         ) : (
-                                            <p className="text-[9px] font-black text-transparent mb-5 select-none">
+                                            <p className="text-[9px] font-bold text-transparent mb-5 select-none">
                                                 -
                                             </p>
                                         )}
@@ -181,7 +181,7 @@ export default function PlansModal({ isOpen, onClose }) {
 
                                         <button
                                             disabled={currentPlan === plan.id}
-                                            className={`w-full mt-auto py-3 font-black text-[10px] rounded-2xl transition-all relative z-10 backdrop-blur-sm shadow-xl ${currentPlan === plan.id
+                                            className={`w-full mt-auto py-3 font-bold text-[10px] rounded-2xl transition-all relative z-10 backdrop-blur-sm shadow-xl ${currentPlan === plan.id
                                                 ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 cursor-default flex items-center justify-center gap-2'
                                                 : 'bg-white/10 border border-white/20 text-white/90 hover:bg-white hover:text-navy-900 active:scale-95'
                                                 }`}
@@ -202,7 +202,7 @@ export default function PlansModal({ isOpen, onClose }) {
                     <div className="flex justify-center mt-2 mb-8">
                         <button
                             onClick={scrollToDetails}
-                            className="flex items-center gap-2 text-[10px] font-black text-navy-900/30 hover:text-navy-900 hover:translate-y-1 transition-all duration-300 group"
+                            className="flex items-center gap-2 text-[10px] font-bold text-navy-900/30 hover:text-navy-900 hover:translate-y-1 transition-all duration-300 group"
                         >
                             <span>Ver comparativa detallada</span>
                             <ChevronDown size={14} className="transition-transform" />
@@ -336,7 +336,7 @@ export default function PlansModal({ isOpen, onClose }) {
                             title={
                                 <div className="flex items-center gap-2">
                                     Sucursales
-                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-black text-amber-600">
+                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-600">
                                         <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
                                         Próximamente
                                     </span>
@@ -357,7 +357,7 @@ export default function PlansModal({ isOpen, onClose }) {
                             title={
                                 <div className="flex items-center gap-2">
                                     Soporte
-                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest text-amber-600">
+                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold uppercase tracking-widest text-amber-600">
                                         <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
                                         Próximamente
                                     </span>
@@ -395,7 +395,7 @@ function ModuleSection({ title, subtitle, icon, rows }) {
                     {icon}
                 </div>
                 <div>
-                    <h4 className="text-lg font-black text-navy-900 tracking-tight leading-none mb-1">{title}</h4>
+                    <h4 className="text-lg font-bold text-navy-900 tracking-tight leading-none mb-1">{title}</h4>
                     <p className="text-[11px] text-navy-700/50 font-bold">{subtitle}</p>
                 </div>
             </div>
@@ -405,10 +405,10 @@ function ModuleSection({ title, subtitle, icon, rows }) {
                     <table className="w-full text-left border-collapse min-w-[600px]">
                         <thead>
                             <tr className="border-b border-navy-900/5">
-                                <th className="p-6 text-[11px] font-black text-navy-900/40">Característica</th>
-                                <th className="p-6 text-[11px] font-black text-navy-900 text-center">Básico</th>
-                                <th className="p-6 text-[11px] font-black text-navy-900 text-center">Pro</th>
-                                <th className="p-6 text-[11px] font-black text-navy-900 text-center">Enterprise</th>
+                                <th className="p-6 text-[11px] font-bold text-navy-900/40">Característica</th>
+                                <th className="p-6 text-[11px] font-bold text-navy-900 text-center">Básico</th>
+                                <th className="p-6 text-[11px] font-bold text-navy-900 text-center">Pro</th>
+                                <th className="p-6 text-[11px] font-bold text-navy-900 text-center">Enterprise</th>
                             </tr>
                         </thead>
                         <tbody>

@@ -91,7 +91,7 @@ function Card({ title, subtitle, icon, badge, children, minH = '' }) {
                         {icon}
                     </div>
                     <div className="min-w-0 pt-[5px]">
-                        <p className="text-[13px] font-black text-navy-900 leading-none tracking-tight">{title}</p>
+                        <p className="text-[13px] font-bold text-navy-900 leading-none tracking-tight">{title}</p>
                         <p className="text-[10px] font-bold text-navy-900/40 mt-0.5">{subtitle}</p>
                     </div>
                 </div>
@@ -154,10 +154,10 @@ function LTVChart({ data, loading, error }) {
                     <div key={i} className="bg-navy-900/3 rounded-2xl p-3 flex flex-col border border-navy-900/5">
                         <div className="flex items-center justify-between mb-0.5">
                             <div className="flex items-center gap-2 min-w-0">
-                                <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-black text-white shrink-0 shadow-sm" style={{ backgroundColor: SEMAFORO[i % SEMAFORO.length] }}>{i + 1}</span>
-                                <span className="text-[11px] font-black text-navy-900 truncate pr-2">{p.display_name}</span>
+                                <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold text-white shrink-0 shadow-sm" style={{ backgroundColor: SEMAFORO[i % SEMAFORO.length] }}>{i + 1}</span>
+                                <span className="text-[11px] font-bold text-navy-900 truncate pr-2">{p.display_name}</span>
                             </div>
-                            <span className="text-[11px] font-black text-navy-900 shrink-0">{Number(p.total_revenue) > 0 ? formatQ(p.total_revenue) : '–'}</span>
+                            <span className="text-[11px] font-bold text-navy-900 shrink-0">{Number(p.total_revenue) > 0 ? formatQ(p.total_revenue) : '–'}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-[9px] font-bold text-navy-900/40">{p.total_appointments} citas</span>
@@ -194,17 +194,17 @@ function RetentionGauge({ data, loading, error }) {
                     </RadialBarChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-[32px] font-black leading-none" style={{ color }}>{pct}%</span>
+                    <span className="text-[32px] font-bold leading-none" style={{ color }}>{pct}%</span>
                     <span className="text-[10px] font-bold text-navy-900/40 tracking-widest mt-1">Ratio</span>
                 </div>
             </div>
             <div className="w-[55%] flex flex-col gap-3">
                 <div className="bg-navy-900/3 rounded-2xl p-5 flex flex-col border border-navy-900/5">
-                    <span className="text-2xl font-black text-navy-900 leading-none">{retained}</span>
+                    <span className="text-2xl font-bold text-navy-900 leading-none">{retained}</span>
                     <span className="text-[11px] font-bold text-navy-900/40 mt-1">Retornaron</span>
                 </div>
                 <div className="bg-navy-900/3 rounded-2xl p-5 flex flex-col border border-navy-900/5">
-                    <span className="text-2xl font-black text-navy-900 leading-none">{total}</span>
+                    <span className="text-2xl font-bold text-navy-900 leading-none">{total}</span>
                     <span className="text-[11px] font-bold text-navy-900/40 mt-1">Activos</span>
                 </div>
             </div>
@@ -247,11 +247,11 @@ function ServiceTreemap({ data, loading, error, ownServices = [] }) {
                     <div key={i} className="flex flex-col gap-1.5">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 min-w-0">
-                                <span className="w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-black text-white shadow-sm" style={{ backgroundColor: color }}>{i + 1}</span>
-                                <span className="text-[11px] font-black text-navy-900 truncate">{s.service_name}</span>
+                                <span className="w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-bold text-white shadow-sm" style={{ backgroundColor: color }}>{i + 1}</span>
+                                <span className="text-[11px] font-bold text-navy-900 truncate">{s.service_name}</span>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 ml-2">
-                                <span className="text-[11px] font-black text-navy-900">{hasData ? formatQ(s.total_revenue) : '–'}</span>
+                                <span className="text-[11px] font-bold text-navy-900">{hasData ? formatQ(s.total_revenue) : '–'}</span>
                                 {hasData && <span className="text-[10px] font-bold text-navy-900/30">{s.pct_of_total}%</span>}
                             </div>
                         </div>
@@ -291,9 +291,9 @@ function PredictionRadar({ data, loading, error }) {
             <div className="w-[55%] flex flex-col gap-2">
                 {top3.map((d, i) => (
                     <div key={i} className="bg-navy-900/3 rounded-2xl p-3.5 flex items-center justify-between border border-navy-900/5">
-                        <span className="text-[11px] font-black text-navy-900/40">{d.day_label}</span>
+                        <span className="text-[11px] font-bold text-navy-900/40">{d.day_label}</span>
                         <div className="text-right">
-                            <span className="text-xl font-black text-navy-900 block leading-none">{d.avg_appointments}</span>
+                            <span className="text-xl font-bold text-navy-900 block leading-none">{d.avg_appointments}</span>
                             <span className="text-[9px] font-bold text-navy-900/20 tracking-tighter mt-1 block">citas/sem</span>
                         </div>
                     </div>
@@ -316,7 +316,7 @@ export function StatsIntelligence({ period = 'month', anchorDate = new Date() })
     const predictionBadge = prediction.data?.some(d => !d.has_sufficient_data) ? (
         <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50 border border-amber-100 shrink-0">
             <AlertCircle size={10} className="text-amber-600" />
-            <span className="text-[8px] font-black text-amber-600 tracking-tighter">Datos insuficientes</span>
+            <span className="text-[8px] font-bold text-amber-600 tracking-tighter">Datos insuficientes</span>
         </div>
     ) : null;
 

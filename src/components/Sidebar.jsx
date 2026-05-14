@@ -33,8 +33,8 @@ export default function Sidebar({ onOpenPlans }) {
         if (window.innerWidth < 768) toggleSidebar();
     };
 
-    const activeClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/50 backdrop-blur-md shadow-sm text-navy-900 font-bold text-[13px] tracking-wide transition-all';
-    const normalClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl text-navy-900/40 hover:bg-white/30 hover:text-navy-900 text-[13px] font-bold transition-all duration-300';
+    const activeClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/50 backdrop-blur-md shadow-sm text-navy-700 font-bold text-[13px] tracking-wide transition-all';
+    const normalClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl text-navy-700/40 hover:bg-white/30 hover:text-navy-700 text-[13px] font-bold transition-all duration-300';
 
     return (
         <>

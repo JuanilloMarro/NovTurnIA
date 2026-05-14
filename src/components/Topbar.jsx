@@ -24,7 +24,7 @@ function RoleBadge({ roleName }) {
     const label = match?.label || roleName || 'Staff';
     const color = match?.color || 'bg-gray-100 text-gray-700';
     return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black capitalize tracking-wide ${color}`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold capitalize tracking-wide ${color}`}>
             {label}
         </span>
     );
@@ -87,7 +87,7 @@ export default function Topbar() {
                         >
                             <Bell size={16} />
                             {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white shadow-sm ring-2 ring-white animate-pulse">
+                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
                                     {unreadCount}
                                 </span>
                             )}
@@ -136,10 +136,10 @@ export default function Topbar() {
 
                             {/* Info del usuario */}
                             <div className="px-4 pt-4 pb-3 flex flex-col items-center text-center gap-1.5">
-                                <div className="w-14 h-14 rounded-full bg-navy-900 flex items-center justify-center text-white font-black text-xl shadow-md mb-0.5">
+                                <div className="w-14 h-14 rounded-full bg-navy-900 flex items-center justify-center text-white font-bold text-xl shadow-md mb-0.5">
                                     {getInitials(profile?.full_name || profile?.display_name)}
                                 </div>
-                                <p className="font-black text-navy-900 text-sm leading-tight truncate max-w-full">
+                                <p className="font-bold text-navy-900 text-sm leading-tight truncate max-w-full">
                                     {profile?.full_name || 'Usuario'}
                                 </p>
                                 {profile?.email && (
@@ -161,7 +161,7 @@ export default function Topbar() {
 
                             {/* Tema */}
                             <div className="px-2 py-2">
-                                <p className="text-[9px] font-black text-navy-800/40 capitalize tracking-widest px-2 mb-1">Apariencia</p>
+                                <p className="text-[9px] font-bold text-navy-800/40 capitalize tracking-widest px-2 mb-1">Apariencia</p>
                                 <div className="flex gap-1">
                                     {themeOptions.map(opt => (
                                         <button

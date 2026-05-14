@@ -93,8 +93,8 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
             {/* 1. Información del Cliente y Título (FIJA) */}
             <div className="px-6 pb-2">
                 <div className="flex items-center gap-3 mb-6 px-1">
-                    <div className="w-12 h-12 rounded-full bg-navy-900 flex items-center justify-center text-white text-base font-bold shadow-md border border-white/20">
-                        {getInitials(name)}
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 border leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900 text-base font-bold">
+                        <span className="block translate-y-[1px] translate-x-[1px]">{getInitials(name)}</span>
                     </div>
                     <div className="overflow-hidden">
                         <div className="font-bold text-navy-900 text-base truncate">{name}</div>
@@ -185,7 +185,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                             onClose();
                             navigate(`/conversations?patient=${patient.id}`);
                         }}
-                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-700 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
                     >
                         <MessageCircle size={14} className="shrink-0" />
                         <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Chat</span>
@@ -226,7 +226,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                     {/* 3. Editar */}
                     <button
                         onClick={() => setShowEdit(true)}
-                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-700 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
                     >
                         <Pencil size={14} className="shrink-0" />
                         <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Editar</span>

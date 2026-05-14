@@ -112,8 +112,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     {/* Cliente hero */}
                     {/* Cliente hero */}
                     <div className="flex items-center gap-3 mb-6 px-1">
-                        <div className="w-12 h-12 rounded-full bg-navy-900 flex items-center justify-center text-white text-base font-bold border border-white/20 shadow-md">
-                            {getInitials(patients?.display_name)}
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 border leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900 text-base font-bold">
+                            <span className="block translate-y-[1px] translate-x-[1px]">{getInitials(patients?.display_name)}</span>
                         </div>
                         <div className="overflow-hidden">
                             <div className="font-bold text-navy-900 text-base truncate flex items-center gap-2">
@@ -160,8 +160,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
 
                             <div className="space-y-4">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center shrink-0">
-                                        <CalendarIcon size={18} />
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900">
+                                        <CalendarIcon size={18} className="translate-y-[1px] translate-x-[1px]" />
                                     </div>
                                     <div className="pt-0.5">
                                         <div className="text-xs font-semibold text-gray-400 mb-0.5">Fecha</div>
@@ -175,8 +175,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                                 <div className="w-full border-b border-dashed border-gray-200 ml-[56px] w-[calc(100%-56px)]"></div>
 
                                 <div className="flex items-start gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center shrink-0">
-                                        <Clock size={18} />
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900">
+                                        <Clock size={18} className="translate-y-[1px] translate-x-[1px]" />
                                     </div>
                                     <div className="pt-0.5">
                                         <div className="text-xs font-semibold text-gray-400 mb-0.5">Horario</div>
@@ -193,8 +193,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                                     <>
                                         <div className="border-b border-dashed border-gray-200 ml-[56px]" />
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-navy-50 text-navy-700 flex items-center justify-center shrink-0">
-                                                <Tag size={18} />
+                                            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900">
+                                                <Tag size={18} className="translate-y-[1px] translate-x-[1px]" />
                                             </div>
                                             <div className="pt-0.5">
                                                 <div className="text-xs font-semibold text-gray-400 mb-0.5">Servicio</div>

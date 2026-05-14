@@ -201,12 +201,12 @@ export default function Conversations() {
 
             <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
                 {/* Left Panel: Contacts — en mobile se oculta cuando hay un paciente seleccionado */}
-                <div className={`${selectedPatient ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] flex-col z-10 border-r border-white/40 md:border-r-0`}>
+                <div className={`${selectedPatient ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] flex-col z-10 border-r border-white/50 md:border-r-0 bg-white/20`}>
                     <div className="p-4 pb-3 space-y-2">
                         {/* Barra búsqueda + botón filtro */}
                         <div className="flex items-center gap-2">
                             <div className="relative h-10 flex-1">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-900">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700">
                                     <Search size={14} strokeWidth={2.5} />
                                 </div>
                                 <input
@@ -220,7 +220,7 @@ export default function Conversations() {
                             <div className="relative" ref={filterRef}>
                                 <button
                                     onClick={() => setShowFilter(v => !v)}
-                                    className="group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/60 backdrop-blur-card border border-white/90 rounded-full text-navy-900 font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
+                                    className="group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/60 backdrop-blur-card border border-white/90 rounded-full text-navy-700 font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
                                 >
                                     <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0" />
                                     <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[11px]">Filtros</span>
@@ -279,10 +279,10 @@ export default function Conversations() {
                         )}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pr-3 pt-0 space-y-1">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pr-3 pt-0 flex flex-col gap-1">
                         {filteredPatients.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                                <SlidersHorizontal size={22} strokeWidth={1.5} className="text-navy-900/30 mb-2" />
+                                <SlidersHorizontal size={22} strokeWidth={1.5} className="text-navy-700/30 mb-2" />
                                 <p className="text-xs font-bold text-navy-900/50">Sin resultados</p>
                                 <p className="text-[11px] font-semibold text-navy-700/40 mt-0.5">
                                     {isFiltering ? 'Prueba otro filtro' : 'No hay clientes que coincidan'}
@@ -297,8 +297,12 @@ export default function Conversations() {
                                     onClick={() => setSelectedPatient(p)}
                                     className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left group ${isSelected ? 'bg-white/60 border border-white/80 shadow-sm' : 'hover:bg-white/40 border border-transparent'}`}
                                 >
-                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border ${isSelected ? 'bg-navy-900 border-navy-900 text-white shadow-md' : 'bg-white border-white/60 text-navy-900 group-hover:bg-navy-900 group-hover:text-white group-hover:border-navy-900 shadow-sm'}`}>
-                                        {getInitials(name)}
+                                    <div className={`w-11 h-11 flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border rounded-full leading-none ${
+                                        isSelected
+                                        ? 'bg-gradient-to-b from-white to-gray-200 border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900'
+                                        : 'bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900 group-hover:to-gray-200 group-hover:border-gray-200'
+                                        }`}>
+                                        <span className="block">{getInitials(name)}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className={`font-bold text-sm truncate ${isSelected ? 'text-navy-900' : 'text-navy-900/80'}`}>{name}</div>
@@ -330,8 +334,8 @@ export default function Conversations() {
                                     >
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                                     </button>
-                                    <div className="w-11 h-11 rounded-full bg-white border border-white/60 flex items-center justify-center text-navy-900 text-xs font-bold shadow-sm">
-                                        {getInitials(selectedPatient.display_name)}
+                                    <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 border leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900 text-xs font-bold">
+                                        <span className="block translate-y-[1px] translate-x-[1px]">{getInitials(selectedPatient.display_name)}</span>
                                     </div>
                                     <div>
                                         <div className="font-bold text-navy-900 text-sm">{selectedPatient.display_name || 'Sin nombre'}</div>
@@ -368,7 +372,7 @@ export default function Conversations() {
                                     </div>
                                 ) : history.length === 0 ? (
                                     <div className="absolute inset-0 flex items-center justify-center flex-col text-navy-400">
-                                        <MessageCircle size={32} strokeWidth={1.5} className="mb-3 opacity-30 text-navy-900" />
+                                        <MessageCircle size={32} strokeWidth={1.5} className="mb-3 opacity-30 text-navy-700" />
                                         <p className="font-bold text-sm text-navy-900/60">No hay mensajes anteriores</p>
                                     </div>
                                 ) : (
@@ -408,7 +412,7 @@ export default function Conversations() {
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center bg-transparent z-10">
                             <div className="w-16 h-16 rounded-full bg-white/40 backdrop-blur-md border border-white/60 shadow-sm flex items-center justify-center mb-4">
-                                <MessageCircle size={28} strokeWidth={1.5} className="text-navy-900/60" />
+                                <MessageCircle size={28} strokeWidth={1.5} className="text-navy-700/60" />
                             </div>
                             <h3 className="text-lg font-bold text-navy-900 tracking-tight">Tus conversaciones</h3>
                             <p className="text-xs font-semibold text-navy-700/60 mt-1">Selecciona un cliente para ver su historial</p>

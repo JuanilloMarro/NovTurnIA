@@ -3,7 +3,7 @@ import { supabase } from '../config/supabase';
 import { showTenantNewToast, showValidationToast, showErrorToast } from '../store/useToastStore';
 import { Building2, User, Lock, Globe, Clock } from 'lucide-react';
 
-const PLANS = ['starter', 'pro', 'enterprise'];
+const PLANS = ['basic', 'pro', 'enterprise'];
 const TIMEZONES = [
     'America/Guatemala', 'America/Mexico_City', 'America/Bogota',
     'America/Lima', 'America/Santiago', 'America/Argentina/Buenos_Aires',
@@ -26,7 +26,7 @@ export default function AdminOnboarding() {
         admin_email: '',
         admin_name: '',
         admin_password: '',
-        plan: 'starter',
+        plan: 'basic',
         timezone: 'America/Guatemala',
         schedule_start: '09:00',
         schedule_end: '18:00',

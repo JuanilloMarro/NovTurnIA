@@ -20,6 +20,7 @@ const Stats = lazy(() => import('./pages/Stats'));
 const Users = lazy(() => import('./pages/Users'));
 const AuditLog = lazy(() => import('./pages/AuditLog'));
 const AdminOnboarding = lazy(() => import('./pages/AdminOnboarding'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Offers = lazy(() => import('./pages/Offers'));
 const BusinessSettings = lazy(() => import('./pages/BusinessSettings'));
@@ -57,7 +58,9 @@ const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
 export default function App() {
     const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus, profile, isPlansOpen, openPlans, closePlans } = useAppStore();
     const { canViewStats, canManageRoles, canManageServices } = usePermissions();
-    const isSuperAdmin = SUPER_ADMIN_EMAIL && profile?.email === SUPER_ADMIN_EMAIL;
+    const { user } = useAuth();
+    // Usa el email del usuario de auth — no requiere registro en staff_users
+    const isSuperAdmin = SUPER_ADMIN_EMAIL && user?.email === SUPER_ADMIN_EMAIL;
     const location = useLocation();
 
     useEffect(() => {
@@ -79,6 +82,19 @@ export default function App() {
             <Suspense fallback={null}>
                 <Routes>
                     <Route path="/login" element={<Login />} />
+
+                    {/* Admin panel: standalone layout, no sidebar, no staff_users needed */}
+                    <Route path="/admin" element={
+                        <ProtectedRoute>
+                            <Suspense fallback={
+                                <div className="min-h-screen bg-[#F4F5F9] flex items-center justify-center">
+                                    <div className="w-10 h-10 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+                                </div>
+                            }>
+                                {isSuperAdmin ? <AdminPanel /> : <Navigate to="/" replace />}
+                            </Suspense>
+                        </ProtectedRoute>
+                    } />
 
                     <Route path="/*" element={
                         <ProtectedRoute>
