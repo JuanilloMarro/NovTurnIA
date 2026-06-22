@@ -11,9 +11,15 @@
       "Bash(xargs grep *)",
       "mcp__claude_ai_Supabase__list_projects",
       "WebFetch(domain:nov-turn-ia.vercel.app)",
-      "mcp__supabase__list_tables",
-      "mcp__supabase__list_edge_functions",
-      "mcp__supabase__deploy_edge_function"
+      "mcp__f3c71feb-d9d2-49b4-80ae-986f994028b6__list_projects",
+      "mcp__f3c71feb-d9d2-49b4-80ae-986f994028b6__list_tables",
+      "Bash(git fetch *)",
+      "Bash(git stash *)",
+      "Bash(git pull *)",
+      "Bash(git --no-pager diff .claude/settings.local.json)",
+      "Bash(git --no-pager diff dist/index.html)",
+      "Bash(git checkout *)",
+      "Bash(git add *)"
     ]
   },
   "enableAllProjectMcpServers": true,

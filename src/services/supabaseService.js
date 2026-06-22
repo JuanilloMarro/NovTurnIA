@@ -566,6 +566,43 @@ export async function setHumanTakeover(patientId, value) {
     if (error) throw error;
 }
 
+/**
+ * Envía un mensaje humano (agente) a un paciente vía la Edge Function
+ * `wa-human-reply` de Supabase. La función valida el JWT, deriva el business_id
+ * del staff (anti cross-tenant), envía por la Cloud API del tenant y es el único
+ * escritor de `history` (acá NO insertamos para evitar duplicados).
+ *
+ * El JWT de Supabase se adjunta automáticamente por `functions.invoke`.
+ *
+ * @returns {Promise<{ ok: boolean, code?: string }>} code='WINDOW_EXPIRED' cuando
+ *   la ventana de 24h de WhatsApp ya cerró (el cliente debe escribir primero).
+ * @throws si el mensaje está vacío o la función responde un error no mapeado.
+ */
+export async function sendHumanMessage(patientId, text) {
+    const body = (text || '').trim();
+    if (!body) throw new Error('El mensaje está vacío.');
+
+    const { error } = await supabase.functions.invoke('wa-human-reply', {
+        body: { patient_id: patientId, text: body },
+    });
+
+    if (error) {
+        // supabase-js expone la Response cruda en error.context para status 4xx/5xx
+        let payload = null;
+        if (error.context && typeof error.context.json === 'function') {
+            try { payload = await error.context.json(); } catch { /* sin JSON */ }
+        }
+        const code = payload?.code || payload?.error || null;
+        // 409 / code WINDOW_EXPIRED cuando pasó la ventana de 24h
+        if (code === 'WINDOW_EXPIRED') {
+            return { ok: false, code: 'WINDOW_EXPIRED' };
+        }
+        throw new Error(payload?.error || payload?.message || 'No se pudo enviar el mensaje.');
+    }
+
+    return { ok: true };
+}
+
 export async function createPatient({ display_name, phone }) {
     // T-28: RPC atómica — patient + patient_phones en una sola transacción Postgres.
     // Si el INSERT de patient_phones falla, el INSERT de patients se revierte automáticamente.
