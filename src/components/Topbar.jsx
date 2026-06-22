@@ -80,14 +80,19 @@ export default function Topbar() {
 
                 {/* ── Notificaciones ─────────────────────────────────── */}
                 <div className="relative" ref={notifRef}>
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-11">
+                    <div className="relative flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-11">
+                        {/* Capa de glows recortada al borde de la píldora — el badge queda fuera de este recorte */}
+                        <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                        </div>
                         <button
                             onClick={handleBellClick}
-                            className="relative w-9 h-9 rounded-full bg-white border border-white/80 hover:bg-white/80 shadow-sm hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 font-bold"
+                            className="relative z-10 w-9 h-9 rounded-full bg-white/60 backdrop-blur-sm border border-white/80 hover:bg-white/80 shadow-md hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 font-bold"
                         >
                             <Bell size={16} />
                             {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
+                                <span className="absolute -top-1 -right-1 z-20 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
                                     {unreadCount}
                                 </span>
                             )}
@@ -96,13 +101,17 @@ export default function Topbar() {
 
                     {showNotif && (
                         <div className="fixed md:absolute top-[64px] md:top-14 left-2 right-2 md:left-auto md:right-0 md:w-[440px] bg-white/90 md:bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 p-3 animate-fade-up z-[110] overflow-hidden">
-                            <div className="flex justify-between items-center mb-3 px-3 pt-1">
+                            <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+                            <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+                            <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="relative z-10 flex justify-between items-center mb-3 px-3 pt-1">
                                 <h3 className="font-bold text-navy-900 text-base">Actividad</h3>
                                 <div className="flex gap-3">
                                 </div>
                             </div>
 
-                            <div className="max-h-[440px] overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+                            <div className="relative z-10 max-h-[440px] overflow-y-auto space-y-3 custom-scrollbar px-1.5 py-1.5">
                                 {activityLog.length === 0 ? (
                                     <div className="text-center text-navy-800/60 py-8 text-xs font-bold">Sin actividad reciente</div>
                                 ) : (
@@ -242,13 +251,15 @@ function NotifCard({ entry, onMarkRead, onMarkUnread, onDelete }) {
                                                     : (entry.title?.[0] || '?');
 
     return (
-        <div className={`group relative flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-default ${entry.read
-            ? 'bg-white/10 border-white/20 hover:bg-white/15'
-            : 'bg-white border-white shadow-sm ring-1 ring-black/5 hover:bg-white/95'
+        <div className={`group relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl border backdrop-blur-2xl shadow-md transition-all duration-300 cursor-default ${entry.read
+            ? 'bg-white/40 border-white/60 hover:bg-white/50'
+            : 'bg-white/60 border-white/80 hover:bg-white/70'
             }`}>
+            <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+            <div className="absolute -bottom-5 -left-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
 
             {/* Contenido con Opacidad si está leído */}
-            <div className={`flex flex-1 items-center gap-3 min-w-0 ${entry.read ? 'opacity-40' : 'opacity-100'}`}>
+            <div className={`relative z-10 flex flex-1 items-center gap-3 min-w-0 ${entry.read ? 'opacity-40' : 'opacity-100'}`}>
                 {/* Dot de color + icono */}
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm border border-white/30 text-sm leading-none ${dotColor} ${!entry.read ? 'shadow-md' : ''}`}>
                     {dotIcon}
@@ -281,7 +292,7 @@ function NotifCard({ entry, onMarkRead, onMarkUnread, onDelete }) {
             </div>
 
             {/* Acciones — SIEMPRE OPACAS en hover */}
-            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10">
+            <div className="relative z-10 flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                 {entry.read ? (
                     <button
                         onClick={(e) => { e.stopPropagation(); onMarkUnread(); }}

@@ -84,8 +84,12 @@ function SectionError({ message }) {
 // ── Card wrapper con Badge en esquina superior derecha ──
 function Card({ title, subtitle, icon, badge, children, minH = '' }) {
     return (
-        <div className={`bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] px-6 py-[22px] flex flex-col gap-[12px] relative ${minH}`}>
-            <div className="flex items-center justify-between shrink-0">
+        <div className={`relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md px-6 py-[22px] flex flex-col gap-[12px] ${minH}`}>
+            <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+            <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+            <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+            <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+            <div className="relative z-10 flex items-center justify-between shrink-0">
                 <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
                         {icon}
@@ -97,7 +101,7 @@ function Card({ title, subtitle, icon, badge, children, minH = '' }) {
                 </div>
                 {badge && <div className="shrink-0">{badge}</div>}
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="relative z-10 flex-1 min-h-0">
                 {children}
             </div>
         </div>
@@ -320,7 +324,7 @@ export function StatsIntelligence({ period = 'month', anchorDate = new Date() })
         </div>
     ) : null;
 
-    const GRID = "grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-3 px-1";
+    const GRID = "grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-2 px-1";
     const CARD_MIN = "min-h-[300px] lg:min-h-0";
 
     if (!unlocked) {
@@ -345,7 +349,7 @@ export function StatsIntelligence({ period = 'month', anchorDate = new Date() })
     }
 
     return (
-        <div className={`${GRID} pb-4 lg:pb-0 lg:h-full`}>
+        <div className={`${GRID} pb-4 lg:pb-2 lg:h-full`}>
             <Card title="Valor de vida paciente" subtitle={`LTV · ${label}`} icon={<TrendingUp size={18} />} minH={CARD_MIN}>
                 <LTVChart data={ltv.data} loading={ltv.loading} error={ltv.error} />
             </Card>

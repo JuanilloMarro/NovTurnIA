@@ -71,7 +71,7 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
     return (
         <div className="h-full flex flex-col min-h-0 w-full pt-2 transition-all duration-300">
             {/* Scrollable list */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar pb-10 space-y-2 pr-3">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pb-10 space-y-3 px-2">
                 {loading ? (
                     Array(4).fill(0).map((_, i) => (
                         <div key={i} className="animate-shimmer h-[76px] rounded-2xl bg-white/40 w-full" />
@@ -103,10 +103,12 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
                             <div
                                 key={apt.id}
                                 onClick={() => onAppointmentSelected?.(apt)}
-                                className="group bg-white/40 backdrop-blur-sm border border-white/60 rounded-2xl p-4 hover:bg-white/60 transition-all duration-300 cursor-pointer animate-fade-up shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                                className="group relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl p-4 hover:bg-white/60 transition-all duration-300 cursor-pointer animate-fade-up shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4"
                                 style={{ animationDelay: `${index * 0.04}s` }}
                             >
-                                <div className="flex items-center gap-3.5">
+                                <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -bottom-5 -left-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                <div className="flex items-center gap-3.5 relative z-10">
                                     {/* Icon Avatar matching Activity Log */}
                                     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${iconBg}`}>
                                         <Icon size={16} strokeWidth={2.5} />
@@ -134,9 +136,11 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex items-center justify-end gap-2 shrink-0">
-                                    <div className="hidden md:flex items-center justify-center w-8 h-8 rounded-full border border-white/60 bg-white/40 text-navy-700 group-hover:bg-white group-hover:scale-105 transition-all shadow-sm">
-                                        <ChevronRight size={16} />
+                                <div className="flex items-center justify-end gap-2 shrink-0 relative z-10">
+                                    <div className="relative overflow-hidden hidden md:flex items-center justify-center w-8 h-8 rounded-full border border-white/60 bg-white/40 backdrop-blur-2xl text-navy-700 group-hover:bg-white group-hover:scale-105 transition-all shadow-md">
+                                        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                        <ChevronRight size={16} className="relative z-10" />
                                     </div>
                                 </div>
                             </div>

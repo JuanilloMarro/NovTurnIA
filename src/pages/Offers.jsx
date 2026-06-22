@@ -6,6 +6,8 @@ import { useServices } from '../hooks/useServices';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import FeatureLock from '../components/FeatureLock';
 import WheelColumn from '../components/ui/WheelColumn';
+import WheelRow from '../components/ui/WheelRow';
+import { MiniCard } from '../components/conversations/ContextSidebar';
 import { showOfferNewToast, showOfferEditToast, showOfferDeleteToast, showOfferActivateToast, showOfferDeactivateToast, showErrorToast } from '../store/useToastStore';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -152,7 +154,7 @@ export default function Offers() {
 
     function handleNew() {
         setSelectedId('new');
-        setForm(EMPTY_FORM);
+        setForm({ ...EMPTY_FORM, service_id: services[0]?.id ?? null });
     }
 
     function handleReuse(offer) {
@@ -285,7 +287,7 @@ export default function Offers() {
                         </div>
                     </div>
                     {/* Card principal igual al módulo real */}
-                    <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4">
+                    <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex overflow-hidden mb-4">
                         {/* Panel izquierdo — lista */}
                         <div className="w-[360px] shrink-0 flex flex-col border-r border-white/40">
                             <div className="p-4 pb-3">
@@ -365,19 +367,27 @@ export default function Offers() {
             </div>
 
             {/* Main card */}
-            <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
+            <div className="relative flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
+                <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+                <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+                <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
 
                 {/* ── Left panel: offer list ── */}
-                <div className={`${isFormOpen ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] xl:w-[380px] flex-col z-10 border-r border-white/50 md:border-r-0 bg-white/20`}>
+                <div className={`${isFormOpen ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] xl:w-[380px] flex-col z-10`}>
                     <div className="p-4 pb-3">
                         <div className="flex items-center gap-2 h-9">
                             {/* Search bar */}
                             <div className="relative flex-1 h-full">
+                                <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -top-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(29,95,173,0.05)' }} />
+                                <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-navy-700">
                                     <Search size={14} strokeWidth={2.5} />
                                 </div>
                                 <input
-                                    className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full pl-9 pr-3 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-sm"
+                                    className="w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-md"
                                     placeholder="Buscar oferta..."
                                     value={searchStr}
                                     onChange={e => setSearchStr(e.target.value)}
@@ -385,74 +395,81 @@ export default function Offers() {
                             </div>
 
                             {/* New Button */}
-                            <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
-                                <button
-                                    onClick={handleNew}
-                                    className="group h-full flex items-center justify-center gap-0 hover:gap-1.5 px-2 hover:px-3 text-navy-700 text-[11px] font-bold transition-all duration-300 overflow-hidden outline-none rounded-full hover:bg-white/80"
-                                >
-                                    <Plus size={14} className="shrink-0" />
-                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Nueva</span>
-                                </button>
-                            </div>
+                            <button
+                                onClick={handleNew}
+                                className="relative overflow-hidden group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                            >
+                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                <Plus size={14} className="shrink-0 relative z-10" />
+                                <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap relative z-10">Nueva</span>
+                            </button>
 
                             {/* Filters */}
                             <div className="relative">
                                 <button
                                     onClick={() => setShowFilter(!showFilter)}
-                                    className="group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/60 backdrop-blur-card border border-white/90 rounded-full text-navy-700 font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
+                                    className="relative overflow-hidden group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
                                 >
-                                    <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0" />
-                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[11px]">Filtros</span>
+                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                    <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0 relative z-10" />
+                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[11px] relative z-10">Filtros</span>
                                 </button>
                                 {showFilter && (
-                                    <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 rounded-3xl shadow-[0_8px_32px_rgba(26,58,107,0.16),0_2px_8px_rgba(0,0,0,0.06)] z-50 p-2 animate-fade-up">
-                                        <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
-                                            <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
-                                            {isFiltering && (
-                                                <button
-                                                    onClick={() => { setSearchStr(''); setFilterStatus('all'); setSortOrder('recent'); setShowFilter(false); }}
-                                                    className="text-[10px] font-bold text-rose-500 hover:text-rose-600"
+                                    <div className="overflow-hidden absolute right-0 top-full mt-2 w-52 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-50 p-2 animate-fade-up">
+                                        <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="absolute -top-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(29,95,173,0.05)' }} />
+                                        <div className="absolute -bottom-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
+                                        <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="relative z-10">
+                                            <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-white/20">
+                                                <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
+                                                {isFiltering && (
+                                                    <button
+                                                        onClick={() => { setSearchStr(''); setFilterStatus('all'); setSortOrder('recent'); setShowFilter(false); }}
+                                                        className="text-[10px] font-bold text-rose-500 hover:text-rose-600"
+                                                    >
+                                                        Limpiar
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="px-2 pt-1 pb-0.5">
+                                                <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Estado</span>
+                                            </div>
+                                            {[
+                                                { id: 'all', label: 'Todas' },
+                                                { id: 'active', label: 'Activas' },
+                                                { id: 'scheduled', label: 'Programadas' },
+                                                { id: 'expired', label: 'Expiradas' }
+                                            ].map(opt => (
+                                                <div
+                                                    key={opt.id}
+                                                    onClick={() => { setFilterStatus(opt.id); }}
+                                                    className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterStatus === opt.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
                                                 >
-                                                    Limpiar
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="px-2 pt-2 pb-1">
-                                            <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Estado</span>
-                                        </div>
-                                        {[
-                                            { id: 'all', label: 'Todas' },
-                                            { id: 'active', label: 'Activas' },
-                                            { id: 'scheduled', label: 'Programadas' },
-                                            { id: 'expired', label: 'Expiradas' }
-                                        ].map(opt => (
-                                            <div
-                                                key={opt.id}
-                                                onClick={() => { setFilterStatus(opt.id); }}
-                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterStatus === opt.id ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
-                                            >
-                                                {opt.label}
+                                                    {opt.label}
+                                                </div>
+                                            ))}
+                                            <div className="border-t border-white/20 mt-1 pt-1">
+                                                <div className="px-2 pt-1 pb-0.5">
+                                                    <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Orden</span>
+                                                </div>
                                             </div>
-                                        ))}
-
-                                        <div className="border-t border-gray-100 mt-1 pt-1">
-                                            <div className="px-2 pt-1 pb-1">
-                                                <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Orden</span>
-                                            </div>
+                                            {[
+                                                { id: 'recent', label: 'Más recientes' },
+                                                { id: 'a-z', label: 'De la A-Z' },
+                                                { id: 'z-a', label: 'De la Z-A' }
+                                            ].map(opt => (
+                                                <div
+                                                    key={opt.id}
+                                                    onClick={() => { setSortOrder(opt.id); setShowFilter(false); }}
+                                                    className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
+                                                >
+                                                    {opt.label}
+                                                </div>
+                                            ))}
                                         </div>
-                                        {[
-                                            { id: 'recent', label: 'Más recientes' },
-                                            { id: 'a-z', label: 'De la A-Z' },
-                                            { id: 'z-a', label: 'De la Z-A' }
-                                        ].map(opt => (
-                                            <div
-                                                key={opt.id}
-                                                onClick={() => { setSortOrder(opt.id); setShowFilter(false); }}
-                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
-                                            >
-                                                {opt.label}
-                                            </div>
-                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -484,11 +501,15 @@ export default function Offers() {
                                 <button
                                     key={offer.id}
                                     onClick={() => handleSelect(offer)}
-                                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 text-left group border ${isSelected
-                                        ? 'bg-white/70 shadow-sm border-white/80'
-                                        : 'bg-white/20 border-white/40 hover:bg-white/40 hover:border-white/60'
+                                    className={`relative w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 text-left group border overflow-hidden ${isSelected
+                                        ? 'bg-white/40 backdrop-blur-2xl border-white/60 shadow-md'
+                                        : 'border-transparent hover:bg-white/30'
                                         }`}
                                 >
+                                    {isSelected && <>
+                                        <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="absolute -bottom-5 -left-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                    </>}
                                     {/* Avatar inicial */}
                                     <div className={`w-11 h-11 flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border rounded-full leading-none ${isSelected
                                             ? 'bg-gradient-to-b from-white to-gray-200 border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900'
@@ -577,12 +598,23 @@ export default function Offers() {
                                         <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
                                             Servicio
                                         </label>
-                                        <div className="bg-white/30 border border-white/60 rounded-[24px] overflow-hidden shadow-sm">
-                                            <WheelColumn
+                                        <div className="py-1">
+                                            <WheelRow
                                                 items={services}
                                                 selected={services.find(s => s.id === form.service_id)}
-                                                displayFn={s => s ? `${s.name} · Q${Number(s.price).toFixed(2)}` : '—'}
+                                                displayFn={s => s ? (
+                                                    <MiniCard
+                                                        title={s.name}
+                                                        subtitle={s.price != null ? `Q${Number(s.price).toFixed(2)}` : 'Sin precio'}
+                                                        badge={`${s.duration_minutes} min`}
+                                                        badgeClass="text-navy-700/70 bg-white/60 border border-white/80"
+                                                        isSelected={s.id === form.service_id}
+                                                        selectedClass="bg-gradient-to-br from-blue-50/10 via-white/90 to-white/80 border border-blue-500/15 shadow-[0_6px_15px_rgba(29,95,173,0.06)]"
+                                                    />
+                                                ) : '—'}
                                                 onSelect={s => setField('service_id', s?.id)}
+                                                itemWidth={170}
+                                                height={118}
                                             />
                                         </div>
                                     </div>
@@ -629,7 +661,7 @@ export default function Offers() {
                                                 value={formatPriceDisplay(form.promoPriceCents)}
                                                 onKeyDown={handlePriceKey}
                                                 placeholder="0.00"
-                                                className={`w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm cursor-text select-none ${form.promoPriceCents ? 'text-navy-900' : 'text-navy-700/40'
+                                                className={`w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-navy-300/60 focus:bg-white/70 focus:ring-2 focus:ring-navy-200/30 transition-all shadow-sm cursor-text select-none ${form.promoPriceCents ? 'text-navy-900' : 'text-navy-700/40'
                                                     }`}
                                             />
                                         </div>
@@ -725,16 +757,18 @@ export default function Offers() {
                             </div>
 
                             {/* Footer actions */}
-                            <div className="px-6 py-4 border-t border-white/60 flex items-center justify-end gap-3 z-20 shrink-0">
+                            <div className="px-6 py-4 flex items-center justify-end gap-3 z-20 shrink-0">
 
                                 {/* 2. Guardar cambios */}
                                 <button
                                     onClick={handleSave}
                                     disabled={saving}
-                                    className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-sm hover:bg-navy-50 hover:border-navy-100/50 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                                    className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-50"
                                 >
-                                    <Save size={14} className="shrink-0" />
-                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">
+                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                    <Save size={14} className="shrink-0 relative z-10" />
+                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap relative z-10">
                                         {saving ? 'Guardando...' : isNew ? 'Crear oferta' : 'Guardar cambios'}
                                     </span>
                                 </button>
@@ -744,10 +778,12 @@ export default function Offers() {
                                     <button
                                         onClick={() => setShowDeleteConfirm(true)}
                                         disabled={deleting}
-                                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-sm hover:bg-rose-50 hover:border-rose-100/50 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                                        className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white/40 backdrop-blur-2xl border border-white/60 text-rose-500 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-50 hover:bg-rose-500 hover:border-rose-500 hover:text-white"
                                     >
-                                        <Trash2 size={14} className="shrink-0" />
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">
+                                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                        <Trash2 size={14} className="shrink-0 relative z-10" />
+                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">
                                             Eliminar
                                         </span>
                                     </button>

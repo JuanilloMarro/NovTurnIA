@@ -15,15 +15,17 @@ body::before {
   inset: 0;
   background:
     /* Top Right Accent - New */
-    radial-gradient(circle at 85% 10%, rgba(120, 110, 230, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 85% 10%, rgba(64, 98, 200, 0.10) 0%, transparent 70%),
     /* Top Left Accent */
-    radial-gradient(circle at 15% 15%, rgba(29, 95, 173, 0.15) 0%, transparent 60%),
+    radial-gradient(circle at 15% 15%, rgba(29, 95, 173, 0.10) 0%, transparent 75%),
     /* Bottom Right Accent */
-    radial-gradient(circle at 85% 85%, rgba(100, 190, 210, 0.12) 0%, transparent 60%),
+    radial-gradient(circle at 85% 85%, rgba(120, 110, 230, 0.10) 0%, transparent 75%),
+    /* Bottom Left Accent */
+    radial-gradient(circle at 15% 85%, rgba(64, 98, 200, 0.10) 0%, transparent 70%),
     /* Bottom Center Accent */
     radial-gradient(circle at 50% 110%, rgba(255, 255, 255, 0.8) 0%, transparent 50%),
     /* Base Neutral Surface */
-    radial-gradient(circle at 50% 50%, #F8FAFF 0%, #F0F4F8 100%);
+    radial-gradient(circle at 50% 50%, #F5F8FF 0%, #EBF0F8 100%);
   pointer-events: none;
   z-index: -1;
 }
@@ -203,6 +205,79 @@ body::before {
 
   to {
     width: 0%;
+  }
+}
+
+/* ── Borde arcoíris animado estilo Gemini (conic-gradient + máscara) ── */
+@property --ai-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes ai-border-spin {
+  to {
+    --ai-angle: 360deg;
+  }
+}
+
+.ai-rainbow {
+  position: relative;
+}
+
+/* El efecto solo existe mientras está activo (.is-active). Se dispara al
+   entrar al módulo o al reactivar una IA, recorre el borde UNA sola vuelta
+   completa como una "serpiente" (cometa) y luego se apaga.
+   El segmento brillante es un ARCOÍRIS completo con bordes suaves (nube),
+   y su SOMBREADO EXTERNO difuminado es el foco interactivo del efecto. */
+.ai-rainbow.is-active::before,
+.ai-rainbow.is-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  /* Cometa arcoíris: cola transparente que se enciende gradualmente y recorre
+     todo el espectro hasta la cabeza. Sin cortes duros → sensación de nube. */
+  background: conic-gradient(from var(--ai-angle),
+      rgba(236, 72, 153, 0) 0deg,
+      rgba(236, 72, 153, 0) 178deg,
+      rgba(239, 68, 68, 0.18) 205deg,    /* cola: rojo naciendo */
+      rgba(249, 115, 22, 0.42) 232deg,   /* naranja */
+      rgba(250, 204, 21, 0.58) 258deg,   /* amarillo */
+      rgba(34, 197, 94, 0.70) 284deg,    /* verde */
+      rgba(34, 211, 238, 0.82) 308deg,   /* cyan */
+      rgba(59, 130, 246, 0.88) 330deg,   /* azul */
+      rgba(139, 92, 246, 0.82) 349deg,   /* violeta */
+      rgba(236, 72, 153, 0.70) 360deg);  /* cabeza: rosa */
+  -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: ai-border-spin 2.6s linear 1 forwards;
+}
+
+/* Banda del borde — suave y difusa, tipo nube (no una línea LED rígida) */
+.ai-rainbow.is-active::before {
+  padding: 2px;
+  z-index: 2;
+  filter: blur(3.5px);
+}
+
+/* Sombreado externo difuminado — el foco interactivo, se proyecta hacia afuera */
+.ai-rainbow.is-active::after {
+  padding: 4px;
+  z-index: 1;
+  filter: blur(22px);
+  opacity: 0.95;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ai-rainbow.is-active::before,
+  .ai-rainbow.is-active::after {
+    animation: none;
   }
 }
 

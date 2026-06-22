@@ -78,11 +78,15 @@ export default function Patients() {
 
                 <div className="flex items-center gap-2 sm:gap-3 md:h-10 flex-wrap w-full lg:w-auto">
                     <div className="relative w-full sm:w-72 h-10">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700">
+                        <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -top-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(29,95,173,0.05)' }} />
+                        <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                        <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700 z-10">
                             <Search size={14} strokeWidth={2.5} />
                         </div>
                         <input
-                            className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-sm"
+                            className="relative w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-md"
                             placeholder="Buscar por nombre o teléfono..."
                             value={search}
                             onChange={e => handleSearch(e.target.value)}
@@ -90,76 +94,84 @@ export default function Patients() {
                     </div>
 
                     {canCreatePatients && (
-                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
-                            <button
-                                onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
-                                className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-700 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
-                            >
-                                <Plus size={14} className="shrink-0" />
-                                <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Agregar Cliente</span>
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
+                            className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                        >
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <Plus size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[110px] transition-all duration-300 whitespace-nowrap relative z-10">Agregar Cliente</span>
+                        </button>
                     )}
 
                     {/* Refresh */}
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
-                        <button
-                            onClick={() => reload(search, true, 0)}
-                            disabled={loading}
-                            className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-700 text-[11px] font-bold shadow-sm hover:bg-white/80 active:scale-95 transition-all duration-300 overflow-hidden disabled:opacity-40"
-                        >
-                            <RefreshCw size={14} className={`shrink-0 ${loading ? 'animate-spin' : ''}`} />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => reload(search, true, 0)}
+                        disabled={loading}
+                        className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-40"
+                    >
+                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                        <RefreshCw size={14} className={`shrink-0 ${loading ? 'animate-spin' : ''}`} />
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
+                    </button>
+
 
                     {/* Export CSV */}
                     {canExportPatients && (
-                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
-                            <button
-                                onClick={exportUnlocked ? handleExport : undefined}
-                                disabled={exporting || !exportUnlocked}
-                                title={exportUnlocked ? '' : 'Exportación de clientes disponible en Enterprise'}
-                                className={`group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-700 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50 ${!exportUnlocked ? 'cursor-not-allowed' : ''}`}
-                            >
-                                {exportUnlocked ? <Download size={14} className="shrink-0" /> : <Lock size={13} className="shrink-0 text-navy-700" />}
-                                <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
-                            </button>
-                        </div>
+                        <button
+                            onClick={exportUnlocked ? handleExport : undefined}
+                            disabled={exporting || !exportUnlocked}
+                            title={exportUnlocked ? '' : 'Exportación de clientes disponible en Enterprise'}
+                            className={`relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-50${!exportUnlocked ? 'cursor-not-allowed' : ''}`}
+                        >
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            {exportUnlocked ? <Download size={14} className="shrink-0" /> : <Lock size={13} className="shrink-0 text-navy-700" />}
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
+                        </button>
+
                     )}
 
                     {/* Sort funnel button */}
                     {(() => {
                         const hasActiveSort = sortOrder !== 'recent';
                         return (
-                            <div className="relative h-10">
-                                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-10 shadow-sm">
-                                    <button
-                                        onClick={() => setShowSort(!showSort)}
-                                        className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-700 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
-                                    >
-                                        <SlidersHorizontal size={14} className="shrink-0" />
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Filtros</span>
-                                    </button>
-                                </div>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowSort(!showSort)}
+                                    className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                                >
+                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                    <SlidersHorizontal size={14} className="shrink-0" />
+                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Filtros</span>
+                                </button>
 
                                 {showSort && (
-                                    <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 rounded-3xl shadow-[0_8px_32px_rgba(26,58,107,0.16),0_2px_8px_rgba(0,0,0,0.06)] z-50 p-2 animate-fade-up">
-                                        {hasActiveSort && (
-                                            <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
-                                                <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Orden</span>
-                                                <button onClick={() => { setSortOrder('recent'); setShowSort(false); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
-                                            </div>
-                                        )}
-                                        {sortOptions.map(opt => (
-                                            <div
-                                                key={opt.id}
-                                                onClick={() => setSortOrder(opt.id)}
-                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
-                                            >
-                                                {opt.label}
-                                            </div>
-                                        ))}
+                                    <div className="overflow-hidden absolute right-0 top-full mt-2 w-52 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-50 p-2 animate-fade-up">
+                                        <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="absolute -top-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(29,95,173,0.05)' }} />
+                                        <div className="absolute -bottom-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
+                                        <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="relative z-10">
+                                            {hasActiveSort && (
+                                                <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-white/20">
+                                                    <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Orden</span>
+                                                    <button onClick={() => { setSortOrder('recent'); setShowSort(false); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
+                                                </div>
+                                            )}
+                                            {sortOptions.map(opt => (
+                                                <div
+                                                    key={opt.id}
+                                                    onClick={() => setSortOrder(opt.id)}
+                                                    className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
+                                                >
+                                                    {opt.label}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -180,7 +192,7 @@ export default function Patients() {
                     <p>No se encontraron clientes para tu búsqueda.</p>
                 </div>
             ) : (
-                <div className="space-y-3 flex-1 overflow-y-auto pr-3 custom-scrollbar pb-10">
+                <div className="space-y-3 flex-1 overflow-y-auto px-2 custom-scrollbar pb-10">
                     {patients.map((p, i) => (
                         <PatientCard key={p.id} patient={p} index={i} onClick={setSelectedPatient} isSelected={selectedPatient?.id === p.id} />
                     ))}

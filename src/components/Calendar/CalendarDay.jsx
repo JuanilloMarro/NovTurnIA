@@ -12,9 +12,13 @@ export default function CalendarDay({ appointments, selectedDate, loading, onEve
     const isToday = isSameDay(selectedDate, new Date());
 
     return (
-        <div className="bg-white border border-white/90 rounded-2xl shadow-card overflow-hidden flex flex-col h-full">
+        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md overflow-hidden flex flex-col h-full">
+            <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+            <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+            <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+            <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
             {/* Header día */}
-            <div className="grid grid-cols-[70px_1fr] border-b border-gray-100/50 bg-white">
+            <div className="relative z-10 grid grid-cols-[70px_1fr] border-b border-gray-100/50 bg-transparent">
                 <div className="p-2 text-[10px] uppercase text-gray-400 font-bold text-center flex items-center justify-center border-r border-gray-100/50">
                     GMT-6
                 </div>
@@ -34,7 +38,7 @@ export default function CalendarDay({ appointments, selectedDate, loading, onEve
             </div>
 
             {/* Cuerpo */}
-            <div className="flex-1 overflow-hidden relative">
+            <div className="relative z-10 flex-1 overflow-hidden">
                 <div className="absolute inset-0">
                     {/* Fondo de líneas */}
                     <div className="absolute inset-0 left-[70px] pointer-events-none flex flex-col">
@@ -45,7 +49,7 @@ export default function CalendarDay({ appointments, selectedDate, loading, onEve
 
                     <div className="grid grid-cols-[70px_1fr] h-full">
                         {/* Gutter de horas */}
-                        <div className="border-r border-gray-100/50 bg-white relative z-10 w-full h-full flex flex-col">
+                        <div className="border-r border-gray-100/50 bg-transparent relative z-10 w-full h-full flex flex-col">
                             {HOURS.map(h => (
                                 <div key={h} className="flex-1 w-full pr-3 pt-1.5 text-right">
                                     <span className="text-[12px] font-medium text-gray-400">{h}:00</span>

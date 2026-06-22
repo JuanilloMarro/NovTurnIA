@@ -81,9 +81,15 @@ export default function Users() {
                 </div>
             </div>
 
-            <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
+            <div className="relative flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
+                {/* Glows ambiente — un solo fondo flotante */}
+                <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+                <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+                <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+
                 {/* Left Side: User List Navigation */}
-                <div className={`${selectedUser ? 'hidden md:flex' : 'flex'} w-full md:w-[300px] xl:w-[320px] flex-col z-10 border-r border-white/40 md:border-r-0`}>
+                <div className={`${selectedUser ? 'hidden md:flex' : 'flex'} relative w-full md:w-[300px] xl:w-[320px] flex-col z-10`}>
                     <div className="p-6">
                         <div className="flex items-center justify-between">
                             <h3 className="font-bold text-navy-900 text-[13px] tracking-tight">Personal Activo</h3>
@@ -100,18 +106,22 @@ export default function Users() {
                                 <button
                                     key={u.id}
                                     onClick={() => setSelectedUser(u)}
-                                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 text-left group border ${isSelected
-                                            ? 'bg-white/70 shadow-sm border-white/80'
-                                            : 'bg-white/20 border-white/40 hover:bg-white/40 hover:border-white/60'
+                                    className={`relative w-full flex items-center gap-4 p-4 rounded-2xl overflow-hidden transition-all duration-200 text-left group border ${isSelected
+                                            ? 'bg-white/40 backdrop-blur-2xl border-white/60 shadow-md'
+                                            : 'border-transparent hover:bg-white/20'
                                         }`}
                                 >
-                                    <div className={`w-11 h-11 flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border rounded-full leading-none ${isSelected
+                                    {isSelected && <>
+                                        <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="absolute -bottom-5 -left-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                    </>}
+                                    <div className={`relative z-10 w-11 h-11 flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border rounded-full leading-none ${isSelected
                                         ? 'bg-gradient-to-b from-white to-gray-200 border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900'
                                         : 'bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900 group-hover:to-gray-200 group-hover:border-gray-200'
                                         }`}>
                                         <span className="block">{getInitials(u.full_name)}</span>
                                     </div>
-                                    <div className="flex-1 min-w-0">
+                                    <div className="relative z-10 flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
                                             <span className={`font-bold text-sm truncate ${isSelected ? 'text-navy-900' : 'text-navy-900/80'}`}>{u.full_name}</span>
                                         </div>
@@ -141,7 +151,7 @@ export default function Users() {
                                         >
                                             <ChevronLeft size={16} />
                                         </button>
-                                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-white text-base md:text-lg font-bold shadow-md bg-navy-900 shrink-0">
+                                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-base md:text-lg font-bold shrink-0 bg-gradient-to-b from-white to-gray-200 border border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900">
                                             {getInitials(selectedUser.full_name)}
                                         </div>
                                         <div className="min-w-0">
@@ -309,10 +319,12 @@ export default function Users() {
                                                 showErrorToast('Error al Guardar', err.message);
                                             }
                                         }}
-                                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-navy-50 hover:border-navy-100/50 transition-all duration-300 overflow-hidden"
+                                        className="relative group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 shadow-md text-navy-900 text-[11px] font-bold rounded-full transition-all duration-300 overflow-hidden"
                                     >
-                                        <Save size={14} className="shrink-0" />
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Guardar cambios</span>
+                                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                        <Save size={14} className="relative z-10 shrink-0" />
+                                        <span className="relative z-10 max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Guardar cambios</span>
                                     </button>
                                 </div>
                             )}

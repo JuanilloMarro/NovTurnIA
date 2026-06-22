@@ -12,11 +12,15 @@ export default function CalendarWeek({ appointments, weekStart, loading, onEvent
     const days = getWeekDays(weekStart);
 
     return (
-        <div className="bg-white border border-white/90 rounded-2xl shadow-card flex flex-col h-full overflow-hidden">
-          <div className="flex-1 flex flex-col overflow-x-auto md:overflow-x-hidden">
+        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex flex-col h-full overflow-hidden">
+          <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+          <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+          <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+          <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+          <div className="relative z-10 flex-1 flex flex-col overflow-x-auto md:overflow-x-hidden">
             <div className="min-w-[640px] md:min-w-0 flex-1 flex flex-col">
             {/* Header días */}
-            <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-100/50 bg-white">
+            <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-100/50 bg-transparent">
                 <div className="py-2 text-[9px] uppercase text-gray-400 font-bold text-center flex items-center justify-center">GMT-6</div>
                 {days.map((day, idx) => (
                     <div key={day} className={`py-1.5 text-center relative flex flex-col items-center justify-center gap-0.5 ${idx !== 0 ? 'border-l border-gray-100/50' : ''}`}>
@@ -44,7 +48,7 @@ export default function CalendarWeek({ appointments, weekStart, loading, onEvent
 
                     <div className="grid grid-cols-[60px_repeat(7,1fr)] h-full">
                         {/* Gutter de horas */}
-                        <div className="border-r border-gray-100/50 bg-white relative z-10 w-full h-full flex flex-col">
+                        <div className="border-r border-gray-100/50 bg-transparent relative z-10 w-full h-full flex flex-col">
                             {HOURS.map(h => (
                                 <div key={h} className="flex-1 w-full pr-2 pt-1.5 text-right">
                                     <span className="text-[10px] sm:text-xs text-gray-400 font-medium">{h}:00</span>

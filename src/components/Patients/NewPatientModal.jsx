@@ -36,7 +36,9 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
         try {
             await createPatient({
                 display_name: name.trim(),
-                phone: `+502${cleanPhone}`,
+                // Sin "+" — debe matchear el wa_id de WhatsApp (502XXXXXXXX). Con "+"
+                // n8n no encuentra al paciente y crea un duplicado en cada mensaje.
+                phone: `502${cleanPhone}`,
                 notes: notes.trim() || null
             });
             showPatientNewToast(`${name.trim()} : ${formatPhone(cleanPhone)}`);
@@ -80,7 +82,7 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
                     <div className="px-6 py-4 space-y-5">
                         {/* Nombre */}
                         <div>
-                            <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Nombre completo</label>
+                            <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3 px-1">Nombre completo</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-navy-800/50">
                                     <User size={16} />
@@ -98,7 +100,7 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
 
                         {/* Teléfono */}
                         <div>
-                            <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Teléfono (WhatsApp)</label>
+                            <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3 px-1">Teléfono (WhatsApp)</label>
                             <div className="flex items-center bg-white/40 border border-white/60 rounded-full shadow-sm focus-within:border-white focus-within:bg-white/60 focus-within:ring-1 focus-within:ring-white transition-all overflow-hidden">
                                 <span className="pl-3.5 pr-2 flex items-center gap-1.5 text-navy-700/60 text-sm font-semibold whitespace-nowrap select-none">
                                     <Phone size={14} className="text-navy-800/50 shrink-0" />
@@ -122,15 +124,21 @@ export default function NewPatientModal({ isOpen, onClose, onCreated }) {
 
                         {/* Notas */}
                         <div>
-                            <label className="block text-[11px] font-bold text-navy-800 leading-none mb-3 px-1">Notas / Observaciones</label>
+                            <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3 px-1">Notas / Observaciones</label>
                             <FeatureLock feature="patient_notes" requiredPlan="Pro">
                                 <textarea
                                     className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900 min-h-[100px] resize-none custom-scrollbar disabled:opacity-50 disabled:cursor-not-allowed"
                                     value={notes}
                                     onChange={e => setNotes(e.target.value)}
                                     placeholder="Ej: Prefiere corte con tijera, alérgico a..."
+                                    maxLength={250}
                                     disabled={!hasFeature('patient_notes')}
                                 />
+                                {hasFeature('patient_notes') && (
+                                    <div className={`text-right text-[10px] font-bold mt-1.5 px-1 transition-colors ${notes.length > 230 ? 'text-rose-500' : notes.length > 200 ? 'text-amber-500' : 'text-navy-700/40'}`}>
+                                        {notes.length}/250
+                                    </div>
+                                )}
                             </FeatureLock>
                         </div>
                     </div>

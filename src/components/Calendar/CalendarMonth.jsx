@@ -36,11 +36,15 @@ export default function CalendarMonth({ appointments, monthDate, loading, onEven
     }, [monthDate]);
 
     return (
-        <div className="bg-white border border-white/90 rounded-2xl shadow-card overflow-hidden h-full flex flex-col">
-          <div className="flex-1 flex flex-col overflow-x-auto md:overflow-x-hidden">
+        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md overflow-hidden h-full flex flex-col">
+          <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+          <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+          <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+          <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+          <div className="relative z-10 flex-1 flex flex-col overflow-x-auto md:overflow-x-hidden">
             <div className="min-w-[560px] md:min-w-0 flex-1 flex flex-col">
             {/* Header días */}
-            <div className="grid grid-cols-7 border-b border-gray-100 bg-white">
+            <div className="grid grid-cols-7 border-b border-gray-100 bg-transparent">
                 {DAYS_ES.map((dayName, idx) => (
                     <div key={idx} className="p-3 text-xs text-gray-400 font-semibold uppercase relative">
                         {dayName}
@@ -50,14 +54,14 @@ export default function CalendarMonth({ appointments, monthDate, loading, onEven
             </div>
 
             {/* Grid del mes */}
-            <div className="flex-1 grid grid-cols-7 grid-rows-5 bg-white">
+            <div className="flex-1 grid grid-cols-7 grid-rows-5 bg-transparent">
                 {calendarDays.map((date, idx) => {
                     const isCurrentMonth = date.getMonth() === monthDate.getMonth();
                     const dayAppointments = appointments.filter(apt => isSameDay(new Date(apt.date_start), date));
                     const isToday = isSameDay(date, new Date());
 
                     return (
-                        <div key={idx} className={`border-b border-r border-gray-100 p-2 overflow-hidden bg-white hover:bg-gray-50/30 transition-colors
+                        <div key={idx} className={`border-b border-r border-gray-100 p-2 overflow-hidden bg-transparent hover:bg-white/20 transition-colors
                             ${!isCurrentMonth ? 'opacity-40' : ''}`}
                         >
                             <div className="flex justify-between items-start mb-1">
@@ -104,7 +108,7 @@ export default function CalendarMonth({ appointments, monthDate, loading, onEven
                                         <div
                                             key={apt.id}
                                             onClick={() => onEventClick?.(apt)}
-                                            className={`flex items-center gap-1.5 cursor-pointer bg-white border-y border-r border-gray-100 border-l-[3px] rounded-r-xl rounded-l-sm px-2 py-1 shadow-sm hover:shadow-md transition-all overflow-hidden ${borderColor} ${faded}`}
+                                            className={`flex items-center gap-1.5 cursor-pointer bg-white/40 backdrop-blur-2xl border-y border-r border-white/60 border-l-[3px] rounded-r-xl rounded-l-sm px-2 py-1 shadow-md hover:bg-white/60 transition-all duration-300 overflow-hidden ${borderColor} ${faded}`}
                                         >
                                             <span className={`font-bold text-[11px] tracking-tight truncate leading-tight ${nameColor}`}>
                                                 {name}

@@ -105,7 +105,7 @@ export default function App() {
                                     {/* ml-0 en mobile (sidebar oculto), md:ml-[240px] en desktop */}
                                     <div className="flex-1 ml-0 md:ml-[240px] flex flex-col relative w-full h-full min-w-0">
                                         <Topbar />
-                                        <main className="flex-1 px-2 sm:px-4 lg:px-6 pb-4 w-full h-full block overflow-hidden">
+                                        <main className="flex-1 px-2 sm:px-4 lg:px-6 pb-4 w-full min-h-0 flex flex-col overflow-hidden">
                                             {/* key={location.pathname} fuerza remount limpio en cada navegación,
                                         garantizando que useEffect de cada módulo re-ejecute y cargue datos frescos */}
                                             <Suspense fallback={<PageLoader />} key={location.pathname}>

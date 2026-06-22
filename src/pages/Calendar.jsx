@@ -76,17 +76,19 @@ export default function Calendar() {
 
                 <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto justify-start lg:justify-end overflow-x-auto lg:overflow-visible">
                     {/* 1. Tab Calendario / Kanban */}
-                    <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-[11px] font-bold text-navy-900 shadow-sm h-10">
+                    <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
+                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
                         <button
                             onClick={() => setTab('calendar')}
-                            className={`px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${tab === 'calendar' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}
+                            className={`relative z-10 px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${tab === 'calendar' ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}
                         >
                             <CalendarIcon size={12} />
                             Calendario
                         </button>
                         <button
                             onClick={() => setTab('kanban')}
-                            className={`px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${tab === 'kanban' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}
+                            className={`relative z-10 px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${tab === 'kanban' ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}
                         >
                             <LayoutDashboard size={12} />
                             Kanban
@@ -96,51 +98,55 @@ export default function Calendar() {
 
 
                             {/* 2. Navegación de fecha */}
-                            <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-10">
-                                <button onClick={handlePrev} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
+                            <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-10">
+                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                <button onClick={handlePrev} className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-navy-900 hover:bg-white/80 shadow-md transition-all hover:scale-[1.05] active:scale-95">
                                     <ChevronLeft size={16} />
                                 </button>
-                                <div className="h-8 flex items-center justify-center gap-1.5 px-3 min-w-[120px]">
+                                <div className="relative z-10 h-8 flex items-center justify-center gap-1.5 px-3 min-w-[120px]">
                                     <CalendarIcon size={13} className="text-navy-900 shrink-0" />
                                     <span className="capitalize text-[11px] font-bold text-navy-900 tracking-tight whitespace-nowrap leading-none">{navLabel}</span>
                                 </div>
-                                <button onClick={handleNext} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95">
+                                <button onClick={handleNext} className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-navy-900 hover:bg-white/80 shadow-md transition-all hover:scale-[1.05] active:scale-95">
                                     <ChevronRight size={16} />
                                 </button>
                             </div>
 
                             {/* 3. Switcher Día / Semana / Mes */}
-                            <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-[11px] font-bold text-navy-900 shadow-sm h-10">
-                                <button onClick={() => setViewMode('day')} className={`px-4 h-8 rounded-full transition-all ${viewMode === 'day' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Día</button>
-                                <button onClick={() => setViewMode('week')} className={`px-4 h-8 rounded-full transition-all ${viewMode === 'week' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Semana</button>
-                                <button onClick={() => setViewMode('month')} className={`px-4 h-8 rounded-full transition-all ${viewMode === 'month' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40'}`}>Mes</button>
+                            <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
+                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                <button onClick={() => setViewMode('day')} className={`relative z-10 px-4 h-8 rounded-full transition-all ${viewMode === 'day' ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>Día</button>
+                                <button onClick={() => setViewMode('week')} className={`relative z-10 px-4 h-8 rounded-full transition-all ${viewMode === 'week' ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>Semana</button>
+                                <button onClick={() => setViewMode('month')} className={`relative z-10 px-4 h-8 rounded-full transition-all ${viewMode === 'month' ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>Mes</button>
                             </div>
 
                             {/* 4. Agregar Turno */}
                             {canCreateAppointments && (
-                                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-10">
-                                    <button
-                                        onClick={() => setIsModalOpen(true)}
-                                        className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden"
-                                    >
-                                        <Plus size={14} className="shrink-0" />
-                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[90px] transition-all duration-300 whitespace-nowrap">Agregar Turno</span>
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={() => setIsModalOpen(true)}
+                                    className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                                >
+                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                    <Plus size={14} className="shrink-0 relative z-10" />
+                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[90px] transition-all duration-300 whitespace-nowrap relative z-10">Agregar Turno</span>
+                                </button>
                             )}
 
                             {/* 5. Actualizar */}
-                            <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-10">
-                                <button onClick={reload} disabled={reloading} className="group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-4 rounded-full bg-white border border-white/80 text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/80 active:scale-95 transition-all duration-300 overflow-hidden disabled:opacity-40">
-                                    <RefreshCw size={14} className={`shrink-0 ${reloading ? 'animate-spin' : ''}`} />
-                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
-                                </button>
-                            </div>
+                            <button onClick={reload} disabled={reloading} className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md active:scale-95 transition-all duration-300 overflow-hidden disabled:opacity-40 outline-none">
+                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                <RefreshCw size={14} className={`shrink-0 relative z-10 ${reloading ? 'animate-spin' : ''}`} />
+                                <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">Actualizar</span>
+                            </button>
 
                 </div>
             </div>
 
-            <div className="flex-1 relative min-h-0 overflow-hidden rounded-[24px]">
+            <div className={`flex-1 relative min-h-0 overflow-hidden ${tab === 'kanban' ? '' : 'rounded-[24px] shadow-md'}`}>
                 {tab === 'kanban' ? (
                     !kanbanUnlocked ? (
                         <FeatureLock

@@ -172,7 +172,11 @@ export default function Settings() {
             </div>
 
             {/* Main card */}
-            <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
+            <div className="relative flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex overflow-hidden mb-4 lg:mb-6 animate-fade-up">
+                <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+                <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+                <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
                 {loading ? (
                     <div className="flex-1 flex items-center justify-center">
                         <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
@@ -180,16 +184,20 @@ export default function Settings() {
                 ) : (
                     <>
                         {/* ── Left panel: service list — toggle con form en mobile ── */}
-                        <div className={`${isFormOpen ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] xl:w-[380px] flex-col z-10 border-r border-white/50 md:border-r-0 bg-white/20`}>
+                        <div className={`${isFormOpen ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] xl:w-[380px] flex-col z-10`}>
                             <div className="p-4 pb-3">
                                 <div className="flex items-center gap-2 h-9">
                                     {/* Search bar */}
                                     <div className="relative flex-1 h-full">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-navy-700">
+                                        <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="absolute -top-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(29,95,173,0.05)' }} />
+                                        <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                        <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700">
                                             <Search size={14} strokeWidth={2.5} />
                                         </div>
                                         <input
-                                            className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full pl-9 pr-3 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-sm"
+                                            className="w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-md"
                                             placeholder="Buscar servicio..."
                                             value={searchStr}
                                             onChange={e => setSearchStr(e.target.value)}
@@ -198,73 +206,80 @@ export default function Settings() {
 
                                     {/* New Button */}
                                     {canCreateServices && (
-                                        <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 h-full shadow-sm">
-                                            <button
-                                                onClick={handleNewClick}
-                                                className="group h-full flex items-center justify-center gap-0 hover:gap-1.5 px-2 hover:px-3 text-navy-700 text-[11px] font-bold transition-all duration-300 overflow-hidden outline-none rounded-full hover:bg-white/80"
-                                            >
-                                                <Plus size={14} className="shrink-0" />
-                                                <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Nuevo</span>
-                                            </button>
-                                        </div>
+                                        <button
+                                            onClick={handleNewClick}
+                                            className="relative overflow-hidden group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                                        >
+                                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                            <Plus size={14} className="shrink-0 relative z-10" />
+                                            <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap relative z-10">Nuevo</span>
+                                        </button>
                                     )}
 
                                     <div className="relative">
                                         <button
                                             onClick={() => setShowFilter(!showFilter)}
-                                            className="group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/60 backdrop-blur-card border border-white/90 rounded-full text-navy-700 font-bold shadow-sm hover:bg-white/80 transition-all duration-300 overflow-hidden outline-none"
+                                            className="relative overflow-hidden group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
                                         >
-                                            <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0" />
-                                            <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[11px]">Filtros</span>
+                                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                            <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0 relative z-10" />
+                                            <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[11px] relative z-10">Filtros</span>
                                         </button>
                                         {showFilter && (
-                                            <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 rounded-3xl shadow-[0_8px_32px_rgba(26,58,107,0.16),0_2px_8px_rgba(0,0,0,0.06)] z-50 p-2 animate-fade-up">
-                                                <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-gray-100">
-                                                    <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
-                                                    {isFiltering && (
-                                                        <button
-                                                            onClick={() => { setSearchStr(''); setFilterStatus('all'); setSortOrder('recent'); setShowFilter(false); }}
-                                                            className="text-[10px] font-bold text-rose-500 hover:text-rose-600"
+                                            <div className="overflow-hidden absolute right-0 top-full mt-2 w-52 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-50 p-2 animate-fade-up">
+                                                <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
+                                                <div className="absolute -top-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(29,95,173,0.05)' }} />
+                                                <div className="absolute -bottom-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
+                                                <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
+                                                <div className="relative z-10">
+                                                    <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-white/20">
+                                                        <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
+                                                        {isFiltering && (
+                                                            <button
+                                                                onClick={() => { setSearchStr(''); setFilterStatus('all'); setSortOrder('recent'); setShowFilter(false); }}
+                                                                className="text-[10px] font-bold text-rose-500 hover:text-rose-600"
+                                                            >
+                                                                Limpiar
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="px-2 pt-1 pb-0.5">
+                                                        <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Estado</span>
+                                                    </div>
+                                                    {[
+                                                        { id: 'all', label: 'Todos' },
+                                                        { id: 'active', label: 'Activos' },
+                                                        { id: 'inactive', label: 'Inactivos' }
+                                                    ].map(opt => (
+                                                        <div
+                                                            key={opt.id}
+                                                            onClick={() => { setFilterStatus(opt.id); }}
+                                                            className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterStatus === opt.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
                                                         >
-                                                            Limpiar
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <div className="px-2 pt-2 pb-1">
-                                                    <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Estado</span>
-                                                </div>
-                                                {[
-                                                    { id: 'all', label: 'Todos' },
-                                                    { id: 'active', label: 'Activos' },
-                                                    { id: 'inactive', label: 'Inactivos' }
-                                                ].map(opt => (
-                                                    <div
-                                                        key={opt.id}
-                                                        onClick={() => { setFilterStatus(opt.id); }}
-                                                        className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterStatus === opt.id ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
-                                                    >
-                                                        {opt.label}
+                                                            {opt.label}
+                                                        </div>
+                                                    ))}
+                                                    <div className="border-t border-white/20 mt-1 pt-1">
+                                                        <div className="px-2 pt-1 pb-0.5">
+                                                            <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Orden</span>
+                                                        </div>
                                                     </div>
-                                                ))}
-
-                                                <div className="border-t border-gray-100 mt-1 pt-1">
-                                                    <div className="px-2 pt-1 pb-1">
-                                                        <span className="text-[10px] font-bold text-navy-700/40 tracking-wide">Orden</span>
-                                                    </div>
+                                                    {[
+                                                        { id: 'recent', label: 'Más recientes' },
+                                                        { id: 'a-z', label: 'De la A-Z' },
+                                                        { id: 'z-a', label: 'De la Z-A' }
+                                                    ].map(opt => (
+                                                        <div
+                                                            key={opt.id}
+                                                            onClick={() => { setSortOrder(opt.id); setShowFilter(false); }}
+                                                            className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
+                                                        >
+                                                            {opt.label}
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                                {[
-                                                    { id: 'recent', label: 'Más recientes' },
-                                                    { id: 'a-z', label: 'De la A-Z' },
-                                                    { id: 'z-a', label: 'De la Z-A' }
-                                                ].map(opt => (
-                                                    <div
-                                                        key={opt.id}
-                                                        onClick={() => { setSortOrder(opt.id); setShowFilter(false); }}
-                                                        className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white border-white shadow-[0_4px_14px_rgba(0,0,0,0.09)] text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-gray-50'}`}
-                                                    >
-                                                        {opt.label}
-                                                    </div>
-                                                ))}
                                             </div>
                                         )}
                                     </div>
@@ -293,13 +308,17 @@ export default function Settings() {
                                         <button
                                             key={s.id}
                                             onClick={() => handleSelect(s)}
-                                            className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 text-left group border ${isSelected
-                                                ? 'bg-white/70 shadow-sm border-white/80'
-                                                : 'bg-white/20 border-white/40 hover:bg-white/40 hover:border-white/60'
+                                            className={`relative w-full flex items-center gap-4 p-4 rounded-2xl overflow-hidden transition-all duration-200 text-left group border ${isSelected
+                                                ? 'bg-white/40 backdrop-blur-2xl border-white/60 shadow-md'
+                                                : 'border-transparent hover:bg-white/20'
                                                 }`}
                                         >
+                                            {isSelected && <>
+                                                <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                <div className="absolute -bottom-5 -left-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                            </>}
                                             {/* Avatar inicial */}
-                                            <div className={`w-11 h-11 flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border rounded-full leading-none ${isSelected
+                                            <div className={`relative z-10 w-11 h-11 flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 border rounded-full leading-none ${isSelected
                                                 ? 'bg-gradient-to-b from-white to-gray-200 border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900'
                                                 : s.active
                                                     ? 'bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900 group-hover:to-gray-200 group-hover:border-gray-200'
@@ -308,7 +327,7 @@ export default function Settings() {
                                                 <span className="block">{(s.name?.[0] || '?').toUpperCase()}</span>
                                             </div>
 
-                                            <div className="flex-1 min-w-0">
+                                            <div className="relative z-10 flex-1 min-w-0">
                                                 <div className={`font-bold text-sm truncate ${isSelected ? 'text-navy-900' : s.active ? 'text-navy-900/80' : 'text-navy-900/35'
                                                     }`}>
                                                     {s.name}
@@ -413,7 +432,7 @@ export default function Settings() {
                                                         value={formatPriceDisplay(form.priceCents)}
                                                         onKeyDown={handlePriceKey}
                                                         placeholder="0.00"
-                                                        className={`w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm cursor-text select-none ${form.priceCents ? 'text-navy-900' : 'text-navy-700/40'
+                                                        className={`w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-navy-300/60 focus:bg-white/70 focus:ring-2 focus:ring-navy-200/30 transition-all shadow-sm cursor-text select-none ${form.priceCents ? 'text-navy-900' : 'text-navy-700/40'
                                                             }`}
                                                     />
                                                 </div>
@@ -440,22 +459,24 @@ export default function Settings() {
 
                                     {/* Footer actions */}
                                     {(canCreateServices || canEditServices || canToggleServices) && (
-                                        <div className="px-6 py-4 border-t border-white/60 flex items-center justify-end gap-3 z-20 shrink-0">
+                                        <div className="px-6 py-4 flex items-center justify-end gap-3 z-20 shrink-0">
                                             {/* 1. Desactivar / Activar — solo edición */}
                                             {canToggleServices && !isNew && selectedService && (
                                                 <button
                                                     onClick={handleToggle}
                                                     disabled={toggling}
-                                                    className={`group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 border text-[11px] font-bold rounded-full shadow-sm transition-all duration-300 overflow-hidden disabled:opacity-50 ${selectedService.active
-                                                        ? 'bg-white border-white/80 text-rose-500 hover:bg-rose-50 hover:border-rose-100/50'
-                                                        : 'bg-white border-white/80 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100/50'
+                                                    className={`relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white/40 backdrop-blur-2xl border border-white/60 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-50 ${selectedService.active
+                                                        ? 'text-rose-500 hover:bg-rose-500 hover:border-rose-500 hover:text-white'
+                                                        : 'text-emerald-600 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white'
                                                         }`}
                                                 >
+                                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                                                     {selectedService.active
-                                                        ? <ToggleLeft size={14} className="shrink-0" />
-                                                        : <ToggleRight size={14} className="shrink-0" />
+                                                        ? <ToggleLeft size={14} className="shrink-0 relative z-10" />
+                                                        : <ToggleRight size={14} className="shrink-0 relative z-10" />
                                                     }
-                                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">
+                                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">
                                                         {toggling ? '...' : selectedService.active ? 'Desactivar' : 'Activar'}
                                                     </span>
                                                 </button>
@@ -466,10 +487,12 @@ export default function Settings() {
                                                 <button
                                                     onClick={handleSave}
                                                     disabled={saving || !form.name.trim()}
-                                                    className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-sm hover:bg-navy-50 hover:border-navy-100/50 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                                                    className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white/40 backdrop-blur-2xl border border-white/60 shadow-md text-navy-900 text-[11px] font-bold rounded-full transition-all duration-300 disabled:opacity-50"
                                                 >
-                                                    <Save size={14} className="shrink-0" />
-                                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">
+                                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                                    <Save size={14} className="relative z-10 shrink-0" />
+                                                    <span className="relative z-10 max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">
                                                         {saving ? 'Guardando...' : isNew ? 'Crear servicio' : 'Guardar cambios'}
                                                     </span>
                                                 </button>
@@ -480,10 +503,12 @@ export default function Settings() {
                                                 <button
                                                     onClick={() => setShowDeleteConfirm(true)}
                                                     disabled={deleting}
-                                                    className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-sm hover:bg-rose-50 hover:border-rose-100/50 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                                                    className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white/40 backdrop-blur-2xl border border-white/60 text-rose-500 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-50 hover:bg-rose-500 hover:border-rose-500 hover:text-white"
                                                 >
-                                                    <Trash2 size={14} className="shrink-0" />
-                                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">
+                                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                                    <Trash2 size={14} className="shrink-0 relative z-10" />
+                                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">
                                                         Eliminar
                                                     </span>
                                                 </button>

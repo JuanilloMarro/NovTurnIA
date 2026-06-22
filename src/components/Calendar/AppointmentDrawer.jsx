@@ -97,17 +97,24 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
 
     return (
         <div className={`fixed inset-0 sm:absolute sm:top-2 sm:right-2 sm:bottom-2 sm:left-auto ${drawerWidth} bg-white/95 sm:bg-white/30 backdrop-blur-2xl border border-white/60 rounded-none sm:rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-[120] sm:z-50 flex flex-col animate-drawer-in overflow-hidden`}>
+            <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+            <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+            <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+            <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+
             {/* Header */}
-            <div className="flex items-center gap-2 p-4">
-                <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
-                    <ChevronLeft size={16} />
+            <div className="relative z-10 flex items-center gap-2 p-4">
+                <button onClick={onClose} className="relative overflow-hidden w-7 h-7 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-700 hover:bg-white/60 shadow-md transition-colors">
+                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                    <div className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                    <ChevronLeft size={16} className="relative z-10" />
                 </button>
                 <h3 className="flex-1 font-bold text-navy-900 tracking-tight text-sm text-center">Detalle del turno</h3>
                 <div className="w-7 h-7" />
             </div>
 
             {/* Content scrolleable - but without scrolling */}
-            <div className="flex-1 overflow-hidden px-5 py-4 flex flex-col justify-between">
+            <div className="relative z-10 flex-1 overflow-hidden px-5 py-4 flex flex-col justify-between">
                 <div>
                     {/* Cliente hero */}
                     {/* Cliente hero */}
@@ -160,8 +167,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
 
                             <div className="space-y-4">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900">
-                                        <CalendarIcon size={18} className="translate-y-[1px] translate-x-[1px]" />
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-navy-900/5 border border-navy-900/10 text-navy-900 shadow-sm">
+                                        <CalendarIcon size={18} />
                                     </div>
                                     <div className="pt-0.5">
                                         <div className="text-xs font-semibold text-gray-400 mb-0.5">Fecha</div>
@@ -175,8 +182,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                                 <div className="w-full border-b border-dashed border-gray-200 ml-[56px] w-[calc(100%-56px)]"></div>
 
                                 <div className="flex items-start gap-4">
-                                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900">
-                                        <Clock size={18} className="translate-y-[1px] translate-x-[1px]" />
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-navy-900/5 border border-navy-900/10 text-navy-900 shadow-sm">
+                                        <Clock size={18} />
                                     </div>
                                     <div className="pt-0.5">
                                         <div className="text-xs font-semibold text-gray-400 mb-0.5">Horario</div>
@@ -193,8 +200,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                                     <>
                                         <div className="border-b border-dashed border-gray-200 ml-[56px]" />
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900">
-                                                <Tag size={18} className="translate-y-[1px] translate-x-[1px]" />
+                                            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-navy-900/5 border border-navy-900/10 text-navy-900 shadow-sm">
+                                                <Tag size={18} />
                                             </div>
                                             <div className="pt-0.5">
                                                 <div className="text-xs font-semibold text-gray-400 mb-0.5">Servicio</div>
@@ -221,16 +228,18 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                 </div>
             </div>
             {/* Footer de Acciones fijo abajo */}
-            <div className="p-4 mt-auto">
+            <div className="relative z-10 p-4 mt-auto">
                 <div className="flex flex-wrap items-center justify-center gap-2">
                     {/* 0. Reagendar (solo Cancelado y No se presentó) */}
                     {canRescheduleAppointments && (status === 'cancelled' || status === 'no_show') && (
                         <button
                             onClick={() => setShowReschedule(true)}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md hover:bg-white/60 transition-all duration-300"
                         >
-                            <RotateCcw size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Reagendar</span>
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <RotateCcw size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">Reagendar</span>
                         </button>
                     )}
 
@@ -238,10 +247,12 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     {patientWithinPlan && (
                         <button
                             onClick={() => navigate(`/patients?id=${appointment.patient_id}`)}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md hover:bg-white/60 transition-all duration-300"
                         >
-                            <User size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap">Perfil</span>
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <User size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap relative z-10">Perfil</span>
                         </button>
                     )}
 
@@ -249,10 +260,12 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     {canViewConversations && patientWithinPlan && (
                         <button
                             onClick={() => navigate(`/conversations?patient=${appointment.patient_id}`)}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md hover:bg-white/60 transition-all duration-300"
                         >
-                            <MessageCircle size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Chat</span>
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <MessageCircle size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">Chat</span>
                         </button>
                     )}
 
@@ -271,12 +284,14 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                                     showErrorToast('Error al actualizar bot', err.message);
                                 }
                             }}
-                            className={`group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 border text-[11px] font-bold rounded-full shadow-card transition-all duration-300 overflow-hidden ${botPaused
-                                ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                                : 'bg-white border-white/80 text-navy-900 hover:bg-white/80'
+                            className={`relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 border text-[11px] font-bold rounded-full shadow-md transition-all duration-300 ${botPaused
+                                ? 'bg-amber-50/80 backdrop-blur-2xl border-amber-200/70 text-amber-700 hover:bg-amber-100/80'
+                                : 'bg-white/40 backdrop-blur-2xl border-white/60 text-navy-900 hover:bg-white/60'
                                 }`}
                         >
-                            <div className="relative shrink-0 w-3.5 h-3.5 flex items-center justify-center">
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <div className="relative z-10 shrink-0 w-3.5 h-3.5 flex items-center justify-center">
                                 <Bot size={13} />
                                 <AIStar
                                     size={5}
@@ -284,7 +299,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                                     strokeWidth={2.5}
                                 />
                             </div>
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap ml-0 group-hover:ml-0">
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap ml-0 group-hover:ml-0 relative z-10">
                                 {botPaused ? 'Reactivar' : 'Pausar IA'}
                             </span>
                         </button>
@@ -293,20 +308,24 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     {/* 3. Editar */}
                     {canEditAppointments && status !== 'cancelled' && status !== 'no_show' && variant !== 'followup' && (
                         <button onClick={() => setShowEdit(true)}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md hover:bg-white/60 transition-all duration-300"
                         >
-                            <Pencil size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Editar</span>
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <Pencil size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap relative z-10">Editar</span>
                         </button>
                     )}
 
                     {/* 4. No se presentó — visible en turnos pasados, no en seguimiento, no si ya es no_show */}
                     {canMarkNoShow && variant !== 'followup' && status !== 'no_show' && status !== 'cancelled' && (
                         <button onClick={handleNoShow} disabled={markingNoShow}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-900 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden disabled:opacity-50"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md hover:bg-white/60 transition-all duration-300 disabled:opacity-50"
                         >
-                            <UserX size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[110px] transition-all duration-300 whitespace-nowrap">
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <UserX size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[110px] transition-all duration-300 whitespace-nowrap relative z-10">
                                 {markingNoShow ? 'Marcando...' : 'Ausente'}
                             </span>
                         </button>
@@ -315,30 +334,36 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     {/* 5. Pendiente (Amber Hover) */}
                     {canSetPending && status === 'confirmed' && (
                         <button onClick={handleSetScheduled}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-amber-600 text-[11px] font-bold rounded-full shadow-card hover:bg-amber-50 hover:border-amber-100/50 transition-all duration-300 overflow-hidden"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-amber-600 text-[11px] font-bold rounded-full shadow-md hover:bg-amber-500 hover:border-amber-500 hover:text-white transition-all duration-300"
                         >
-                            <Circle size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Pendiente</span>
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <Circle size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">Pendiente</span>
                         </button>
                     )}
 
                     {/* 6. Confirmar (Emerald Hover) */}
                     {canConfirmAppointments && status === 'scheduled' && !confirmed && (
                         <button onClick={handleConfirm}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-emerald-600 text-[11px] font-bold rounded-full shadow-card hover:bg-emerald-50 hover:border-emerald-100/50 transition-all duration-300 overflow-hidden"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-emerald-600 text-[11px] font-bold rounded-full shadow-md hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-300"
                         >
-                            <Check size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Confirmar</span>
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <Check size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">Confirmar</span>
                         </button>
                     )}
 
                     {/* 7. Eliminar (Cancelación lógica para turnos activos) */}
                     {canDeleteAppointments && ['scheduled', 'confirmed'].includes(status) && (
                         <button onClick={() => setShowCancelConfirm(true)}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-rose-600 text-[11px] font-bold rounded-full shadow-md hover:bg-rose-600 hover:border-rose-600 hover:text-white transition-all duration-300"
                         >
-                            <Trash2 size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">Eliminar</span>
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <Trash2 size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap relative z-10">Eliminar</span>
                         </button>
                     )}
 
@@ -356,10 +381,12 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                                     }
                                 }
                             }}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-rose-600 text-[11px] font-bold rounded-full shadow-md hover:bg-rose-600 hover:border-rose-600 hover:text-white transition-all duration-300"
                         >
-                            <Trash2 size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">Borrar registro</span>
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <Trash2 size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap relative z-10">Borrar registro</span>
                         </button>
                     )}
                 </div>

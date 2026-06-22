@@ -493,7 +493,7 @@ export async function getPatientById(patientId) {
 export async function getPatientAppointments(patientId) {
     const { data, error } = await supabase
         .from('appointments')
-        .select('id, date_start, date_end, status, confirmed')
+        .select('id, date_start, date_end, status, confirmed, services(name)')
         .eq('patient_id', patientId)
         .eq('business_id', getBID())
         .order('date_start', { ascending: false });
@@ -546,6 +546,27 @@ export async function reactivateBot(patientId) {
         .eq('id', patientId)
         .eq('business_id', getBID());
     if (error) throw error;
+}
+
+/**
+ * Clientes con la IA pausada (human_takeover = true) para el negocio actual.
+ * Usado en Configuración IA para que el negocio vea y reanude la IA por cliente.
+ * Ordena por created_at desc (más recientes primero). Escala a 100+ clientes.
+ */
+export async function getPausedPatients() {
+    const { data, error } = await supabase
+        .from('patients')
+        .select('id, display_name, created_at, patient_phones(phone, is_primary)')
+        .eq('business_id', getBID())
+        .eq('human_takeover', true)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(p => ({
+        id: p.id,
+        display_name: p.display_name,
+        phone: p.patient_phones?.find(ph => ph.is_primary)?.phone || p.patient_phones?.[0]?.phone || null,
+    }));
 }
 
 export async function setHumanTakeover(patientId, value) {
@@ -674,6 +695,19 @@ export async function deletePatient(patientId) {
     // T-23: relanzar error original en lugar de ocultar el código de Supabase
     if (error) throw error;
     invalidateVisibilityCache();
+}
+
+/**
+ * Vacía el chat de un paciente: borra todos sus mensajes de `history` pero
+ * conserva al paciente. Usado por el menú de Conversaciones ("Vaciar chat").
+ */
+export async function clearPatientHistory(patientId) {
+    const { error } = await supabase
+        .from('history')
+        .delete()
+        .eq('patient_id', patientId)
+        .eq('business_id', getBID());
+    if (error) throw error;
 }
 
 /**
@@ -1193,7 +1227,7 @@ export async function getPatientsForConversations() {
     const visibleIds = await getVisiblePatientIds();
     let q = supabase
         .from('patients')
-        .select('id, display_name, human_takeover, created_at, patient_phones(phone, is_primary)')
+        .select('id, display_name, human_takeover, created_at, notes, patient_phones(phone, is_primary)')
         .eq('business_id', getBID())
         .is('deleted_at', null)
         .order('created_at', { ascending: false });

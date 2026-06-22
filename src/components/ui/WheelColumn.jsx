@@ -1,15 +1,19 @@
 import { useRef, useLayoutEffect } from 'react';
 
-const WH = 26;
-
-export default function WheelColumn({ items, selected, onSelect, displayFn, disabled = false, height = WH * 3 }) {
+export default function WheelColumn({ items, selected, onSelect, displayFn, disabled = false, itemHeight = 26, height, align = 'center' }) {
     const containerRef = useRef(null);
     const trackRef = useRef(null);
     const offsetRef = useRef(0);
     const drag = useRef({ active: false, startY: 0, startOffset: 0, lastY: 0, lastTime: 0, velocity: 0, raf: null });
 
+    // align='top' ancla el item seleccionado arriba (2 slots: elegido + uno abajo),
+    // así no queda espacio vacío arriba cuando se elige el primero.
+    const slots = align === 'top' ? 2 : 3;
+    const containerHeight = height || itemHeight * slots;
+    const baseOffset = align === 'top' ? 0 : itemHeight;
+
     function applyTransform(offset) {
-        if (trackRef.current) trackRef.current.style.transform = `translateY(${WH - offset}px)`;
+        if (trackRef.current) trackRef.current.style.transform = `translateY(${baseOffset - offset}px)`;
     }
 
     useLayoutEffect(() => {
@@ -19,24 +23,24 @@ export default function WheelColumn({ items, selected, onSelect, displayFn, disa
             const numericSelected = parseInt(selected);
             const foundIdx = items.findIndex(it => parseInt(it) === numericSelected);
             if (foundIdx === -1) return;
-            const targetOffset = foundIdx * WH;
+            const targetOffset = foundIdx * itemHeight;
             offsetRef.current = targetOffset;
             applyTransform(targetOffset);
             return;
         }
         cancelAnimationFrame(drag.current.raf);
-        const targetOffset = idx * WH;
+        const targetOffset = idx * itemHeight;
         offsetRef.current = targetOffset;
         applyTransform(targetOffset);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selected, items]);
+    }, [selected, items, itemHeight]);
 
     function snapTo(fromOffset, velocity) {
         cancelAnimationFrame(drag.current.raf);
-        const maxOffset = (items.length - 1) * WH;
+        const maxOffset = (items.length - 1) * itemHeight;
         const projected = Math.max(0, Math.min(maxOffset, fromOffset + velocity * 100));
-        const targetIdx = Math.round(projected / WH);
-        const targetOffset = targetIdx * WH;
+        const targetIdx = Math.round(projected / itemHeight);
+        const targetOffset = targetIdx * itemHeight;
         const start = performance.now();
         const duration = 220;
 
@@ -67,7 +71,7 @@ export default function WheelColumn({ items, selected, onSelect, displayFn, disa
     function onPointerMove(e) {
         if (!drag.current.active) return;
         const dy = e.clientY - drag.current.startY;
-        const maxOffset = (items.length - 1) * WH;
+        const maxOffset = (items.length - 1) * itemHeight;
         const raw = drag.current.startOffset - dy;
         const clamped = raw < 0 ? raw * 0.3 : raw > maxOffset ? maxOffset + (raw - maxOffset) * 0.3 : raw;
         offsetRef.current = clamped;
@@ -82,7 +86,7 @@ export default function WheelColumn({ items, selected, onSelect, displayFn, disa
     function onPointerUp() {
         if (!drag.current.active) return;
         drag.current.active = false;
-        const maxOffset = (items.length - 1) * WH;
+        const maxOffset = (items.length - 1) * itemHeight;
         snapTo(Math.max(0, Math.min(maxOffset, offsetRef.current)), drag.current.velocity);
     }
 
@@ -90,23 +94,25 @@ export default function WheelColumn({ items, selected, onSelect, displayFn, disa
         <div
             ref={containerRef}
             className="relative flex-1 overflow-hidden select-none touch-none"
-            style={{ height, cursor: disabled ? 'default' : 'grab' }}
+            style={{ height: containerHeight, cursor: disabled ? 'default' : 'grab' }}
             onPointerDown={disabled ? undefined : onPointerDown}
             onPointerMove={disabled ? undefined : onPointerMove}
             onPointerUp={disabled ? undefined : onPointerUp}
             onPointerCancel={disabled ? undefined : onPointerUp}
         >
             <div className="absolute inset-x-1 pointer-events-none z-10 rounded-lg bg-white/60 border border-white/70 shadow-sm"
-                style={{ top: WH, height: WH }} />
+                style={{ top: baseOffset, height: itemHeight }} />
             <div className="absolute inset-0 pointer-events-none z-20"
-                style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.75) 0%, transparent 32%, transparent 68%, rgba(255,255,255,0.75) 100%)' }} />
+                style={{ background: align === 'top'
+                    ? 'linear-gradient(to bottom, transparent 55%, rgba(255,255,255,0.75) 100%)'
+                    : 'linear-gradient(to bottom, rgba(255,255,255,0.75) 0%, transparent 32%, transparent 68%, rgba(255,255,255,0.75) 100%)' }} />
             <div ref={trackRef} className="absolute inset-x-0 top-0 will-change-transform z-30">
                 {items.map(item => {
                     const isSelected = item === selected;
                     return (
-                        <div key={item} style={{ height: WH }}
+                        <div key={item} style={{ height: itemHeight }}
                             className={`flex items-center justify-center transition-all duration-150 px-3 text-center leading-none ${isSelected ? 'text-navy-900 font-bold text-[12px]' : 'text-navy-900/30 font-medium text-[11px]'}`}>
-                            <span className="truncate w-full text-center">{displayFn ? displayFn(item) : item}</span>
+                            <span className="truncate w-full text-center flex justify-center items-center">{displayFn ? displayFn(item) : item}</span>
                         </div>
                     );
                 })}

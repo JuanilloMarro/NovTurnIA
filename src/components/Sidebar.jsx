@@ -119,9 +119,7 @@ export default function Sidebar({ onOpenPlans }) {
                                 <ShieldCheck size={16} /> Usuarios
                             </NavLink>
 
-                            <NavLink to="/business" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                                <Settings size={16} /> Configuración
-                            </NavLink>
+                            <NavLink to="/business" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}><Bot size={18} /> <span className="text-[12px]">Inteligencia Artificial</span></NavLink>
                         </>
                     )}
 

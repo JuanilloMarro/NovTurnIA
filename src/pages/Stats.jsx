@@ -56,7 +56,7 @@ function StatsContent({ kpi, donut, period, selectedYear, selectedMonth, selecte
     const labels = KPI_LABELS[period] ?? KPI_LABELS.month;
     return (
         <div className="h-full flex flex-col w-full overflow-y-auto md:overflow-hidden px-1 md:pb-0 pb-4">
-            <div className="md:flex-1 md:overflow-hidden flex flex-col gap-3">
+            <div className="md:flex-1 md:overflow-hidden flex flex-col gap-3 md:pb-2 md:pr-0.5">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-1">
                     <KpiCard label={labels.apts} value={kpi.monthApts} icon={<CalendarDays size={14} strokeWidth={2.5} />} color="navy" index={0} />
                     <KpiCard label="Clientes totales" value={kpi.totalPatients} icon={<Users size={14} strokeWidth={2.5} />} color="navy" index={1} />
@@ -65,11 +65,23 @@ function StatsContent({ kpi, donut, period, selectedYear, selectedMonth, selecte
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:flex-1 md:min-h-0 pb-2 px-1">
-                    <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
-                        <MainChart period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDay={selectedDay} />
+                    <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
+                        <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+                        <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+                        <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="relative z-10 flex flex-col h-full">
+                            <MainChart period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDay={selectedDay} />
+                        </div>
                     </div>
-                    <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
-                        <AppointmentStatusChart data={donut.data} confRate={donut.confRate} />
+                    <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
+                        <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+                        <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+                        <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="relative z-10 flex flex-col h-full">
+                            <AppointmentStatusChart data={donut.data} confRate={donut.confRate} />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -86,12 +98,12 @@ function StatsLoaded({ period, selectedYear, selectedMonth, selectedDay }) {
             <div className="h-full flex flex-col w-full">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {Array(4).fill(0).map((_, i) => (
-                        <div key={i} className="animate-shimmer h-24 bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px]" />
+                        <div key={i} className="animate-shimmer h-24 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md" />
                     ))}
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
-                    <div className="animate-shimmer h-full bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] min-h-[300px]" />
-                    <div className="animate-shimmer h-full bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] min-h-[300px]" />
+                    <div className="animate-shimmer h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md min-h-[300px]" />
+                    <div className="animate-shimmer h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md min-h-[300px]" />
                 </div>
             </div>
         );
@@ -154,14 +166,16 @@ export default function Stats() {
     const sharedControls = (
         <>
             {/* Selector de período */}
-            <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-[11px] font-bold text-navy-900 shadow-sm h-10">
+            <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
+                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
                 {PERIODS.map(p => (
                     <button
                         key={p.key}
                         onClick={() => handlePeriodChange(p.key)}
-                        className={`px-4 h-8 rounded-full transition-all ${period === p.key
-                            ? 'bg-white shadow-sm border border-white/80'
-                            : 'hover:bg-white/40 text-navy-900/60'
+                        className={`relative z-10 px-4 h-8 rounded-full transition-all ${period === p.key
+                            ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900'
+                            : 'hover:bg-white/20 text-navy-900/60'
                             }`}
                     >
                         {p.label}
@@ -170,14 +184,16 @@ export default function Stats() {
             </div>
 
             {/* Navegador de fecha */}
-            <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 shadow-sm h-10">
+            <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-10">
+                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
                 <button
                     onClick={handlePrev}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95"
+                    className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-navy-900 hover:bg-white/80 shadow-md transition-all hover:scale-[1.05] active:scale-95"
                 >
                     <ChevronLeft size={16} />
                 </button>
-                <div className="h-8 flex items-center justify-center gap-1.5 px-3" style={{ minWidth: 110 }}>
+                <div className="relative z-10 h-8 flex items-center justify-center gap-1.5 px-3" style={{ minWidth: 110 }}>
                     <CalendarDays size={13} className="text-navy-900 shrink-0" />
                     <span className="text-[11px] font-bold text-navy-900 tracking-tight whitespace-nowrap leading-none capitalize">
                         {navLabel}
@@ -185,7 +201,7 @@ export default function Stats() {
                 </div>
                 <button
                     onClick={handleNext}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95"
+                    className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-navy-900 hover:bg-white/80 shadow-md transition-all hover:scale-[1.05] active:scale-95"
                 >
                     <ChevronRight size={16} />
                 </button>
@@ -208,17 +224,19 @@ export default function Stats() {
                 {sharedControls}
 
                 {/* Tabs Métricas / Inteligencia */}
-                <div className="flex items-center bg-white/60 backdrop-blur-card border border-white/90 rounded-full p-1 text-[11px] font-bold text-navy-900 shadow-sm h-10">
+                <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
+                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
                     <button
                         onClick={() => setActiveTab('metricas')}
-                        className={`px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${activeTab === 'metricas' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40 text-navy-900/60'}`}
+                        className={`relative z-10 px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${activeTab === 'metricas' ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}
                     >
                         <BarChart2 size={12} />
                         Métricas
                     </button>
                     <button
                         onClick={() => setActiveTab('inteligencia')}
-                        className={`px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${activeTab === 'inteligencia' ? 'bg-white shadow-sm border border-white/80' : 'hover:bg-white/40 text-navy-900/60'}`}
+                        className={`relative z-10 px-4 h-8 rounded-full transition-all flex items-center gap-1.5 ${activeTab === 'inteligencia' ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}
                     >
                         <Brain size={12} />
                         Inteligencia

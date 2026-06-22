@@ -2,7 +2,7 @@ import { useState } from 'react';
 import FeatureLock from '../FeatureLock';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, MessageCircle, Pencil, Trash2, Phone, Bot, ShieldOff } from 'lucide-react';
+import { X, ChevronLeft, MessageCircle, Pencil, Trash2, Phone, Bot, ShieldOff, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
 import { deletePatient, gdprDeletePatient, setHumanTakeover } from '../../services/supabaseService';
 import { showPatientDeleteToast, showPatientGdprToast, showBotPauseToast, showBotReactivateToast, showErrorToast } from '../../store/useToastStore';
@@ -31,6 +31,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
     const navigate = useNavigate();
     const { canManageRoles } = usePermissions();
     const [showEdit, setShowEdit] = useState(false);
+    const [notesOpen, setNotesOpen] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showGdprConfirm, setShowGdprConfirm] = useState(false);
     const [gdprConfirmText, setGdprConfirmText] = useState('');
@@ -81,17 +82,23 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
 
     return (
         <div className="fixed inset-0 sm:absolute sm:top-2 sm:right-2 sm:bottom-2 sm:left-auto sm:w-[360px] bg-white/95 sm:bg-white/30 backdrop-blur-2xl border border-white/60 rounded-none sm:rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] z-[120] sm:z-50 flex flex-col animate-drawer-in overflow-hidden">
+            <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+            <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+            <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+            <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
 
             {/* Header */}
-            <div className="flex items-center gap-2 p-4">
-                <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
-                    <ChevronLeft size={16} />
+            <div className="relative z-10 flex items-center gap-2 p-4">
+                <button onClick={onClose} className="relative overflow-hidden w-7 h-7 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-700 hover:bg-white/60 shadow-md transition-colors">
+                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                    <div className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                    <ChevronLeft size={16} className="relative z-10" />
                 </button>
                 <h3 className="flex-1 font-bold text-navy-900 tracking-tight text-sm text-center">Perfil del cliente</h3>
                 <div className="w-7 h-7" />
             </div>
             {/* 1. Información del Cliente y Título (FIJA) */}
-            <div className="px-6 pb-2">
+            <div className="relative z-10 px-6 pb-2">
                 <div className="flex items-center gap-3 mb-6 px-1">
                     <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 border leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900 text-base font-bold">
                         <span className="block translate-y-[1px] translate-x-[1px]">{getInitials(name)}</span>
@@ -115,17 +122,32 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                         Notas / Observaciones
                     </h4>
                     <div className="flex-1 h-px bg-navy-900/10"></div>
+                    {patient.notes && (
+                        <button
+                            onClick={() => setNotesOpen(v => !v)}
+                            className="text-navy-700/50 hover:text-navy-900 transition-colors shrink-0"
+                            title={notesOpen ? 'Contraer' : 'Ampliar'}
+                            aria-label={notesOpen ? 'Contraer notas' : 'Ampliar notas'}
+                        >
+                            {notesOpen ? <ChevronDown size={15} strokeWidth={2.5} /> : <ChevronUp size={15} strokeWidth={2.5} />}
+                        </button>
+                    )}
                 </div>
-                
-                <div className="px-1 mb-6">
+
+                {/* Reserva siempre ~3 líneas para que los Turnos queden en posición fija */}
+                <div className="px-1 mb-4">
                     <FeatureLock feature="patient_notes" requiredPlan="Pro">
-                        <div className="min-h-[64px] flex flex-col justify-center">
+                        <div className={notesOpen ? 'max-h-[200px] overflow-y-auto custom-scrollbar' : 'min-h-[76px] overflow-hidden'}>
                             {patient.notes ? (
-                                <p className="text-xs text-navy-700/80 font-medium leading-relaxed bg-navy-50/50 p-3 rounded-2xl border border-navy-100/30 italic w-full">
-                                    "{patient.notes}"
-                                </p>
+                                <div className="relative overflow-hidden bg-white/40 backdrop-blur-2xl p-3 rounded-2xl border border-white/60 shadow-sm w-full">
+                                    <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                    <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                    <p className={`relative z-10 text-[11px] text-navy-700/80 font-medium leading-snug italic break-words ${notesOpen ? '' : 'line-clamp-3'}`}>
+                                        "{patient.notes}"
+                                    </p>
+                                </div>
                             ) : (
-                                <p className="text-[11px] text-navy-400 font-semibold italic text-center py-4 opacity-60 w-full">Sin notas registradas</p>
+                                <p className="text-[11px] text-navy-400 font-semibold italic text-center py-7 opacity-60 w-full">Sin notas registradas</p>
                             )}
                         </div>
                     </FeatureLock>
@@ -140,9 +162,11 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
             </div>
 
             {/* 2. Área Scrolleable (Solo los items del Turno) */}
-            <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
+            <div className="relative z-10 flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
                 {appointments.length === 0 ? (
-                    <div className="text-center text-navy-800/60 text-xs font-bold py-4">No hay turnos registrados</div>
+                    <div className="min-h-[82px] flex items-center justify-center">
+                        <p className="text-[11px] text-navy-400 font-semibold italic text-center opacity-60">Sin turnos registrados</p>
+                    </div>
                 ) : (
                     <div className="space-y-4">
                         {appointments.map(apt => (
@@ -177,7 +201,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
             </div>
 
             {/* Bottom Fixed Buttons */}
-            <div className="p-4 mt-auto">
+            <div className="relative z-10 p-4 mt-auto">
                 <div className="flex items-center justify-center gap-2">
                     {/* 1. Conversación */}
                     <button
@@ -185,10 +209,12 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                             onClose();
                             navigate(`/conversations?patient=${patient.id}`);
                         }}
-                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-700 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300"
                     >
-                        <MessageCircle size={14} className="shrink-0" />
-                        <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Chat</span>
+                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                        <MessageCircle size={14} className="shrink-0 relative z-10" />
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap relative z-10">Chat</span>
                     </button>
 
                     {/* 2. IA (Bot Toggle) */}
@@ -205,12 +231,14 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                                 showErrorToast('Error al actualizar IA', err.message);
                             }
                         }}
-                        className={`group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 border text-[11px] font-bold rounded-full shadow-card transition-all duration-300 overflow-hidden ${botPaused
-                            ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                            : 'bg-white border-white/80 text-navy-900 hover:bg-white/80'
+                        className={`relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 border text-[11px] font-bold rounded-full shadow-md transition-all duration-300 ${botPaused
+                            ? 'bg-amber-50/80 backdrop-blur-2xl border-amber-200/70 text-amber-700 hover:bg-amber-100/80'
+                            : 'bg-white/40 backdrop-blur-2xl border-white/60 text-navy-900 hover:bg-white/60'
                             }`}
                     >
-                        <div className="relative shrink-0 w-3.5 h-3.5 flex items-center justify-center">
+                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                        <div className="relative z-10 shrink-0 w-3.5 h-3.5 flex items-center justify-center">
                             <Bot size={13} />
                             <AIStar
                                 size={5}
@@ -218,7 +246,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                                 strokeWidth={2.5}
                             />
                         </div>
-                        <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap ml-0 group-hover:ml-0">
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap ml-0 group-hover:ml-0 relative z-10">
                             {botPaused ? 'Reactivar IA' : 'Pausar IA'}
                         </span>
                     </button>
@@ -226,30 +254,36 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                     {/* 3. Editar */}
                     <button
                         onClick={() => setShowEdit(true)}
-                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-navy-700 text-[11px] font-bold rounded-full shadow-card hover:bg-white/80 transition-all duration-300 overflow-hidden"
+                        className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md hover:bg-white/60 transition-all duration-300"
                     >
-                        <Pencil size={14} className="shrink-0" />
-                        <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Editar</span>
+                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                        <Pencil size={14} className="shrink-0 relative z-10" />
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap relative z-10">Editar</span>
                     </button>
 
                     {/* 4. Eliminar */}
                     <button
                         onClick={() => setShowDeleteConfirm(true)}
-                        className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-600 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
+                        className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-rose-500 text-[11px] font-bold rounded-full shadow-md hover:bg-rose-500 hover:border-rose-500 hover:text-white transition-all duration-300"
                     >
-                        <Trash2 size={14} className="shrink-0" />
-                        <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">Eliminar</span>
+                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                        <Trash2 size={14} className="shrink-0 relative z-10" />
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap relative z-10">Eliminar</span>
                     </button>
 
                     {/* 5. Eliminar datos GDPR — solo admin/manager */}
                     {canManageRoles && (
                         <button
                             onClick={() => { setShowGdprConfirm(true); setGdprConfirmText(''); }}
-                            className="group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white border border-white/80 text-rose-800 text-[11px] font-bold rounded-full shadow-card hover:bg-rose-50 transition-all duration-300 overflow-hidden"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-rose-800 text-[11px] font-bold rounded-full shadow-md hover:bg-rose-700 hover:border-rose-700 hover:text-white transition-all duration-300"
                             title="Borrado permanente GDPR Art. 17"
                         >
-                            <ShieldOff size={14} className="shrink-0" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">GDPR</span>
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <ShieldOff size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap relative z-10">GDPR</span>
                         </button>
                     )}
                 </div>
@@ -258,7 +292,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
             {/* Delete Confirmation */}
             {showDeleteConfirm && createPortal(
                 <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-                    <div className="w-full max-w-sm bg-white/30 backdrop-blur-xl border border-white/50 p-6 animate-fade-up shadow-[0_8px_32px_rgba(26,58,107,0.15)] rounded-[32px]">
+                    <div className="w-full max-w-sm bg-white/30 backdrop-blur-2xl border border-white/60 p-6 animate-fade-up shadow-[0_8px_32px_rgba(26,58,107,0.15)] rounded-[32px]">
                         <p className="text-sm font-bold text-navy-900 text-center mb-1">¿Eliminar cliente?</p>
                         <p className="text-xs text-navy-700/70 text-center mb-5 px-4">Esta acción no se puede deshacer. Se eliminará <span className="font-bold text-navy-900">{name}</span> y todos sus datos.</p>
                         <div className="flex justify-center gap-3">
@@ -285,7 +319,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
             {/* GDPR hard-delete confirmation */}
             {showGdprConfirm && createPortal(
                 <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-                    <div className="w-full max-w-sm bg-white/30 backdrop-blur-xl border border-rose-200/60 p-6 animate-fade-up shadow-[0_8px_32px_rgba(26,58,107,0.15)] rounded-[32px]">
+                    <div className="w-full max-w-sm bg-white/30 backdrop-blur-2xl border border-rose-200/60 p-6 animate-fade-up shadow-[0_8px_32px_rgba(26,58,107,0.15)] rounded-[32px]">
                         <div className="flex items-center justify-center mb-3">
                             <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
                                 <ShieldOff size={18} className="text-rose-700" />
