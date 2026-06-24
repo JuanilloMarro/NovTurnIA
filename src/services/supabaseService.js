@@ -1363,3 +1363,234 @@ export function buildCustomPrompt(agentName, instructions) {
     if (!instr) return `Nombre del asistente: ${name}`;
     return `Nombre del asistente: ${name}\n\n${instr}`;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// Finanzas — Insumos, Receta/BOM, Ingresos, Egresos y Resumen
+// Todas las escrituras de ingresos/egresos quedan auditadas (trigger_audit_log).
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Insumos (catálogo) ───────────────────────────────────
+export async function getSupplies({ activeOnly = false } = {}) {
+    let q = supabase.from('supplies').select('*').eq('business_id', getBID()).order('name', { ascending: true });
+    if (activeOnly) q = q.eq('active', true);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+}
+
+export async function createSupply({ name, unit, unit_cost, category, notes }) {
+    const { data, error } = await supabase
+        .from('supplies')
+        .insert({
+            business_id: getBID(),
+            name: name.trim(),
+            unit: unit?.trim() || 'unidad',
+            unit_cost: unit_cost ?? 0,
+            category: category?.trim() || null,
+            notes: notes?.trim() || null,
+        })
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function updateSupply(id, fields) {
+    const patch = {};
+    ['name', 'unit', 'category', 'notes'].forEach(k => {
+        if (fields[k] !== undefined) patch[k] = (typeof fields[k] === 'string' ? fields[k].trim() || null : fields[k]);
+    });
+    if (fields.unit_cost !== undefined) patch.unit_cost = fields.unit_cost;
+    if (fields.active !== undefined) patch.active = fields.active;
+    const { data, error } = await supabase
+        .from('supplies').update(patch).eq('id', id).eq('business_id', getBID()).select().single();
+    if (error) throw error;
+    return data;
+}
+
+export async function toggleSupplyActive(id, active) {
+    const { error } = await supabase.from('supplies').update({ active }).eq('id', id).eq('business_id', getBID());
+    if (error) throw error;
+}
+
+export async function deleteSupply(id) {
+    const { error } = await supabase.from('supplies').delete().eq('id', id).eq('business_id', getBID());
+    if (error) throw error;
+}
+
+// ── Receta / BOM por servicio ────────────────────────────
+export async function getServiceRecipe(serviceId) {
+    const { data, error } = await supabase
+        .from('service_supplies')
+        .select('*, supplies(id, name, unit, unit_cost, active)')
+        .eq('service_id', serviceId)
+        .eq('business_id', getBID());
+    if (error) throw error;
+    return data || [];
+}
+
+// Reemplaza la receta completa del servicio con la lista provista (delete + insert).
+export async function setServiceRecipe(serviceId, items) {
+    const bid = getBID();
+    const del = await supabase.from('service_supplies').delete().eq('service_id', serviceId).eq('business_id', bid);
+    if (del.error) throw del.error;
+    const rows = (items || [])
+        .filter(it => it.supply_id && Number(it.quantity) > 0)
+        .map(it => ({ business_id: bid, service_id: serviceId, supply_id: it.supply_id, quantity: it.quantity }));
+    if (rows.length === 0) return [];
+    const { data, error } = await supabase
+        .from('service_supplies').insert(rows).select('*, supplies(id, name, unit, unit_cost)');
+    if (error) throw error;
+    return data || [];
+}
+
+// Costo teórico por servicio (vista v_service_cost = Σ receta)
+export async function getServiceCosts() {
+    const { data, error } = await supabase
+        .from('v_service_cost').select('service_id, total_cost').eq('business_id', getBID());
+    if (error) throw error;
+    return data || [];
+}
+
+// ── Ingresos ─────────────────────────────────────────────
+export async function getIncomeEntries({ start, end, status = 'confirmed', limit = 200 } = {}) {
+    let q = supabase
+        .from('income_entries')
+        .select('*, patients(display_name)')
+        .eq('business_id', getBID())
+        .order('occurred_at', { ascending: false })
+        .limit(limit);
+    if (status) q = q.eq('status', status);
+    if (start) q = q.gte('occurred_at', start);
+    if (end) q = q.lt('occurred_at', end);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+}
+
+// Ingreso manual / ad-hoc (venta sin turno, producto, etc.)
+export async function recordIncome({ description, amount, payment_method, occurred_at, quantity = 1, service_id = null, patient_id = null, notes = null, source = 'manual' }) {
+    const { data, error } = await supabase
+        .from('income_entries')
+        .insert({
+            business_id: getBID(),
+            source,
+            description: description.trim(),
+            amount,
+            quantity,
+            payment_method: payment_method || null,
+            service_id,
+            patient_id,
+            occurred_at: occurred_at || new Date().toISOString(),
+            notes: notes?.trim() || null,
+        })
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+// Confirma que un turno se dio correctamente → crea el ingreso snapshot (atómico/idempotente)
+export async function confirmServiceDelivery({ appointmentId, amount, paymentMethod = null, notes = null }) {
+    const { data, error } = await supabase.rpc('confirm_service_delivery', {
+        p_appointment_id: appointmentId,
+        p_amount: amount,
+        p_payment_method: paymentMethod,
+        p_notes: notes,
+    });
+    if (error) throw error;
+    return data;
+}
+
+export async function voidIncome(id, reason = null) {
+    const { data, error } = await supabase.rpc('void_income_entry', { p_id: id, p_reason: reason });
+    if (error) throw error;
+    return data;
+}
+
+// Ingreso confirmado asociado a un turno (null si aún no se confirmó la entrega)
+export async function getAppointmentIncome(appointmentId) {
+    const { data, error } = await supabase
+        .from('income_entries')
+        .select('id, amount, payment_method, occurred_at, status')
+        .eq('appointment_id', appointmentId)
+        .eq('business_id', getBID())
+        .eq('source', 'appointment')
+        .eq('status', 'confirmed')
+        .maybeSingle();
+    if (error) throw error;
+    return data;
+}
+
+// Turnos entregables sin ingreso confirmado (lista "Por confirmar")
+export async function getUnconfirmedDeliveries() {
+    const { data, error } = await supabase.rpc('get_unconfirmed_deliveries');
+    if (error) throw error;
+    return data || [];
+}
+
+// ── Egresos / Gastos ─────────────────────────────────────
+export async function getExpenseEntries({ start, end, status = 'confirmed', limit = 200 } = {}) {
+    let q = supabase
+        .from('expense_entries')
+        .select('*, supplies(name, unit)')
+        .eq('business_id', getBID())
+        .order('occurred_at', { ascending: false })
+        .limit(limit);
+    if (status) q = q.eq('status', status);
+    if (start) q = q.gte('occurred_at', start);
+    if (end) q = q.lt('occurred_at', end);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+}
+
+export async function recordExpense({ description, amount, category = 'general', payment_method = null, occurred_at, quantity = 1, supply_id = null, recurring = false, frequency = 'one_time', notes = null }) {
+    const { data, error } = await supabase
+        .from('expense_entries')
+        .insert({
+            business_id: getBID(),
+            description: description.trim(),
+            amount,
+            category: category || 'general',
+            payment_method: payment_method || null,
+            quantity,
+            supply_id,
+            recurring,
+            frequency,
+            occurred_at: occurred_at || new Date().toISOString(),
+            notes: notes?.trim() || null,
+        })
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function voidExpense(id, reason = null) {
+    const { data, error } = await supabase.rpc('void_expense_entry', { p_id: id, p_reason: reason });
+    if (error) throw error;
+    return data;
+}
+
+// ── Resumen financiero (KPIs + serie + desgloses, 1 round-trip) ──
+export async function getFinanceSummary(start, end, granularity = 'day') {
+    const { data, error } = await supabase.rpc('get_finance_summary', {
+        p_start: start,
+        p_end: end,
+        p_granularity: granularity,
+    });
+    if (error) throw error;
+    return data;
+}
+
+// Serie temporal ingresos vs egresos (claves period calzan con buildSlots del front)
+export async function getFinanceTrend(granularity = 'month', start, end) {
+    const { data, error } = await supabase.rpc('get_finance_trend', {
+        p_start: start,
+        p_end: end,
+        p_granularity: granularity,
+    });
+    if (error) throw error;
+    return data || [];
+}

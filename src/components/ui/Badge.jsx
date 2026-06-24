@@ -18,8 +18,8 @@ export default function Badge({ status }) {
         )
     }
     return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400" /> Cancelado
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> Cancelado
         </span>
     )
 }

@@ -12,7 +12,7 @@ const STATUS_META = {
     active:    { label: 'Activo',     cls: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' },
     trial:     { label: 'Trial',      cls: 'bg-blue-500/10 text-blue-700 border-blue-500/20' },
     suspended: { label: 'Suspendido', cls: 'bg-amber-500/10 text-amber-700 border-amber-500/20' },
-    cancelled: { label: 'Cancelado',  cls: 'bg-red-500/10 text-red-700 border-red-500/20' },
+    cancelled: { label: 'Cancelado',  cls: 'bg-rose-500/10 text-rose-700 border-rose-500/20' },
 };
 
 const TIER_META = {

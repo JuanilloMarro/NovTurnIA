@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Tag, Plus, Save, ToggleLeft, ToggleRight, ChevronLeft, Search, Trash2, X, Repeat, Calendar as CalendarIcon, SlidersHorizontal, Layers } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Tag, Plus, Save, ToggleLeft, ToggleRight, ChevronLeft, Search, Trash2, X, Calendar as CalendarIcon, SlidersHorizontal, Layers } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useOffers, getOfferStatus } from '../hooks/useOffers';
 import { useServices } from '../hooks/useServices';
@@ -132,6 +133,19 @@ export default function Offers() {
         });
     }
 
+    // Deep-link: ?offer=<id> abre directamente esa oferta (desde Conversaciones).
+    const [searchParams, setSearchParams] = useSearchParams();
+    const offerIdFromUrl = searchParams.get('offer');
+    useEffect(() => {
+        if (!offerIdFromUrl || offers.length === 0) return;
+        const o = offers.find(x => String(x.id) === String(offerIdFromUrl));
+        if (o) handleSelect(o);
+        const next = new URLSearchParams(searchParams);
+        next.delete('offer');
+        setSearchParams(next, { replace: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [offerIdFromUrl, offers]);
+
     function handlePriceKey(e) {
         const key = e.key;
         if (key === 'Backspace') {
@@ -155,19 +169,6 @@ export default function Offers() {
     function handleNew() {
         setSelectedId('new');
         setForm({ ...EMPTY_FORM, service_id: services[0]?.id ?? null });
-    }
-
-    function handleReuse(offer) {
-        setSelectedId('new');
-        setForm({
-            service_id: offer.service_id,
-            name: offer.name,
-            description: offer.description || '',
-            promoPriceCents: toCents(offer.promo_price),
-            starts_at: '',
-            ends_at: '',
-            active: true,
-        });
     }
 
     function handleClose() {
@@ -521,17 +522,8 @@ export default function Offers() {
                                     </div>
 
                                     <div className="flex-1 min-w-0">
-                                        <div className={`font-bold text-sm truncate flex items-center justify-between ${isSelected ? 'text-navy-900' : offer.active ? 'text-navy-900/80' : 'text-navy-900/35'}`}>
+                                        <div className={`font-bold text-sm truncate ${isSelected ? 'text-navy-900' : offer.active ? 'text-navy-900/80' : 'text-navy-900/35'}`}>
                                             <span className="truncate">{offer.name}</span>
-                                            {status === 'expired' && (
-                                                <div
-                                                    onClick={(e) => { e.stopPropagation(); handleReuse(offer); }}
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-[10px] font-bold text-navy-900 hover:underline flex items-center gap-1 z-10"
-                                                    title="Reutilizar"
-                                                >
-                                                    <Repeat size={12} />
-                                                </div>
-                                            )}
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold tracking-tight text-navy-700/60">
                                             <span className="truncate">{offer.services?.name || 'Servicio eliminado'}</span>

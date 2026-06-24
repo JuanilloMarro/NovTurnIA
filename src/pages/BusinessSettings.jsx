@@ -10,10 +10,12 @@ import {
 } from '../services/supabaseService';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePlanLimits } from '../hooks/usePlanLimits';
+import { useAppStore } from '../store/useAppStore';
 import FeatureLock from '../components/FeatureLock';
 import AIOrb from '../components/ui/AIOrb';
 import { formatPhone } from '../utils/format';
-import { Save, Building2, Clock, Lock, Bot, BotOff, Check, Power, Search, Pencil } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Save, Building2, Clock, Lock, Bot, BotOff, Check, Power, Search, Pencil, MessageCircle, User } from 'lucide-react';
 import { showSettingsSavedToast, showValidationToast, showErrorToast, showBotReactivateToast } from '../store/useToastStore';
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
@@ -85,20 +87,6 @@ function Field({ label, children }) {
     );
 }
 
-function ReadOnlyField({ label, value }) {
-    return (
-        <div>
-            <div className="flex items-center gap-1.5 mb-2.5">
-                <span className="text-[11px] font-bold text-navy-800/50 tracking-wide leading-none">{label}</span>
-                <Lock size={9} className="text-navy-800/30" />
-            </div>
-            <div className="w-full bg-white/20 border border-white/30 rounded-full px-3 py-1.5 text-xs font-semibold text-navy-900/40 shadow-sm select-none">
-                {value}
-            </div>
-        </div>
-    );
-}
-
 function HourSelect({ value, onChange, options }) {
     const items = options.map(o => o.label);
     const selected = HOUR_OPTIONS.find(o => o.value === value)?.label || '00:00';
@@ -116,6 +104,13 @@ function HourSelect({ value, onChange, options }) {
 export default function BusinessSettings() {
     const { canManageRoles } = usePermissions();
     const { hasFeature } = usePlanLimits();
+    const navigate = useNavigate();
+
+    // Redirige conservando el ?bid= actual (multi-tenancy en la URL).
+    function goWithBid(path) {
+        const bid = new URLSearchParams(window.location.search).get('bid');
+        navigate(bid ? `${path}${path.includes('?') ? '&' : '?'}bid=${bid}` : path);
+    }
 
     const [info, setInfo] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -136,7 +131,7 @@ export default function BusinessSettings() {
     // módulo o al reactivar una IA, luego se apaga.
     const [aiEffect, setAiEffect] = useState(false);
     const aiEffectTimer = useRef(null);
-    function triggerAiEffect(duration = 2700) {
+    function triggerAiEffect(duration = 3200) {
         setAiEffect(true);
         clearTimeout(aiEffectTimer.current);
         aiEffectTimer.current = setTimeout(() => setAiEffect(false), duration);
@@ -161,6 +156,12 @@ export default function BusinessSettings() {
         try {
             await reactivateBot(patientId);
             setPausedClients(prev => prev.filter(p => p.id !== patientId));
+            // Sincroniza el estado global para que Turnos/Clientes/Conversaciones
+            // reflejen de inmediato que la IA volvió a estar activa (el mapa del
+            // store sobrescribe el human_takeover cacheado en cada módulo).
+            useAppStore.getState().setPatientTakeover(patientId, false);
+            useAppStore.getState().invalidateConversationsCache();
+            useAppStore.getState().invalidatePatientsCache();
             triggerAiEffect();
             showBotReactivateToast(`La IA volvió a atender a ${target?.display_name || 'el cliente'}.`);
         } catch (err) {
@@ -223,12 +224,12 @@ export default function BusinessSettings() {
             showValidationToast('Nombre muy largo', 'El nombre no debe exceder los 100 caracteres.');
             return;
         }
-        if (agentName.trim().length > 30) {
-            showValidationToast('Nombre de asistente largo', 'El nombre del asistente no debe exceder los 30 caracteres.');
+        if (agentName.trim().length > 25) {
+            showValidationToast('Nombre de asistente largo', 'El nombre del asistente no debe exceder los 25 caracteres.');
             return;
         }
-        if (instructions.trim().length > 270) {
-            showValidationToast('Instrucciones muy largas', 'Las instrucciones no deben exceder los 270 caracteres.');
+        if (instructions.trim().length > 250) {
+            showValidationToast('Instrucciones muy largas', 'Las instrucciones no deben exceder los 250 caracteres.');
             return;
         }
         if (selectedDays.size === 0) {
@@ -308,65 +309,79 @@ export default function BusinessSettings() {
                     <div className="flex flex-col lg:flex-row gap-5 items-stretch lg:h-full">
 
                         {/* ── Columna Izquierda: Asistente IA + Guardar ── */}
-                        <div className="w-full lg:w-[39%] shrink-0 flex flex-col gap-4">
+                        <div className="w-full lg:w-[44%] shrink-0 flex flex-col gap-4">
                             <div className={`ai-rainbow rounded-[24px] w-full flex flex-1 min-h-0 ${aiEffect ? 'is-active' : ''}`}>
-                            <div className="relative flex-1 rounded-[24px] overflow-hidden border border-white/60 bg-white/40 backdrop-blur-2xl shadow-md p-6 flex flex-col justify-between gap-6 min-h-[380px]">
-                                {/* glows ambiente — patrón de Ofertas (4 esquinas, 0.05) */}
-                                <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
-                                <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
-                                <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
-                                <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="relative flex-1 rounded-[24px] overflow-hidden border border-white/60 bg-white/40 backdrop-blur-2xl shadow-md p-6 flex flex-col justify-between gap-6 min-h-[380px]">
+                                    {/* glows ambiente — patrón de Ofertas (4 esquinas, 0.05) */}
+                                    <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                                    <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+                                    <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+                                    <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
 
-                                {/* Malla + bola de partículas — fondo de TODO el panel, detrás de los componentes */}
-                                <AIOrb className="absolute inset-0 w-full h-full z-0 pointer-events-none" />
+                                    {/* Malla + bola de partículas — centrada entre el label y el nombre.
+                                        Se difumina con una máscara (no con una banda de color) para que el
+                                        fondo del panel sea un degradado continuo, sin cortes. */}
+                                    <AIOrb className="absolute inset-x-0 top-[8%] w-full h-[58%] z-0 pointer-events-none [mask-image:linear-gradient(to_bottom,transparent_0%,#000_18%,#000_60%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,#000_18%,#000_60%,transparent_100%)]" />
 
-                                {/* etiqueta */}
-                                <div className="relative z-10 flex items-center gap-2 text-navy-700/80">
-                                    <div className="w-6 h-6 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center">
-                                        <Bot size={13} className="text-navy-700/80" />
+                                    {/* etiqueta */}
+                                    <div className="relative z-10 flex items-center gap-2 text-navy-700/80">
+                                        <div className="w-6 h-6 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center">
+                                            <Bot size={13} className="text-navy-700/80" />
+                                        </div>
+                                        <span className="text-[11px] font-bold tracking-wide">Asistente IA · Personalidad</span>
                                     </div>
-                                    <span className="text-[11px] font-bold tracking-wide">Asistente IA · Personalidad</span>
-                                </div>
 
-                                {/* espaciador central — deja respirar la malla detrás */}
-                                <div className="relative z-10 flex-1 min-h-[150px]" />
+                                    {/* espaciador central — deja respirar la malla detrás */}
+                                    <div className="relative z-10 flex-1 min-h-[150px]" />
 
-                                {/* nombre editable */}
-                                <div className="relative z-10 text-center mb-1">
-                                    <input
-                                        type="text"
-                                        maxLength={30}
-                                        value={agentName}
-                                        onChange={e => handleAgentNameChange(e.target.value)}
-                                        disabled={!hasFeature('ai_agent_name')}
-                                        placeholder="Tu asistente"
-                                        className="w-full text-center bg-transparent text-xl font-bold text-navy-900 outline-none placeholder-navy-900/30 border-b border-transparent focus:border-navy-900/20 transition-colors pb-1 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    />
-                                    <p className="flex items-center justify-center gap-1 mt-1 text-[9px] font-bold uppercase tracking-wider text-navy-900/40">
-                                        {hasFeature('ai_agent_name')
-                                            ? <><Pencil size={9} /> Toca para renombrar</>
-                                            : <><Lock size={9} /> Enterprise</>}
-                                    </p>
-                                </div>
+                                    {/* nombre: label estático "Tu nombre es" + nombre dinámico editable, en una sola línea */}
+                                    <div className="relative z-10 flex flex-col items-center mb-1">
+                                        {/* Una sola frase continua: "Tu nombre es" es fijo (label) y solo el
+                                            nombre es editable; misma tipografía y sin separación para que se
+                                            lea como un único texto. El input se autoajusta exactamente al
+                                            ancho del texto (sizer oculto en grid) para que la frase quede
+                                            siempre centrada en el panel. */}
+                                        <div className="flex items-baseline justify-center max-w-full">
+                                            <span className="text-lg font-bold text-navy-900 select-none whitespace-nowrap">Tu nombre es&nbsp;</span>
+                                            <span className="inline-grid">
+                                                <span aria-hidden className="invisible col-start-1 row-start-1 text-lg font-bold whitespace-pre">{agentName || 'tu asistente'}</span>
+                                                <input
+                                                    type="text"
+                                                    size={1}
+                                                    maxLength={25}
+                                                    value={agentName}
+                                                    onChange={e => handleAgentNameChange(e.target.value)}
+                                                    disabled={!hasFeature('ai_agent_name')}
+                                                    placeholder="tu asistente"
+                                                    className="col-start-1 row-start-1 w-full min-w-0 text-left bg-transparent text-lg font-bold text-navy-900 outline-none placeholder-navy-900/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                                                />
+                                            </span>
+                                        </div>
+                                        <p className="flex items-center justify-center gap-1 mt-1.5 text-[9px] font-bold tracking-wider text-navy-900/40">
+                                            {hasFeature('ai_agent_name')
+                                                ? <><Pencil size={9} /> Toca para renombrar</>
+                                                : <><Lock size={9} /> Enterprise</>}
+                                        </p>
+                                    </div>
 
-                                {/* contexto / descripción */}
-                                <div className="relative z-10 rounded-2xl bg-white/30 border border-white/60 p-3 shadow-sm">
-                                    <textarea
-                                        maxLength={270}
-                                        value={instructions}
-                                        onChange={e => handleInstructionsChange(e.target.value)}
-                                        disabled={!hasFeature('custom_prompt')}
-                                        placeholder="Describe la personalidad y el contexto de tu IA..."
-                                        className="w-full h-20 bg-transparent text-[11px] font-medium leading-relaxed text-navy-900 outline-none placeholder-navy-700/40 resize-none custom-scrollbar disabled:opacity-60 disabled:cursor-not-allowed"
-                                    />
-                                    <div className="flex items-center justify-between pt-1 border-t border-navy-900/5">
-                                        <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-navy-900/40">
-                                            {hasFeature('custom_prompt') ? 'Contexto' : <><Lock size={9} /> Pro</>}
-                                        </span>
-                                        <span className="text-[9px] font-bold text-navy-900/30">{instructions.length}/270</span>
+                                    {/* contexto / descripción */}
+                                    <div className="relative z-10 rounded-2xl bg-white/30 border border-white/60 p-3 shadow-sm">
+                                        <textarea
+                                            maxLength={250}
+                                            value={instructions}
+                                            onChange={e => handleInstructionsChange(e.target.value)}
+                                            disabled={!hasFeature('custom_prompt')}
+                                            placeholder="Describe la personalidad y el contexto de tu IA..."
+                                            className="w-full h-20 bg-transparent text-[11px] font-medium leading-relaxed text-navy-900 outline-none placeholder-navy-700/40 resize-none custom-scrollbar disabled:opacity-60 disabled:cursor-not-allowed"
+                                        />
+                                        <div className="flex items-center justify-between pt-1 border-t border-navy-900/5">
+                                            <span className="flex items-center gap-1 text-[9px] font-bold tracking-wider text-navy-900/40">
+                                                {hasFeature('custom_prompt') ? 'Contexto' : <><Lock size={9} /> Pro</>}
+                                            </span>
+                                            <span className="text-[9px] font-bold text-navy-900/30">{instructions.length}/250</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
                             </div>
 
                             {/* Guardar — debajo del panel de IA */}
@@ -401,11 +416,11 @@ export default function BusinessSettings() {
                                     {/* Lado izquierdo: Icono grande y Título */}
                                     <div className="flex flex-col items-center justify-center bg-navy-900/5 rounded-[20px] border border-navy-900/5 w-20 h-20 shrink-0 shadow-inner">
                                         <Building2 size={28} className="text-navy-700" />
-                                        <h3 className="text-[9px] font-bold text-navy-800 tracking-wider uppercase text-center leading-none mt-1.5">Identidad</h3>
+                                        <h3 className="text-[9px] font-bold text-navy-800 tracking-wider text-center leading-none mt-1.5">Identidad</h3>
                                     </div>
 
                                     {/* Lado derecho: Parámetros */}
-                                    <div className="flex-1 w-full space-y-4">
+                                    <div className="flex-1 w-full">
                                         <Field label="Nombre del negocio">
                                             <input
                                                 type="text"
@@ -416,7 +431,6 @@ export default function BusinessSettings() {
                                                 className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40"
                                             />
                                         </Field>
-                                        <ReadOnlyField label="Tipo de negocio" value={info?.business_type || '—'} />
                                     </div>
                                 </div>
                             </div>
@@ -431,7 +445,7 @@ export default function BusinessSettings() {
                                     {/* Lado izquierdo: Icono grande y Título */}
                                     <div className="flex flex-col items-center justify-center bg-navy-900/5 rounded-[20px] border border-navy-900/5 w-20 h-20 shrink-0 shadow-inner">
                                         <Clock size={28} className="text-navy-700" />
-                                        <h3 className="text-[9px] font-bold text-navy-800 tracking-wider uppercase text-center leading-none mt-1.5">Horario</h3>
+                                        <h3 className="text-[9px] font-bold text-navy-800 tracking-wider text-center leading-none mt-1.5">Horario</h3>
                                     </div>
 
                                     {/* Lado derecho: Parámetros */}
@@ -510,8 +524,9 @@ export default function BusinessSettings() {
                                     )}
                                 </div>
 
-                                {/* lista scrollable (soporta 100+ clientes) */}
-                                <div className="relative flex-1 min-h-0 overflow-y-auto custom-scrollbar -mr-2 pr-2">
+                                {/* lista scrollable (soporta 100+ clientes) — con padding para que el
+                                    sombreado de las fichas no se corte en los lados, arriba ni abajo */}
+                                <div className="relative flex-1 min-h-0 overflow-y-auto custom-scrollbar -mx-2 px-2 py-2">
                                     {loadingPaused ? (
                                         <div className="flex items-center justify-center py-10">
                                             <div className="w-6 h-6 border-[3px] border-navy-100 border-t-navy-700 rounded-full animate-spin" />
@@ -528,32 +543,67 @@ export default function BusinessSettings() {
                                             </p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-2">
-                                            {filteredPaused.map(c => (
-                                                <div key={c.id} className="flex items-center gap-3 bg-white/45 border border-white/60 rounded-[24px] px-3 py-2.5 shadow-sm">
-                                                    <div className="w-9 h-9 rounded-full bg-gradient-to-b from-white to-gray-100 border border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] flex items-center justify-center text-[11px] font-bold text-navy-900 shrink-0">
-                                                        {initials(c.display_name)}
+                                        <div className="space-y-3">
+                                            {filteredPaused.map((c, i) => (
+                                                <div
+                                                    key={c.id}
+                                                    className="group relative overflow-hidden backdrop-blur-2xl rounded-2xl p-3 transition-all duration-300 animate-fade-up flex items-center justify-between gap-3 border shadow-md bg-white/40 border-white/60 hover:bg-white/60"
+                                                    style={{ animationDelay: `${i * 0.04}s` }}
+                                                >
+                                                    <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                    <div className="absolute -bottom-5 -left-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+
+                                                    <div className="flex items-center gap-3 relative z-10 min-w-0">
+                                                        <div className="w-9 h-9 flex items-center justify-center text-[11px] font-bold flex-shrink-0 transition-all duration-300 border rounded-full leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900 group-hover:to-gray-200 group-hover:border-gray-200">
+                                                            <span className="block">{initials(c.display_name)}</span>
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="font-bold text-navy-900 text-[12px] truncate leading-tight">{c.display_name || 'Cliente'}</div>
+                                                            <div className="text-[10px] font-semibold text-amber-600/80 flex items-center gap-1 leading-tight mt-0.5 truncate">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)] shrink-0" />
+                                                                IA pausada{c.phone ? ` · ${formatPhone(c.phone)}` : ''}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[12px] font-bold text-navy-900 truncate leading-tight">{c.display_name || 'Cliente'}</p>
-                                                        <p className="text-[10px] font-semibold text-amber-600/80 flex items-center gap-1 leading-tight mt-0.5 truncate">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)] shrink-0" />
-                                                            IA pausada{c.phone ? ` · ${formatPhone(c.phone)}` : ''}
-                                                        </p>
+
+                                                    <div className="flex items-center gap-1.5 relative z-10 shrink-0">
+                                                        {/* Abrir chat del cliente (directo a su conversación) */}
+                                                        <button
+                                                            onClick={() => goWithBid(`/conversations?patient=${c.id}`)}
+                                                            title="Abrir chat del cliente"
+                                                            className="relative overflow-hidden group/chat h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-3 rounded-full border border-white/60 bg-white/40 backdrop-blur-2xl text-navy-700 text-[10px] font-bold shadow-md hover:bg-white transition-all duration-300 shrink-0"
+                                                        >
+                                                            <div className="absolute -top-3 -right-3 w-9 h-9 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                            <div className="absolute -bottom-3 -left-3 w-9 h-9 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                                            <MessageCircle size={14} className="shrink-0 relative z-10" />
+                                                            <span className="max-w-0 overflow-hidden group-hover/chat:max-w-[60px] transition-all duration-300 whitespace-nowrap relative z-10">Chat</span>
+                                                        </button>
+                                                        {/* Ver perfil del cliente (directo a su ficha) */}
+                                                        <button
+                                                            onClick={() => goWithBid(`/patients?id=${c.id}`)}
+                                                            title="Ver perfil del cliente"
+                                                            className="relative overflow-hidden group/perfil h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-3 rounded-full border border-white/60 bg-white/40 backdrop-blur-2xl text-navy-700 text-[10px] font-bold shadow-md hover:bg-white transition-all duration-300 shrink-0"
+                                                        >
+                                                            <div className="absolute -top-3 -right-3 w-9 h-9 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                            <div className="absolute -bottom-3 -left-3 w-9 h-9 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                                            <User size={14} className="shrink-0 relative z-10" />
+                                                            <span className="max-w-0 overflow-hidden group-hover/perfil:max-w-[60px] transition-all duration-300 whitespace-nowrap relative z-10">Perfil</span>
+                                                        </button>
+                                                        {/* Reanudar IA */}
+                                                        <button
+                                                            onClick={() => handleResume(c.id)}
+                                                            disabled={resumingId === c.id}
+                                                            className="relative overflow-hidden group/btn h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-3 bg-white/40 backdrop-blur-2xl border border-white/60 text-emerald-600 text-[10px] font-bold rounded-full shadow-md hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-300 disabled:opacity-50 shrink-0"
+                                                            title="Reanudar IA para este cliente"
+                                                        >
+                                                            <div className="absolute -top-3 -right-3 w-9 h-9 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(16,185,129,0.08)' }} />
+                                                            <div className="absolute -bottom-3 -left-3 w-9 h-9 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(52,211,153,0.08)' }} />
+                                                            <Power size={13} className="shrink-0 relative z-10" />
+                                                            <span className="max-w-0 overflow-hidden group-hover/btn:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">
+                                                                {resumingId === c.id ? '...' : 'Reanudar'}
+                                                            </span>
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={() => handleResume(c.id)}
-                                                        disabled={resumingId === c.id}
-                                                        className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-3 py-1.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-emerald-600 text-[10px] font-bold rounded-full shadow-md hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-300 disabled:opacity-50 shrink-0"
-                                                        title="Reanudar IA para este cliente"
-                                                    >
-                                                        <div className="absolute -top-3 -right-3 w-9 h-9 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                                                        <div className="absolute -bottom-3 -left-3 w-9 h-9 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                                                        <Power size={13} className="shrink-0 relative z-10" />
-                                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap relative z-10">
-                                                            {resumingId === c.id ? '...' : 'Reanudar'}
-                                                        </span>
-                                                    </button>
                                                 </div>
                                             ))}
                                         </div>

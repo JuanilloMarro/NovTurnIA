@@ -139,13 +139,9 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                     <FeatureLock feature="patient_notes" requiredPlan="Pro">
                         <div className={notesOpen ? 'max-h-[200px] overflow-y-auto custom-scrollbar' : 'min-h-[76px] overflow-hidden'}>
                             {patient.notes ? (
-                                <div className="relative overflow-hidden bg-white/40 backdrop-blur-2xl p-3 rounded-2xl border border-white/60 shadow-sm w-full">
-                                    <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                                    <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                                    <p className={`relative z-10 text-[11px] text-navy-700/80 font-medium leading-snug italic break-words ${notesOpen ? '' : 'line-clamp-3'}`}>
-                                        "{patient.notes}"
-                                    </p>
-                                </div>
+                                <p className={`text-[11px] text-navy-700/80 font-medium leading-snug italic break-words px-1 ${notesOpen ? '' : 'line-clamp-3'}`}>
+                                    "{patient.notes}"
+                                </p>
                             ) : (
                                 <p className="text-[11px] text-navy-400 font-semibold italic text-center py-7 opacity-60 w-full">Sin notas registradas</p>
                             )}

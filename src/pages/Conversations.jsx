@@ -84,6 +84,15 @@ export default function Conversations() {
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
     const messagesEndRef = useRef(null);
+    const messagesScrollRef = useRef(null);
+
+    // Lleva el scroll al final SOLO dentro del contenedor de mensajes.
+    // (No usar scrollIntoView: arrastra a los ancestros con overflow-hidden —
+    //  como la tarjeta que envuelve ambas columnas— y "levanta" toda la UI.)
+    function scrollMessagesToBottom() {
+        const el = messagesScrollRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+    }
     const [draft, setDraft] = useState('');
     const [sending, setSending] = useState(false);
     const [showContext, setShowContext] = useState(true);
@@ -157,7 +166,7 @@ export default function Conversations() {
     // Mueve el scroll al final solo al terminar la carga inicial
     useEffect(() => {
         if (!loadingHistory && history.length > 0) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+            scrollMessagesToBottom();
         }
     }, [loadingHistory]);
 
@@ -253,7 +262,7 @@ export default function Conversations() {
             _pending: true,
         }]);
         setDraft('');
-        requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }));
+        requestAnimationFrame(scrollMessagesToBottom);
 
         try {
             const result = await sendHumanMessage(selectedPatient.id, text);
@@ -591,7 +600,7 @@ export default function Conversations() {
                                 </div>
 
                                 {/* Chat Messages */}
-                                <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-6 bg-transparent relative z-0">
+                                <div ref={messagesScrollRef} className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-6 bg-transparent relative z-0">
                                     {loadingHistory ? (
                                         <div className="flex justify-center flex-col gap-4">
                                             {Array(4).fill(0).map((_, i) => (
@@ -783,7 +792,7 @@ export default function Conversations() {
 
                 {/* Right Column: Context Panels — fuera del box principal, a la derecha */}
                 {selectedPatient && showContext && (
-                    <div className="hidden xl:flex w-[380px] flex-col gap-2 shrink-0 min-h-0 overflow-y-auto custom-scrollbar">
+                    <div className="hidden xl:flex w-[380px] flex-col gap-2 shrink-0 min-h-0 overflow-y-auto no-scrollbar px-1.5 pt-1 pb-3">
                         <PatientInfoPanel patient={selectedPatientEffective} windowOpen={windowOpen} hoursLeft={hoursLeft} grow />
                         <ActiveServicesPanel onInsert={handleInsert} />
                         <ActiveOffersPanel onInsert={handleInsert} />

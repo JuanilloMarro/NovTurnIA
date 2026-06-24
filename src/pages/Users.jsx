@@ -243,6 +243,17 @@ export default function Users() {
                                             ]
                                         },
                                         {
+                                            title: 'Finanzas',
+                                            perms: [
+                                                { key: 'view_finance', label: 'Ver finanzas' },
+                                                { key: 'confirm_delivery', label: 'Confirmar entrega / cobrar' },
+                                                { key: 'record_income', label: 'Registrar ingresos' },
+                                                { key: 'record_expense', label: 'Registrar egresos' },
+                                                { key: 'manage_supplies', label: 'Gestionar insumos y recetas' },
+                                                { key: 'void_finance', label: 'Anular movimientos' },
+                                            ]
+                                        },
+                                        {
                                             title: 'Administración',
                                             perms: [
                                                 { key: 'manage_roles', label: 'Gestionar usuarios y roles' },

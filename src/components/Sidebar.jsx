@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock, Tag, History } from 'lucide-react';
+import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock, Tag, History, Wallet } from 'lucide-react';
 import AIStar from './Icons/AIStar';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePlanLimits } from '../hooks/usePlanLimits';
@@ -8,13 +8,53 @@ import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../store/useAppStore';
 import { getBusinessInfo } from '../services/supabaseService';
 
+// Glows en esquina — mismo patrón que los botones del listado de Ofertas, pero
+// escalados al ancho del item (pill ancho y bajo) para que el difuminado se
+// aprecie igual que en los botones/paneles del sistema.
+function NavGlow() {
+    return (
+        <>
+            <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+        </>
+    );
+}
+
+// Item de navegación con el estilo de los botones de Ofertas:
+// pill glass (bg-white/40 + blur + border-white/60 + shadow-md) y glows al estar activo.
+function NavItem({ to, end, icon: Icon, label, locked, iconSize = 16, labelClass = '', onClick }) {
+    const base = 'relative overflow-hidden flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300';
+    return (
+        <NavLink
+            to={to}
+            end={end}
+            onClick={onClick}
+            className={({ isActive }) =>
+                isActive
+                    ? `${base} bg-white/40 backdrop-blur-2xl border border-white/60 shadow-md text-navy-700`
+                    : `${base} border border-transparent text-navy-700/40 hover:bg-white/30 hover:text-navy-700`
+            }
+        >
+            {({ isActive }) => (
+                <>
+                    {isActive && <NavGlow />}
+                    <Icon size={iconSize} className="shrink-0 relative z-10" />
+                    <span className={`flex-1 relative z-10 whitespace-nowrap ${labelClass}`}>{label}</span>
+                    {locked && <Lock size={11} className="shrink-0 relative z-10" />}
+                </>
+            )}
+        </NavLink>
+    );
+}
+
 export default function Sidebar({ onOpenPlans }) {
-    const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations, canViewFollowUp } = usePermissions();
+    const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations, canViewFollowUp, canViewFinance } = usePermissions();
     const { hasFeature } = usePlanLimits();
     const statsUnlocked = hasFeature('dashboard');
     const auditUnlocked = hasFeature('audit_log');
     const offersUnlocked = hasFeature('dynamic_pricing');
     const followUpUnlocked = hasFeature('followup');
+    const financeUnlocked = hasFeature('finance');
     const { profile } = useAuth();
     const { isSidebarOpen, toggleSidebar } = useAppStore();
     const [businessName, setBusinessName] = useState('');
@@ -33,8 +73,8 @@ export default function Sidebar({ onOpenPlans }) {
         if (window.innerWidth < 768) toggleSidebar();
     };
 
-    const activeClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/50 backdrop-blur-md shadow-sm text-navy-700 font-bold text-[13px] tracking-wide transition-all';
-    const normalClass = 'flex items-center gap-3 px-4 py-2.5 rounded-xl text-navy-700/40 hover:bg-white/30 hover:text-navy-700 text-[13px] font-bold transition-all duration-300';
+    // Estilo del botón "Planes" (no es ruta, nunca está activo) — variante inactiva del item.
+    const normalClass = 'relative overflow-hidden flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300 border border-transparent text-navy-700/40 hover:bg-white/30 hover:text-navy-700';
 
     return (
         <>
@@ -61,65 +101,41 @@ export default function Sidebar({ onOpenPlans }) {
                 </div>
 
                 <nav className="flex-1 flex flex-col gap-1.5 mt-2">
-                    <NavLink to="/" end onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                        <Calendar size={16} /> Turnos
-                    </NavLink>
+                    <NavItem to="/" end icon={Calendar} label="Turnos" onClick={closeMobile} />
 
                     {canViewFollowUp && (
-                        <NavLink to="/followup" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                            <History size={16} />
-                            <span className="flex-1">Seguimiento</span>
-                            {!followUpUnlocked && <Lock size={11} />}
-                        </NavLink>
+                        <NavItem to="/followup" icon={History} label="Seguimiento" locked={!followUpUnlocked} onClick={closeMobile} />
                     )}
 
                     {canViewPatients && (
-                        <NavLink to="/patients" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                            <Users size={16} /> Clientes
-                        </NavLink>
+                        <NavItem to="/patients" icon={Users} label="Clientes" onClick={closeMobile} />
                     )}
 
                     {canViewConversations && (
-                        <NavLink to="/conversations" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                            <MessageCircle size={16} /> Conversaciones
-                        </NavLink>
+                        <NavItem to="/conversations" icon={MessageCircle} label="Conversaciones" onClick={closeMobile} />
                     )}
 
                     {canViewStats && (
-                        <NavLink to="/stats" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                            <BarChart2 size={16} />
-                            <span className="flex-1">Estadísticas</span>
-                            {!statsUnlocked && <Lock size={11} />}
-                        </NavLink>
+                        <NavItem to="/stats" icon={BarChart2} label="Estadísticas" locked={!statsUnlocked} onClick={closeMobile} />
                     )}
 
                     {(canManageServices || canManageRoles) && (
-                        <NavLink to="/settings" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                            <Layers size={16} /> Servicios
-                        </NavLink>
+                        <NavItem to="/settings" icon={Layers} label="Servicios" onClick={closeMobile} />
                     )}
 
                     {canManageServices && (
-                        <NavLink to="/offers" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                            <Tag size={16} />
-                            <span className="flex-1">Ofertas</span>
-                            {!offersUnlocked && <Lock size={11} />}
-                        </NavLink>
+                        <NavItem to="/offers" icon={Tag} label="Ofertas" locked={!offersUnlocked} onClick={closeMobile} />
+                    )}
+
+                    {canViewFinance && (
+                        <NavItem to="/finance" icon={Wallet} label="Finanzas" locked={!financeUnlocked} onClick={closeMobile} />
                     )}
 
                     {canManageRoles && (
                         <>
-                            <NavLink to="/audit-log" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                                <List size={16} />
-                                <span className="flex-1">Actividad</span>
-                                {!auditUnlocked && <Lock size={11} />}
-                            </NavLink>
-
-                            <NavLink to="/users" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}>
-                                <ShieldCheck size={16} /> Usuarios
-                            </NavLink>
-
-                            <NavLink to="/business" onClick={closeMobile} className={({ isActive }) => isActive ? activeClass : normalClass}><Bot size={18} /> <span className="text-[12px]">Inteligencia Artificial</span></NavLink>
+                            <NavItem to="/audit-log" icon={List} label="Actividad" locked={!auditUnlocked} onClick={closeMobile} />
+                            <NavItem to="/users" icon={ShieldCheck} label="Usuarios" onClick={closeMobile} />
+                            <NavItem to="/business" icon={Bot} iconSize={18} label="Inteligencia Artificial" labelClass="text-[11px]" onClick={closeMobile} />
                         </>
                     )}
 
@@ -127,7 +143,7 @@ export default function Sidebar({ onOpenPlans }) {
                         onClick={() => { onOpenPlans(); closeMobile(); }}
                         className={normalClass}
                     >
-                        <CreditCard size={16} /> Planes
+                        <CreditCard size={16} className="shrink-0 relative z-10" /> <span className="relative z-10">Planes</span>
                     </button>
                 </nav>
 

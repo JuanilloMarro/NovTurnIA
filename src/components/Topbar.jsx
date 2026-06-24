@@ -92,7 +92,7 @@ export default function Topbar() {
                         >
                             <Bell size={16} />
                             {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 z-20 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
+                                <span className="absolute -top-1 -right-1 z-20 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-600 text-[9px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
                                     {unreadCount}
                                 </span>
                             )}
@@ -194,7 +194,7 @@ export default function Topbar() {
                             <div className="p-2">
                                 <button
                                     onClick={() => logout()}
-                                    className="w-full flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-red-600 hover:bg-red-50 transition-all duration-200"
+                                    className="w-full flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-rose-600 hover:bg-rose-50 transition-all duration-200"
                                 >
                                     <LogOut size={15} />
                                     Cerrar Sesión
@@ -223,8 +223,8 @@ function NotifCard({ entry, onMarkRead, onMarkUnread, onDelete }) {
     const isDomicilio = entry.type === 'domicilio';
     const isPideHumano = entry.type === 'pide_humano';
 
-    const dotColor = isBotError ? 'bg-red-500/90'
-        : isUrgencia ? 'bg-red-600/90'
+    const dotColor = isBotError ? 'bg-rose-500/90'
+        : isUrgencia ? 'bg-rose-600/90'
             : isQueja ? 'bg-orange-500/90'
                 : isBotWarning ? 'bg-amber-500/90'
                     : isReminder ? 'bg-amber-500/90'
@@ -313,7 +313,7 @@ function NotifCard({ entry, onMarkRead, onMarkUnread, onDelete }) {
                 <button
                     onClick={(e) => { e.stopPropagation(); onDelete(); }}
                     title="Eliminar notificación"
-                    className="w-7 h-7 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 text-red-500 border border-red-200/60 transition-colors"
+                    className="w-7 h-7 flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-500 border border-rose-200/60 transition-colors"
                 >
                     <Trash2 size={13} strokeWidth={2} />
                 </button>

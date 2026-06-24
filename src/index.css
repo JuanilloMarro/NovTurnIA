@@ -221,6 +221,26 @@ body::before {
   }
 }
 
+/* Aparece suave, se mantiene durante el recorrido y se difumina al final
+   (en vez de cortarse de golpe) → sensación de luz natural que se apaga. */
+@keyframes ai-border-glow {
+  0% {
+    opacity: 0;
+  }
+
+  8% {
+    opacity: 1;
+  }
+
+  84% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
 .ai-rainbow {
   position: relative;
 }
@@ -255,22 +275,26 @@ body::before {
       linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
           mask-composite: exclude;
-  animation: ai-border-spin 2.6s linear 1 forwards;
+  /* El recorrido completa una vuelta; el glow lo enciende y lo apaga con
+     suavidad para que el final no se corte de golpe. */
+  animation:
+      ai-border-spin 2.6s linear 1 forwards,
+      ai-border-glow 3.1s ease-out 1 forwards;
 }
 
-/* Banda del borde — suave y difusa, tipo nube (no una línea LED rígida) */
+/* Banda del borde — bien difusa, tipo nube (no una línea LED rígida) */
 .ai-rainbow.is-active::before {
   padding: 2px;
   z-index: 2;
-  filter: blur(3.5px);
+  filter: blur(6px);
 }
 
-/* Sombreado externo difuminado — el foco interactivo, se proyecta hacia afuera */
+/* Sombreado externo de color — luz LED que se proyecta hacia afuera y baña
+   el borde con su color correspondiente (foco interactivo). */
 .ai-rainbow.is-active::after {
-  padding: 4px;
+  padding: 6px;
   z-index: 1;
-  filter: blur(22px);
-  opacity: 0.95;
+  filter: blur(30px);
 }
 
 @media (prefers-reduced-motion: reduce) {

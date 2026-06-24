@@ -147,7 +147,7 @@ export function PatientInfoPanel({ patient, windowOpen, hoursLeft }) {
                 </div>
 
                 {/* Notas — colapsadas por defecto, flecha para ampliar */}
-                <div className="flex flex-col gap-1 pt-2.5 border-t border-white/40">
+                <div className="flex flex-col gap-1 pt-2.5">
                     <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-navy-700/60 tracking-wide">Notas u observaciones</span>
                         {patient?.notes && (
@@ -157,7 +157,7 @@ export function PatientInfoPanel({ patient, windowOpen, hoursLeft }) {
                                 title={notesOpen ? 'Contraer' : 'Ampliar'}
                                 aria-label={notesOpen ? 'Contraer notas' : 'Ampliar notas'}
                             >
-                                {notesOpen ? <ChevronDown size={14} strokeWidth={2.5} /> : <ChevronUp size={14} strokeWidth={2.5} />}
+                                {notesOpen ? <ChevronUp size={14} strokeWidth={2.5} /> : <ChevronDown size={14} strokeWidth={2.5} />}
                             </button>
                         )}
                     </div>
@@ -175,7 +175,7 @@ export function PatientInfoPanel({ patient, windowOpen, hoursLeft }) {
                 </div>
 
                 {/* Último turno */}
-                <div className="flex flex-col gap-1 pt-2.5 border-t border-white/40">
+                <div className="flex flex-col gap-1 pt-2.5">
                     <span className="text-[10px] font-bold text-navy-700/60 tracking-wide mb-1">Último turno</span>
                     <div className="min-h-[34px]">
                         {lastApt ? (
@@ -187,7 +187,7 @@ export function PatientInfoPanel({ patient, windowOpen, hoursLeft }) {
                 </div>
 
                 {/* Ventana de 24 horas de WhatsApp */}
-                <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-white/40">
+                <div className="flex items-center justify-between gap-2 pt-2.5">
                     <span className="text-[10px] font-bold text-navy-700/60 tracking-wide shrink-0">Ventana 24h</span>
                     <span className="text-[10px] font-bold text-navy-700/40 truncate">
                         {windowOpen ? `Tiempo restante: ${hoursLeft} h` : ''}
@@ -270,7 +270,11 @@ export function ActiveServicesPanel({ onInsert }) {
     const actions = (
         <div className="flex items-center justify-center gap-2 mt-1.5 shrink-0">
             <SysButton icon={Plus} label="Insertar servicio" onClick={() => insertService(selectedService)} />
-            <SysButton icon={Eye} label="Ver servicio" onClick={() => navigate(`/settings?${sp.toString()}`)} title="Ver en el módulo de servicios" />
+            <SysButton icon={Eye} label="Ver servicio" onClick={() => {
+                const params = new URLSearchParams(sp);
+                if (selectedService) params.set('service', selectedService.id);
+                navigate(`/settings?${params.toString()}`);
+            }} title="Ver este servicio en su módulo" />
         </div>
     );
 
@@ -345,7 +349,11 @@ export function ActiveOffersPanel({ onInsert }) {
     const actions = (
         <div className="flex items-center justify-center gap-2 mt-1.5 shrink-0">
             <SysButton icon={Plus} label="Insertar oferta" onClick={() => insertOffer(selectedOffer)} />
-            <SysButton icon={Eye} label="Ver oferta" onClick={() => navigate(`/offers?${sp.toString()}`)} title="Ver en el módulo de ofertas" />
+            <SysButton icon={Eye} label="Ver oferta" onClick={() => {
+                const params = new URLSearchParams(sp);
+                if (selectedOffer) params.set('offer', selectedOffer.id);
+                navigate(`/offers?${params.toString()}`);
+            }} title="Ver esta oferta en su módulo" />
         </div>
     );
 

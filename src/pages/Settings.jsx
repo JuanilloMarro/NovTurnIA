@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useServices } from '../hooks/useServices';
 import { usePermissions } from '../hooks/usePermissions';
@@ -68,6 +69,19 @@ export default function Settings() {
             priceCents: toCents(service.price),
         });
     }
+
+    // Deep-link: ?service=<id> abre directamente ese servicio (desde Conversaciones).
+    const [searchParams, setSearchParams] = useSearchParams();
+    const serviceIdFromUrl = searchParams.get('service');
+    useEffect(() => {
+        if (!serviceIdFromUrl || services.length === 0) return;
+        const s = services.find(x => String(x.id) === String(serviceIdFromUrl));
+        if (s) handleSelect(s);
+        const next = new URLSearchParams(searchParams);
+        next.delete('service');
+        setSearchParams(next, { replace: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [serviceIdFromUrl, services]);
 
     function handleNewClick() {
         setSelectedId('new');

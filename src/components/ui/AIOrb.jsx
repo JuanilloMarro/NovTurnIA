@@ -14,7 +14,7 @@ import * as THREE from 'three';
  */
 
 const POINT_COUNT = 6000;
-const SPHERE_RADIUS = 0.9;
+const SPHERE_RADIUS = 1.35;
 
 // Degradado del fondo del sistema (violeta → azul → índigo)
 const C_TOP = [0.62, 0.58, 0.98];  // violeta claro (acento del fondo)
@@ -22,7 +22,7 @@ const C_MID = [0.40, 0.56, 0.96];  // azul
 const C_BOT = [0.36, 0.40, 0.82];  // índigo profundo
 
 function mix3(a, b, t) {
-    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
 const vertexShader = /* glsl */`
@@ -125,111 +125,111 @@ const fragmentShader = /* glsl */`
 `;
 
 export default function AIOrb({ className = '' }) {
-    const canvasRef = useRef(null);
+  const canvasRef = useRef(null);
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        renderer.setClearAlpha(0);
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearAlpha(0);
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-        camera.position.set(0, 0, 4.0);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    camera.position.set(0, 0, 4.0);
 
-        // ── Nube de puntos: esfera de Fibonacci (distribución uniforme) ──
-        const positions = new Float32Array(POINT_COUNT * 3);
-        const colors = new Float32Array(POINT_COUNT * 3);
-        const sizes = new Float32Array(POINT_COUNT);
-        const golden = Math.PI * (3 - Math.sqrt(5));
-        let seed = 1;
-        const rand = () => {
-            seed = (Math.imul(1664525, seed) + 1013904223) >>> 0;
-            return seed / 0x100000000;
-        };
+    // ── Nube de puntos: esfera de Fibonacci (distribución uniforme) ──
+    const positions = new Float32Array(POINT_COUNT * 3);
+    const colors = new Float32Array(POINT_COUNT * 3);
+    const sizes = new Float32Array(POINT_COUNT);
+    const golden = Math.PI * (3 - Math.sqrt(5));
+    let seed = 1;
+    const rand = () => {
+      seed = (Math.imul(1664525, seed) + 1013904223) >>> 0;
+      return seed / 0x100000000;
+    };
 
-        for (let i = 0; i < POINT_COUNT; i++) {
-            const y = 1 - (i / (POINT_COUNT - 1)) * 2;
-            const r = Math.sqrt(Math.max(0, 1 - y * y));
-            const theta = i * golden;
-            const x = Math.cos(theta) * r;
-            const z = Math.sin(theta) * r;
-            positions[i * 3] = x * SPHERE_RADIUS;
-            positions[i * 3 + 1] = y * SPHERE_RADIUS;
-            positions[i * 3 + 2] = z * SPHERE_RADIUS;
+    for (let i = 0; i < POINT_COUNT; i++) {
+      const y = 1 - (i / (POINT_COUNT - 1)) * 2;
+      const r = Math.sqrt(Math.max(0, 1 - y * y));
+      const theta = i * golden;
+      const x = Math.cos(theta) * r;
+      const z = Math.sin(theta) * r;
+      positions[i * 3] = x * SPHERE_RADIUS;
+      positions[i * 3 + 1] = y * SPHERE_RADIUS;
+      positions[i * 3 + 2] = z * SPHERE_RADIUS;
 
-            // Color por altura: violeta abajo → azul medio → cyan arriba
-            const ty = y * 0.5 + 0.5;
-            const c = ty > 0.5 ? mix3(C_MID, C_TOP, (ty - 0.5) * 2) : mix3(C_BOT, C_MID, ty * 2);
-            colors[i * 3] = c[0];
-            colors[i * 3 + 1] = c[1];
-            colors[i * 3 + 2] = c[2];
+      // Color por altura: violeta abajo → azul medio → cyan arriba
+      const ty = y * 0.5 + 0.5;
+      const c = ty > 0.5 ? mix3(C_MID, C_TOP, (ty - 0.5) * 2) : mix3(C_BOT, C_MID, ty * 2);
+      colors[i * 3] = c[0];
+      colors[i * 3 + 1] = c[1];
+      colors[i * 3 + 2] = c[2];
 
-            sizes[i] = 1.6 + rand() * 1.6;
-        }
+      sizes[i] = 1.6 + rand() * 1.6;
+    }
 
-        const geo = new THREE.BufferGeometry();
-        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        geo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
-        geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
 
-        const mat = new THREE.ShaderMaterial({
-            uniforms: {
-                uTime: { value: 0 },
-                uHeight: { value: 600 },
-            },
-            vertexShader,
-            fragmentShader,
-            transparent: true,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending,
-        });
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uHeight: { value: 600 },
+      },
+      vertexShader,
+      fragmentShader,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
 
-        const cloud = new THREE.Points(geo, mat);
-        scene.add(cloud);
+    const cloud = new THREE.Points(geo, mat);
+    scene.add(cloud);
 
-        function resize() {
-            const rect = canvas.getBoundingClientRect();
-            const w = Math.max(1, rect.width);
-            const h = Math.max(1, rect.height);
-            renderer.setSize(w, h, false);
-            camera.aspect = w / h;
-            camera.updateProjectionMatrix();
-            mat.uniforms.uHeight.value = renderer.domElement.height;
-        }
-        resize();
-        const ro = new ResizeObserver(resize);
-        ro.observe(canvas);
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(1, rect.width);
+      const h = Math.max(1, rect.height);
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      mat.uniforms.uHeight.value = renderer.domElement.height;
+    }
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
 
-        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const start = performance.now();
-        let raf = 0;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const start = performance.now();
+    let raf = 0;
 
-        function render(time) {
-            mat.uniforms.uTime.value = time;
-            // Giro muy lento para leerse como volumen 3D (sutil, no un spin)
-            cloud.rotation.y = time * 0.12;
-            cloud.rotation.x = Math.sin(time * 0.15) * 0.12;
-            renderer.render(scene, camera);
-        }
-        function frame(now) {
-            if (!document.hidden) render((now - start) / 1000);
-            raf = requestAnimationFrame(frame);
-        }
+    function render(time) {
+      mat.uniforms.uTime.value = time;
+      // Giro muy lento para leerse como volumen 3D (sutil, no un spin)
+      cloud.rotation.y = time * 0.12;
+      cloud.rotation.x = Math.sin(time * 0.15) * 0.12;
+      renderer.render(scene, camera);
+    }
+    function frame(now) {
+      if (!document.hidden) render((now - start) / 1000);
+      raf = requestAnimationFrame(frame);
+    }
 
-        if (reduce) render(0);
-        else raf = requestAnimationFrame(frame);
+    if (reduce) render(0);
+    else raf = requestAnimationFrame(frame);
 
-        return () => {
-            cancelAnimationFrame(raf);
-            ro.disconnect();
-            geo.dispose();
-            mat.dispose();
-            renderer.dispose();
-        };
-    }, []);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      geo.dispose();
+      mat.dispose();
+      renderer.dispose();
+    };
+  }, []);
 
-    return <canvas ref={canvasRef} className={className} />;
+  return <canvas ref={canvasRef} className={className} />;
 }

@@ -1,14 +1,15 @@
 import { useNavigate } from 'react-router-dom';
-import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow, deleteAppointment, markAsRescheduled } from '../../services/supabaseService';
-import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, RotateCcw, Tag, User } from 'lucide-react';
+import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow, deleteAppointment, markAsRescheduled, getAppointmentIncome, confirmServiceDelivery } from '../../services/supabaseService';
+import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, RotateCcw, Tag, User, Wallet } from 'lucide-react';
 import { formatDuration } from '../../pages/Settings';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import EditAppointmentModal from './EditAppointmentModal';
 import NewAppointmentModal from './NewAppointmentModal';
+import ConfirmDeliveryModal from '../Finance/ConfirmDeliveryModal';
 import AIStar from '../Icons/AIStar';
 import { formatPhone } from '../../utils/format';
-import { showAptNoShowToast, showAptCancelToast, showAptConfirmToast, showAptPendingToast, showBotPauseToast, showBotReactivateToast, showErrorToast } from '../../store/useToastStore';
+import { showAptNoShowToast, showAptCancelToast, showAptConfirmToast, showAptPendingToast, showBotPauseToast, showBotReactivateToast, showErrorToast, showSuccessToast } from '../../store/useToastStore';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useVisiblePatients } from '../../hooks/useVisiblePatients';
 import { useAppStore } from '../../store/useAppStore';
@@ -32,12 +33,26 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
         ? humanTakeoverMap[patientId]
         : (appointment?.patients?.human_takeover || false);
 
-    const { canViewConversations, canToggleAi, canEditAppointments, canRescheduleAppointments, canConfirmAppointments, canSetPending, canMarkNoShow, canDeleteAppointments } = usePermissions();
+    const { canViewConversations, canToggleAi, canEditAppointments, canRescheduleAppointments, canConfirmAppointments, canSetPending, canMarkNoShow, canDeleteAppointments, canConfirmDelivery } = usePermissions();
     // M-010: si el paciente está fuera del top-N del plan (basic/pro) ocultamos
     // el acceso a su perfil y a su chat — la cita sigue visible en calendario,
     // pero el negocio no puede llegar al detalle hasta subir de plan.
     const { isPatientVisible } = useVisiblePatients();
     const patientWithinPlan = isPatientVisible(patientId);
+
+    // Finanzas: ingreso confirmado de este turno (entrega del servicio)
+    const [deliveredIncome, setDeliveredIncome] = useState(null);
+    const [showDeliver, setShowDeliver] = useState(false);
+
+    useEffect(() => {
+        let alive = true;
+        setDeliveredIncome(null);
+        if (!appointment?.id || !canConfirmDelivery) return;
+        getAppointmentIncome(appointment.id)
+            .then(d => { if (alive) setDeliveredIncome(d); })
+            .catch(() => { });
+        return () => { alive = false; };
+    }, [appointment?.id, canConfirmDelivery]);
 
     if (!appointment) return null;
     const { id, date_start, date_end, status, confirmed, patients } = appointment;
@@ -355,6 +370,24 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                         </button>
                     )}
 
+                    {/* 6.5 Cobrar — confirma entrega del servicio y registra el ingreso (Finanzas) */}
+                    {canConfirmDelivery && status !== 'cancelled' && status !== 'no_show' && !deliveredIncome && (
+                        <button onClick={() => setShowDeliver(true)}
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-emerald-600 text-[11px] font-bold rounded-full shadow-md hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-300"
+                            title="Confirmar que el servicio se dio y registrar el ingreso"
+                        >
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(16,185,129,0.08)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(52,211,153,0.08)' }} />
+                            <Wallet size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap relative z-10">Cobrar</span>
+                        </button>
+                    )}
+                    {deliveredIncome && (
+                        <span className="flex items-center gap-1.5 px-3 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold rounded-full shadow-sm">
+                            <Wallet size={14} /> Cobrado · Q{Number(deliveredIncome.amount).toFixed(2)}
+                        </span>
+                    )}
+
                     {/* 7. Eliminar (Cancelación lógica para turnos activos) */}
                     {canDeleteAppointments && ['scheduled', 'confirmed'].includes(status) && (
                         <button onClick={() => setShowCancelConfirm(true)}
@@ -416,6 +449,22 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     </div>
                 </div>,
                 document.body
+            )}
+
+            {/* Cobrar / Confirmar entrega del servicio (modal armonizado con Nuevo Turno) */}
+            {showDeliver && (
+                <ConfirmDeliveryModal
+                    serviceName={appointment.services?.name}
+                    clientName={patients?.display_name}
+                    defaultAmount={appointment.services?.price}
+                    onClose={() => setShowDeliver(false)}
+                    onConfirm={async ({ amount, paymentMethod, notes }) => {
+                        const row = await confirmServiceDelivery({ appointmentId: id, amount, paymentMethod, notes });
+                        setDeliveredIncome(row);
+                        showSuccessToast('Servicio cobrado', `Ingreso de Q${Number(amount).toFixed(2)} registrado.`);
+                        onUpdated?.();
+                    }}
+                />
             )}
 
             {showEdit && (

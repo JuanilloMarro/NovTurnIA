@@ -52,6 +52,14 @@ export function usePermissions() {
         // Acceso al módulo si tiene cualquier permiso de servicios
         canManageServices: !!(perms.create_services || perms.edit_services || perms.toggle_services),
 
+        // ── Finanzas ─────────────────────────────────────────
+        canViewFinance:      !!perms.view_finance,                // acceso al módulo
+        canConfirmDelivery:  !!perms.confirm_delivery,            // confirmar entrega de turno (registra ingreso)
+        canRecordIncome:     !!perms.record_income,               // ingresos manuales
+        canRecordExpense:    !!perms.record_expense,              // egresos/gastos
+        canManageSupplies:   !!perms.manage_supplies,             // insumos + receta (BOM)
+        canVoidFinance:      !!perms.void_finance,                // anular ingresos/egresos
+
         // ── Administración ───────────────────────────────────
         canManageRoles: !!perms.manage_roles,                     // módulo Usuarios, Actividad, Configuración
         canDeleteUsers: !!perms.delete_users,                     // botón Eliminar usuario

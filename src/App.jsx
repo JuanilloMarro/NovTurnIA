@@ -23,6 +23,7 @@ const AdminOnboarding = lazy(() => import('./pages/AdminOnboarding'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Offers = lazy(() => import('./pages/Offers'));
+const Finance = lazy(() => import('./pages/Finance'));
 const BusinessSettings = lazy(() => import('./pages/BusinessSettings'));
 const Login = lazy(() => import('./pages/Login'));
 
@@ -57,7 +58,7 @@ const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
 
 export default function App() {
     const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus, profile, isPlansOpen, openPlans, closePlans } = useAppStore();
-    const { canViewStats, canManageRoles, canManageServices } = usePermissions();
+    const { canViewStats, canManageRoles, canManageServices, canViewFinance } = usePermissions();
     const { user } = useAuth();
     // Usa el email del usuario de auth — no requiere registro en staff_users
     const isSuperAdmin = SUPER_ADMIN_EMAIL && user?.email === SUPER_ADMIN_EMAIL;
@@ -118,6 +119,7 @@ export default function App() {
                                                     <Route path="/stats" element={!profileReady ? <PageLoader /> : canViewStats ? <Stats /> : <Navigate to="/" replace />} />
                                                     <Route path="/settings" element={!profileReady ? <PageLoader /> : (canManageServices || canManageRoles) ? <Settings /> : <Navigate to="/" replace />} />
                                                     <Route path="/offers" element={!profileReady ? <PageLoader /> : canManageServices ? <Offers /> : <Navigate to="/" replace />} />
+                                                    <Route path="/finance" element={!profileReady ? <PageLoader /> : canViewFinance ? <Finance /> : <Navigate to="/" replace />} />
                                                     <Route path="/users" element={!profileReady ? <PageLoader /> : canManageRoles ? <Users /> : <Navigate to="/" replace />} />
                                                     <Route path="/audit-log" element={!profileReady ? <PageLoader /> : canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
                                                     <Route path="/business" element={!profileReady ? <PageLoader /> : canManageRoles ? <BusinessSettings /> : <Navigate to="/" replace />} />
