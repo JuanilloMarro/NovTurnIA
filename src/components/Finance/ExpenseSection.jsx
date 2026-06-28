@@ -1,5 +1,4 @@
-import { Trash2, ArrowDownRight, Repeat } from 'lucide-react';
-import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
+import { ChevronRight, ArrowDownRight, Repeat } from 'lucide-react';
 
 const money = (n) => `Q${Number(n || 0).toFixed(2)}`;
 const CAT_LABEL = { insumo: 'Insumos', renta: 'Renta', salario: 'Salarios', servicios: 'Servicios', marketing: 'Marketing', general: 'General', otro: 'Otro' };
@@ -8,19 +7,14 @@ function fmtDate(iso) {
     return new Date(iso).toLocaleDateString('es-GT', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export default function ExpenseSection({ expenses, canVoid, onVoid }) {
-    async function voidEntry(e) {
-        if (!window.confirm(`¿Anular este egreso de ${money(e.amount)}? No se puede deshacer.`)) return;
-        try { await onVoid(e.id, 'Anulado manualmente'); showSuccessToast('Egreso anulado', ''); }
-        catch (err) { showErrorToast('No se pudo anular', err.message || ''); }
-    }
-
+export default function ExpenseSection({ expenses, onSelect, selectedId }) {
     if (expenses.length === 0) return <p className="text-[12px] font-semibold text-navy-700/40 text-center py-12">Sin egresos en este período.</p>;
 
     return (
         <div className="space-y-3">
             {expenses.map(e => (
-                <div key={e.id} className="group relative overflow-hidden backdrop-blur-2xl rounded-2xl p-4 flex items-center justify-between gap-3 border shadow-md bg-white/40 border-white/60 hover:bg-white/60 transition-all">
+                <button key={e.id} onClick={() => onSelect?.(e)}
+                    className={`group relative overflow-hidden backdrop-blur-2xl rounded-2xl p-4 w-full flex items-center justify-between gap-3 border shadow-md text-left transition-all ${selectedId === e.id ? 'bg-white/60 border-white/80' : 'bg-white/40 border-white/60 hover:bg-white/60'}`}>
                     <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(244,63,94,0.04)' }} />
                     <div className="absolute -bottom-5 -left-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                     <div className="flex items-center gap-3 relative z-10 min-w-0">
@@ -38,16 +32,15 @@ export default function ExpenseSection({ expenses, canVoid, onVoid }) {
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 relative z-10 shrink-0">
+                    <div className="flex items-center gap-2.5 relative z-10 shrink-0">
                         <span className="text-[13px] font-bold text-rose-500 tabular-nums">-{money(e.amount)}</span>
-                        {canVoid && (
-                            <button onClick={() => voidEntry(e)} title="Anular egreso"
-                                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/50 border border-white/60 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors shadow-sm shrink-0">
-                                <Trash2 size={13} />
-                            </button>
-                        )}
+                        <div className="relative overflow-hidden flex items-center justify-center w-8 h-8 rounded-full border border-white/60 bg-white/40 backdrop-blur-2xl text-navy-700 group-hover:bg-white group-hover:scale-105 transition-all shadow-md">
+                            <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <ChevronRight size={16} className="relative z-10" />
+                        </div>
                     </div>
-                </div>
+                </button>
             ))}
         </div>
     );

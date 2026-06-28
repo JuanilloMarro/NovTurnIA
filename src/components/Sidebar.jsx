@@ -85,7 +85,7 @@ export default function Sidebar({ onOpenPlans }) {
                 />
             )}
 
-            <aside className={`absolute left-0 top-0 bottom-0 w-[240px] p-6 flex flex-col z-20 bg-transparent transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+            <aside className={`absolute left-0 top-0 bottom-0 w-[272px] p-6 flex flex-col z-20 bg-transparent transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
                 <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer transition-transform hover:scale-[1.02] group/logo">
                     <div className="w-9 h-9 rounded-[10px] bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card transition-all duration-500 group-hover/logo:-translate-y-1">
                         <div className="relative">
@@ -135,7 +135,7 @@ export default function Sidebar({ onOpenPlans }) {
                         <>
                             <NavItem to="/audit-log" icon={List} label="Actividad" locked={!auditUnlocked} onClick={closeMobile} />
                             <NavItem to="/users" icon={ShieldCheck} label="Usuarios" onClick={closeMobile} />
-                            <NavItem to="/business" icon={Bot} iconSize={18} label="Inteligencia Artificial" labelClass="text-[11px]" onClick={closeMobile} />
+                            <NavItem to="/business" icon={Bot} iconSize={18} label="Inteligencia Artificial" onClick={closeMobile} />
                         </>
                     )}
 

@@ -161,7 +161,7 @@ export function PatientInfoPanel({ patient, windowOpen, hoursLeft }) {
                             </button>
                         )}
                     </div>
-                    <div className={notesOpen ? 'max-h-[250px] overflow-y-auto custom-scrollbar pr-1' : 'min-h-[36px]'}>
+                    <div className={notesOpen ? 'max-h-[200px] overflow-y-auto custom-scrollbar pr-1' : 'h-[34px] overflow-hidden'}>
                         <FeatureLock feature="patient_notes" requiredPlan="Pro">
                             {patient?.notes ? (
                                 <p className={`text-[11px] text-navy-700/80 font-medium leading-relaxed italic break-words ${notesOpen ? '' : 'line-clamp-2'}`}>

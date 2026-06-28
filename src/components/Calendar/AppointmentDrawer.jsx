@@ -370,21 +370,22 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                         </button>
                     )}
 
-                    {/* 6.5 Cobrar — confirma entrega del servicio y registra el ingreso (Finanzas) */}
+                    {/* 6.5 Cobrar — pendiente de cobro (ámbar). Texto siempre visible: ancho fijo, sin bug de hover */}
                     {canConfirmDelivery && status !== 'cancelled' && status !== 'no_show' && !deliveredIncome && (
                         <button onClick={() => setShowDeliver(true)}
-                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-emerald-600 text-[11px] font-bold rounded-full shadow-md hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-300"
+                            className="relative overflow-hidden flex items-center justify-center gap-1.5 px-4 py-2.5 bg-amber-50/80 backdrop-blur-2xl border border-amber-200/70 text-amber-700 text-[11px] font-bold rounded-full shadow-md hover:bg-amber-100/80 transition-all duration-300"
                             title="Confirmar que el servicio se dio y registrar el ingreso"
                         >
-                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(16,185,129,0.08)' }} />
-                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(52,211,153,0.08)' }} />
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(245,158,11,0.08)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(251,191,36,0.08)' }} />
                             <Wallet size={14} className="shrink-0 relative z-10" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap relative z-10">Cobrar</span>
+                            <span className="relative z-10 whitespace-nowrap">Cobrar</span>
                         </button>
                     )}
+                    {/* Cobrado (verde). Texto siempre visible */}
                     {deliveredIncome && (
-                        <span className="flex items-center gap-1.5 px-3 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold rounded-full shadow-sm">
-                            <Wallet size={14} /> Cobrado · Q{Number(deliveredIncome.amount).toFixed(2)}
+                        <span className="relative overflow-hidden flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold rounded-full shadow-md whitespace-nowrap">
+                            <Wallet size={14} className="shrink-0" /> Cobrado · Q{Number(deliveredIncome.amount).toFixed(2)}
                         </span>
                     )}
 

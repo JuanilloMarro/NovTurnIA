@@ -414,8 +414,8 @@ export default function BusinessSettings() {
                                 <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
                                 <div className="relative flex flex-col md:flex-row gap-6 items-center">
                                     {/* Lado izquierdo: Icono grande y Título */}
-                                    <div className="flex flex-col items-center justify-center bg-navy-900/5 rounded-[20px] border border-navy-900/5 w-20 h-20 shrink-0 shadow-inner">
-                                        <Building2 size={28} className="text-navy-700" />
+                                    <div className="flex flex-col items-center justify-center bg-navy-900/5 rounded-2xl border border-navy-900/10 w-20 h-20 shrink-0 shadow-inner">
+                                        <Building2 size={28} className="text-navy-800" />
                                         <h3 className="text-[9px] font-bold text-navy-800 tracking-wider text-center leading-none mt-1.5">Identidad</h3>
                                     </div>
 
@@ -443,8 +443,8 @@ export default function BusinessSettings() {
                                 <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
                                 <div className="relative z-10 flex flex-col md:flex-row gap-6 items-center">
                                     {/* Lado izquierdo: Icono grande y Título */}
-                                    <div className="flex flex-col items-center justify-center bg-navy-900/5 rounded-[20px] border border-navy-900/5 w-20 h-20 shrink-0 shadow-inner">
-                                        <Clock size={28} className="text-navy-700" />
+                                    <div className="flex flex-col items-center justify-center bg-navy-900/5 rounded-2xl border border-navy-900/10 w-20 h-20 shrink-0 shadow-inner">
+                                        <Clock size={28} className="text-navy-800" />
                                         <h3 className="text-[9px] font-bold text-navy-800 tracking-wider text-center leading-none mt-1.5">Horario</h3>
                                     </div>
 
@@ -500,8 +500,8 @@ export default function BusinessSettings() {
 
                                 {/* header */}
                                 <div className="relative flex items-center gap-3 mb-4">
-                                    <div className="w-11 h-11 rounded-2xl bg-navy-900/5 border border-navy-900/5 flex items-center justify-center shrink-0 shadow-inner">
-                                        <BotOff size={20} className="text-navy-700" />
+                                    <div className="w-11 h-11 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shrink-0 shadow-inner">
+                                        <BotOff size={20} className="text-navy-800" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h3 className="text-[12px] font-bold text-navy-800 tracking-wide leading-none">IA pausada</h3>
@@ -559,9 +559,8 @@ export default function BusinessSettings() {
                                                         </div>
                                                         <div className="min-w-0">
                                                             <div className="font-bold text-navy-900 text-[12px] truncate leading-tight">{c.display_name || 'Cliente'}</div>
-                                                            <div className="text-[10px] font-semibold text-amber-600/80 flex items-center gap-1 leading-tight mt-0.5 truncate">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)] shrink-0" />
-                                                                IA pausada{c.phone ? ` · ${formatPhone(c.phone)}` : ''}
+                                                            <div className="text-[11px] font-semibold text-navy-700/60 tracking-wide leading-tight mt-0.5 truncate">
+                                                                {c.phone ? formatPhone(c.phone) : '—'}
                                                             </div>
                                                         </div>
                                                     </div>

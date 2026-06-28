@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Save } from 'lucide-react';
 import { showErrorToast } from '../../store/useToastStore';
-import { ModalShell, FieldLabel, TextInput, AmountInput, DateWheels, OptionWheel, NotesField, ModalButtons, EXPENSE_CATS, FREQ_OPTIONS, todayISO, isoToTimestamp } from './financeUi';
+import { ModalShell, FieldLabel, TextInput, AmountInput, DateWheels, OptionWheel, NotesField, ModalButtons, EXPENSE_CATS, FREQ_OPTIONS, todayISO, isoToTimestamp, isoToDateInput } from './financeUi';
 
-// onAdd({ description, amount, category, occurred_at, recurring, frequency, notes }) → Promise.
-export default function RecordExpenseModal({ onClose, onAdd }) {
-    const [description, setDescription] = useState('');
-    const [amount, setAmount] = useState('');
-    const [category, setCategory] = useState('insumo');
-    const [date, setDate] = useState(todayISO());
-    const [frequency, setFrequency] = useState('one_time');
-    const [notes, setNotes] = useState('');
+// initial = entrada a editar (o null para crear). onSubmit(fields) → Promise.
+export default function RecordExpenseModal({ initial = null, onClose, onSubmit }) {
+    const editing = !!initial;
+    const [description, setDescription] = useState(initial?.description || '');
+    const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '');
+    const [category, setCategory] = useState(initial?.category || 'insumo');
+    const [date, setDate] = useState(initial?.occurred_at ? isoToDateInput(initial.occurred_at) : todayISO());
+    const [frequency, setFrequency] = useState(initial?.frequency || (initial?.recurring ? 'monthly' : 'one_time'));
+    const [notes, setNotes] = useState(initial?.notes || '');
     const [saving, setSaving] = useState(false);
 
     async function submit() {
@@ -19,25 +20,20 @@ export default function RecordExpenseModal({ onClose, onAdd }) {
         if (!(amt >= 0)) { showErrorToast('Monto inválido', 'Ingresa un monto válido.'); return; }
         setSaving(true);
         try {
-            await onAdd({
-                description: description.trim(), amount: amt, category,
-                occurred_at: isoToTimestamp(date),
-                recurring: frequency === 'monthly', frequency,
-                notes: notes.trim() || null,
-            });
+            await onSubmit({ description: description.trim(), amount: amt, category, occurred_at: isoToTimestamp(date), recurring: frequency === 'monthly', frequency, notes: notes.trim() || null });
             onClose();
         } catch (err) {
-            showErrorToast('No se pudo registrar', err.message || 'Intenta de nuevo.');
+            showErrorToast('No se pudo guardar', err.message || 'Intenta de nuevo.');
             setSaving(false);
         }
     }
 
     return (
         <ModalShell
-            title="Registrar egreso"
-            subtitle="Gasto o costo del negocio (insumos, renta, salarios…)."
+            title={editing ? 'Editar egreso' : 'Registrar egreso'}
+            subtitle={editing ? 'Modifica los datos de este egreso.' : 'Gasto o costo del negocio (insumos, renta, salarios…).'}
             onClose={onClose}
-            footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Agregar" loading={saving} confirmIcon={Plus} />}
+            footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel={editing ? 'Guardar' : 'Agregar'} loading={saving} confirmIcon={editing ? Save : Plus} />}
         >
             <div>
                 <FieldLabel title="Descripción" subtitle="¿En qué se gastó? (ej: pago de renta)" />

@@ -103,8 +103,8 @@ export default function App() {
                                 {/* Macro Módulo Unificado - Sensación Voladora y de Cristal */}
                                 <div className="w-full max-w-[1920px] h-full rounded-[24px] sm:rounded-[32px] bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex">
                                     <Sidebar onOpenPlans={openPlans} />
-                                    {/* ml-0 en mobile (sidebar oculto), md:ml-[240px] en desktop */}
-                                    <div className="flex-1 ml-0 md:ml-[240px] flex flex-col relative w-full h-full min-w-0">
+                                    {/* ml-0 en mobile (sidebar oculto), md:ml-[272px] en desktop */}
+                                    <div className="flex-1 ml-0 md:ml-[272px] flex flex-col relative w-full h-full min-w-0">
                                         <Topbar />
                                         <main className="flex-1 px-2 sm:px-4 lg:px-6 pb-4 w-full min-h-0 flex flex-col overflow-hidden">
                                             {/* key={location.pathname} fuerza remount limpio en cada navegación,

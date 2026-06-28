@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Save } from 'lucide-react';
 import { showErrorToast } from '../../store/useToastStore';
-import { ModalShell, FieldLabel, TextInput, AmountInput, DateWheels, OptionWheel, NotesField, ModalButtons, PAY_OPTIONS, todayISO, isoToTimestamp } from './financeUi';
+import { ModalShell, FieldLabel, TextInput, AmountInput, DateWheels, OptionWheel, NotesField, ModalButtons, PAY_OPTIONS, todayISO, isoToTimestamp, isoToDateInput } from './financeUi';
 
-// onAdd({ description, amount, payment_method, occurred_at, notes, source }) → Promise.
-export default function RecordIncomeModal({ onClose, onAdd }) {
-    const [description, setDescription] = useState('');
-    const [amount, setAmount] = useState('');
-    const [date, setDate] = useState(todayISO());
-    const [method, setMethod] = useState('cash');
-    const [notes, setNotes] = useState('');
+// initial = entrada a editar (o null para crear). onSubmit(fields) → Promise.
+export default function RecordIncomeModal({ initial = null, onClose, onSubmit }) {
+    const editing = !!initial;
+    const [description, setDescription] = useState(initial?.description || '');
+    const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '');
+    const [date, setDate] = useState(initial?.occurred_at ? isoToDateInput(initial.occurred_at) : todayISO());
+    const [method, setMethod] = useState(initial?.payment_method || 'cash');
+    const [notes, setNotes] = useState(initial?.notes || '');
     const [saving, setSaving] = useState(false);
 
     async function submit() {
@@ -18,20 +19,20 @@ export default function RecordIncomeModal({ onClose, onAdd }) {
         if (!(amt >= 0)) { showErrorToast('Monto inválido', 'Ingresa un monto válido.'); return; }
         setSaving(true);
         try {
-            await onAdd({ description: description.trim(), amount: amt, payment_method: method, occurred_at: isoToTimestamp(date), notes: notes.trim() || null, source: 'manual' });
+            await onSubmit({ description: description.trim(), amount: amt, payment_method: method, occurred_at: isoToTimestamp(date), notes: notes.trim() || null, source: 'manual' });
             onClose();
         } catch (err) {
-            showErrorToast('No se pudo registrar', err.message || 'Intenta de nuevo.');
+            showErrorToast('No se pudo guardar', err.message || 'Intenta de nuevo.');
             setSaving(false);
         }
     }
 
     return (
         <ModalShell
-            title="Registrar ingreso"
-            subtitle="Venta o ingreso manual que no proviene de un turno."
+            title={editing ? 'Editar ingreso' : 'Registrar ingreso'}
+            subtitle={editing ? 'Modifica los datos de este ingreso.' : 'Venta o ingreso manual que no proviene de un turno.'}
             onClose={onClose}
-            footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Agregar" loading={saving} confirmIcon={Plus} />}
+            footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel={editing ? 'Guardar' : 'Agregar'} loading={saving} confirmIcon={editing ? Save : Plus} />}
         >
             <div>
                 <FieldLabel title="Descripción" subtitle="¿De qué es el ingreso? (ej: venta de producto)" />

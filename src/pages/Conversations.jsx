@@ -580,12 +580,6 @@ export default function Conversations() {
                                                         <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
                                                         <div className="relative z-10">
                                                             <button
-                                                                onClick={() => { setChatMenuOpen(false); setShowClearConfirm(true); }}
-                                                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-bold text-navy-800 hover:bg-white/40 transition-colors text-left"
-                                                            >
-                                                                <Eraser size={14} strokeWidth={2.5} className="text-navy-700/70 shrink-0" /> Vaciar chat
-                                                            </button>
-                                                            <button
                                                                 onClick={() => { setChatMenuOpen(false); setShowDeleteChatConfirm(true); }}
                                                                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left"
                                                             >
@@ -642,18 +636,20 @@ export default function Conversations() {
                                                 const isOutgoing = isAgent || isBot;
                                                 return (
                                                     <div key={item.id} className={`flex w-full ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
-                                                        <div className={`max-w-[75%] px-4 py-2.5 text-[13px] leading-relaxed relative shadow-sm font-medium backdrop-blur-md ${isOutgoing
-                                                            ? 'bg-emerald-600/85 text-white rounded-[20px] rounded-br-[4px] border border-emerald-400/40'
-                                                            : 'bg-white/60 border border-white/80 text-navy-900 rounded-[20px] rounded-bl-[4px]'
-                                                            } ${msg._pending ? 'opacity-60' : ''}`}>
-                                                            <p className="whitespace-pre-wrap">{msg.content}</p>
-                                                            <div className={`text-[9px] uppercase font-bold tracking-widest mt-1.5 flex items-center gap-1 ${isOutgoing ? 'justify-end text-white/70' : 'text-navy-900/60'}`}>
-                                                                {isOutgoing && <span>{isAgent ? 'Tú' : 'IA'}</span>}
-                                                                <span>
-                                                                    {msg._pending
-                                                                        ? 'Enviando…'
-                                                                        : new Date(msg.created_at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                                                                </span>
+                                                        <div className={`max-w-[75%] relative overflow-hidden px-4 py-2.5 text-[13px] leading-relaxed font-medium backdrop-blur-2xl shadow-md bg-white/40 border border-white/60 text-navy-900 rounded-[20px] ${isOutgoing ? 'rounded-br-[4px]' : 'rounded-bl-[4px]'} ${msg._pending ? 'opacity-60' : ''}`}>
+                                                            {/* degradado de panel (mismas esquinas que el resto del sistema) */}
+                                                            <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                            <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                                            <div className="relative z-10">
+                                                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                                                                <div className={`text-[9px] uppercase font-bold tracking-widest mt-1.5 flex items-center gap-1 text-navy-900/55 ${isOutgoing ? 'justify-end' : ''}`}>
+                                                                    {isOutgoing && <span>{isAgent ? 'Tú' : 'IA'}</span>}
+                                                                    <span>
+                                                                        {msg._pending
+                                                                            ? 'Enviando…'
+                                                                            : new Date(msg.created_at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -792,7 +788,7 @@ export default function Conversations() {
 
                 {/* Right Column: Context Panels — fuera del box principal, a la derecha */}
                 {selectedPatient && showContext && (
-                    <div className="hidden xl:flex w-[380px] flex-col gap-2 shrink-0 min-h-0 overflow-y-auto no-scrollbar px-1.5 pt-1 pb-3">
+                    <div className="hidden xl:flex w-[380px] flex-col gap-2 shrink-0 min-h-0 overflow-y-auto no-scrollbar px-2 pt-1 pb-4">
                         <PatientInfoPanel patient={selectedPatientEffective} windowOpen={windowOpen} hoursLeft={hoursLeft} grow />
                         <ActiveServicesPanel onInsert={handleInsert} />
                         <ActiveOffersPanel onInsert={handleInsert} />

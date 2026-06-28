@@ -1490,6 +1490,20 @@ export async function recordIncome({ description, amount, payment_method, occurr
     return data;
 }
 
+// Editar un ingreso (descripción, monto, método, fecha, notas)
+export async function updateIncome(id, fields) {
+    const patch = {};
+    if (fields.description !== undefined) patch.description = fields.description.trim();
+    if (fields.amount !== undefined) patch.amount = fields.amount;
+    if (fields.payment_method !== undefined) patch.payment_method = fields.payment_method || null;
+    if (fields.occurred_at !== undefined) patch.occurred_at = fields.occurred_at;
+    if (fields.notes !== undefined) patch.notes = fields.notes?.trim() || null;
+    const { data, error } = await supabase
+        .from('income_entries').update(patch).eq('id', id).eq('business_id', getBID()).select('*, patients(display_name)').single();
+    if (error) throw error;
+    return data;
+}
+
 // Confirma que un turno se dio correctamente → crea el ingreso snapshot (atómico/idempotente)
 export async function confirmServiceDelivery({ appointmentId, amount, paymentMethod = null, notes = null }) {
     const { data, error } = await supabase.rpc('confirm_service_delivery', {
@@ -1563,6 +1577,22 @@ export async function recordExpense({ description, amount, category = 'general',
         })
         .select()
         .single();
+    if (error) throw error;
+    return data;
+}
+
+// Editar un egreso (descripción, monto, categoría, fecha, recurrencia, notas)
+export async function updateExpense(id, fields) {
+    const patch = {};
+    if (fields.description !== undefined) patch.description = fields.description.trim();
+    if (fields.amount !== undefined) patch.amount = fields.amount;
+    if (fields.category !== undefined) patch.category = fields.category || 'general';
+    if (fields.occurred_at !== undefined) patch.occurred_at = fields.occurred_at;
+    if (fields.recurring !== undefined) patch.recurring = fields.recurring;
+    if (fields.frequency !== undefined) patch.frequency = fields.frequency;
+    if (fields.notes !== undefined) patch.notes = fields.notes?.trim() || null;
+    const { data, error } = await supabase
+        .from('expense_entries').update(patch).eq('id', id).eq('business_id', getBID()).select('*, supplies(name, unit)').single();
     if (error) throw error;
     return data;
 }

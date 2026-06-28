@@ -6,6 +6,8 @@ import {
     getUnconfirmedDeliveries,
     recordIncome as recordIncomeAPI,
     recordExpense as recordExpenseAPI,
+    updateIncome as updateIncomeAPI,
+    updateExpense as updateExpenseAPI,
     voidIncome as voidIncomeAPI,
     voidExpense as voidExpenseAPI,
     confirmServiceDelivery as confirmDeliveryAPI,
@@ -63,6 +65,8 @@ export function useFinance(range) {
     async function confirmDelivery(args) { const r = await confirmDeliveryAPI(args); await load(); return r; }
     async function addIncome(fields) { const r = await recordIncomeAPI(fields); await load(); return r; }
     async function addExpense(fields) { const r = await recordExpenseAPI(fields); await load(); return r; }
+    async function updateIncomeEntry(id, fields) { const r = await updateIncomeAPI(id, fields); await load(); return r; }
+    async function updateExpenseEntry(id, fields) { const r = await updateExpenseAPI(id, fields); await load(); return r; }
     async function voidIncomeEntry(id, reason) { await voidIncomeAPI(id, reason); await load(); }
     async function voidExpenseEntry(id, reason) { await voidExpenseAPI(id, reason); await load(); }
 
@@ -76,6 +80,6 @@ export function useFinance(range) {
     return {
         summary, income, expenses, pending, loading,
         totalIncome, totalExpenses, totalCost, netProfit, marginPct,
-        reload: load, confirmDelivery, addIncome, addExpense, voidIncomeEntry, voidExpenseEntry,
+        reload: load, confirmDelivery, addIncome, addExpense, updateIncomeEntry, updateExpenseEntry, voidIncomeEntry, voidExpenseEntry,
     };
 }

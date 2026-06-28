@@ -33,6 +33,10 @@ export function todayISO() {
 export function isoToTimestamp(dateISO) {
     return new Date(dateISO + 'T12:00:00').toISOString();
 }
+export function isoToDateInput(iso) {
+    const d = new Date(iso); const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 // ── Shell del modal (idéntico a Nuevo Turno / Nuevo Cliente) ──
 export function ModalShell({ title, subtitle, onClose, children, footer, maxW = 'max-w-md' }) {

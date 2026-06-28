@@ -12,6 +12,7 @@ import ExpenseSection from '../components/Finance/ExpenseSection';
 import SuppliesSection from '../components/Finance/SuppliesSection';
 import RecordIncomeModal from '../components/Finance/RecordIncomeModal';
 import RecordExpenseModal from '../components/Finance/RecordExpenseModal';
+import FinanceDetailDrawer from '../components/Finance/FinanceDetailDrawer';
 
 const PERIODS = [
     { key: 'day', label: 'Día' },
@@ -35,7 +36,6 @@ function getNavLabel(period, date) {
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-// Rango de datos del período seleccionado (KPIs, ingresos, egresos, desgloses)
 function focusRange(period, anchor) {
     const y = anchor.getFullYear(), m = anchor.getMonth(), d = anchor.getDate();
     if (period === 'day') {
@@ -58,7 +58,6 @@ const TAB_DEFS = [
     { id: 'insumos', label: 'Insumos', icon: Package },
 ];
 
-// Botón "+" con texto al hover (como Agregar turno), aparece junto a los submódulos
 function AddBtn({ label, onClick }) {
     return (
         <button onClick={onClick}
@@ -71,26 +70,16 @@ function AddBtn({ label, onClick }) {
     );
 }
 
-// Panel estilo Ofertas (solo para Insumos)
-function SectionPanel({ children }) {
-    return (
-        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md overflow-hidden p-4 animate-fade-up">
-            <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
-            <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
-            <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
-            <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
-            <div className="relative z-10">{children}</div>
-        </div>
-    );
-}
-
 export default function Finance() {
     const { canConfirmDelivery, canRecordIncome, canRecordExpense, canManageSupplies, canVoidFinance } = usePermissions();
     const [period, setPeriod] = useState('month');
     const [anchorDate, setAnchorDate] = useState(() => new Date());
-    const [tab, setTab] = useState('resumen');
-    const [incomeOpen, setIncomeOpen] = useState(false);
-    const [expenseOpen, setExpenseOpen] = useState(false);
+    const [tab, setTabRaw] = useState('resumen');
+    const [incomeModal, setIncomeModal] = useState(null); // null | { initial }
+    const [expenseModal, setExpenseModal] = useState(null);
+    const [selectedEntry, setSelectedEntry] = useState(null); // { entry, type }
+
+    const setTab = (t) => { setTabRaw(t); setSelectedEntry(null); };
 
     const range = useMemo(() => focusRange(period, anchorDate), [period, anchorDate]);
     const fin = useFinance(range);
@@ -98,6 +87,7 @@ export default function Finance() {
     const { services } = useServices();
 
     const navLabel = getNavLabel(period, anchorDate);
+    const showCalendar = tab === 'resumen';
     const handlePeriodChange = (p) => { setPeriod(p); setAnchorDate(new Date()); };
     const handlePrev = () => setAnchorDate(prev => {
         const d = new Date(prev);
@@ -121,28 +111,31 @@ export default function Finance() {
                 <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Ingresos confirmados, costos reales y utilidad de tu negocio</p>
             </div>
             <div className="flex items-center gap-2 flex-wrap justify-end">
-                {/* Selector de período */}
-                <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
-                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                    {PERIODS.map(p => (
-                        <button key={p.key} onClick={() => handlePeriodChange(p.key)}
-                            className={`relative z-10 px-4 h-8 rounded-full transition-all ${period === p.key ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>
-                            {p.label}
-                        </button>
-                    ))}
-                </div>
-                {/* Navegador de fecha */}
-                <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-10">
-                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                    <button onClick={handlePrev} className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-navy-900 hover:bg-white/80 shadow-md transition-all hover:scale-[1.05] active:scale-95"><ChevronLeft size={16} /></button>
-                    <div className="relative z-10 h-8 flex items-center justify-center gap-1.5 px-3" style={{ minWidth: 110 }}>
-                        <CalendarDays size={13} className="text-navy-900 shrink-0" />
-                        <span className="text-[11px] font-bold text-navy-900 tracking-tight whitespace-nowrap leading-none capitalize">{navLabel}</span>
-                    </div>
-                    <button onClick={handleNext} className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-navy-900 hover:bg-white/80 shadow-md transition-all hover:scale-[1.05] active:scale-95"><ChevronRight size={16} /></button>
-                </div>
+                {/* Calendario — solo en Resumen */}
+                {showCalendar && (
+                    <>
+                        <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            {PERIODS.map(p => (
+                                <button key={p.key} onClick={() => handlePeriodChange(p.key)}
+                                    className={`relative z-10 px-4 h-8 rounded-full transition-all ${period === p.key ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-10">
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <button onClick={handlePrev} className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-navy-900 hover:bg-white/80 shadow-md transition-all hover:scale-[1.05] active:scale-95"><ChevronLeft size={16} /></button>
+                            <div className="relative z-10 h-8 flex items-center justify-center gap-1.5 px-3" style={{ minWidth: 110 }}>
+                                <CalendarDays size={13} className="text-navy-900 shrink-0" />
+                                <span className="text-[11px] font-bold text-navy-900 tracking-tight whitespace-nowrap leading-none capitalize">{navLabel}</span>
+                            </div>
+                            <button onClick={handleNext} className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-navy-900 hover:bg-white/80 shadow-md transition-all hover:scale-[1.05] active:scale-95"><ChevronRight size={16} /></button>
+                        </div>
+                    </>
+                )}
                 {/* Submódulos */}
                 <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
                     {TAB_DEFS.map(t => {
@@ -156,39 +149,82 @@ export default function Finance() {
                         );
                     })}
                 </div>
-                {/* Acción contextual del submódulo activo */}
-                {tab === 'ingresos' && canRecordIncome && <AddBtn label="Registrar ingreso" onClick={() => setIncomeOpen(true)} />}
-                {tab === 'egresos' && canRecordExpense && <AddBtn label="Registrar egreso" onClick={() => setExpenseOpen(true)} />}
+                {/* Acción contextual */}
+                {tab === 'ingresos' && canRecordIncome && <AddBtn label="Registrar ingreso" onClick={() => setIncomeModal({ initial: null })} />}
+                {tab === 'egresos' && canRecordExpense && <AddBtn label="Registrar egreso" onClick={() => setExpenseModal({ initial: null })} />}
             </div>
         </div>
     );
 
+    const scrollList = (node) => <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 py-2">{node}</div>;
+
     return (
-        <div className="h-full flex flex-col pt-2 px-2 overflow-hidden">
+        <div className={`relative h-full flex flex-col pt-2 px-2 transition-all duration-300 ${selectedEntry ? 'sm:pr-[388px]' : ''}`}>
             {header}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-1">
+            <div className="flex-1 min-h-0 flex flex-col">
                 <FeatureLock feature="finance" variant="screen" title="Finanzas" description="El módulo financiero (ingresos, costos, insumos y reportes) está disponible en los planes Pro y Enterprise.">
-                    {fin.loading && tab === 'resumen' ? (
-                        <div className="flex items-center justify-center py-20"><div className="w-7 h-7 border-[3px] border-navy-100 border-t-navy-700 rounded-full animate-spin" /></div>
-                    ) : tab === 'resumen' ? (
-                        <FinanceSummary fin={fin} period={period} year={anchorDate.getFullYear()} month={anchorDate.getMonth()} day={anchorDate.getDate()} />
-                    ) : tab === 'confirmar' ? (
-                        <PendingDeliveries pending={fin.pending} canConfirm={canConfirmDelivery} onConfirm={fin.confirmDelivery} />
-                    ) : tab === 'ingresos' ? (
-                        <IncomeSection income={fin.income} canVoid={canVoidFinance} onVoid={fin.voidIncomeEntry} />
-                    ) : tab === 'egresos' ? (
-                        <ExpenseSection expenses={fin.expenses} canVoid={canVoidFinance} onVoid={fin.voidExpenseEntry} />
-                    ) : (
-                        <SectionPanel>
-                            <SuppliesSection supplies={sup.supplies} services={services} canManage={canManageSupplies}
-                                costForService={sup.costForService} create={sup.create} update={sup.update} toggle={sup.toggle} remove={sup.remove} onReload={sup.reload} />
-                        </SectionPanel>
-                    )}
+                    <div className="h-full flex flex-col min-h-0">
+                        {fin.loading && tab === 'resumen' ? (
+                            <div className="flex items-center justify-center py-20"><div className="w-7 h-7 border-[3px] border-navy-100 border-t-navy-700 rounded-full animate-spin" /></div>
+                        ) : tab === 'resumen' ? (
+                            scrollList(<FinanceSummary fin={fin} period={period} year={anchorDate.getFullYear()} month={anchorDate.getMonth()} day={anchorDate.getDate()} />)
+                        ) : tab === 'confirmar' ? (
+                            scrollList(<PendingDeliveries pending={fin.pending} canConfirm={canConfirmDelivery} onConfirm={fin.confirmDelivery} />)
+                        ) : tab === 'ingresos' ? (
+                            scrollList(<IncomeSection income={fin.income} onSelect={e => setSelectedEntry({ entry: e, type: 'income' })} selectedId={selectedEntry?.type === 'income' ? selectedEntry.entry.id : null} />)
+                        ) : tab === 'egresos' ? (
+                            scrollList(<ExpenseSection expenses={fin.expenses} onSelect={e => setSelectedEntry({ entry: e, type: 'expense' })} selectedId={selectedEntry?.type === 'expense' ? selectedEntry.entry.id : null} />)
+                        ) : (
+                            // Insumos — dos paneles (Insumos / Recetas) lado a lado
+                            <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden custom-scrollbar px-2 py-2">
+                                <SuppliesSection supplies={sup.supplies} services={services} canManage={canManageSupplies}
+                                    costForService={sup.costForService} create={sup.create} update={sup.update} remove={sup.remove} onReload={sup.reload} />
+                            </div>
+                        )}
+                    </div>
                 </FeatureLock>
             </div>
 
-            {incomeOpen && <RecordIncomeModal onClose={() => setIncomeOpen(false)} onAdd={fin.addIncome} />}
-            {expenseOpen && <RecordExpenseModal onClose={() => setExpenseOpen(false)} onAdd={fin.addExpense} />}
+            {selectedEntry && (
+                <FinanceDetailDrawer
+                    entry={selectedEntry.entry}
+                    type={selectedEntry.type}
+                    canVoid={canVoidFinance}
+                    canEdit={selectedEntry.type === 'income' ? canRecordIncome : canRecordExpense}
+                    onEdit={(e) => selectedEntry.type === 'income' ? setIncomeModal({ initial: e }) : setExpenseModal({ initial: e })}
+                    onClose={() => setSelectedEntry(null)}
+                    onVoid={selectedEntry.type === 'income' ? fin.voidIncomeEntry : fin.voidExpenseEntry}
+                />
+            )}
+
+            {incomeModal && (
+                <RecordIncomeModal
+                    initial={incomeModal.initial}
+                    onClose={() => setIncomeModal(null)}
+                    onSubmit={async (fields) => {
+                        if (incomeModal.initial) {
+                            const updated = await fin.updateIncomeEntry(incomeModal.initial.id, fields);
+                            setSelectedEntry(sel => (sel ? { entry: updated, type: 'income' } : sel));
+                        } else {
+                            await fin.addIncome(fields);
+                        }
+                    }}
+                />
+            )}
+            {expenseModal && (
+                <RecordExpenseModal
+                    initial={expenseModal.initial}
+                    onClose={() => setExpenseModal(null)}
+                    onSubmit={async (fields) => {
+                        if (expenseModal.initial) {
+                            const updated = await fin.updateExpenseEntry(expenseModal.initial.id, fields);
+                            setSelectedEntry(sel => (sel ? { entry: updated, type: 'expense' } : sel));
+                        } else {
+                            await fin.addExpense(fields);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }
