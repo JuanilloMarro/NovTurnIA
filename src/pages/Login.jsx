@@ -21,10 +21,6 @@ export default function Login() {
         setLoading(true);
         try {
             await login(email, password);
-            // Limpiar el campo de contraseña inmediatamente tras el submit exitoso.
-            // El password no debe permanecer en el estado de React más tiempo del necesario:
-            // si el componente no se desmonta de inmediato (ej: animación de salida),
-            // la contraseña queda en memoria y podría ser inspeccionada con DevTools.
             setPassword('');
         } catch (err) {
             setError('Credenciales incorrectas, vuelve a intentarlo');
@@ -35,35 +31,38 @@ export default function Login() {
     }
 
     return (
-        <div className="min-h-screen animate-liquid flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-navy-100/50">
-            {/* Elementos ambientales del sistema - Azul Marino y Gris */}
+        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-navy-100/50">
+            {/* Elementos ambientales del sistema */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] rounded-full bg-navy-100/10 blur-[120px] pointer-events-none animate-pulse-slow" />
             <div className="lg-orb w-[500px] h-[500px] top-[-10%] left-[-10%] animate-float opacity-80" />
             <div className="lg-orb w-[400px] h-[400px] bottom-[-5%] right-[-5%] animate-float-delayed opacity-80" />
 
             <div className="relative z-10 w-full max-w-md mb-6 animate-fade-up">
-                {/* Branding Dental Sistemático */}
+                {/* Branding */}
                 <div className="flex flex-col items-center mb-16 px-4">
                     <div className="text-center">
                         <h1 className="text-4xl font-light text-navy-900 tracking-tight text-center">NovTurnIA</h1>
                     </div>
                 </div>
 
-                {/* Tarjeta de Login Glass-Premium Reforzada */}
-                <div className="glass-premium rounded-[40px] p-8 md:p-10 relative group">
+                {/* Card — glass igual que los paneles del sistema */}
+                <div className="bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_rgba(26,58,107,0.15),inset_0_2px_4px_rgba(255,255,255,0.8)] rounded-[40px] p-8 md:p-10 relative group">
+                    {/* Orbes ambientales internos — igual que los paneles */}
+                    <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                    <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+                    <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+                    <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+
                     {/* Robot Flotante Interactivo al borde de la tarjeta */}
                     <div className="absolute -top-7 left-1/2 -translate-x-1/2 group-hover:-top-9 transition-all duration-700 ease-out z-20">
-                        <div className="w-14 h-14 rounded-[22px] bg-white border border-navy-50 flex items-center justify-center shadow-[0_10px_30px_rgba(26,58,107,0.12)] group/bot cursor-pointer">
+                        <div className="w-14 h-14 rounded-[22px] bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_24px_rgba(26,58,107,0.10)] flex items-center justify-center group/bot cursor-pointer">
                             <div className="relative">
                                 <Bot size={28} className="text-navy-900 transition-transform group-hover/bot:rotate-12 duration-500" strokeWidth={2.2} />
-                                <AIStar
-                                    size={11}
-                                    className="absolute -top-1 -left-1 text-navy-900"
-                                    strokeWidth={2.5}
-                                />
+                                <AIStar size={11} className="absolute -top-1 -left-1 text-navy-900" strokeWidth={2.5} />
                             </div>
                         </div>
                     </div>
+
                     <div className="relative z-10">
                         <div className="mb-7 text-center px-2 pt-2">
                             <h2 className="text-lg font-bold text-navy-900 tracking-tight mb-1.5">Acceso al Software</h2>
@@ -73,7 +72,7 @@ export default function Login() {
                         </div>
 
                         {error && (
-                            <div className="mb-5 p-3.5 bg-red-50/50 border border-red-100 rounded-[20px] text-[12px] text-red-600 font-semibold flex items-center gap-3 animate-shake">
+                            <div className="mb-5 p-3.5 bg-white/40 border border-red-200/60 rounded-[20px] text-[12px] text-red-500 font-semibold flex items-center gap-3 animate-shake">
                                 <Lock size={14} strokeWidth={2.5} className="shrink-0" />
                                 <span>{error}</span>
                             </div>
@@ -91,7 +90,7 @@ export default function Login() {
                                         onChange={e => setEmail(e.target.value)}
                                         required
                                         placeholder="usuario@novturnia.com"
-                                        className="w-full glass-input rounded-[20px] pl-12 pr-6 py-4 text-[13px] outline-none placeholder:text-gray-400 font-semibold relative z-0"
+                                        className="w-full bg-white/40 border border-white/60 rounded-[20px] pl-12 pr-6 py-4 text-[13px] outline-none placeholder:text-gray-400 font-semibold text-navy-900 focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm relative z-0"
                                     />
                                     <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-gray-500/80 group-focus-within/input:text-navy-900 transition-colors duration-500 z-10">
                                         <Mail size={15} strokeWidth={2.5} />
@@ -104,7 +103,6 @@ export default function Login() {
                                     <label className="text-[10px] font-bold text-navy-900 tracking-wide opacity-50">
                                         Contraseña
                                     </label>
-
                                 </div>
                                 <div className="relative group/input">
                                     <input
@@ -113,7 +111,7 @@ export default function Login() {
                                         onChange={e => setPassword(e.target.value)}
                                         required
                                         placeholder="••••••••"
-                                        className="w-full glass-input rounded-[20px] pl-12 pr-12 py-4 text-[13px] outline-none placeholder:text-gray-400 font-semibold relative z-0 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
+                                        className="w-full bg-white/40 border border-white/60 rounded-[20px] pl-12 pr-12 py-4 text-[13px] outline-none placeholder:text-gray-400 font-semibold text-navy-900 focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm relative z-0 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                                     />
                                     <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-gray-500/80 group-focus-within/input:text-navy-900 transition-colors duration-500 z-10">
                                         <Lock size={15} strokeWidth={2.5} />
@@ -131,7 +129,7 @@ export default function Login() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full !mt-8 bg-navy-900 text-white text-[13px] font-bold py-4 rounded-[22px] shadow-[0_15px_30px_rgba(15,32,68,0.2)] hover:shadow-[0_20px_40px_rgba(15,32,68,0.3)] hover:scale-[1.01] active:scale-[0.98] transition-all duration-700 disabled:opacity-50 flex items-center justify-center gap-3 group"
+                                className="w-full !mt-8 bg-navy-700 hover:bg-navy-900 text-white text-[13px] font-bold py-4 rounded-[22px] shadow-btn hover:shadow-btn-hover hover:scale-[1.01] active:scale-[0.98] transition-all duration-700 disabled:opacity-50 flex items-center justify-center gap-3 group"
                             >
                                 {loading ? (
                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -145,10 +143,7 @@ export default function Login() {
                         </form>
                     </div>
                 </div>
-
-
             </div>
-
         </div>
     );
 }

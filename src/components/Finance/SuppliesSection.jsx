@@ -25,7 +25,7 @@ function PillBtn({ icon: Icon, label, onClick, tone = 'default' }) {
 // Barra de búsqueda con el mismo estilo/dimensión que el módulo de Ofertas
 function OffersSearch({ value, onChange, placeholder }) {
     return (
-        <div className="relative flex-1 h-9 min-w-0">
+        <div className="relative w-full sm:w-72 h-9 min-w-0">
             <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
             <div className="absolute -top-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(29,95,173,0.05)' }} />
             <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
@@ -50,8 +50,10 @@ function Panel({ icon: Icon, title, action, searchValue, searchOnChange, searchP
                     <div className="w-9 h-9 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-800 shrink-0"><Icon size={16} /></div>
                     <h3 className="text-[13px] font-bold text-navy-800 leading-none tracking-tight whitespace-nowrap">{title}</h3>
                 </div>
-                <OffersSearch value={searchValue} onChange={searchOnChange} placeholder={searchPlaceholder} />
-                {action}
+                <div className="ml-auto flex items-center gap-2 shrink-0">
+                    <OffersSearch value={searchValue} onChange={searchOnChange} placeholder={searchPlaceholder} />
+                    {action}
+                </div>
             </div>
             <div className="relative z-10 flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 pb-3 pt-1 space-y-3">{children}</div>
         </div>

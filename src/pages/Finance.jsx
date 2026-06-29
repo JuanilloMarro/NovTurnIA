@@ -177,8 +177,10 @@ export default function Finance() {
                         ) : (
                             // Insumos — dos paneles (Insumos / Recetas) lado a lado
                             <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden custom-scrollbar px-2 py-2">
-                                <SuppliesSection supplies={sup.supplies} services={services} canManage={canManageSupplies}
-                                    costForService={sup.costForService} create={sup.create} update={sup.update} remove={sup.remove} onReload={sup.reload} />
+                                <FeatureLock feature="supplies" variant="screen" title="Insumos y Recetas" description="El catálogo de insumos y el cálculo de costo real por servicio están disponibles en el plan Enterprise." requiredPlan="Enterprise">
+                                    <SuppliesSection supplies={sup.supplies} services={services} canManage={canManageSupplies}
+                                        costForService={sup.costForService} create={sup.create} update={sup.update} remove={sup.remove} onReload={sup.reload} />
+                                </FeatureLock>
                             </div>
                         )}
                     </div>

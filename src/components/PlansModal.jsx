@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { CreditCard, Star, Bot, Check, X, Users, BarChart2, ShieldCheck, Zap, Calendar, MessageCircle, Settings, List, Layers, ChevronDown, Building2 } from 'lucide-react';
+import { CreditCard, Star, Bot, Check, X, Users, BarChart2, ShieldCheck, Zap, Calendar, MessageCircle, Settings, List, Layers, ChevronDown, Building2, Wallet, History, Tag } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import AIStar from './Icons/AIStar';
 import { getBusinessInfo } from '../services/supabaseService';
@@ -34,7 +34,7 @@ export default function PlansModal({ isOpen, onClose }) {
             monthlyPrice: 499,
             perfectFor: 'Para emprendedores que buscan automatizar su agenda básica.',
             icon: <Check size={15} />,
-            features: ['IA de razonamiento Estándar', 'Turnos con IA Ilimitados', 'Dashboard: Limitado', '1 Usuario', 'Integración de Modulos a la Medida']
+            features: ['IA de razonamiento Estándar', 'Turnos con IA Ilimitados', 'Agenda: Vista Día / Semana / Mes', 'Gestión de Clientes (últimos 10)', '1 Usuario', 'Integración de Módulos a la Medida']
         },
         {
             id: 'pro',
@@ -43,7 +43,7 @@ export default function PlansModal({ isOpen, onClose }) {
             perfectFor: 'Para negocios en crecimiento que necesitan control total.',
             icon: <Star size={15} />,
             active: true,
-            features: ['IA de razonamiento Avanzada', 'IA con memoria contextual', 'Dashboard: Completo', 'Hasta 5 Usuarios', 'Kanban de estados de turnos', 'Integración de Modulos a la Medida']
+            features: ['IA Avanzada + Memoria Contextual', 'Módulo de Finanzas (Ingresos, Egresos, Resumen)', 'Seguimiento de No-Shows y Cancelaciones', 'Kanban de estados de turnos', 'Roles y Permisos de Staff', 'Hasta 5 Usuarios']
         },
         {
             id: 'enterprise',
@@ -51,7 +51,7 @@ export default function PlansModal({ isOpen, onClose }) {
             monthlyPrice: 1999,
             perfectFor: 'Para empresas grandes que escalan su comunicación con IA.',
             icon: <ShieldCheck size={15} />,
-            features: ['IA de razonamiento Premium', 'Inteligencia de negocio (LTV, retención, predicción)', 'Nombre personalizado del asistente IA', 'Confirmaciones automáticas', 'Usuarios Ilimitados', 'Integración de Modulos a la Medida']
+            features: ['IA de razonamiento Premium', 'Insumos y Recetas (Costo por Servicio)', 'Ofertas y Precios Dinámicos', 'Exportación de Información y Reportes', 'Inteligencia de Negocio (LTV, retención, predicción)', 'Usuarios Ilimitados']
         }
     ];
 
@@ -218,48 +218,58 @@ export default function PlansModal({ isOpen, onClose }) {
                             subtitle="Gestión de agenda y IA"
                             icon={<Calendar size={20} />}
                             rows={[
-                                { name: 'Visualización de Agenda', basic: true, pro: true, enterprise: true },
+                                { name: 'Visualización de Agenda (Día / Semana / Mes)', basic: true, pro: true, enterprise: true },
                                 { name: 'Creación Manual de Turnos', basic: true, pro: true, enterprise: true },
                                 { name: 'Recordatorios Automáticos', basic: false, pro: true, enterprise: true },
-                                { name: 'Seguimiento de Cancelaciones / No Presentes', basic: false, pro: true, enterprise: true },
                                 { name: 'Kanban de estados de turnos', basic: false, pro: true, enterprise: true },
-                                { name: 'Agente IA (Agendamiento)', basic: 'Ilimitado', pro: 'Ilimitado', enterprise: 'Ilimitado' },
                                 { name: 'Límite de Turnos al mes', basic: '100', pro: '500', enterprise: 'Ilimitado' },
                             ]}
                         />
 
-                        {/* 2. Módulo de Clientes */}
+                        {/* 2. Módulo de Seguimiento */}
+                        <ModuleSection
+                            title="Seguimiento"
+                            subtitle="Recuperación de No-Shows y Cancelaciones"
+                            icon={<History size={20} />}
+                            rows={[
+                                { name: 'Listado de No-Shows y Cancelaciones', basic: false, pro: true, enterprise: true },
+                                { name: 'Filtros por Tipo (No-Show / Cancelados)', basic: false, pro: true, enterprise: true },
+                                { name: 'Filtros por Período (7 / 30 / 60 / 90 días)', basic: false, pro: true, enterprise: true },
+                                { name: 'Reagendar directamente desde Seguimiento', basic: false, pro: true, enterprise: true },
+                            ]}
+                        />
+
+                        {/* 3. Módulo de Clientes */}
                         <ModuleSection
                             title="Clientes"
                             subtitle="Base de datos y perfiles"
                             icon={<Users size={20} />}
                             rows={[
                                 { name: 'Creación Manual de un Cliente', basic: true, pro: true, enterprise: true },
-                                { name: 'Historial de Turnos', basic: true, pro: true, enterprise: true },
-                                { name: 'Toma de Control Humano', basic: true, pro: true, enterprise: true },
+                                { name: 'Historial Completo del Paciente', basic: true, pro: true, enterprise: true },
+                                { name: 'Toma de Control Humano (Pausa IA)', basic: true, pro: true, enterprise: true },
                                 { name: 'Observaciones / Notas', basic: false, pro: true, enterprise: true },
-                                { name: 'Exportación de Información', basic: false, pro: false, enterprise: true },
+                                { name: 'Exportación de Información (CSV)', basic: false, pro: false, enterprise: true },
                                 { name: 'Límite de Visualización de Clientes', basic: 'Últimos 10', pro: 'Últimos 100', enterprise: 'Ilimitado' },
                             ]}
                         />
 
-                        {/* 3. Módulo de Conversaciones */}
+                        {/* 4. Módulo de Conversaciones */}
                         <ModuleSection
                             title="Conversaciones"
                             subtitle="IA y Mensajería"
                             icon={<MessageCircle size={20} />}
                             rows={[
                                 { name: 'Bandeja Unificada', basic: true, pro: true, enterprise: true },
-                                { name: 'Manejo de Emergencias', basic: true, pro: true, enterprise: true },
                                 { name: 'Auto-Respuestas Inteligentes', basic: true, pro: true, enterprise: true },
-                                { name: 'IA con Contexto Completo', basic: false, pro: true, enterprise: true },
+                                { name: 'IA con Contexto Completo (Servicios y Ofertas)', basic: false, pro: true, enterprise: true },
                                 { name: 'Confirmación Automática por WhatsApp', basic: false, pro: false, enterprise: true },
                                 { name: 'Límite de Visualización de Chats', basic: 'Últimos 10', pro: 'Últimos 100', enterprise: 'Ilimitado' },
                                 { name: 'Límite de Mensajes al mes (usuario + IA)', basic: '1,000', pro: '5,000', enterprise: 'Ilimitado' },
                             ]}
                         />
 
-                        {/* 4. Módulo de Estadísticas */}
+                        {/* 5. Módulo de Estadísticas */}
                         <ModuleSection
                             title="Estadísticas"
                             subtitle="Reportes y métricas"
@@ -269,15 +279,11 @@ export default function PlansModal({ isOpen, onClose }) {
                                 { name: 'Métricas de Mensajes (IA)', basic: false, pro: true, enterprise: true },
                                 { name: 'Tasa de Confirmación y Cancelaciones', basic: false, pro: true, enterprise: true },
                                 { name: 'Histórico Comparativo Mensual', basic: false, pro: true, enterprise: true },
-                                { name: 'Exportación de Reportes', basic: false, pro: false, enterprise: true },
-                                { name: 'Valor de Vida del Paciente (LTV)', basic: false, pro: false, enterprise: true },
-                                { name: 'Tasa de Retención de Pacientes', basic: false, pro: false, enterprise: true },
-                                { name: 'Análisis de Ingresos por Servicio', basic: false, pro: false, enterprise: true },
-                                { name: 'Predicción de Agenda Semanal', basic: false, pro: false, enterprise: true },
+                                { name: 'Inteligencia de Negocio (Módulo Avanzado)', basic: false, pro: false, enterprise: true },
                             ]}
                         />
 
-                        {/* 5. Módulo de Servicios */}
+                        {/* 6. Módulo de Servicios */}
                         <ModuleSection
                             title="Servicios"
                             subtitle="Catálogo y Configuración"
@@ -287,25 +293,54 @@ export default function PlansModal({ isOpen, onClose }) {
                                 { name: 'Activar / Desactivar Servicios', basic: true, pro: true, enterprise: true },
                                 { name: 'Precios y Duraciones Variables', basic: true, pro: true, enterprise: true },
                                 { name: 'Descripción Detallada (Contexto para IA)', basic: false, pro: true, enterprise: true },
-                                { name: 'Precios Dinámicos / Ofertas', basic: false, pro: false, enterprise: true },
                             ]}
                         />
 
-                        {/* 6. Módulo de Actividad */}
+                        {/* 7. Módulo de Ofertas */}
+                        <ModuleSection
+                            title="Ofertas"
+                            subtitle="Promociones y Precios Dinámicos"
+                            icon={<Tag size={20} />}
+                            rows={[
+                                { name: 'Creación de Ofertas y Promociones', basic: false, pro: false, enterprise: true },
+                                { name: 'Precio Promocional por Servicio', basic: false, pro: false, enterprise: true },
+                                { name: 'Vigencia por Fechas (Tiempo Limitado)', basic: false, pro: false, enterprise: true },
+                                { name: 'Activar / Desactivar Ofertas', basic: false, pro: false, enterprise: true },
+                                { name: 'Ofertas Visibles al Agente IA en Conversaciones', basic: false, pro: false, enterprise: true },
+                            ]}
+                        />
+
+                        {/* 9. Módulo de Finanzas */}
+                        <ModuleSection
+                            title="Finanzas"
+                            subtitle="Ingresos, Costos y Rentabilidad"
+                            icon={<Wallet size={20} />}
+                            rows={[
+                                { name: 'Resumen Financiero (Ingresos y Egresos)', basic: false, pro: true, enterprise: true },
+                                { name: 'Registro de Ingresos', basic: false, pro: true, enterprise: true },
+                                { name: 'Registro de Egresos', basic: false, pro: true, enterprise: true },
+                                { name: 'Confirmación de Entregas Pendientes', basic: false, pro: true, enterprise: true },
+                                { name: 'Anular Transacciones', basic: false, pro: false, enterprise: true },
+                                { name: 'Catálogo de Insumos', basic: false, pro: false, enterprise: true },
+                                { name: 'Recetas y Costo Real por Servicio', basic: false, pro: false, enterprise: true },
+                            ]}
+                        />
+
+                        {/* 10. Módulo de Actividad */}
                         <ModuleSection
                             title="Actividad"
                             subtitle="Registro de Auditoría"
                             icon={<List size={20} />}
                             rows={[
-                                { name: 'Registro de actividad General', basic: false, pro: true, enterprise: true },
-                                { name: 'Historial de cambios en clientes', basic: false, pro: true, enterprise: true },
-                                { name: 'Historial de cambios en turnos', basic: false, pro: true, enterprise: true },
-                                { name: 'Auditoría de acciones de staff', basic: false, pro: true, enterprise: true },
-                                { name: 'Exportación Excel', basic: false, pro: false, enterprise: true },
+                                { name: 'Registro de Actividad General', basic: false, pro: true, enterprise: true },
+                                { name: 'Historial de cambios en Clientes', basic: false, pro: true, enterprise: true },
+                                { name: 'Historial de cambios en Turnos', basic: false, pro: true, enterprise: true },
+                                { name: 'Auditoría de acciones de Staff', basic: false, pro: true, enterprise: true },
+                                { name: 'Exportación CSV', basic: false, pro: false, enterprise: true },
                             ]}
                         />
 
-                        {/* 7. Módulo de Usuarios */}
+                        {/* 11. Módulo de Usuarios */}
                         <ModuleSection
                             title="Usuarios"
                             subtitle="Control de Acceso"
@@ -317,21 +352,22 @@ export default function PlansModal({ isOpen, onClose }) {
                             ]}
                         />
 
-                        {/* 8. Módulo de Configuración */}
+                        {/* 12. Módulo de Inteligencia Artificial */}
                         <ModuleSection
-                            title="Configuración"
-                            subtitle="Personalización del negocio"
-                            icon={<Settings size={20} />}
+                            title="Inteligencia Artificial"
+                            subtitle="Capacidades y Personalización del Agente"
+                            icon={<Bot size={20} />}
                             rows={[
-                                { name: 'Perfil de Negocio Completo', basic: true, pro: true, enterprise: true },
-                                { name: 'Horarios de Atención Generales', basic: true, pro: true, enterprise: true },
-                                { name: 'Personalización de IA (Contexto)', basic: false, pro: true, enterprise: true },
-                                { name: 'Nombre personalizado del asistente IA', basic: false, pro: false, enterprise: true },
-                                { name: 'Integración con Gmail', basic: false, pro: false, enterprise: true },
+                                { name: 'Agente IA de Agendamiento (WhatsApp)', basic: 'Incluido', pro: 'Incluido', enterprise: 'Incluido' },
+                                { name: 'Tipo de Razonamiento IA', basic: 'Estándar', pro: 'Avanzado', enterprise: 'Premium' },
+                                { name: 'Memoria Contextual del Agente', basic: false, pro: true, enterprise: true },
+                                { name: 'Personalización del Prompt IA', basic: false, pro: true, enterprise: true },
+                                { name: 'Nombre Personalizado del Asistente', basic: false, pro: false, enterprise: true },
+                                { name: 'Confirmaciones Automáticas por IA', basic: false, pro: false, enterprise: true },
                             ]}
                         />
 
-                        {/* 9. Módulo de Sucursales */}
+                        {/* 12. Módulo de Sucursales */}
                         <ModuleSection
                             title={
                                 <div className="flex items-center gap-2">
@@ -352,7 +388,7 @@ export default function PlansModal({ isOpen, onClose }) {
                             ]}
                         />
 
-                        {/* 10. Módulo de Soporte */}
+                        {/* 13. Módulo de Soporte */}
                         <ModuleSection
                             title={
                                 <div className="flex items-center gap-2">
