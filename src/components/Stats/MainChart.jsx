@@ -74,15 +74,16 @@ function chartSubtitle(period, year, month) {
 
 // ── Component ─────────────────────────────────────────────
 
-export function MainChart({ period = 'week', selectedYear, selectedMonth, selectedDay = null }) {
+export function MainChart({ period = 'week', selectedYear, selectedMonth, selectedDay = null, previewData = null }) {
     const now   = new Date();
     const year  = selectedYear  ?? now.getFullYear();
     const month = selectedMonth ?? now.getMonth();
 
     const [trendData, setTrendData] = useState([]);
-    const [loading, setLoading]     = useState(true);
+    const [loading, setLoading]     = useState(!previewData);
 
     useEffect(() => {
+        if (previewData) return; // modo vista previa (FeatureLock): sin llamada a DB
         let cancelled = false;
         async function fetchTrend() {
             setLoading(true);
@@ -99,9 +100,10 @@ export function MainChart({ period = 'week', selectedYear, selectedMonth, select
         }
         fetchTrend();
         return () => { cancelled = true; };
-    }, [period, year, month, selectedDay]);
+    }, [period, year, month, selectedDay, previewData]);
 
     const data = useMemo(() => {
+        if (previewData) return previewData;
         const slots = buildSlots(period, year, month, selectedDay);
         const map   = Object.fromEntries(slots.map(s => [s.key, s]));
         trendData.forEach(row => {
@@ -112,7 +114,7 @@ export function MainChart({ period = 'week', selectedYear, selectedMonth, select
             }
         });
         return slots;
-    }, [trendData, period, year, month]);
+    }, [trendData, period, year, month, previewData]);
 
     return (
         <div className="h-full flex flex-col">

@@ -3,14 +3,14 @@ import {
     getFinanceSummary,
     getIncomeEntries,
     getExpenseEntries,
-    getUnconfirmedDeliveries,
+    getPendingValidations,
     recordIncome as recordIncomeAPI,
     recordExpense as recordExpenseAPI,
     updateIncome as updateIncomeAPI,
     updateExpense as updateExpenseAPI,
     voidIncome as voidIncomeAPI,
     voidExpense as voidExpenseAPI,
-    confirmServiceDelivery as confirmDeliveryAPI,
+    confirmIncomeValidation as confirmValidationAPI,
 } from '../services/supabaseService';
 
 // Rango del mes actual (ISO). La página puede pasar otro { start, end, granularity }.
@@ -42,7 +42,7 @@ export function useFinance(range) {
                 getFinanceSummary(start, end, granularity),
                 getIncomeEntries({ start, end }),
                 getExpenseEntries({ start, end }),
-                getUnconfirmedDeliveries(),
+                getPendingValidations(),
             ]);
             setSummary(sum);
             setIncome(inc);
@@ -62,7 +62,8 @@ export function useFinance(range) {
     useEffect(() => { load(); }, [load]);
 
     // Acciones — recargan el estado para mantener KPIs y listas coherentes.
-    async function confirmDelivery(args) { const r = await confirmDeliveryAPI(args); await load(); return r; }
+    // confirmValidation: pending -> confirmed (el dueño valida que el dinero entró).
+    async function confirmValidation(id) { const r = await confirmValidationAPI(id); await load(); return r; }
     async function addIncome(fields) { const r = await recordIncomeAPI(fields); await load(); return r; }
     async function addExpense(fields) { const r = await recordExpenseAPI(fields); await load(); return r; }
     async function updateIncomeEntry(id, fields) { const r = await updateIncomeAPI(id, fields); await load(); return r; }
@@ -80,6 +81,6 @@ export function useFinance(range) {
     return {
         summary, income, expenses, pending, loading,
         totalIncome, totalExpenses, totalCost, netProfit, marginPct,
-        reload: load, confirmDelivery, addIncome, addExpense, updateIncomeEntry, updateExpenseEntry, voidIncomeEntry, voidExpenseEntry,
+        reload: load, confirmValidation, addIncome, addExpense, updateIncomeEntry, updateExpenseEntry, voidIncomeEntry, voidExpenseEntry,
     };
 }

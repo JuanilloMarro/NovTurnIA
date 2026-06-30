@@ -5,6 +5,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { Shield, Check, Save, Lock, ChevronLeft } from 'lucide-react';
 import { showStaffPermsToast, showErrorToast } from '../store/useToastStore';
 import { usePlanLimits } from '../hooks/usePlanLimits';
+import FeatureLock from '../components/FeatureLock';
 
 function getInitials(name) {
     if (!name) return '?';
@@ -191,6 +192,7 @@ export default function Users() {
 
                             {/* Scrollable Permissions Checkboxes */}
                             <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4 custom-scrollbar relative animate-fade-up">
+                                <FeatureLock feature="dashboard">
                                 <div className="space-y-10 pb-12 pt-2">
                                     {[
                                         {
@@ -315,6 +317,7 @@ export default function Users() {
                                         </div>
                                     ))}
                                 </div>
+                                </FeatureLock>
                             </div>
 
                             {/* Footer: Guardar (solo si es editable) */}

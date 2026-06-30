@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { showErrorToast } from '../../store/useToastStore';
 import { ModalShell, FieldLabel, AmountInput, OptionWheel, NotesField, ModalButtons, PAY_OPTIONS } from './financeUi';
 
 // onConfirm({ amount, paymentMethod, notes }) → Promise. Cierra al terminar bien.
+// Envía el cobro a la cola "Por confirmar" (ingreso 'pending'); no lo registra aún.
 export default function ConfirmDeliveryModal({ serviceName, clientName, defaultAmount, onClose, onConfirm }) {
     const [amount, setAmount] = useState(defaultAmount != null ? String(defaultAmount) : '');
     const [method, setMethod] = useState('cash');
@@ -18,7 +19,7 @@ export default function ConfirmDeliveryModal({ serviceName, clientName, defaultA
             await onConfirm({ amount: amt, paymentMethod: method, notes: notes.trim() || null });
             onClose();
         } catch (err) {
-            showErrorToast('No se pudo confirmar', err.message || 'Intenta de nuevo.');
+            showErrorToast('No se pudo cobrar', err.message || 'Intenta de nuevo.');
             setSaving(false);
         }
     }
@@ -28,10 +29,10 @@ export default function ConfirmDeliveryModal({ serviceName, clientName, defaultA
             title="Cobrar servicio"
             subtitle={`${serviceName || 'Servicio'} · ${clientName || 'Cliente'}`}
             onClose={onClose}
-            footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Confirmar ingreso" loading={saving} confirmIcon={Check} />}
+            footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Enviar a validación" loading={saving} confirmIcon={Send} />}
         >
             <div>
-                <FieldLabel title="Monto cobrado" subtitle="Lo que el cliente realmente pagó por el servicio." />
+                <FieldLabel title="Monto cobrado" subtitle="Lo que el cliente realmente pagó. Pasará a 'Por confirmar' para validación." />
                 <AmountInput value={amount} onChange={setAmount} autoFocus />
             </div>
             <div>

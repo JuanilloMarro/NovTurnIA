@@ -240,12 +240,10 @@ export default function BusinessSettings() {
             showValidationToast('Horario inválido', 'La hora de cierre debe ser posterior a la de apertura.');
             return;
         }
+        // Correo opcional: cada cambio es independiente. Solo se valida el formato
+        // cuando hay un correo escrito; estar vacío no bloquea guardar (p. ej. horarios).
         const emailInput = form.notification_email.trim();
-        if (!emailInput) {
-            showValidationToast('Email requerido', 'El correo es indispensable para el manejo de notificaciones y emergencias.');
-            return;
-        }
-        if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(emailInput)) {
+        if (emailInput && !/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(emailInput)) {
             showValidationToast('Email inválido', 'Revisa el formato del correo de notificaciones.');
             return;
         }
@@ -266,6 +264,15 @@ export default function BusinessSettings() {
             }
 
             await updateBusinessInfo(payload);
+            // Refresca el store para que el calendario (Turnos) y los modales de turno
+            // re-generen tamaño y slots al instante con el nuevo horario, sin esperar a
+            // un nuevo inicio de sesión. El calendario lee schedule_start/end como "HH:MM".
+            const toHHMM = (h) => `${String(Number(h)).padStart(2, '0')}:00`;
+            useAppStore.getState().setBusinessHours({
+                schedule_start: toHHMM(form.schedule_start),
+                schedule_end:   toHHMM(form.schedule_end),
+                schedule_days:  useAppStore.getState().businessHours?.schedule_days ?? [1, 2, 3, 4, 5],
+            });
             showSettingsSavedToast(nameInput);
             setDirty(false);
         } catch (err) {

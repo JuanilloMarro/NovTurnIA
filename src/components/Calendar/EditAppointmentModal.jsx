@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import WheelColumn from '../ui/WheelColumn';
 import { createPortal } from 'react-dom';
-import { updateAppointment, getServices } from '../../services/supabaseService';
+import { updateAppointment, getServices, getOccupiedSlotsForDate } from '../../services/supabaseService';
 import { X, Save } from 'lucide-react';
 import { formatDuration } from '../../pages/Settings';
 import { formatPhone } from '../../utils/format';
@@ -60,6 +60,7 @@ export default function EditAppointmentModal({ appointment, onClose, onUpdated }
     const [endTime, setEndTime] = useState(rawEndTime);
     const [serviceId, setServiceId] = useState(appointment.service_id ?? null);
     const [services, setServices] = useState([]);
+    const [occupiedRanges, setOccupiedRanges] = useState([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const modalRef = useRef(null);
@@ -85,9 +86,32 @@ export default function EditAppointmentModal({ appointment, onClose, onUpdated }
             .catch(() => setServices([]));
     }, []);
 
+    // Load occupied slots whenever the selected date changes; exclude THIS appointment's own range.
+    useEffect(() => {
+        if (!date) return;
+        let cancelled = false;
+        getOccupiedSlotsForDate(date)
+            .then(slots => {
+                if (cancelled) return;
+                // Remove the current appointment's own slot so it doesn't block itself.
+                setOccupiedRanges(slots.filter(r => !(r.start === rawStartTime && r.end === rawEndTime)));
+            })
+            .catch(() => { if (!cancelled) setOccupiedRanges([]); });
+        return () => { cancelled = true; };
+    // rawStartTime / rawEndTime are the original times from the appointment prop — stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [date]);
+
     // Derived: currently selected service object
     const selectedService = serviceId ? services.find(s => s.id === serviceId) ?? null : null;
     const hasServiceDuration = (selectedService?.duration_minutes ?? 0) > 0;
+
+    const isOccupied = (t) => occupiedRanges.some(({ start, end }) => t >= start && t < end);
+
+    function nextOccupiedBoundary(afterTime) {
+        const nexts = occupiedRanges.map(r => r.start).filter(s => s > afterTime).sort();
+        return nexts[0] ?? null;
+    }
 
     function calcEnd(start, duration) {
         const [sh, sm] = start.split(':').map(Number);
@@ -215,12 +239,14 @@ export default function EditAppointmentModal({ appointment, onClose, onUpdated }
                                 <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3">Inicio</label>
                                 <div className="flex bg-white/40 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
                                     <WheelColumn
-                                        items={TIME_SLOTS.filter(t => t !== schedule_end)}
+                                        items={TIME_SLOTS.filter(t => t !== schedule_end && !isOccupied(t))}
                                         selected={startTime}
                                         onSelect={newStart => {
                                             setStartTime(newStart);
                                             const duration = selectedService?.duration_minutes || 60;
-                                            setEndTime(calcEnd(newStart, duration));
+                                            const raw = calcEnd(newStart, duration);
+                                            const cap = nextOccupiedBoundary(newStart);
+                                            setEndTime(cap && raw > cap ? cap : raw);
                                         }}
                                     />
                                 </div>
@@ -233,12 +259,17 @@ export default function EditAppointmentModal({ appointment, onClose, onUpdated }
                                     )}
                                 </label>
                                 <div className="flex bg-white/40 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
-                                    <WheelColumn
-                                        items={TIME_SLOTS.filter(t => t > startTime)}
-                                        selected={endTime}
-                                        onSelect={setEndTime}
-                                        disabled={hasServiceDuration}
-                                    />
+                                    {(() => {
+                                        const cap = nextOccupiedBoundary(startTime);
+                                        return (
+                                            <WheelColumn
+                                                items={TIME_SLOTS.filter(t => t > startTime && (cap === null || t <= cap))}
+                                                selected={endTime}
+                                                onSelect={setEndTime}
+                                                disabled={hasServiceDuration}
+                                            />
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         </div>

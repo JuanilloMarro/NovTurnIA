@@ -29,6 +29,10 @@ const MOCK_DONUT = {
     ],
     confRate: 65,
 };
+// Serie de muestra para la gráfica real (MainChart) en el fondo del FeatureLock —
+// alimenta el AreaChart sin tocar la base de datos.
+const MOCK_TREND = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    .map((name, i) => ({ name, turnos: [12, 18, 15, 22, 19, 26, 24, 21, 28, 31, 27, 29][i], no_show: 0, cancelled: 0 }));
 
 // ── Semana ISO ────────────────────────────────────────────
 function getISOWeek(date) {
@@ -52,7 +56,7 @@ function getNavLabel(period, date) {
 }
 
 // ── Contenido de métricas ────────────────────────────────
-function StatsContent({ kpi, donut, period, selectedYear, selectedMonth, selectedDay }) {
+function StatsContent({ kpi, donut, period, selectedYear, selectedMonth, selectedDay, chartPreview = null }) {
     const labels = KPI_LABELS[period] ?? KPI_LABELS.month;
     return (
         <div className="h-full flex flex-col w-full overflow-y-auto md:overflow-hidden px-1 md:pb-0 pb-4">
@@ -71,7 +75,7 @@ function StatsContent({ kpi, donut, period, selectedYear, selectedMonth, selecte
                         <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
                         <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
                         <div className="relative z-10 flex flex-col h-full">
-                            <MainChart period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDay={selectedDay} />
+                            <MainChart period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDay={selectedDay} previewData={chartPreview} />
                         </div>
                     </div>
                     <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
@@ -258,7 +262,7 @@ export default function Stats() {
             >
                 <div className="h-full flex flex-col pt-2 px-2">
                     {header}
-                    <StatsContent kpi={MOCK_KPI} donut={MOCK_DONUT} period="month" selectedYear={selectedYear} selectedMonth={selectedMonth} />
+                    <StatsContent kpi={MOCK_KPI} donut={MOCK_DONUT} period="month" selectedYear={selectedYear} selectedMonth={selectedMonth} chartPreview={MOCK_TREND} />
                 </div>
             </FeatureLock>
         );

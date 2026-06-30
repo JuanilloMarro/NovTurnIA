@@ -73,14 +73,22 @@ export default function FeatureLock({
         );
     }
 
-    // blurred: renderiza el módulo real detrás de un cristal opaco con candado.
+    // blurred: renderiza el módulo real (con su gap p-4) detrás de un cristal con candado.
+    // El mask-image desvanece los bordes del contenido difuminado para que el "corte"
+    // donde inicia el blur se vea sutil, en lugar de una línea dura.
     if (variant === 'blurred') {
+        const edgeFade =
+            'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 28px), transparent 100%)';
         return (
             <div className="relative h-full w-full rounded-[32px] overflow-hidden">
                 <div
                     aria-hidden="true"
                     className="h-full w-full pointer-events-none select-none p-4"
-                    style={{ filter: 'blur(5px) saturate(1.05)' }}
+                    style={{
+                        filter: 'blur(5px) saturate(1.05)',
+                        maskImage: edgeFade,
+                        WebkitMaskImage: edgeFade,
+                    }}
                 >
                     {children}
                 </div>
@@ -92,6 +100,8 @@ export default function FeatureLock({
     }
 
     // inline: overlay con candado encima del control.
+    // compact: pastilla muy reducida (alto y ancho) para espacios pequeños como
+    // el campo de "Notas u observaciones". El blur del contenido se mantiene igual.
     return (
         <div className="relative group">
             <div
@@ -101,19 +111,34 @@ export default function FeatureLock({
             >
                 {children}
             </div>
-            <div className="absolute -inset-1 flex items-center justify-center z-10 pointer-events-none">
-                <button
-                    type="button"
-                    onClick={openPlans}
-                    className="flex items-center gap-3 px-4 py-2.5 bg-navy-900/5 backdrop-blur-2xl border border-white/60 rounded-2xl hover:bg-navy-900/10 transition-all duration-300 shadow-[0_8px_30px_rgba(26,58,107,0.15)] pointer-events-auto"
-                >
-                    <div className="w-7 h-7 rounded-full bg-navy-900 flex items-center justify-center text-white shadow-sm">
-                        <Lock size={12} strokeWidth={2.5} />
-                    </div>
-                    <span className="text-[10px] font-bold text-navy-900 uppercase tracking-widest pr-1">
-                        Disponible en {requiredPlan}
-                    </span>
-                </button>
+            <div className={`absolute ${compact ? '-inset-0.5' : '-inset-1'} flex items-center justify-center z-10 pointer-events-none`}>
+                {compact ? (
+                    <button
+                        type="button"
+                        onClick={openPlans}
+                        className="flex items-center gap-1.5 px-2 py-1 mt-2 bg-navy-900/5 backdrop-blur-2xl border border-white/60 rounded-xl hover:bg-navy-900/10 transition-all duration-300 shadow-[0_4px_16px_rgba(26,58,107,0.12)] pointer-events-auto"
+                    >
+                        <div className="w-[15px] h-[15px] rounded-full bg-navy-900 flex items-center justify-center text-white shadow-sm shrink-0">
+                            <Lock size={8} strokeWidth={2.5} />
+                        </div>
+                        <span className="text-[8px] font-bold text-navy-900 uppercase tracking-wide whitespace-nowrap">
+                            Disponible en {requiredPlan}
+                        </span>
+                    </button>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={openPlans}
+                        className="flex items-center gap-3 px-4 py-2.5 bg-navy-900/5 backdrop-blur-2xl border border-white/60 rounded-2xl hover:bg-navy-900/10 transition-all duration-300 shadow-[0_8px_30px_rgba(26,58,107,0.15)] pointer-events-auto"
+                    >
+                        <div className="w-7 h-7 rounded-full bg-navy-900 flex items-center justify-center text-white shadow-sm">
+                            <Lock size={12} strokeWidth={2.5} />
+                        </div>
+                        <span className="text-[10px] font-bold text-navy-900 uppercase tracking-widest pr-1">
+                            Disponible en {requiredPlan}
+                        </span>
+                    </button>
+                )}
             </div>
         </div>
     );

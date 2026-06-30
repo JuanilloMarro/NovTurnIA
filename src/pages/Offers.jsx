@@ -269,8 +269,6 @@ export default function Offers() {
             { id: 2, name: 'Descuento Verano', service: 'Tinte Completo', price: 350, status: 'inactive', s: '20/5/2025', e: '5/6/2025' },
             { id: 3, name: 'Promo Flash 24h', service: 'Manicure', price: 50, status: 'inactive', s: '10/4/2025', e: '11/4/2025' },
         ];
-        const sCls = { active: 'bg-emerald-50 text-emerald-700 border-emerald-200', scheduled: 'bg-amber-50 text-amber-700 border-amber-200', expired: 'bg-navy-900/5 text-navy-700/60 border-navy-900/10', inactive: 'bg-navy-900/5 text-navy-700/60 border-navy-900/10' };
-        const sLbl = { active: 'Activa', scheduled: 'Programada', expired: 'Expirada', inactive: 'Pausada' };
         return (
             <FeatureLock
                 feature="dynamic_pricing"
@@ -287,41 +285,45 @@ export default function Offers() {
                             <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Promociones temporales impulsadas por Inteligencia Artificial</p>
                         </div>
                     </div>
-                    {/* Card principal igual al módulo real */}
-                    <div className="flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex overflow-hidden mb-4">
-                        {/* Panel izquierdo — lista */}
-                        <div className="w-[360px] shrink-0 flex flex-col border-r border-white/40">
+                    {/* Card principal igual al módulo real (4 glows de esquina) */}
+                    <div className="relative flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex overflow-hidden mb-4">
+                        <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+                        <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+                        <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+                        {/* Panel izquierdo — lista (full-width en móvil, como el módulo real) */}
+                        <div className="w-full md:w-[360px] xl:w-[380px] shrink-0 flex flex-col md:border-r border-white/40 relative z-10">
                             <div className="p-4 pb-3">
                                 <div className="flex items-center gap-2 h-9">
                                     <div className="relative flex-1 h-full">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-navy-700"><Search size={14} strokeWidth={2.5} /></div>
-                                        <div className="w-full h-full bg-white/60 backdrop-blur-card border border-white/90 rounded-full" />
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-navy-700/50 z-10"><Search size={14} strokeWidth={2.5} /></div>
+                                        <div className="w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md flex items-center pl-10 text-[11px] font-bold text-navy-900/40">Buscar oferta…</div>
                                     </div>
-                                    <div className="h-9 w-9 bg-white/60 border border-white/90 rounded-full shadow-sm flex items-center justify-center"><Plus size={14} className="text-navy-700" /></div>
-                                    <div className="h-9 w-9 bg-white/60 border border-white/90 rounded-full shadow-sm flex items-center justify-center"><SlidersHorizontal size={14} className="text-navy-700" /></div>
+                                    <div className="h-9 px-3 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md flex items-center justify-center text-navy-900"><Plus size={14} /></div>
+                                    <div className="h-9 px-3 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md flex items-center justify-center text-navy-900"><SlidersHorizontal size={14} /></div>
                                 </div>
                             </div>
                             <div className="flex-1 overflow-hidden p-2 pt-0 space-y-1">
                                 {MO.map((o, i) => (
-                                    <div key={o.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${i === 0 ? 'bg-white/60 border-white/80' : 'border-transparent'}`}>
+                                    <div key={o.id} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${i === 0 ? 'bg-white/40 backdrop-blur-2xl border-white/60 shadow-md' : 'border-transparent'}`}>
                                         <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${i === 0 ? 'bg-gradient-to-b from-white to-gray-200 border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900' : 'bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900'}`}>
                                             {o.name[0].toUpperCase()}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-bold text-navy-900/80 text-sm truncate">{o.name}</div>
-                                            <div className="flex items-center gap-1.5 mt-0.5 text-[11px] font-bold text-navy-700/60">
-                                                <span>Q{o.price}</span>
-                                                <span className="opacity-40">•</span>
-                                                <span>hasta {o.e}</span>
+                                            <div className={`font-bold text-sm truncate ${i === 0 ? 'text-navy-900' : 'text-navy-900/80'}`}>{o.name}</div>
+                                            <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold tracking-tight text-navy-700/60">
+                                                <span className="truncate">{o.service}</span>
+                                                <span className="opacity-40 text-[10px] shrink-0">•</span>
+                                                <span className="shrink-0">Q{Number(o.price).toFixed(2)}</span>
+                                                <div className={`w-1.5 h-1.5 rounded-full ml-1 shrink-0 ${o.status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'}`} />
                                             </div>
                                         </div>
-                                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${o.status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'}`} />
                                     </div>
                                 ))}
                             </div>
                         </div>
-                        {/* Panel derecho — formulario de la oferta seleccionada */}
-                        <div className="flex-1 flex flex-col overflow-hidden">
+                        {/* Panel derecho — formulario (oculto en móvil, igual que el módulo real) */}
+                        <div className="hidden md:flex flex-1 flex-col overflow-hidden relative z-10">
                             <div className="p-8 pb-3 shrink-0">
                                 <div className="flex items-start justify-between gap-4 mb-1">
                                     <div>
@@ -342,7 +344,7 @@ export default function Offers() {
                                 ].map(({ label, val }) => (
                                     <div key={label}>
                                         <div className="text-[12px] font-bold text-navy-800 mb-2">{label}</div>
-                                        <div className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-sm font-semibold text-navy-900">{val}</div>
+                                        <div className="w-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl px-4 py-2.5 text-sm font-semibold text-navy-900">{val}</div>
                                     </div>
                                 ))}
                             </div>

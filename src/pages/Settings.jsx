@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useServices } from '../hooks/useServices';
 import { usePermissions } from '../hooks/usePermissions';
 import { Layers, Plus, Save, ToggleLeft, ToggleRight, ChevronLeft, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import FeatureLock from '../components/FeatureLock';
 import { showServiceNewToast, showServiceEditToast, showServiceDeleteToast, showServiceActivateToast, showServiceDeactivateToast, showErrorToast } from '../store/useToastStore';
 import WheelColumn from '../components/ui/WheelColumn';
 
@@ -455,18 +456,20 @@ export default function Settings() {
                                                 </p>
                                             </div>
 
-                                            {/* Descripción */}
+                                            {/* Descripción — contexto para la IA (Pro+) */}
                                             <div>
                                                 <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
                                                     Descripción <span className="font-semibold text-navy-700/40 text-[11px]">(opcional)</span>
                                                 </label>
-                                                <textarea
-                                                    value={form.description}
-                                                    onChange={e => setField('description', e.target.value)}
-                                                    placeholder="Ej. Evaluación completa de signos vitales e historial clínico para pacientes de primera vez..."
-                                                    rows="3"
-                                                    className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 resize-none custom-scrollbar"
-                                                />
+                                                <FeatureLock feature="custom_prompt">
+                                                    <textarea
+                                                        value={form.description}
+                                                        onChange={e => setField('description', e.target.value)}
+                                                        placeholder="Ej. Evaluación completa de signos vitales e historial clínico para pacientes de primera vez..."
+                                                        rows="3"
+                                                        className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 resize-none custom-scrollbar"
+                                                    />
+                                                </FeatureLock>
                                             </div>
                                         </div>
                                     </div>

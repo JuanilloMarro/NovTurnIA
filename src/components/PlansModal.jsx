@@ -220,6 +220,9 @@ export default function PlansModal({ isOpen, onClose }) {
                             rows={[
                                 { name: 'Visualización de Agenda (Día / Semana / Mes)', basic: true, pro: true, enterprise: true },
                                 { name: 'Creación Manual de Turnos', basic: true, pro: true, enterprise: true },
+                                { name: 'Validación de Ingreso del Paciente', basic: true, pro: true, enterprise: true },
+                                { name: 'Toma de Control Humano (Pausa IA desde el Turno)', basic: true, pro: true, enterprise: true },
+                                { name: 'Cobro al Atender (Registro de Pago en el Turno)', basic: false, pro: true, enterprise: true },
                                 { name: 'Recordatorios Automáticos', basic: false, pro: true, enterprise: true },
                                 { name: 'Kanban de estados de turnos', basic: false, pro: true, enterprise: true },
                                 { name: 'Límite de Turnos al mes', basic: '100', pro: '500', enterprise: 'Ilimitado' },
@@ -261,9 +264,8 @@ export default function PlansModal({ isOpen, onClose }) {
                             icon={<MessageCircle size={20} />}
                             rows={[
                                 { name: 'Bandeja Unificada', basic: true, pro: true, enterprise: true },
-                                { name: 'Auto-Respuestas Inteligentes', basic: true, pro: true, enterprise: true },
-                                { name: 'IA con Contexto Completo (Servicios y Ofertas)', basic: false, pro: true, enterprise: true },
-                                { name: 'Confirmación Automática por WhatsApp', basic: false, pro: false, enterprise: true },
+                                { name: 'Ofrecimiento de Servicios Activos por IA', basic: false, pro: true, enterprise: true },
+                                { name: 'Ofrecimiento de Ofertas Activas por IA', basic: false, pro: false, enterprise: true },
                                 { name: 'Límite de Visualización de Chats', basic: 'Últimos 10', pro: 'Últimos 100', enterprise: 'Ilimitado' },
                                 { name: 'Límite de Mensajes al mes (usuario + IA)', basic: '1,000', pro: '5,000', enterprise: 'Ilimitado' },
                             ]}
@@ -275,11 +277,16 @@ export default function PlansModal({ isOpen, onClose }) {
                             subtitle="Reportes y métricas"
                             icon={<BarChart2 size={20} />}
                             rows={[
-                                { name: 'Dashboard de Métricas (Turnos y Clientes)', basic: false, pro: true, enterprise: true },
-                                { name: 'Métricas de Mensajes (IA)', basic: false, pro: true, enterprise: true },
+                                { name: 'Total de Turnos (Completados, Cancelados, No-Shows)', basic: false, pro: true, enterprise: true },
+                                { name: 'Total de Clientes Atendidos vs Nuevos', basic: false, pro: true, enterprise: true },
+                                { name: 'Volumen de Mensajes (usuario + IA) del período', basic: false, pro: true, enterprise: true },
                                 { name: 'Tasa de Confirmación y Cancelaciones', basic: false, pro: true, enterprise: true },
-                                { name: 'Histórico Comparativo Mensual', basic: false, pro: true, enterprise: true },
-                                { name: 'Inteligencia de Negocio (Módulo Avanzado)', basic: false, pro: false, enterprise: true },
+                                { name: 'Histórico Comparativo Mensual por Categoría', basic: false, pro: true, enterprise: true },
+                                { name: 'LTV y Valor Promedio por Cliente', basic: false, pro: false, enterprise: true },
+                                { name: 'Predicción de Demanda y Ocupación', basic: false, pro: false, enterprise: true },
+                                { name: 'Tasa de Retención y Riesgo de Abandono (Churn)', basic: false, pro: false, enterprise: true },
+                                { name: 'Rentabilidad Real por Servicio', basic: false, pro: false, enterprise: true },
+                                { name: 'Exportación de Reportes Avanzados (CSV / PDF)', basic: false, pro: false, enterprise: true },
                             ]}
                         />
 
@@ -316,11 +323,12 @@ export default function PlansModal({ isOpen, onClose }) {
                             subtitle="Ingresos, Costos y Rentabilidad"
                             icon={<Wallet size={20} />}
                             rows={[
-                                { name: 'Resumen Financiero (Ingresos y Egresos)', basic: false, pro: true, enterprise: true },
+                                { name: 'Gráfica de Ingresos vs Egresos del Período', basic: false, pro: true, enterprise: true },
+                                { name: 'Balance Neto y Utilidad del Mes', basic: false, pro: true, enterprise: true },
+                                { name: 'Ranking de Servicios por Ingreso Generado', basic: false, pro: true, enterprise: true },
                                 { name: 'Registro de Ingresos', basic: false, pro: true, enterprise: true },
                                 { name: 'Registro de Egresos', basic: false, pro: true, enterprise: true },
-                                { name: 'Confirmación de Entregas Pendientes', basic: false, pro: true, enterprise: true },
-                                { name: 'Anular Transacciones', basic: false, pro: false, enterprise: true },
+                                { name: 'Validación de Ingresos Pendientes por Confirmar', basic: false, pro: true, enterprise: true },
                                 { name: 'Catálogo de Insumos', basic: false, pro: false, enterprise: true },
                                 { name: 'Recetas y Costo Real por Servicio', basic: false, pro: false, enterprise: true },
                             ]}
@@ -360,10 +368,10 @@ export default function PlansModal({ isOpen, onClose }) {
                             rows={[
                                 { name: 'Agente IA de Agendamiento (WhatsApp)', basic: 'Incluido', pro: 'Incluido', enterprise: 'Incluido' },
                                 { name: 'Tipo de Razonamiento IA', basic: 'Estándar', pro: 'Avanzado', enterprise: 'Premium' },
+                                { name: 'Historial Visual de Clientes con IA Pausada', basic: true, pro: true, enterprise: true },
+                                { name: 'Datos Iniciales del Negocio para el Agente', basic: false, pro: true, enterprise: true },
                                 { name: 'Memoria Contextual del Agente', basic: false, pro: true, enterprise: true },
-                                { name: 'Personalización del Prompt IA', basic: false, pro: true, enterprise: true },
                                 { name: 'Nombre Personalizado del Asistente', basic: false, pro: false, enterprise: true },
-                                { name: 'Confirmaciones Automáticas por IA', basic: false, pro: false, enterprise: true },
                             ]}
                         />
 

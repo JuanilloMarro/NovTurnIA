@@ -158,11 +158,14 @@ export default function Calendar() {
                         >
                             <KanbanBoard
                                 appointments={[
-                                    { id: 1, date_start: new Date().toISOString(), status: 'scheduled', confirmed: false, patients: { display_name: 'María García' }, services: { name: 'Corte Clásico' } },
-                                    { id: 2, date_start: new Date().toISOString(), status: 'scheduled', confirmed: true, patients: { display_name: 'Juan Pérez' }, services: { name: 'Tinte Completo' } },
-                                    { id: 3, date_start: new Date().toISOString(), status: 'cancelled', confirmed: false, patients: { display_name: 'Ana López' }, services: { name: 'Manicure' } },
+                                    { id: 'mk1', date_start: new Date().toISOString(), status: 'scheduled', confirmed: false, patients: { display_name: 'María García' }, services: { name: 'Corte Clásico' } },
+                                    { id: 'mk2', date_start: new Date().toISOString(), status: 'scheduled', confirmed: false, patients: { display_name: 'Ana López' }, services: { name: 'Manicure' } },
+                                    { id: 'mk3', date_start: new Date().toISOString(), status: 'confirmed', confirmed: true, patients: { display_name: 'Juan Pérez' }, services: { name: 'Tinte Completo' } },
+                                    { id: 'mk4', date_start: new Date().toISOString(), status: 'confirmed', confirmed: true, patients: { display_name: 'Carlos Méndez' }, services: { name: 'Barba Clásica' } },
+                                    { id: 'mk5', date_start: new Date().toISOString(), status: 'no_show', confirmed: false, patients: { display_name: 'Roberto Díaz' }, services: { name: 'Barba y Corte' } },
+                                    { id: 'mk6', date_start: new Date().toISOString(), status: 'cancelled', confirmed: false, patients: { display_name: 'Sandra Torres' }, services: { name: 'Maquillaje' } },
                                 ]}
-                                viewMode="week"
+                                viewMode={viewMode}
                                 anchorDate={anchorDate}
                                 weekStart={weekStart}
                             />

@@ -129,7 +129,7 @@ export default function FinanceSummary({ fin, period, year, month, day }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 <GlassPanel className="min-h-[340px]">
-                    <FinanceTrendChart period={period} year={year} month={month} day={day} />
+                    <FinanceTrendChart period={period} year={year} month={month} day={day} previewData={fin.trendPreview} />
                 </GlassPanel>
                 <GlassPanel className="min-h-[340px]">
                     <CardHeader icon={Award} title="Servicios más rentables" subtitle="Ingresos por servicio" />

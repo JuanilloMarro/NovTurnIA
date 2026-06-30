@@ -136,7 +136,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
 
                 {/* Reserva siempre ~3 líneas para que los Turnos queden en posición fija */}
                 <div className="px-1 mb-4">
-                    <FeatureLock feature="patient_notes" requiredPlan="Pro">
+                    <FeatureLock feature="patient_notes" requiredPlan="Pro" compact>
                         <div className={notesOpen ? 'max-h-[200px] overflow-y-auto custom-scrollbar' : 'min-h-[76px] overflow-hidden'}>
                             {patient.notes ? (
                                 <p className={`text-[11px] text-navy-700/80 font-medium leading-snug italic break-words px-1 ${notesOpen ? '' : 'line-clamp-3'}`}>

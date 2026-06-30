@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import WheelColumn from '../ui/WheelColumn';
 import { createPortal } from 'react-dom';
-import { createAppointment, getPatients, getOccupiedSlotsForDate, getServices } from '../../services/supabaseService';
+import { createAppointment, searchPatients as searchPatientsAPI, getOccupiedSlotsForDate, getServices } from '../../services/supabaseService';
 import { X, Search, Save } from 'lucide-react';
 import { formatDuration } from '../../pages/Settings';
 import { formatPhone } from '../../utils/format';
@@ -108,17 +108,26 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
         setPatientQ(q);
         setPatients([]);
         clearTimeout(searchDebounceRef.current);
-        if (q.length < 2) return;
+        // Búsqueda desde el primer carácter (RPC con ranking por relevancia).
+        if (q.trim().length < 1) return;
         searchDebounceRef.current = setTimeout(async () => {
             try {
-                const { data } = await getPatients(q);
-                setPatients(data ?? []);
+                const rows = await searchPatientsAPI(q, 8);
+                setPatients(rows);
             } catch { /* silently ignore search errors */ }
-        }, 300);
+        }, 200);
     }
 
+    // Returns true if slot t falls within any occupied range.
     const isOccupied = (t) => occupiedRanges.some(({ start, end }) => t >= start && t < end);
-    const getPhone = (p) => p.patient_phones?.[0]?.phone || '';
+
+    // Returns the earliest occupied-range start that is strictly after `afterTime`, or null.
+    function nextOccupiedBoundary(afterTime) {
+        const nexts = occupiedRanges.map(r => r.start).filter(s => s > afterTime).sort();
+        return nexts[0] ?? null;
+    }
+
+    const getPhone = (p) => p?.phone || p?.patient_phones?.find(x => x.is_primary)?.phone || p?.patient_phones?.[0]?.phone || '';
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -280,13 +289,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                                 <label className="block text-[11px] font-bold text-navy-800 tracking-wide leading-none mb-3">Inicio</label>
                                 <div className="flex bg-white/40 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
                                     <WheelColumn
-                                        items={TIME_SLOTS.filter(t => t !== schedule_end)}
+                                        items={TIME_SLOTS.filter(t => t !== schedule_end && !isOccupied(t))}
                                         selected={startTime}
-                                        displayFn={t => isOccupied(t) ? `${t} ●` : t}
                                         onSelect={newStart => {
                                             setStartTime(newStart);
                                             const duration = selectedService?.duration_minutes || 60;
-                                            setEndTime(calcEnd(newStart, duration));
+                                            const raw = calcEnd(newStart, duration);
+                                            const cap = nextOccupiedBoundary(newStart);
+                                            setEndTime(cap && raw > cap ? cap : raw);
                                         }}
                                     />
                                 </div>
@@ -299,12 +309,17 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                                     )}
                                 </label>
                                 <div className="flex bg-white/40 border border-white/60 rounded-2xl overflow-hidden shadow-sm">
-                                    <WheelColumn
-                                        items={TIME_SLOTS.filter(t => t > startTime)}
-                                        selected={endTime}
-                                        onSelect={setEndTime}
-                                        disabled={hasServiceDuration}
-                                    />
+                                    {(() => {
+                                        const cap = nextOccupiedBoundary(startTime);
+                                        return (
+                                            <WheelColumn
+                                                items={TIME_SLOTS.filter(t => t > startTime && (cap === null || t <= cap))}
+                                                selected={endTime}
+                                                onSelect={setEndTime}
+                                                disabled={hasServiceDuration}
+                                            />
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         </div>

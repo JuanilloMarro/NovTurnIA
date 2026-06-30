@@ -71,16 +71,29 @@ export default function FollowUp() {
                 description="Recuperá clientes con no-show o cancelaciones y reagendalos desde un solo panel. Disponible en Pro y Enterprise."
                 requiredPlan="Pro"
             >
-                {/* Replica el módulo real: lista + drawer de detalle abierto */}
-                <div className={`h-full flex flex-col w-full pt-2 sm:pr-[380px] px-2 sm:px-0`}>
+                {/* Replica el módulo real: lista + drawer de detalle abierto.
+                    Contenedor relative compartido para que el drawer se alinee al
+                    borde derecho sin encimar las fichas de la lista. */}
+                <div className="relative h-full w-full pt-2">
+                <div className="h-full flex flex-col sm:pr-[396px] px-2 sm:px-0">
                     <div className="flex items-center justify-between gap-3 mb-4 px-2">
                         <div>
                             <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Seguimiento</h1>
-                            <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Vista previa del plan Pro</p>
+                            <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Recuperación de pacientes y re-agendamiento</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="h-10 w-28 bg-white/60 backdrop-blur-card border border-white/90 rounded-full shadow-sm" />
-                            <div className="h-10 w-24 bg-white/60 backdrop-blur-card border border-white/90 rounded-full shadow-sm" />
+                            <div className="relative overflow-hidden h-10 flex items-center gap-2 px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md">
+                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                <RefreshCw size={14} className="shrink-0 relative z-10" />
+                                <span className="relative z-10">Actualizar</span>
+                            </div>
+                            <div className="relative overflow-hidden h-10 flex items-center gap-2 px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md">
+                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                <SlidersHorizontal size={14} className="shrink-0 relative z-10" />
+                                <span className="relative z-10">Filtros</span>
+                            </div>
                         </div>
                     </div>
                     {/* Lista de clientes */}
@@ -90,7 +103,7 @@ export default function FollowUp() {
                             const iconBg = isCancelled ? 'bg-rose-500/10 text-rose-700 border-rose-500/20' : 'bg-gray-100 text-gray-500 border-gray-200';
                             const Icon = isCancelled ? XIcon : UserX;
                             return (
-                                <div key={row.id} className="bg-white/40 backdrop-blur-sm border border-white/60 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-sm">
+                                <div key={row.id} className="relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-md">
                                     <div className="flex items-center gap-3.5">
                                         <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${iconBg}`}>
                                             <Icon size={16} strokeWidth={2.5} />
@@ -113,8 +126,8 @@ export default function FollowUp() {
                         })}
                     </div>
                 </div>
-                {/* Drawer de detalle — como se ve cuando hay un turno seleccionado */}
-                <div className="absolute top-2 right-2 bottom-2 w-[360px] bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] flex-col hidden sm:flex overflow-hidden">
+                {/* Drawer de detalle — alineado al borde derecho, igual que el módulo real */}
+                <div className="hidden sm:flex absolute top-0 right-0 bottom-0 w-[384px] bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] flex-col overflow-hidden">
                     <div className="flex items-center gap-2 p-4">
                         <div className="w-7 h-7 rounded-full bg-white/40 border border-white/50 flex items-center justify-center"><ChevronLeft size={16} className="text-navy-700" /></div>
                         <h3 className="flex-1 font-bold text-navy-900 text-sm text-center">Detalle del turno</h3>
@@ -186,6 +199,7 @@ export default function FollowUp() {
                             ))}
                         </div>
                     </div>
+                </div>
                 </div>
             </FeatureLock>
         );

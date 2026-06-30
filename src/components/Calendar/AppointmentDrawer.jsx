@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow, deleteAppointment, markAsRescheduled, getAppointmentIncome, confirmServiceDelivery } from '../../services/supabaseService';
+import { setHumanTakeover, cancelAppointment, confirmAppointment, scheduledAppointment, markNoShow, deleteAppointment, markAsRescheduled, getAppointmentIncome, submitIncomeValidation } from '../../services/supabaseService';
 import { X, ChevronLeft, Calendar as CalendarIcon, Clock, MessageCircle, Trash2, Bot, Check, Pencil, Circle, Phone, UserX, RotateCcw, Tag, User, Wallet } from 'lucide-react';
 import { formatDuration } from '../../pages/Settings';
 import { useState, useEffect } from 'react';
@@ -370,11 +370,11 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                         </button>
                     )}
 
-                    {/* 6.5 Cobrar — pendiente de cobro (estilo guiado por Pendiente) */}
+                    {/* 6.5 Cobrar — envía el cobro a validación (crea ingreso 'pending') */}
                     {canConfirmDelivery && status !== 'cancelled' && status !== 'no_show' && !deliveredIncome && (
                         <button onClick={() => setShowDeliver(true)}
                             className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-amber-600 text-[11px] font-bold rounded-full shadow-md hover:bg-amber-500 hover:border-amber-500 hover:text-white transition-all duration-300"
-                            title="Confirmar cobro del servicio"
+                            title="Cobrar y enviar a validación de ingreso"
                         >
                             <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                             <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
@@ -382,11 +382,23 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap relative z-10">Cobrar</span>
                         </button>
                     )}
-                    {/* Cobrado — servicio cobrado (estilo guiado por Confirmar) */}
-                    {deliveredIncome && (
+                    {/* En validación — cobro enviado, esperando confirmación en "Por confirmar" */}
+                    {deliveredIncome?.status === 'pending' && (
                         <div
-                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-emerald-600 text-[11px] font-bold rounded-full shadow-md hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-300 cursor-default"
-                            title="Servicio cobrado"
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-amber-600 text-[11px] font-bold rounded-full shadow-md cursor-default"
+                            title="Cobro enviado a validación — pendiente de confirmar el ingreso"
+                        >
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <Clock size={14} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap relative z-10">En validación</span>
+                        </div>
+                    )}
+                    {/* Cobrado — ingreso validado/confirmado (estilo guiado por Confirmar) */}
+                    {deliveredIncome?.status === 'confirmed' && (
+                        <div
+                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-emerald-600 text-[11px] font-bold rounded-full shadow-md cursor-default"
+                            title="Ingreso validado y registrado"
                         >
                             <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                             <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
@@ -466,9 +478,9 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     defaultAmount={appointment.services?.price}
                     onClose={() => setShowDeliver(false)}
                     onConfirm={async ({ amount, paymentMethod, notes }) => {
-                        const row = await confirmServiceDelivery({ appointmentId: id, amount, paymentMethod, notes });
+                        const row = await submitIncomeValidation({ appointmentId: id, amount, paymentMethod, notes });
                         setDeliveredIncome(row);
-                        showSuccessToast('Servicio cobrado', `Ingreso de Q${Number(amount).toFixed(2)} registrado.`);
+                        showSuccessToast('Cobro enviado a validación', `Q${Number(amount).toFixed(2)} en espera de confirmación.`);
                         onUpdated?.();
                     }}
                 />

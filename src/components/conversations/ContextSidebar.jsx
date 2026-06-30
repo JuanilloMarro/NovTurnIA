@@ -9,6 +9,7 @@ import { useServices } from '../../hooks/useServices';
 import { getPatientAppointments } from '../../services/supabaseService';
 import { formatPhone } from '../../utils/format';
 import FeatureLock from '../FeatureLock';
+import { usePlanLimits } from '../../hooks/usePlanLimits';
 
 // Radio de borde alineado al box principal de Conversaciones
 const PANEL = 'relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md animate-fade-up shrink-0';
@@ -162,7 +163,7 @@ export function PatientInfoPanel({ patient, windowOpen, hoursLeft }) {
                         )}
                     </div>
                     <div className={notesOpen ? 'max-h-[200px] overflow-y-auto custom-scrollbar pr-1' : 'h-[34px] overflow-hidden'}>
-                        <FeatureLock feature="patient_notes" requiredPlan="Pro">
+                        <FeatureLock feature="patient_notes" requiredPlan="Pro" compact>
                             {patient?.notes ? (
                                 <p className={`text-[11px] text-navy-700/80 font-medium leading-relaxed italic break-words ${notesOpen ? '' : 'line-clamp-2'}`}>
                                     "{patient.notes}"
@@ -283,26 +284,30 @@ export function ActiveServicesPanel({ onInsert }) {
             <PanelGlow />
             <div className="relative z-10 flex flex-col">
                 <PanelHeader icon={Layers} title="Servicios activos" count={activeServices.length || null} />
-                {activeServices.length === 0 ? (
-                    <p className="text-[11px] font-semibold text-navy-700/40 text-center px-1 py-5">Sin servicios activos</p>
-                ) : activeServices.length === 1 ? (
-                    <>
-                        <div className="py-1 max-w-[220px] mx-auto w-full h-[118px] flex items-center">{renderCard(activeServices[0], true)}</div>
-                        {actions}
-                    </>
-                ) : (
-                    <>
-                        <WheelRow
-                            items={activeServices}
-                            selected={selectedService}
-                            displayFn={s => renderCard(s, s?.id === selectedService?.id)}
-                            onSelect={s => setSelectedService(s)}
-                            itemWidth={170}
-                            height={118}
-                        />
-                        {actions}
-                    </>
-                )}
+                <FeatureLock feature="custom_prompt" requiredPlan="Pro">
+                    {activeServices.length === 0 ? (
+                        <div className="h-[158px] flex items-center justify-center">
+                            <p className="text-[11px] font-semibold text-navy-700/40 text-center px-1">Sin servicios activos</p>
+                        </div>
+                    ) : activeServices.length === 1 ? (
+                        <>
+                            <div className="py-1 max-w-[220px] mx-auto w-full h-[118px] flex items-center">{renderCard(activeServices[0], true)}</div>
+                            {actions}
+                        </>
+                    ) : (
+                        <>
+                            <WheelRow
+                                items={activeServices}
+                                selected={selectedService}
+                                displayFn={s => renderCard(s, s?.id === selectedService?.id)}
+                                onSelect={s => setSelectedService(s)}
+                                itemWidth={170}
+                                height={118}
+                            />
+                            {actions}
+                        </>
+                    )}
+                </FeatureLock>
             </div>
         </div>
     );
@@ -311,6 +316,8 @@ export function ActiveServicesPanel({ onInsert }) {
 // 3. ActiveOffersPanel (rollo horizontal — inicia en 0, botones Insertar / Ver)
 export function ActiveOffersPanel({ onInsert }) {
     const { offers } = useOffers();
+    const { hasFeature } = usePlanLimits();
+    const offersUnlocked = hasFeature('dynamic_pricing');
     const [selectedOffer, setSelectedOffer] = useState(null);
     const navigate = useNavigate();
     const [sp] = useSearchParams();
@@ -357,30 +364,57 @@ export function ActiveOffersPanel({ onInsert }) {
         </div>
     );
 
+    // Contenido real (plan Enterprise).
+    const realContent = activeOffers.length === 0 ? (
+        <div className="h-[158px] flex items-center justify-center">
+            <p className="text-[11px] font-semibold text-navy-700/40 text-center px-1">Sin ofertas activas</p>
+        </div>
+    ) : activeOffers.length === 1 ? (
+        <>
+            <div className="py-1 max-w-[220px] mx-auto w-full h-[118px] flex items-center">{renderCard(activeOffers[0], true)}</div>
+            {actions}
+        </>
+    ) : (
+        <>
+            <WheelRow
+                items={activeOffers}
+                selected={selectedOffer}
+                displayFn={o => renderCard(o, o?.id === selectedOffer?.id)}
+                onSelect={o => setSelectedOffer(o)}
+                itemWidth={170}
+                height={118}
+            />
+            {actions}
+        </>
+    );
+
+    // Mock visual para planes sin ofertas (Pro/Basic): muestra los componentes del
+    // panel detrás del candado, sin funcionalidad, para animar al upgrade.
+    const mockContent = (
+        <>
+            <div className="py-1 max-w-[220px] mx-auto w-full h-[118px] flex items-center">
+                <MiniCard
+                    title="2x1 Corte de Cabello"
+                    subtitle="Q80.00 · Corte Clásico"
+                    badge="vence 15/5"
+                    badgeClass="text-amber-700 bg-amber-50 border border-amber-200/80"
+                    isSelected
+                    selectedClass="bg-gradient-to-br from-amber-50/10 via-white/90 to-white/80 border border-amber-500/15 shadow-[0_6px_15px_rgba(245,158,11,0.06)]"
+                />
+            </div>
+            {actions}
+        </>
+    );
+
     return (
         <div className={`${PANEL} flex flex-col p-3`}>
             <PanelGlow />
             <div className="relative z-10 flex flex-col">
-                <PanelHeader icon={Tag} title="Ofertas activas" count={activeOffers.length || null} />
-                {activeOffers.length === 0 ? (
-                    <p className="text-[11px] font-semibold text-navy-700/40 text-center px-1 py-5">Sin ofertas activas</p>
-                ) : activeOffers.length === 1 ? (
-                    <>
-                        <div className="py-1 max-w-[220px] mx-auto w-full h-[118px] flex items-center">{renderCard(activeOffers[0], true)}</div>
-                        {actions}
-                    </>
-                ) : (
-                    <>
-                        <WheelRow
-                            items={activeOffers}
-                            selected={selectedOffer}
-                            displayFn={o => renderCard(o, o?.id === selectedOffer?.id)}
-                            onSelect={o => setSelectedOffer(o)}
-                            itemWidth={170}
-                            height={118}
-                        />
-                        {actions}
-                    </>
+                <PanelHeader icon={Tag} title="Ofertas activas" count={offersUnlocked ? (activeOffers.length || null) : 1} />
+                {offersUnlocked ? realContent : (
+                    <FeatureLock feature="dynamic_pricing" requiredPlan="Enterprise">
+                        {mockContent}
+                    </FeatureLock>
                 )}
             </div>
         </div>

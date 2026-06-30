@@ -237,12 +237,13 @@ export async function deleteOffer(id) {
 
 /**
  * Returns occupied time ranges for a given date as { start: 'HH:MM', end: 'HH:MM' }[].
- * Used by NewAppointmentModal to grey-out already-booked slots before the user submits.
+ * Used by NewAppointmentModal/EditAppointmentModal to filter already-booked slots.
  */
 export async function getOccupiedSlotsForDate(date) {
-    const [dayStart, dayEnd] = await Promise.all([
+    const [dayStart, dayEnd, timezone] = await Promise.all([
         toISO(date, '00:00'),
         toISO(date, '23:59'),
+        getBusinessTimezone(),
     ]);
 
     const { data, error } = await supabase
@@ -255,10 +256,17 @@ export async function getOccupiedSlotsForDate(date) {
 
     if (error) throw error;
 
-    // The stored ISO strings carry the local offset, so the T-portion IS the local time.
+    // Supabase returns timestamptz normalized to UTC — convert to local business time.
+    const fmt = new Intl.DateTimeFormat('en-GB', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+
     return (data || []).map(appt => ({
-        start: appt.date_start.match(/T(\d{2}:\d{2})/)?.[1] || '',
-        end: appt.date_end.match(/T(\d{2}:\d{2})/)?.[1] || '',
+        start: fmt.format(new Date(appt.date_start)),
+        end: fmt.format(new Date(appt.date_end)),
     }));
 }
 
@@ -474,6 +482,17 @@ export async function getPatients(search = '', { page = 0, pageSize = 50 } = {})
     const { data, error, count } = await query;
     if (error) throw error;
     return { data: data || [], count: count || 0, hasMore: to < (count || 0) - 1 };
+}
+
+// Búsqueda typeahead de pacientes (alta de turnos). RPC con ranking por relevancia
+// (prefijo > inicio de palabra > subcadena > teléfono > similitud), insensible a
+// tildes y tolerante a typos. Devuelve [{ id, display_name, phone }].
+export async function searchPatients(q, limit = 10) {
+    const term = (q || '').trim();
+    if (!term) return [];
+    const { data, error } = await supabase.rpc('search_patients', { p_q: term, p_limit: limit });
+    if (error) throw error;
+    return data || [];
 }
 
 export async function getPatientById(patientId) {
@@ -1504,14 +1523,22 @@ export async function updateIncome(id, fields) {
     return data;
 }
 
-// Confirma que un turno se dio correctamente → crea el ingreso snapshot (atómico/idempotente)
-export async function confirmServiceDelivery({ appointmentId, amount, paymentMethod = null, notes = null }) {
-    const { data, error } = await supabase.rpc('confirm_service_delivery', {
+// Paso 1 — enviar el cobro de un turno a validación (crea ingreso 'pending',
+// aún NO cuenta como ingreso). Aparece en la lista "Por confirmar".
+export async function submitIncomeValidation({ appointmentId, amount, paymentMethod = null, notes = null }) {
+    const { data, error } = await supabase.rpc('submit_income_validation', {
         p_appointment_id: appointmentId,
         p_amount: amount,
         p_payment_method: paymentMethod,
         p_notes: notes,
     });
+    if (error) throw error;
+    return data;
+}
+
+// Paso 2 — confirmar la validación (pending -> confirmed). El dinero entró, ya cuenta.
+export async function confirmIncomeValidation(id) {
+    const { data, error } = await supabase.rpc('confirm_income_validation', { p_id: id });
     if (error) throw error;
     return data;
 }
@@ -1522,7 +1549,8 @@ export async function voidIncome(id, reason = null) {
     return data;
 }
 
-// Ingreso confirmado asociado a un turno (null si aún no se confirmó la entrega)
+// Ingreso de un turno (pending o confirmed). Devuelve { status } para que el
+// detalle del turno muestre "En validación" vs "Cobrado". null si no hay cobro.
 export async function getAppointmentIncome(appointmentId) {
     const { data, error } = await supabase
         .from('income_entries')
@@ -1530,15 +1558,16 @@ export async function getAppointmentIncome(appointmentId) {
         .eq('appointment_id', appointmentId)
         .eq('business_id', getBID())
         .eq('source', 'appointment')
-        .eq('status', 'confirmed')
+        .in('status', ['pending', 'confirmed'])
         .maybeSingle();
     if (error) throw error;
     return data;
 }
 
-// Turnos entregables sin ingreso confirmado (lista "Por confirmar")
-export async function getUnconfirmedDeliveries() {
-    const { data, error } = await supabase.rpc('get_unconfirmed_deliveries');
+// Cola de validación de ingresos (lista "Por confirmar") — ingresos 'pending'
+// con su detalle: cliente, turno, servicio, costo y monto cobrado.
+export async function getPendingValidations() {
+    const { data, error } = await supabase.rpc('get_pending_validations');
     if (error) throw error;
     return data || [];
 }

@@ -305,10 +305,27 @@ export default function AuditLog() {
                 requiredPlan="Pro"
             >
                 <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-0">
-                    <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                         <div>
                             <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
-                            <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Vista previa del plan Pro</p>
+                            <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Historial de acciones del staff y el sistema</p>
+                        </div>
+                        <div className="flex items-center gap-2 w-full lg:w-auto">
+                            <div className="relative flex-1 lg:w-56 h-10">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-navy-700/50 z-10"><Search size={14} strokeWidth={2.5} /></div>
+                                <div className="w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full flex items-center pl-9 text-[11px] font-bold text-navy-900/40">Buscar acción...</div>
+                            </div>
+                            <div className="relative overflow-hidden h-10 w-10 flex items-center justify-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md text-navy-900 shrink-0">
+                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                <RefreshCw size={14} className="relative z-10" />
+                            </div>
+                            <div className="relative overflow-hidden h-10 flex items-center gap-2 px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md shrink-0">
+                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                <SlidersHorizontal size={14} className="shrink-0 relative z-10" />
+                                <span className="relative z-10">Filtros</span>
+                            </div>
                         </div>
                     </div>
                     <div className="flex-1 space-y-2 pb-4">
@@ -326,7 +343,7 @@ export default function AuditLog() {
                             { who:'Sistema',     summary:'Actualizó el teléfono de Roberto Díaz',     mod:'Teléfonos',     date:'27 Abr • 08:45', style:'bg-amber-500/10 text-amber-700 border-amber-500/20',        icon:'edit'   },
                             { who:'Admin',       summary:'Creó el usuario Recepcionista 2',           mod:'Personal',      date:'26 Abr • 16:20', style:'bg-emerald-500/10 text-emerald-700 border-emerald-500/20', icon:'insert' },
                         ].map((r, i) => (
-                            <div key={i} className="bg-white/40 backdrop-blur-sm border border-white/60 rounded-2xl px-5 py-4 shadow-sm">
+                            <div key={i} className="relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl px-5 py-4 shadow-md">
                                 <div className="flex items-center gap-3.5">
                                     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${r.style}`}>
                                         {r.icon === 'insert' ? <Plus size={16} strokeWidth={2.5} /> : r.icon === 'delete' ? <Trash2 size={16} strokeWidth={2.5} /> : <Edit2 size={16} strokeWidth={2.5} />}
@@ -403,7 +420,7 @@ export default function AuditLog() {
                     >
                         <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                         <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                        {hasFeature('export_reports') ? <Download size={14} className="shrink-0 relative z-10" /> : <Lock size={13} className="shrink-0 text-navy-900 relative z-10" />}
+                        {hasFeature('export_reports') ? <Download size={14} className="shrink-0 relative z-10" /> : <Lock size={13} className="shrink-0 text-navy-700 relative z-10" />}
                         <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap relative z-10">Exportar</span>
                     </button>
 

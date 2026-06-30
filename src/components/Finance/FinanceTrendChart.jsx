@@ -63,17 +63,18 @@ function subtitle(period, year, month) {
 }
 const money = (n) => `Q${Number(n || 0).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export default function FinanceTrendChart({ period = 'month', year, month, day = null }) {
+export default function FinanceTrendChart({ period = 'month', year, month, day = null, previewData = null }) {
     const now = new Date();
     const y = year ?? now.getFullYear();
     const m = month ?? now.getMonth();
 
     const [rows, setRows] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!previewData);
 
     const slots = useMemo(() => buildSlots(period, y, m, day), [period, y, m, day]);
 
     useEffect(() => {
+        if (previewData) return; // modo vista previa (FeatureLock): sin llamada a DB
         let cancelled = false;
         (async () => {
             setLoading(true);
@@ -88,9 +89,10 @@ export default function FinanceTrendChart({ period = 'month', year, month, day =
             }
         })();
         return () => { cancelled = true; };
-    }, [period, y, m, day]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [period, y, m, day, previewData]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const data = useMemo(() => {
+        if (previewData) return previewData;
         const map = Object.fromEntries(slots.map(s => [s.key, { ...s }]));
         rows.forEach(r => {
             if (map[r.period]) {
@@ -99,7 +101,7 @@ export default function FinanceTrendChart({ period = 'month', year, month, day =
             }
         });
         return Object.values(map);
-    }, [rows, slots]);
+    }, [rows, slots, previewData]);
 
     return (
         <div className="h-full flex flex-col">

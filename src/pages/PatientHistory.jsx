@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { usePatients } from '../hooks/usePatients';
 import { getPatientHistory } from '../services/supabaseService';
 import FeatureLock from '../components/FeatureLock';
@@ -73,9 +74,10 @@ export default function PatientHistory() {
     }
 
     const content = (
-        <div className="h-full flex gap-6 mt-[-1rem]">
-            {/* Panel izquierdo */}
-            <div className="w-[30%] min-w-[300px] flex flex-col bg-white/80 backdrop-blur-card border border-white/90 rounded-2xl shadow-card overflow-hidden">
+        <div className="h-full flex gap-0 lg:gap-6 mt-[-1rem]">
+            {/* Panel izquierdo — lista de clientes (oculta en móvil/tablet; el cliente
+                ya viene en la URL, así la conversación ocupa todo el ancho) */}
+            <div className="hidden lg:flex w-[30%] min-w-[300px] flex-col bg-white/80 backdrop-blur-card border border-white/90 rounded-2xl shadow-card overflow-hidden">
                 <div className="p-4 border-b border-gray-100">
                     <input
                         className="w-full bg-white/65 border border-navy-100/50 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 placeholder-gray-400 outline-none focus:bg-white focus:border-navy-500 focus:ring-2 focus:ring-navy-100 transition-all duration-200"
@@ -110,8 +112,15 @@ export default function PatientHistory() {
             <div className="flex-1 flex flex-col bg-white/80 backdrop-blur-card border border-white/90 rounded-2xl shadow-card overflow-hidden relative">
                 {selectedPatient ? (
                     <>
-                        <div className="px-6 py-4 border-b border-gray-100 bg-white/90 backdrop-blur-md flex items-center gap-4 z-10 shadow-sm">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-navy-700 to-navy-500 flex items-center justify-center text-white font-bold">
+                        <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-white/90 backdrop-blur-md flex items-center gap-3 sm:gap-4 z-10 shadow-sm">
+                            <button
+                                onClick={() => navigate('/patients')}
+                                className="lg:hidden w-9 h-9 shrink-0 flex items-center justify-center rounded-full bg-white border border-gray-200 text-navy-700 hover:bg-gray-50 shadow-sm transition-colors"
+                                aria-label="Volver a clientes"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-navy-700 to-navy-500 flex items-center justify-center text-white font-bold shrink-0">
                                 {getInitials(selectedPatient.display_name)}
                             </div>
                             <div>
@@ -178,7 +187,13 @@ export default function PatientHistory() {
                     <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 text-center space-y-4">
                         <div className="text-6xl opacity-30">💬</div>
                         <h3 className="font-semibold text-xl text-navy-900/50">Historial Conversacional</h3>
-                        <p className="max-w-xs">Selecciona un cliente a la izquierda para ver su interacción completa con TurnIA Bot.</p>
+                        <p className="max-w-xs">Selecciona un cliente para ver su interacción completa con TurnIA Bot.</p>
+                        <button
+                            onClick={() => navigate('/patients')}
+                            className="lg:hidden mt-2 px-4 py-2 rounded-full bg-navy-900 text-white text-xs font-bold shadow-sm hover:bg-navy-700 transition-colors"
+                        >
+                            Ver clientes
+                        </button>
                     </div>
                 )}
             </div>
