@@ -6,6 +6,7 @@ import { downloadCSV } from '../utils/export';
 import { withTimeout } from '../utils/withTimeout';
 import FeatureLock from '../components/FeatureLock';
 import { usePlanLimits } from '../hooks/usePlanLimits';
+import { usePermissions } from '../hooks/usePermissions';
 
 // ── Módulos ──
 const MODULES = {
@@ -158,6 +159,7 @@ function getLogSummary(log, oldP, newP, ctxPaciente) {
 
 export default function AuditLog() {
     const { hasFeature, isLoading: planLoading } = usePlanLimits();
+    const { canExportReports } = usePermissions();
 
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -411,7 +413,8 @@ export default function AuditLog() {
                         <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">Actualizar</span>
                     </button>
 
-                    {/* Export CSV — sólo Enterprise */}
+                    {/* Export CSV — requiere permiso de rol (checkbox) + plan Enterprise */}
+                    {canExportReports && (
                     <button
                         onClick={hasFeature('export_reports') ? handleExport : undefined}
                         disabled={exporting || filtered.length === 0 || !hasFeature('export_reports')}
@@ -423,6 +426,7 @@ export default function AuditLog() {
                         {hasFeature('export_reports') ? <Download size={14} className="shrink-0 relative z-10" /> : <Lock size={13} className="shrink-0 text-navy-700 relative z-10" />}
                         <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap relative z-10">Exportar</span>
                     </button>
+                    )}
 
                     {/* Filter funnel button */}
                     <div className="relative">

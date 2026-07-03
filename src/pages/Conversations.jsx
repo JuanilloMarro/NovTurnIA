@@ -47,7 +47,7 @@ export default function Conversations() {
     const [sortOrder, setSortOrder] = useState('recent');
     const [showFilter, setShowFilter] = useState(false);
     const filterRef = useRef(null);
-    const { canToggleAi, canDeletePatients } = usePermissions();
+    const { canToggleAi, canDeletePatients, canReplyConversations, canClearConversations, canDeleteConversations } = usePermissions();
     const { maxConversations, patientsUsed } = usePlanLimits();
     const humanTakeoverMap = useAppStore(s => s.humanTakeoverMap);
 
@@ -248,8 +248,8 @@ export default function Conversations() {
 
     async function handleSend() {
         const text = draft.trim();
-        // canToggleAi y windowOpen son la defensa real; el composer ya está oculto/deshabilitado
-        if (!text || sending || !selectedPatient || !canToggleAi || !windowOpen) return;
+        // canReplyConversations y windowOpen son la defensa real; el composer ya está oculto/deshabilitado
+        if (!text || sending || !selectedPatient || !canReplyConversations || !windowOpen) return;
 
         setSending(true);
         const tempId = `temp-${Date.now()}`;
@@ -562,7 +562,7 @@ export default function Conversations() {
                                             <span className="max-w-0 overflow-hidden group-hover/op:max-w-[80px] transition-all duration-300 whitespace-nowrap text-[11px] font-bold relative z-10">Paneles</span>
                                         </button>
                                         {/* Menú de opciones del chat (vaciar / eliminar) */}
-                                        {canDeletePatients && (
+                                        {(canClearConversations || canDeleteConversations) && (
                                             <div className="relative" ref={chatMenuRef}>
                                                 <button
                                                     onClick={() => setChatMenuOpen(v => !v)}
@@ -579,12 +579,22 @@ export default function Conversations() {
                                                         <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
                                                         <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
                                                         <div className="relative z-10">
-                                                            <button
-                                                                onClick={() => { setChatMenuOpen(false); setShowDeleteChatConfirm(true); }}
-                                                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left"
-                                                            >
-                                                                <Trash2 size={14} strokeWidth={2.5} className="shrink-0" /> Eliminar chat
-                                                            </button>
+                                                            {canClearConversations && (
+                                                                <button
+                                                                    onClick={() => { setChatMenuOpen(false); setShowClearConfirm(true); }}
+                                                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-bold text-navy-700 hover:bg-navy-50 transition-colors text-left"
+                                                                >
+                                                                    <Eraser size={14} strokeWidth={2.5} className="shrink-0" /> Vaciar chat
+                                                                </button>
+                                                            )}
+                                                            {canDeleteConversations && (
+                                                                <button
+                                                                    onClick={() => { setChatMenuOpen(false); setShowDeleteChatConfirm(true); }}
+                                                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left"
+                                                                >
+                                                                    <Trash2 size={14} strokeWidth={2.5} className="shrink-0" /> Eliminar chat
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -660,11 +670,12 @@ export default function Conversations() {
                                     )}
                                 </div>
 
-                                {/* Composer — responder como humano (solo con permiso toggle_ai) */}
-                                {canToggleAi && (
+                                {/* Composer — pausar IA (toggle_ai) y/o responder (reply_conversations) */}
+                                {(canToggleAi || canReplyConversations) && (
                                     <div className="px-4 md:px-6 pb-4 pt-2 shrink-0">
                                         <div className="flex items-end gap-2">
-                                            {/* Control de IA — junto al input, a su izquierda */}
+                                            {/* Control de IA — solo con permiso de pausar IA */}
+                                            {canToggleAi && (
                                             <button
                                                 onClick={handleToggleAI}
                                                 title={selectedPatientEffective?.human_takeover ? 'La IA está pausada — reactivar' : 'Pausar la IA'}
@@ -682,6 +693,8 @@ export default function Conversations() {
                                                     {selectedPatientEffective?.human_takeover ? 'Reactivar IA' : 'Pausar IA'}
                                                 </span>
                                             </button>
+                                            )}
+                                            {canReplyConversations && (<>
                                             <textarea
                                                 ref={textareaRef}
                                                 value={draft}
@@ -708,6 +721,7 @@ export default function Conversations() {
                                                 <Send size={16} strokeWidth={2.5} className="shrink-0 relative z-10" />
                                                 <span className="max-w-0 overflow-hidden group-hover/send:max-w-[60px] transition-all duration-300 whitespace-nowrap text-[11px] font-bold relative z-10">Enviar</span>
                                             </button>
+                                            </>)}
                                         </div>
                                         {windowOpen && selectedPatientEffective && !selectedPatientEffective.human_takeover && (
                                             <p className="text-[10px] font-semibold text-navy-700/40 text-center mt-1.5">

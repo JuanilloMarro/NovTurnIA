@@ -19,7 +19,9 @@
       "Bash(git --no-pager diff .claude/settings.local.json)",
       "Bash(git --no-pager diff dist/index.html)",
       "Bash(git checkout *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "mcp__f3c71feb-d9d2-49b4-80ae-986f994028b6__get_advisors",
+      "mcp__f3c71feb-d9d2-49b4-80ae-986f994028b6__execute_sql"
     ]
   },
   "enableAllProjectMcpServers": true,

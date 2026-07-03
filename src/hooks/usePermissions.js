@@ -26,7 +26,8 @@ export function usePermissions() {
         canConfirmAppointments:   !!perms.confirm_appointments,   // botón Confirmar en drawer
         canSetPending:            !!perms.set_pending_appointments,// botón Pendiente en drawer
         canMarkNoShow:            !!perms.mark_noshow_appointments,// botón No se presentó
-        canDeleteAppointments:    !!perms.delete_appointments,    // botón Eliminar en drawer
+        canDeleteAppointments:    !!perms.delete_appointments,    // botón Eliminar (cancelar) en drawer
+        canPurgeAppointments:     !!perms.purge_appointments,     // botón Borrar registro permanente (no-show/cancelado)
 
         // ── Seguimiento ──────────────────────────────────────
         canViewFollowUp: !!perms.view_followup,                   // tab Seguimiento
@@ -39,8 +40,11 @@ export function usePermissions() {
         canExportPatients: !!perms.export_patients,               // botón Exportar CSV
 
         // ── Conversaciones e IA ──────────────────────────────
-        canViewConversations: !!perms.view_conversations,         // módulo + botón Chat en drawer
-        canToggleAi:          !!perms.toggle_ai,                  // botones Pausar / Reactivar IA
+        canViewConversations:  !!perms.view_conversations,        // módulo + botón Chat en drawer
+        canToggleAi:           !!perms.toggle_ai,                 // botones Pausar / Reactivar IA
+        canReplyConversations: !!perms.reply_conversations,       // composer / enviar respuesta humana
+        canClearConversations: !!perms.clear_conversations,       // vaciar chat (menú 3 puntos)
+        canDeleteConversations:!!perms.delete_conversations,      // eliminar chat (menú 3 puntos)
 
         // ── Estadísticas ─────────────────────────────────────
         canViewStats: !!perms.view_stats,                         // acceso al módulo
@@ -49,8 +53,15 @@ export function usePermissions() {
         canCreateServices: !!perms.create_services,               // botón Crear servicio
         canEditServices:   !!perms.edit_services,                 // botón Guardar cambios
         canToggleServices: !!perms.toggle_services,               // botones Activar / Desactivar
+        canDeleteServices: !!perms.delete_services,               // botón Eliminar servicio
         // Acceso al módulo si tiene cualquier permiso de servicios
-        canManageServices: !!(perms.create_services || perms.edit_services || perms.toggle_services),
+        canManageServices: !!(perms.create_services || perms.edit_services || perms.toggle_services || perms.delete_services),
+
+        // ── Ofertas ──────────────────────────────────────────
+        canCreateOffers: !!perms.create_offers,                   // botón Nueva oferta
+        canEditOffers:   !!perms.edit_offers,                     // botón Guardar oferta
+        canToggleOffers: !!perms.toggle_offers,                   // botón Activar / Desactivar oferta
+        canDeleteOffers: !!perms.delete_offers,                   // botón Eliminar oferta
 
         // ── Finanzas ─────────────────────────────────────────
         canViewFinance:      !!perms.view_finance,                // acceso al módulo
@@ -61,7 +72,8 @@ export function usePermissions() {
         canVoidFinance:      !!perms.void_finance,                // anular ingresos/egresos
 
         // ── Administración ───────────────────────────────────
-        canManageRoles: !!perms.manage_roles,                     // módulo Usuarios, Actividad, Configuración
-        canDeleteUsers: !!perms.delete_users,                     // botón Eliminar usuario
+        canManageRoles:   !!perms.manage_roles,                   // módulo Usuarios, Actividad, Configuración
+        canDeleteUsers:   !!perms.delete_users,                   // botón Eliminar usuario
+        canExportReports: !!perms.export_reports,                 // botón Exportar en Actividad
     };
 }

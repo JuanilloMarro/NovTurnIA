@@ -264,7 +264,7 @@ export function ActiveServicesPanel({ onInsert }) {
             badge={`${s.duration_minutes} min`}
             badgeClass="text-navy-700/70 bg-white/60 border border-white/80"
             isSelected={isSelected}
-            selectedClass="bg-gradient-to-br from-blue-50/10 via-white/90 to-white/80 border border-blue-500/15 shadow-[0_6px_15px_rgba(29,95,173,0.06)]"
+            selectedClass="bg-gradient-to-br from-navy-50/10 via-white/90 to-white/80 border border-navy-500/15 shadow-[0_6px_15px_rgba(29,95,173,0.06)]"
         />
     ) : '—';
 
@@ -286,12 +286,12 @@ export function ActiveServicesPanel({ onInsert }) {
                 <PanelHeader icon={Layers} title="Servicios activos" count={activeServices.length || null} />
                 <FeatureLock feature="custom_prompt" requiredPlan="Pro">
                     {activeServices.length === 0 ? (
-                        <div className="h-[158px] flex items-center justify-center">
+                        <div className="h-[156px] flex items-center justify-center">
                             <p className="text-[11px] font-semibold text-navy-700/40 text-center px-1">Sin servicios activos</p>
                         </div>
                     ) : activeServices.length === 1 ? (
                         <>
-                            <div className="py-1 max-w-[220px] mx-auto w-full h-[118px] flex items-center">{renderCard(activeServices[0], true)}</div>
+                            <div className="py-1 max-w-[220px] mx-auto w-full h-[116px] flex items-center">{renderCard(activeServices[0], true)}</div>
                             {actions}
                         </>
                     ) : (
@@ -302,7 +302,7 @@ export function ActiveServicesPanel({ onInsert }) {
                                 displayFn={s => renderCard(s, s?.id === selectedService?.id)}
                                 onSelect={s => setSelectedService(s)}
                                 itemWidth={170}
-                                height={118}
+                                height={116}
                             />
                             {actions}
                         </>
@@ -366,12 +366,12 @@ export function ActiveOffersPanel({ onInsert }) {
 
     // Contenido real (plan Enterprise).
     const realContent = activeOffers.length === 0 ? (
-        <div className="h-[158px] flex items-center justify-center">
+        <div className="h-[156px] flex items-center justify-center">
             <p className="text-[11px] font-semibold text-navy-700/40 text-center px-1">Sin ofertas activas</p>
         </div>
     ) : activeOffers.length === 1 ? (
         <>
-            <div className="py-1 max-w-[220px] mx-auto w-full h-[118px] flex items-center">{renderCard(activeOffers[0], true)}</div>
+            <div className="py-1 max-w-[220px] mx-auto w-full h-[116px] flex items-center">{renderCard(activeOffers[0], true)}</div>
             {actions}
         </>
     ) : (
@@ -382,7 +382,7 @@ export function ActiveOffersPanel({ onInsert }) {
                 displayFn={o => renderCard(o, o?.id === selectedOffer?.id)}
                 onSelect={o => setSelectedOffer(o)}
                 itemWidth={170}
-                height={118}
+                height={116}
             />
             {actions}
         </>
@@ -392,7 +392,7 @@ export function ActiveOffersPanel({ onInsert }) {
     // panel detrás del candado, sin funcionalidad, para animar al upgrade.
     const mockContent = (
         <>
-            <div className="py-1 max-w-[220px] mx-auto w-full h-[118px] flex items-center">
+            <div className="py-1 max-w-[220px] mx-auto w-full h-[116px] flex items-center">
                 <MiniCard
                     title="2x1 Corte de Cabello"
                     subtitle="Q80.00 · Corte Clásico"

@@ -1,7 +1,8 @@
 # NovTurnAI — Evaluación de Estado
 
-> Versión: 1.3 · Fecha: 2026-05-04
+> Versión: 1.4 · Fecha: 2026-06-30
 > Escala 0–10 · 🔴 Bloqueante · 🟠 Importante · 🟡 Deseable · ✅ Resuelto
+> **v1.4:** auditoría de los módulos nuevos (Finanzas, búsqueda de pacientes, RBAC granular). Ver [§1.10 Auditoría de módulos nuevos](#110-auditoría-de-módulos-nuevos-2026-06-30).
 
 ---
 
@@ -9,8 +10,8 @@
 
 | Área                        | Puntaje  | Tendencia |
 |-----------------------------|----------|-----------|
-| Base de datos (Supabase)    | 9.8/10   | ↑ RLS core tables hardened (018), RPCs con scope correcto (017) |
-| Dashboard React + Vite      | 9.1/10   | ↑ 12 bugs corregidos (críticos, altos y medios); pendientes solo de calidad/DX |
+| Base de datos (Supabase)    | 9.8/10   | = Módulo Finanzas auditado (RLS business-scoped OK, DELETE bloqueado en ledgers); RPCs nuevos hardened (anon revocado) |
+| Dashboard React + Vite      | 9.2/10   | ↑ RBAC granular (31 flags), flujo validación de ingresos en 2 pasos, búsqueda de pacientes con ranking |
 | Bot / N8N Workflow          | 9.5/10   | Estable   |
 | Infraestructura / Despliegue| 8.0/10   | Estable   |
 | Producto / SaaS             | 8.7/10   | Estable   |
@@ -32,7 +33,7 @@
 |--------------------------------|---------|-------|
 | 1.1 Estructura y normalización | 9.5     | UUID multi-tabla, particiones mensuales |
 | 1.2 Seguridad RLS              | 9.8     | ↑ `USING(true)` eliminado en appointments/patients/services/staff_users — ahora `business_id = get_user_business_id()` |
-| 1.3 SECURITY DEFINER hygiene   | 9.0     | 10 RPCs admin/triggers sin acceso desde cliente |
+| 1.3 SECURITY DEFINER hygiene   | 9.0     | RPCs admin/triggers sin acceso desde cliente; RPCs nuevos de Finanzas/búsqueda con `anon` revocado (F-01). Pendiente F-03: 12 funciones viejas sin `search_path` |
 | 1.4 Rendimiento e índices      | 9.8     | Índice `notifications.appointment_id` creado |
 | 1.5 Integridad y triggers      | 9.5     | EXCLUDE constraint anti-doble-booking, audit + notify + validate |
 | 1.6 Automatización (pg_cron)   | 9.5     | Jobs duplicados y stale eliminados |
@@ -42,17 +43,22 @@
 
 ---
 
-### 1.1 Tablas (`public`) — 12 lógicas + 16 particiones
+### 1.1 Tablas (`public`) — 17 lógicas + 16 particiones
 
 | Tabla              | RLS | Filas | Función |
 |--------------------|-----|-------|---------|
 | `businesses`       | ✅  | 4     | Tenant raíz (UUID PK) |
 | `plans`            | ✅  | 4     | Tiers free/starter/pro/enterprise |
-| `staff_roles`      | ✅  | 8     | Permisos granulares (21 flags) por rol |
+| `staff_roles`      | ✅  | 8     | Permisos granulares (31 flags) por rol — +10 acciones granulares (Ofertas, vaciar/eliminar chat, responder, borrar turno, etc.) |
 | `staff_users`      | ✅  | 7     | Usuarios del dashboard |
 | `patients`         | ✅  | 29    | Pacientes (soft delete vía `deleted_at`) |
 | `patient_phones`   | ✅  | 24    | Teléfonos N:1 paciente |
 | `services`         | ✅  | 20    | Catálogo servicios + duración |
+| `offers`           | ✅  | —     | Ofertas/promos 1:1 con servicios (dynamic_pricing) |
+| `supplies`         | ✅  | —     | 🆕 Catálogo de insumos (costo unitario) — Finanzas |
+| `service_supplies` | ✅  | —     | 🆕 Receta/BOM: insumos por servicio — Finanzas |
+| `income_entries`   | ✅  | —     | 🆕 Libro de ingresos (snapshot inmutable, DELETE bloqueado) — Finanzas |
+| `expense_entries`  | ✅  | —     | 🆕 Libro de egresos (snapshot inmutable, DELETE bloqueado) — Finanzas |
 | `appointments`     | ✅  | 29    | Turnos (EXCLUDE constraint anti-doble-booking) |
 | `notifications`    | ✅  | 27    | Bell del dashboard |
 | `message_buffer`   | ✅  | 0     | Cola N8N entre mensajes WhatsApp |
@@ -72,6 +78,11 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 | `patients`         | ✅ | ✅ | ✅ | ✅ | DELETE solo para GDPR Art. 17 |
 | `patient_phones`   | ✅ | ✅ | ✅ | — | |
 | `services`         | ✅ | ✅ | ✅ | ✅ | |
+| `offers`           | ✅ | ✅ | ✅ | ✅ | Vista `services_with_active_offer` con `WHERE business_id = get_user_business_id()` |
+| `supplies`         | ✅ | ✅ | ✅ | ✅ | 🆕 Catálogo — DELETE permitido |
+| `service_supplies` | ✅ | ✅ | ✅ | ✅ | 🆕 BOM — DELETE permitido |
+| `income_entries`   | ✅ | ✅ | ✅ | — | 🆕 DELETE bloqueado (soft-void `status`); `WITH CHECK = get_user_business_id()` |
+| `expense_entries`  | ✅ | ✅ | ✅ | — | 🆕 DELETE bloqueado (soft-void `status`) |
 | `staff_users`      | ✅ | ✅ | ✅ | — | DELETE vía Edge Function |
 | `staff_roles`      | ✅ | — | ✅ | — | INSERT/DELETE bloqueados (catálogo fijo) |
 | `notifications`    | ✅ | ✅ | ✅ | ✅ | |
@@ -111,6 +122,17 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 | `reactivate_bot(patient_id)` | Quita `human_takeover` |
 | `suspend_tenant(biz, status, reason)` | Ciclo de vida del cliente |
 | `check_rate_limit(key, window)` | Sliding-window de N8N/staff |
+
+#### 🆕 Finanzas y búsqueda (`SECURITY DEFINER`, scope `get_user_business_id()`, `anon` revocado, `search_path` fijo)
+| Función | Propósito |
+|---------|-----------|
+| `submit_income_validation(appt, amount, method, notes)` | Cobra un turno → ingreso `pending` (atómico, `FOR UPDATE`, snapshot nombre+costo) |
+| `confirm_income_validation(id)` | Valida el ingreso `pending → confirmed` (recién ahí cuenta en KPIs) |
+| `void_income_entry(id, reason)` / `void_expense_entry(id, reason)` | Soft-void (anula `pending` o `confirmed`) |
+| `get_pending_validations()` | Cola "Por confirmar" con joins cliente/turno/servicio |
+| `get_finance_summary(start, end, gran)` / `get_finance_trend(...)` | KPIs + serie temporal (solo cuentan `status='confirmed'`) |
+| `search_patients(q, limit)` | Typeahead con ranking, `unaccent`, trigram y teléfono |
+| `v_service_cost` (vista) | Σ BOM por servicio — `security_invoker = on` (respeta RLS del caller) |
 
 #### Mantenimiento (solo invocables por `service_role`)
 | Función | Propósito |
@@ -175,11 +197,40 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 
 ---
 
+### 1.10 Auditoría de módulos nuevos (2026-06-30)
+
+> Inspección vía Supabase MCP de lo agregado desde v1.3: **Finanzas** (4 tablas + RPCs + flujo de validación en 2 pasos), **búsqueda de pacientes** (`search_patients`) y **RBAC granular**. Advisors security: 93 hallazgos (42 `authenticated_security_definer` — por diseño; 36 `anon_security_definer`; 12 `search_path_mutable`; 1 view ERROR; 1 HIBP).
+
+#### Verificado ✅
+- ✅ **RLS de las 4 tablas de Finanzas correcta**: SELECT/INSERT(`WITH CHECK`)/UPDATE todas con `business_id = get_user_business_id()`. Sin `USING(true)`, sin leak cross-tenant.
+- ✅ **Ledgers append-only**: `income_entries` / `expense_entries` sin policy DELETE → DELETE denegado por RLS (solo soft-void vía `status`). Idempotencia por índice único parcial `uq_income_appointment_active` (un ingreso pending/confirmed por turno).
+- ✅ **RPCs nuevos**: `SECURITY DEFINER` + `search_path` fijo + scope forzado por `get_user_business_id()`. KPIs cuentan solo `status='confirmed'` → el cobro `pending` no infla ingresos hasta validarse.
+- ✅ **Backfill RBAC**: 10 permisos nuevos sembrados en `staff_roles`; admin (`manage_roles`) conserva todo; los no-admin preservan su comportamiento previo (cada clave hereda del permiso que antes la cubría).
+- ✅ `unaccent` en schema `extensions`; índice GIN trigram `idx_patients_display_trgm`.
+
+#### Hallazgos
+| ID | Sev | Hallazgo | Estado |
+|----|-----|----------|--------|
+| F-01 | 🟠 | 4 RPCs nuevos (`search_patients`, `submit_income_validation`, `confirm_income_validation`, `get_pending_validations`) eran ejecutables por `anon` (vía `PUBLIC`) — inconsistente con el hardening de finanzas | ✅ **Corregido**: `REVOKE … FROM PUBLIC` + `GRANT … TO authenticated, service_role` (ahora `anon_exec=false`) |
+| F-02 | 🟡 | Advisor ERROR `security_definer_view` en `services_with_active_offer` | ℹ️ **No es leak**: la vista filtra `WHERE s.business_id = get_user_business_id()` en su cuerpo. Opcional `ALTER VIEW … SET (security_invoker = on)` para silenciar el advisor |
+| F-03 | 🟡 | 12 funciones viejas (`get_stats_dashboard`, `get_service_analytics`, `get_patient_ltv`, `get_appointment_trend`, triggers de offers/plans…) sin `SET search_path` | Pendiente — **pre-existente**, no de los módulos nuevos. Hardening recomendado |
+| F-04 | ℹ️ | `rls_enabled_no_policy` en `api_rate_limits` | Intencional (deny-all + acceso solo vía `check_rate_limit()`) |
+| F-05 | 🟠 | **Índice trigram duplicado** en `patients`: `idx_patients_display_trgm` (creado para `search_patients`) era idéntico al `idx_patients_name_trgm` preexistente | ✅ **Corregido**: `DROP INDEX idx_patients_display_trgm` (el viejo ya cubre la búsqueda) |
+| F-06 | ℹ️ | FKs sin índice de cobertura en `income_entries`/`expense_entries` (`patient_id`, `service_id`, `supply_id`, `created_by`) | Diferido — tablas casi vacías; los índices `(business_id, occurred_at/status)` y `appointment_id` ya cubren las queries reales. Agregar al crecer el volumen |
+| F-07 | 🟡 | `multiple_permissive_policies` en `message_buffer` (policies duplicadas `buffer_*` + `message_buffer_*`) | Pendiente — **pre-existente**, consolidar policies |
+
+> **Veredicto:** sin bugs funcionales ni leaks de RLS en lo nuevo. Los 2 items accionables introducidos por los cambios recientes (F-01 grants, F-05 índice duplicado) quedaron corregidos. F-02/F-03/F-06/F-07 son pre-existentes o diferidos y no representan exposición de datos ni problema a la escala actual.
+>
+> Advisors performance: 0 índices duplicados restantes tras F-05; el resto son `unused_index` (esperado en tablas nuevas/particiones futuras vacías).
+
+---
+
 ### Pendientes de la BD para deploy
 
 | ID    | Severidad | Acción | Estado |
 |-------|-----------|--------|--------|
 | BD-05 | 🟠 | Activar HIBP leaked-password protection en Auth → Policies (toggle manual en dashboard) | Pendiente |
+| BD-06 | 🟡 | F-03: agregar `SET search_path` a las 12 funciones viejas sin él (hardening) | Pendiente |
 
 **Veredicto BD:** Apta para producción. Solo queda BD-05 — toggle manual en el dashboard de Supabase.
 
@@ -202,11 +253,14 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 ### Hechos clave
 - Separación limpia: Pages → Hooks → Service
 - Lazy loading en todas las rutas
-- 21 permisos granulares por usuario
+- 31 permisos granulares por usuario — **gating funcional**: el checkbox en Usuarios muestra/oculta el botón de acción real (no solo visual)
 - Plan enforcement: gate en UI al alcanzar límite de pacientes/staff
 - `useModalFocus` con focus trap + Escape (WCAG 2.1)
 - Validación teléfono Guatemala (+502, 8 dígitos)
 - Paginación en Conversations y PatientHistory
+- 🆕 Finanzas: flujo de cobro en 2 pasos (turno → `pending` "Por confirmar" → `confirmed`), KPIs solo sobre confirmados
+- 🆕 Búsqueda de pacientes desde el 1er carácter (RPC con ranking/unaccent/trigram/teléfono); reemplaza el viejo `ilike %substring%`
+- 🆕 FeatureLock con blur uniforme (backdrop-filter, sin corte de bordes) en todos los módulos gated
 
 ### Bugs corregidos (2026-05-04)
 - ✅ `KanbanBoard.jsx` — revert optimista usaba prop `appointments` en vez del snapshot pre-update (estado se perdía)
@@ -223,6 +277,13 @@ Particiones creadas hasta `2026m10` + `_default`. Job semanal `ensure_future_par
 - ✅ `NewAppointmentModal.jsx` — `getServices()` ahora tiene flag `cancelled` para evitar setState post-unmount
 - ✅ `Patients.jsx` — si el paciente del URL param no está en la página actual, se hace fetch directo por ID (`getPatientById`)
 - ✅ `supabaseService.js` — nueva función `getPatientById` para fetch directo por UUID
+
+### Bugs corregidos (2026-06-30)
+- ✅ `search_patients` (RPC) — `RETURNS TABLE … text` vs `patients.display_name varchar(100)` → error `structure of query does not match function result type` en **cada** llamada (tragado por el `catch` del modal → "no salía nada"). Fix: `::text` explícito.
+- ✅ `BusinessSettings.jsx` — cambiar el horario no actualizaba el calendario de Turnos: `handleSave` persistía en DB pero no refrescaba el store `businessHours` (Zustand). Fix: `setBusinessHours()` tras guardar (entero→`"HH:MM"`).
+- ✅ `BusinessSettings.jsx` — el correo era obligatorio y **bloqueaba** guardar el horario (dependencia cruzada). Fix: correo opcional (solo valida formato si hay valor).
+- ✅ `FollowUp.jsx` — en el fondo del `FeatureLock`, el drawer de detalle se posicionaba contra un ancestro distinto al de la lista y la encimaba. Fix: contenedor `relative` compartido.
+- ✅ `PatientHistory.jsx` — única página no responsive (dos columnas con `min-w-[300px]` sin stackear). Fix: lista oculta en móvil + conversación full-width + botón volver.
 
 ### Pendientes de calidad
 - 🟠 `cache: 'no-store'` aplicado al cliente Supabase globalmente — anula HTTP cache en Storage y Auth innecesariamente. Mover a wrapper opt-in solo donde se necesite.

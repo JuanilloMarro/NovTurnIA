@@ -205,6 +205,7 @@ export default function Users() {
                                                 { key: 'set_pending_appointments', label: 'Marcar como pendiente' },
                                                 { key: 'mark_noshow_appointments', label: 'No se presentó' },
                                                 { key: 'delete_appointments', label: 'Eliminar turno' },
+                                                { key: 'purge_appointments', label: 'Borrar registro permanente' },
                                             ]
                                         },
                                         {
@@ -228,6 +229,9 @@ export default function Users() {
                                             perms: [
                                                 { key: 'view_conversations', label: 'Ver conversaciones' },
                                                 { key: 'toggle_ai', label: 'Pausar IA' },
+                                                { key: 'reply_conversations', label: 'Responder (enviar mensaje)' },
+                                                { key: 'clear_conversations', label: 'Vaciar chat' },
+                                                { key: 'delete_conversations', label: 'Eliminar chat' },
                                             ]
                                         },
                                         {
@@ -242,6 +246,16 @@ export default function Users() {
                                                 { key: 'create_services', label: 'Crear servicio' },
                                                 { key: 'edit_services', label: 'Editar servicio' },
                                                 { key: 'toggle_services', label: 'Activar / Desactivar servicio' },
+                                                { key: 'delete_services', label: 'Eliminar servicio' },
+                                            ]
+                                        },
+                                        {
+                                            title: 'Ofertas',
+                                            perms: [
+                                                { key: 'create_offers', label: 'Crear oferta' },
+                                                { key: 'edit_offers', label: 'Editar oferta' },
+                                                { key: 'toggle_offers', label: 'Activar / Desactivar oferta' },
+                                                { key: 'delete_offers', label: 'Eliminar oferta' },
                                             ]
                                         },
                                         {
@@ -260,6 +274,7 @@ export default function Users() {
                                             perms: [
                                                 { key: 'manage_roles', label: 'Gestionar usuarios y roles' },
                                                 { key: 'delete_users', label: 'Eliminar usuarios' },
+                                                { key: 'export_reports', label: 'Exportar actividad (CSV)' },
                                             ]
                                         },
                                     ].map(group => (

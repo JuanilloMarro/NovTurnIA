@@ -21,7 +21,7 @@ export function formatDuration(minutes) {
 
 export default function Settings() {
     const { services, loading, create, update, toggle, remove } = useServices();
-    const { canCreateServices, canEditServices, canToggleServices } = usePermissions();
+    const { canCreateServices, canEditServices, canToggleServices, canDeleteServices } = usePermissions();
 
     const [selectedId, setSelectedId] = useState(null); // null | 'new' | number
     // price stored as integer cents internally (e.g. 350 = Q 3.50); null = no price
@@ -475,7 +475,7 @@ export default function Settings() {
                                     </div>
 
                                     {/* Footer actions */}
-                                    {(canCreateServices || canEditServices || canToggleServices) && (
+                                    {(canCreateServices || canEditServices || canToggleServices || canDeleteServices) && (
                                         <div className="px-6 py-4 flex items-center justify-end gap-3 z-20 shrink-0">
                                             {/* 1. Desactivar / Activar — solo edición */}
                                             {canToggleServices && !isNew && selectedService && (
@@ -516,7 +516,7 @@ export default function Settings() {
                                             )}
 
                                             {/* 3. Eliminar — solo edición */}
-                                            {canEditServices && !isNew && selectedService && (
+                                            {canDeleteServices && !isNew && selectedService && (
                                                 <button
                                                     onClick={() => setShowDeleteConfirm(true)}
                                                     disabled={deleting}

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useOffers, getOfferStatus } from '../hooks/useOffers';
 import { useServices } from '../hooks/useServices';
 import { usePlanLimits } from '../hooks/usePlanLimits';
+import { usePermissions } from '../hooks/usePermissions';
 import FeatureLock from '../components/FeatureLock';
 import WheelColumn from '../components/ui/WheelColumn';
 import WheelRow from '../components/ui/WheelRow';
@@ -76,6 +77,7 @@ const EMPTY_FORM = {
 
 export default function Offers() {
     const { hasFeature, isLoading: planLoading } = usePlanLimits();
+    const { canCreateOffers, canEditOffers, canToggleOffers, canDeleteOffers } = usePermissions();
     const { offers, loading, create, update, toggle, remove } = useOffers();
     const { services } = useServices();
 
@@ -397,7 +399,8 @@ export default function Offers() {
                                 />
                             </div>
 
-                            {/* New Button */}
+                            {/* New Button — solo con permiso de crear ofertas */}
+                            {canCreateOffers && (
                             <button
                                 onClick={handleNew}
                                 className="relative overflow-hidden group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
@@ -407,6 +410,7 @@ export default function Offers() {
                                 <Plus size={14} className="shrink-0 relative z-10" />
                                 <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap relative z-10">Nueva</span>
                             </button>
+                            )}
 
                             {/* Filters */}
                             <div className="relative">
@@ -603,7 +607,7 @@ export default function Offers() {
                                                         badge={`${s.duration_minutes} min`}
                                                         badgeClass="text-navy-700/70 bg-white/60 border border-white/80"
                                                         isSelected={s.id === form.service_id}
-                                                        selectedClass="bg-gradient-to-br from-blue-50/10 via-white/90 to-white/80 border border-blue-500/15 shadow-[0_6px_15px_rgba(29,95,173,0.06)]"
+                                                        selectedClass="bg-gradient-to-br from-navy-50/10 via-white/90 to-white/80 border border-navy-500/15 shadow-[0_6px_15px_rgba(29,95,173,0.06)]"
                                                     />
                                                 ) : '—'}
                                                 onSelect={s => setField('service_id', s?.id)}
@@ -753,7 +757,23 @@ export default function Offers() {
                             {/* Footer actions */}
                             <div className="px-6 py-4 flex items-center justify-end gap-3 z-20 shrink-0">
 
+                                {/* 1. Activar / Desactivar — solo edición */}
+                                {canToggleOffers && !isNew && selected && (
+                                    <button
+                                        onClick={handleToggle}
+                                        className={`relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2 bg-white/40 backdrop-blur-2xl border border-white/60 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 ${selected.active ? 'text-rose-500 hover:bg-rose-500 hover:border-rose-500 hover:text-white' : 'text-emerald-600 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white'}`}
+                                    >
+                                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                        {selected.active ? <ToggleLeft size={14} className="shrink-0 relative z-10" /> : <ToggleRight size={14} className="shrink-0 relative z-10" />}
+                                        <span className="max-w-0 overflow-hidden group-hover:max-w-[90px] transition-all duration-300 whitespace-nowrap relative z-10">
+                                            {selected.active ? 'Desactivar' : 'Activar'}
+                                        </span>
+                                    </button>
+                                )}
+
                                 {/* 2. Guardar cambios */}
+                                {(isNew ? canCreateOffers : canEditOffers) && (
                                 <button
                                     onClick={handleSave}
                                     disabled={saving}
@@ -766,9 +786,10 @@ export default function Offers() {
                                         {saving ? 'Guardando...' : isNew ? 'Crear oferta' : 'Guardar cambios'}
                                     </span>
                                 </button>
+                                )}
 
                                 {/* 3. Eliminar — solo edición */}
-                                {!isNew && selected && (
+                                {canDeleteOffers && !isNew && selected && (
                                     <button
                                         onClick={() => setShowDeleteConfirm(true)}
                                         disabled={deleting}

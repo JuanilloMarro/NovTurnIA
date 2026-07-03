@@ -29,6 +29,9 @@ const SAFE_DEFAULTS = {
     canAddStaff: true,
     patientsLeft: null,
     staffLeft: null,
+    conversationsUsed: 0,
+    maxConversations: null,
+    aiPaused: false,
     plan: null,
     planStatus: 'active',
     features: {},
@@ -70,6 +73,8 @@ export function usePlanLimits() {
     const maxConversations = limits.max_conversations ?? null;
     const patientsUsed = limits.patients_used ?? 0;
     const staffUsed    = limits.staff_used    ?? 0;
+    const conversationsUsed = limits.conversations_used ?? 0;
+    const aiPaused = limits.ai_paused ?? false;
 
     const features = limits.features || {};
 
@@ -82,6 +87,8 @@ export function usePlanLimits() {
         patientsUsed,
         maxPatients,
         maxConversations,
+        conversationsUsed,
+        aiPaused,
         staffUsed,
         maxStaff,
         plan: limits.plan,

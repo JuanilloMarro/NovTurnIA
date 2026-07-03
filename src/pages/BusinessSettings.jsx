@@ -484,7 +484,7 @@ export default function BusinessSettings() {
                                                             type="button"
                                                             onClick={() => toggleDay(day.key)}
                                                             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wide transition-all duration-300 select-none border ${active
-                                                                ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-[0_2px_8px_rgba(59,130,246,0.18)]'
+                                                                ? 'bg-navy-50 text-navy-700 border-navy-100 shadow-[0_2px_8px_rgba(15,32,68,0.18)]'
                                                                 : 'bg-white/50 text-navy-700/60 border-white/60 hover:bg-white/70 hover:text-navy-800'
                                                                 }`}
                                                         >

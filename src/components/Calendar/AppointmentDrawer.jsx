@@ -33,7 +33,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
         ? humanTakeoverMap[patientId]
         : (appointment?.patients?.human_takeover || false);
 
-    const { canViewConversations, canToggleAi, canEditAppointments, canRescheduleAppointments, canConfirmAppointments, canSetPending, canMarkNoShow, canDeleteAppointments, canConfirmDelivery } = usePermissions();
+    const { canViewConversations, canToggleAi, canEditAppointments, canRescheduleAppointments, canConfirmAppointments, canSetPending, canMarkNoShow, canDeleteAppointments, canPurgeAppointments, canConfirmDelivery } = usePermissions();
     // M-010: si el paciente está fuera del top-N del plan (basic/pro) ocultamos
     // el acceso a su perfil y a su chat — la cita sigue visible en calendario,
     // pero el negocio no puede llegar al detalle hasta subir de plan.
@@ -420,7 +420,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     )}
 
                     {/* 8. Borrar permanentemente (para No-show o Cancelados) */}
-                    {canDeleteAppointments && (status === 'no_show' || status === 'cancelled') && (
+                    {canPurgeAppointments && (status === 'no_show' || status === 'cancelled') && (
                         <button
                             onClick={async () => {
                                 if (window.confirm('¿Estás seguro de que deseas borrar permanentemente este registro de la base de datos?')) {
