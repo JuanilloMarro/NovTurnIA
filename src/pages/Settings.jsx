@@ -313,7 +313,7 @@ export default function Settings() {
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pr-3 pt-0 flex flex-col gap-1">
                                 {filteredServices.length === 0 && (
                                     <div className="px-4 py-8 text-center text-navy-900/40 text-xs font-bold">
-                                        {services.length === 0 ? 'Sin servicios — crea el primero con +' : 'No se encontraron servicios'}
+                                        {services.length === 0 ? 'Sin servicios, crea el primero con +' : 'No se encontraron servicios'}
                                     </div>
                                 )}
 

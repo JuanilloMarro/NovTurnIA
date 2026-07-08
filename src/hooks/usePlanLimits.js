@@ -27,8 +27,11 @@ const SAFE_DEFAULTS = {
     isLoading: true,
     canAddPatient: true,
     canAddStaff: true,
+    canAddAppointment: true,
     patientsLeft: null,
     staffLeft: null,
+    appointmentsUsed: 0,
+    maxAppointments: null,
     conversationsUsed: 0,
     maxConversations: null,
     aiPaused: false,
@@ -70,22 +73,30 @@ export function usePlanLimits() {
     const limits = cache.data;
     const maxPatients = limits.max_patients ?? null;
     const maxStaff    = limits.max_staff    ?? null;
+    const maxAppointments  = limits.max_appointments  ?? null;
     const maxConversations = limits.max_conversations ?? null;
     const patientsUsed = limits.patients_used ?? 0;
     const staffUsed    = limits.staff_used    ?? 0;
+    const appointmentsUsed  = limits.appointments_used  ?? 0;
     const conversationsUsed = limits.conversations_used ?? 0;
     const aiPaused = limits.ai_paused ?? false;
 
     const features = limits.features || {};
 
+    // Límites REALES (2026-07-05): null = ilimitado. La fuente de verdad son
+    // los triggers de la DB (enforce_*_limit); estos booleanos son la capa UX
+    // que deshabilita botones ANTES de que el server rechace el INSERT.
     return {
         isLoading: false,
-        canAddPatient: true, // Límites visuales ahora
-        canAddStaff:   true,
-        patientsLeft:  null,
-        staffLeft:     null,
+        canAddPatient:     maxPatients      == null || patientsUsed     < maxPatients,
+        canAddStaff:       maxStaff         == null || staffUsed        < maxStaff,
+        canAddAppointment: maxAppointments  == null || appointmentsUsed < maxAppointments,
+        patientsLeft: maxPatients == null ? null : Math.max(maxPatients - patientsUsed, 0),
+        staffLeft:    maxStaff    == null ? null : Math.max(maxStaff    - staffUsed,    0),
         patientsUsed,
         maxPatients,
+        appointmentsUsed,
+        maxAppointments,
         maxConversations,
         conversationsUsed,
         aiPaused,

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock, Tag, History, Wallet } from 'lucide-react';
 import AIStar from './Icons/AIStar';
+import { useAuroraPulse } from '../hooks/useAuroraPulse';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { useAuth } from '../hooks/useAuth';
@@ -22,9 +23,12 @@ function NavGlow() {
 
 // Item de navegación con el estilo de los botones de Ofertas:
 // pill glass (bg-white/40 + blur + border-white/60 + shadow-md) y glows al estar activo.
-function NavItem({ to, end, icon: Icon, label, locked, iconSize = 16, labelClass = '', onClick }) {
+// `aurora` envuelve el pill en el borde aurora de IA (.ai-aurora); el wrapper es
+// necesario porque el overflow-hidden del pill recortaría el halo difuminado.
+// `auroraClass` trae las clases de fase del pulso (is-live / is-on) desde useAuroraPulse.
+function NavItem({ to, end, icon: Icon, label, locked, iconSize = 16, labelClass = '', onClick, aurora = false, auroraClass = '' }) {
     const base = 'relative overflow-hidden flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300';
-    return (
+    const link = (
         <NavLink
             to={to}
             end={end}
@@ -45,6 +49,8 @@ function NavItem({ to, end, icon: Icon, label, locked, iconSize = 16, labelClass
             )}
         </NavLink>
     );
+    if (!aurora) return link;
+    return <div className={`ai-aurora ai-aurora--sm rounded-xl ${auroraClass}`}>{link}</div>;
 }
 
 export default function Sidebar({ onOpenPlans }) {
@@ -58,6 +64,8 @@ export default function Sidebar({ onOpenPlans }) {
     const { profile } = useAuth();
     const { isSidebarOpen, toggleSidebar } = useAppStore();
     const [businessName, setBusinessName] = useState('');
+    // Aurora del botón de IA: se enciende un ratito al hacer clic y se apaga sola.
+    const { className: aiAuroraClass, pulse: pulseAiAurora } = useAuroraPulse();
 
     const businessId = profile?.business_id || '';
 
@@ -135,7 +143,15 @@ export default function Sidebar({ onOpenPlans }) {
                         <>
                             <NavItem to="/audit-log" icon={List} label="Actividad" locked={!auditUnlocked} onClick={closeMobile} />
                             <NavItem to="/users" icon={ShieldCheck} label="Usuarios" onClick={closeMobile} />
-                            <NavItem to="/business" icon={Bot} iconSize={18} label="Inteligencia Artificial" onClick={closeMobile} />
+                            <NavItem
+                                to="/business"
+                                icon={Bot}
+                                iconSize={18}
+                                label="Inteligencia Artificial"
+                                aurora
+                                auroraClass={aiAuroraClass}
+                                onClick={() => { pulseAiAurora(2400); closeMobile(); }}
+                            />
                         </>
                     )}
 

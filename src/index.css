@@ -208,99 +208,142 @@ body::before {
   }
 }
 
-/* ── Borde arcoíris animado estilo Gemini (conic-gradient + máscara) ── */
+/* ── Borde aurora de los componentes de IA (conic-gradient + máscara) ──
+   No es una línea LED: es un SOMBREADO de luz de neón que envuelve el borde.
+   Dos capas difuminadas sobre el mismo riel:
+     · ::before → sombra de color cercana: abraza el borde físico, difusa.
+     · ::after  → halo ambiental amplio: feathering hacia el interior y baño
+       de luz hacia afuera.
+   Ambas respiran con amplitud alta y en fases distintas (respiración LED)
+   mientras el color fluye por el perímetro: verde neón/cyan → azul cobalto →
+   violeta eléctrico → magenta/fucsia con destellos ámbar.
+   Ciclo de vida (lo maneja useAuroraPulse):
+     .is-on   → encendida a plena intensidad (encendido ágil)
+     .is-live → las animaciones corren; se mantiene durante el apagado para
+                que la luz siga fluyendo mientras muere de a pocos
+     sin clases → reposo total, cero animaciones corriendo. */
 @property --ai-angle {
   syntax: '<angle>';
   initial-value: 0deg;
   inherits: false;
 }
 
-@keyframes ai-border-spin {
+/* Intensidad global (transicionable): 0 apagada ↔ 1 encendida. */
+@property --aurora-glow {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+
+@keyframes ai-aurora-spin {
   to {
     --ai-angle: 360deg;
   }
 }
 
-/* Aparece suave, se mantiene durante el recorrido y se difumina al final
-   (en vez de cortarse de golpe) → sensación de luz natural que se apaga. */
-@keyframes ai-border-glow {
-  0% {
-    opacity: 0;
+/* Respiración LED exagerada: sube casi a pleno brillo y baja a un rescoldo,
+   sin apagarse nunca del todo mientras vive. */
+@keyframes ai-aurora-breathe {
+  0%, 100% {
+    opacity: calc(0.25 * var(--aurora-glow));
   }
 
-  8% {
-    opacity: 1;
-  }
-
-  84% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
+  50% {
+    opacity: calc(0.95 * var(--aurora-glow));
   }
 }
 
-.ai-rainbow {
+.ai-aurora {
   position: relative;
+  --aurora-glow: 0;
+  /* Apagado lento: la luz muere de a pocos, nunca se corta de golpe.
+     (2.6s = FADE_MS de useAuroraPulse — mantener en sincronía) */
+  transition: --aurora-glow 2.6s ease-out;
 }
 
-/* El efecto solo existe mientras está activo (.is-active). Se dispara al
-   entrar al módulo o al reactivar una IA, recorre el borde UNA sola vuelta
-   completa como una "serpiente" (cometa) y luego se apaga.
-   El segmento brillante es un ARCOÍRIS completo con bordes suaves (nube),
-   y su SOMBREADO EXTERNO difuminado es el foco interactivo del efecto. */
-.ai-rainbow.is-active::before,
-.ai-rainbow.is-active::after {
+.ai-aurora.is-on {
+  --aurora-glow: 1;
+  /* Encendido más ágil que el apagado */
+  transition: --aurora-glow 0.9s ease-in;
+}
+
+.ai-aurora::before,
+.ai-aurora::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  /* Cometa arcoíris: cola transparente que se enciende gradualmente y recorre
-     todo el espectro hasta la cabeza. Sin cortes duros → sensación de nube. */
+  /* Opacidad base sin animación (reposo y prefers-reduced-motion): sigue a
+     la intensidad global — la respiración la reemplaza mientras vive. */
+  opacity: calc(0.55 * var(--aurora-glow));
+  /* Viaje cromático cíclico: abre y cierra en el mismo color → loop sin
+     costura. La variación de alpha a lo largo del recorrido simula el
+     grosor irregular del líquido neón (pulsos en las esquinas). */
   background: conic-gradient(from var(--ai-angle),
-      rgba(236, 72, 153, 0) 0deg,
-      rgba(236, 72, 153, 0) 178deg,
-      rgba(239, 68, 68, 0.18) 205deg,    /* cola: rojo naciendo */
-      rgba(249, 115, 22, 0.42) 232deg,   /* naranja */
-      rgba(250, 204, 21, 0.58) 258deg,   /* amarillo */
-      rgba(34, 197, 94, 0.70) 284deg,    /* verde */
-      rgba(34, 211, 238, 0.82) 308deg,   /* cyan */
-      rgba(59, 130, 246, 0.88) 330deg,   /* azul */
-      rgba(139, 92, 246, 0.82) 349deg,   /* violeta */
-      rgba(236, 72, 153, 0.70) 360deg);  /* cabeza: rosa */
+      rgba(52, 240, 165, 0.85) 0deg,     /* verde neón */
+      rgba(34, 211, 238, 0.95) 48deg,    /* cyan brillante */
+      rgba(37, 99, 235, 0.75) 110deg,    /* azul cobalto profundo */
+      rgba(124, 58, 237, 0.90) 162deg,   /* violeta eléctrico */
+      rgba(217, 70, 239, 0.80) 205deg,   /* fucsia */
+      rgba(236, 72, 153, 0.95) 238deg,   /* magenta intenso */
+      rgba(251, 146, 60, 0.70) 258deg,   /* destello ámbar (giro de esquina) */
+      rgba(236, 72, 153, 0.85) 280deg,   /* magenta de regreso */
+      rgba(139, 92, 246, 0.75) 318deg,   /* violeta de transición */
+      rgba(52, 240, 165, 0.85) 360deg);  /* cierra en verde → loop perfecto */
   -webkit-mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
           mask-composite: exclude;
-  /* El recorrido completa una vuelta; el glow lo enciende y lo apaga con
-     suavidad para que el final no se corte de golpe. */
+}
+
+/* Las animaciones solo corren mientras el efecto vive (encendido o
+   apagándose) → cero trabajo por frame en reposo. */
+.ai-aurora.is-live::before,
+.ai-aurora.is-live::after {
   animation:
-      ai-border-spin 2.6s linear 1 forwards,
-      ai-border-glow 3.1s ease-out 1 forwards;
+      ai-aurora-spin 9s linear infinite,
+      ai-aurora-breathe 3.4s ease-in-out infinite;
 }
 
-/* Banda del borde — bien difusa, tipo nube (no una línea LED rígida) */
-.ai-rainbow.is-active::before {
-  padding: 2px;
+/* Sombra de color cercana — abraza el borde físico, sin línea nítida */
+.ai-aurora::before {
+  padding: 3px;
   z-index: 2;
-  filter: blur(6px);
+  filter: blur(7px);
 }
 
-/* Sombreado externo de color — luz LED que se proyecta hacia afuera y baña
-   el borde con su color correspondiente (foco interactivo). */
-.ai-rainbow.is-active::after {
-  padding: 6px;
+/* Halo ambiental — se desvanece a pocos píxeles hacia adentro y proyecta
+   la luz hacia afuera */
+.ai-aurora::after {
+  padding: 8px;
   z-index: 1;
-  filter: blur(30px);
+  filter: blur(26px);
+}
+
+/* El halo respira desfasado de la sombra cercana (≈⅓ de ciclo) → las capas
+   ondulan a destiempo y el conjunto se siente orgánico, no mecánico. */
+.ai-aurora.is-live::after {
+  animation-delay: 0s, -1.1s;
+}
+
+/* Variante compacta — para controles pequeños (botón de IA del sidebar):
+   sombras más cortas para no invadir los items vecinos. */
+.ai-aurora--sm::before {
+  padding: 2px;
+  filter: blur(4px);
+}
+
+.ai-aurora--sm::after {
+  padding: 4px;
+  filter: blur(14px);
 }
 
 @media (prefers-reduced-motion: reduce) {
 
-  .ai-rainbow.is-active::before,
-  .ai-rainbow.is-active::after {
+  .ai-aurora.is-live::before,
+  .ai-aurora.is-live::after {
     animation: none;
   }
 }

@@ -4,6 +4,7 @@ import {
     Building2, Search, Shield, LogOut, Users, Calendar,
     UserCheck, ChevronRight, Save, Mail, RefreshCw,
     SlidersHorizontal, Clock, Bot, Activity, Power, MessageSquare, Layers, Plus, AlertTriangle,
+    Eye, EyeOff, Phone, KeyRound,
 } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAppStore } from '../store/useAppStore';
@@ -119,6 +120,7 @@ export default function AdminPanel() {
     const [resetting, setResetting] = useState(false);
     const [form, setForm] = useState(null);
     const [tab, setTab] = useState('datos');
+    const [showToken, setShowToken] = useState(false);
     const profile = useAppStore(s => s.profile);
     const navigate = useNavigate();
 
@@ -149,6 +151,7 @@ export default function AdminPanel() {
     function selectBusiness(biz) {
         setSelected(biz);
         setTab('datos');
+        setShowToken(false);
         setForm({
             name: biz.name ?? '',
             business_type: biz.business_type ?? '',
@@ -162,6 +165,7 @@ export default function AdminPanel() {
             appointment_duration: biz.appointment_duration ?? 30,
             custom_prompt: biz.custom_prompt ?? '',
             phone_number_id: biz.phone_number_id ?? '',
+            whatsapp_token: biz.whatsapp_token ?? '',
             feature_flags: biz.feature_flags ?? {},
             limit_overrides: biz.limit_overrides ?? {},
             ai_paused: biz.ai_paused ?? false,
@@ -216,7 +220,8 @@ export default function AdminPanel() {
                 schedule_days: form.schedule_days,
                 appointment_duration: Number(form.appointment_duration) || 30,
                 custom_prompt: form.custom_prompt || null,
-                phone_number_id: form.phone_number_id || null,
+                phone_number_id: form.phone_number_id || '', // columna NOT NULL sin default
+                whatsapp_token: form.whatsapp_token || '',   // columna NOT NULL sin default
                 feature_flags: form.feature_flags || {},
                 limit_overrides: form.limit_overrides || {},
                 ai_paused: !!form.ai_paused,
@@ -519,14 +524,37 @@ export default function AdminPanel() {
                                     </div>
                                     <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl p-5 space-y-3">
                                         <div className="flex items-center gap-2"><Bot size={14} className="text-navy-700/50" /><p className="text-[11px] font-bold text-navy-700/50 uppercase tracking-widest">Contexto / Prompt de la IA</p></div>
-                                        <textarea rows={8} value={form.custom_prompt} onChange={e => setField('custom_prompt', e.target.value)}
+                                        <textarea rows={5} value={form.custom_prompt} onChange={e => setField('custom_prompt', e.target.value)}
                                             placeholder="Personalidad e instrucciones del asistente…"
                                             className="glass-input w-full text-[13px] resize-none custom-scrollbar" />
-                                        <div>
-                                            <label className={labelCls}>WhatsApp phone_number_id</label>
-                                            <input value={form.phone_number_id} onChange={e => setField('phone_number_id', e.target.value)} className="glass-input w-full text-[13px] font-mono" />
-                                            <p className="text-[10px] text-navy-700/40 font-medium mt-1">El token de WhatsApp se gestiona cifrado (Vault) en la sección Keys.</p>
+                                    </div>
+                                    <div className="lg:col-span-2 bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl p-5 space-y-4">
+                                        <div className="flex items-center gap-2"><MessageSquare size={14} className="text-navy-700/50" /><p className="text-[11px] font-bold text-navy-700/50 uppercase tracking-widest">WhatsApp / Automatización (n8n)</p></div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className={labelCls}>Phone Number ID</label>
+                                                <div className="relative">
+                                                    <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-900/30" />
+                                                    <input value={form.phone_number_id} onChange={e => setField('phone_number_id', e.target.value)}
+                                                        placeholder="Ej. 109876543210987"
+                                                        className="glass-input w-full text-[13px] font-mono pl-9" />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className={labelCls}>Access Token</label>
+                                                <div className="relative">
+                                                    <KeyRound size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-900/30" />
+                                                    <input type={showToken ? 'text' : 'password'} value={form.whatsapp_token} onChange={e => setField('whatsapp_token', e.target.value)}
+                                                        placeholder="EAAG..."
+                                                        className="glass-input w-full text-[13px] font-mono pl-9 pr-9" />
+                                                    <button type="button" onClick={() => setShowToken(s => !s)}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-900/30 hover:text-navy-900/60">
+                                                        {showToken ? <EyeOff size={13} /> : <Eye size={13} />}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
+                                        <p className="text-[10px] text-navy-700/40 font-medium">Estos valores los usa n8n para responder por WhatsApp Business a nombre de este negocio. Se guardan en texto plano en `businesses` (Vault pendiente).</p>
                                     </div>
                                 </div>
                             )}

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuroraPulse } from '../hooks/useAuroraPulse';
 import WheelColumn from '../components/ui/WheelColumn';
 import {
     getBusinessInfo,
@@ -127,18 +128,11 @@ export default function BusinessSettings() {
     const [resumingId, setResumingId] = useState(null);
     const [pausedSearch, setPausedSearch] = useState('');
 
-    // Efecto "serpiente" del borde de la IA: finito, se dispara al entrar al
-    // módulo o al reactivar una IA, luego se apaga.
-    const [aiEffect, setAiEffect] = useState(false);
-    const aiEffectTimer = useRef(null);
-    function triggerAiEffect(duration = 3200) {
-        setAiEffect(true);
-        clearTimeout(aiEffectTimer.current);
-        aiEffectTimer.current = setTimeout(() => setAiEffect(false), duration);
-    }
-    useEffect(() => () => clearTimeout(aiEffectTimer.current), []);
-    // Al entrar al módulo (cuando termina de cargar), recorre el borde una vez.
-    useEffect(() => { if (!loading) triggerAiEffect(); }, [loading]);
+    // Aurora del panel de IA: se enciende con acciones (entrar al módulo,
+    // reactivar una IA, guardar cambios) y se apaga sola de a pocos.
+    const { className: auroraClass, pulse: pulseAurora } = useAuroraPulse();
+    // Al entrar al módulo (cuando termina de cargar), la aurora saluda.
+    useEffect(() => { if (!loading) pulseAurora(4200); }, [loading, pulseAurora]);
 
     function loadPaused() {
         setLoadingPaused(true);
@@ -162,7 +156,7 @@ export default function BusinessSettings() {
             useAppStore.getState().setPatientTakeover(patientId, false);
             useAppStore.getState().invalidateConversationsCache();
             useAppStore.getState().invalidatePatientsCache();
-            triggerAiEffect();
+            pulseAurora();
             showBotReactivateToast(`La IA volvió a atender a ${target?.display_name || 'el cliente'}.`);
         } catch (err) {
             showErrorToast('Error', err.message || 'No se pudo reactivar la IA.');
@@ -274,6 +268,7 @@ export default function BusinessSettings() {
                 schedule_days:  useAppStore.getState().businessHours?.schedule_days ?? [1, 2, 3, 4, 5],
             });
             showSettingsSavedToast(nameInput);
+            pulseAurora();
             setDirty(false);
         } catch (err) {
             console.error('SERVER ERROR:', err);
@@ -317,7 +312,7 @@ export default function BusinessSettings() {
 
                         {/* ── Columna Izquierda: Asistente IA + Guardar ── */}
                         <div className="w-full lg:w-[44%] shrink-0 flex flex-col gap-4">
-                            <div className={`ai-rainbow rounded-[24px] w-full flex flex-1 min-h-0 ${aiEffect ? 'is-active' : ''}`}>
+                            <div className={`ai-aurora rounded-[24px] w-full flex flex-1 min-h-0 ${auroraClass}`}>
                                 <div className="relative flex-1 rounded-[24px] overflow-hidden border border-white/60 bg-white/40 backdrop-blur-2xl shadow-md p-6 flex flex-col justify-between gap-6 min-h-[380px]">
                                     {/* glows ambiente — patrón de Ofertas (4 esquinas, 0.05) */}
                                     <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />

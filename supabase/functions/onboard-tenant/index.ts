@@ -26,42 +26,73 @@ async function getSuperAdminCaller(req: Request): Promise<boolean> {
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
   if (error || !user) return false;
 
-  return user.email === SUPER_ADMIN_EMAIL;
+  // Fuente de verdad: app_super_admins por user_id (mismo patrón que admin-list-businesses).
+  const { data: adminRow } = await supabaseAdmin
+    .from('app_super_admins')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (adminRow) return true;
+
+  // Respaldo: secret SUPER_ADMIN_EMAIL (puede no estar seteado).
+  return !!SUPER_ADMIN_EMAIL && user.email === SUPER_ADMIN_EMAIL;
 }
 
 // ── Permisos por defecto para cada rol ────────────────────────────────────
+// IMPORTANTE: estas llaves deben coincidir 1:1 con el vocabulario de
+// src/hooks/usePermissions.js (fuente de verdad del front). Bug corregido 2026-07-04:
+// el set anterior omitía ~20 llaves reales (reschedule, servicios, ofertas, finanzas,
+// reply_conversations, etc.) → un owner recién creado encontraba medio dashboard bloqueado.
 const OWNER_PERMISSIONS = {
+  // Turnos
+  create_appointments: true, edit_appointments: true, reschedule_appointments: true,
+  confirm_appointments: true, set_pending_appointments: true, mark_noshow_appointments: true,
+  delete_appointments: true, purge_appointments: true,
+  // Seguimiento
+  view_followup: true,
+  // Pacientes
+  view_patients: true, create_patients: true, edit_patients: true,
+  delete_patients: true, export_patients: true,
+  // Conversaciones e IA
+  view_conversations: true, toggle_ai: true, reply_conversations: true,
+  clear_conversations: true, delete_conversations: true,
+  // Estadísticas
   view_stats: true,
-  manage_users: true,
-  manage_roles: true,
-  create_appointments: true,
-  edit_appointments: true,
-  confirm_appointments: true,
-  delete_appointments: true,
-  view_patients: true,
-  create_patients: true,
-  edit_patients: true,
-  delete_patients: true,
-  view_conversations: true,
-  toggle_ai: true,
-  delete_users: true,
+  // Servicios
+  create_services: true, edit_services: true, toggle_services: true, delete_services: true,
+  // Ofertas
+  create_offers: true, edit_offers: true, toggle_offers: true, delete_offers: true,
+  // Finanzas
+  view_finance: true, confirm_delivery: true, record_income: true, record_expense: true,
+  manage_supplies: true, void_finance: true,
+  // Administración
+  manage_roles: true, delete_users: true, export_reports: true,
 };
 
 const SECRETARY_PERMISSIONS = {
+  // Turnos (opera el día a día, sin borrar)
+  create_appointments: true, edit_appointments: true, reschedule_appointments: true,
+  confirm_appointments: true, set_pending_appointments: true, mark_noshow_appointments: true,
+  delete_appointments: false, purge_appointments: false,
+  // Seguimiento
+  view_followup: true,
+  // Pacientes
+  view_patients: true, create_patients: true, edit_patients: true,
+  delete_patients: false, export_patients: false,
+  // Conversaciones e IA
+  view_conversations: true, toggle_ai: false, reply_conversations: true,
+  clear_conversations: false, delete_conversations: false,
+  // Estadísticas
   view_stats: false,
-  manage_users: false,
-  manage_roles: false,
-  create_appointments: true,
-  edit_appointments: true,
-  confirm_appointments: true,
-  delete_appointments: false,
-  view_patients: true,
-  create_patients: true,
-  edit_patients: true,
-  delete_patients: false,
-  view_conversations: true,
-  toggle_ai: false,
-  delete_users: false,
+  // Servicios
+  create_services: false, edit_services: false, toggle_services: false, delete_services: false,
+  // Ofertas
+  create_offers: false, edit_offers: false, toggle_offers: false, delete_offers: false,
+  // Finanzas
+  view_finance: false, confirm_delivery: false, record_income: false, record_expense: false,
+  manage_supplies: false, void_finance: false,
+  // Administración
+  manage_roles: false, delete_users: false, export_reports: false,
 };
 
 serve(async (req) => {
@@ -98,6 +129,8 @@ serve(async (req) => {
       schedule_start = 9,
       schedule_end = 18,
       schedule_days = [1, 2, 3, 4, 5], // Lun–Vie
+      phone_number_id = '',
+      whatsapp_token = '',
     } = await req.json();
 
     // ── Validaciones ────────────────────────────────────────────────────────
@@ -128,6 +161,21 @@ serve(async (req) => {
       );
     }
 
+    // ── Normalización al esquema real de `businesses` ───────────────────────
+    // schedule_start/end: columna INTEGER (hora 0-23); el form manda "HH:MM".
+    // schedule_days:      columna VARCHAR ("Lun,Mar,…"); el form manda [0..6] (0=Dom).
+    // phone_number_id / whatsapp_token: columnas NOT NULL sin default → mínimo ''.
+    const toHour = (v: unknown): number => {
+      if (typeof v === 'number') return Math.trunc(v);
+      const n = parseInt(String(v ?? '').split(':')[0], 10);
+      return Number.isFinite(n) ? n : 0;
+    };
+    const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const toScheduleDays = (v: unknown): string =>
+      Array.isArray(v)
+        ? v.map((d) => DAY_LABELS[Number(d)]).filter(Boolean).join(',')
+        : (typeof v === 'string' && v.trim() ? v : 'Lun,Mar,Mié,Jue,Vie');
+
     // ── PASO 1: Crear el negocio ─────────────────────────────────────────────
     const { data: business, error: bizError } = await (supabaseAdmin as any)
       .from('businesses')
@@ -136,9 +184,11 @@ serve(async (req) => {
         plan_id: planRecord.id,
         plan_status: 'active',
         timezone,
-        schedule_start,
-        schedule_end,
-        schedule_days,
+        schedule_start: toHour(schedule_start),
+        schedule_end: toHour(schedule_end),
+        schedule_days: toScheduleDays(schedule_days),
+        phone_number_id: phone_number_id ?? '',
+        whatsapp_token: whatsapp_token ?? '',
       })
       .select('id')
       .single();

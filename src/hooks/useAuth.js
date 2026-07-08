@@ -51,7 +51,7 @@ export function useAuth() {
                 .select('*, staff_roles(*)')
                 .eq('id', data.user.id)
                 .eq('active', true)
-                .single();
+                .maybeSingle();  // super-admin no tiene fila en staff_users → null sin 406
 
             if (profileError || !staffProfile) {
                 if (SUPER_ADMIN_EMAIL && data.user.email === SUPER_ADMIN_EMAIL) {
@@ -103,7 +103,7 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
                 .select('*, staff_roles(*)')
                 .eq('id', session.user.id)
                 .eq('active', true)
-                .single();
+                .maybeSingle();  // super-admin no tiene fila en staff_users → null sin 406
 
             if (staffProfile) {
                 setBusinessId(staffProfile.business_id);
@@ -162,7 +162,7 @@ export async function initializeAuth(setAuth, setLoading, clearAuth, setBusiness
                 .select('*, staff_roles(*)')
                 .eq('id', currentSession.user.id)
                 .eq('active', true)
-                .single();
+                .maybeSingle();  // super-admin no tiene fila en staff_users → null sin 406
 
             if (profile) {
                 setBusinessId(profile.business_id);

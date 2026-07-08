@@ -97,8 +97,32 @@ export default function App() {
                         </ProtectedRoute>
                     } />
 
+                    {/* Onboarding de tenants: standalone igual que /admin — el super-admin
+                        no tiene staff_users (profile=null por diseño), así que NO puede
+                        depender de profileReady ni del shell con Sidebar/Topbar. */}
+                    <Route path="/admin/new-tenant" element={
+                        <ProtectedRoute>
+                            <Suspense fallback={
+                                <div className="min-h-screen bg-[#F4F5F9] flex items-center justify-center">
+                                    <div className="w-10 h-10 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+                                </div>
+                            }>
+                                {isSuperAdmin
+                                    ? (
+                                        <div className="h-screen w-screen relative overflow-hidden bg-transparent p-2 sm:p-4 lg:p-6 flex items-center justify-center">
+                                            <div className="w-full max-w-3xl h-full rounded-[24px] sm:rounded-[32px] bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex flex-col p-6">
+                                                <AdminOnboarding />
+                                            </div>
+                                        </div>
+                                    )
+                                    : <Navigate to="/" replace />}
+                            </Suspense>
+                        </ProtectedRoute>
+                    } />
+
                     <Route path="/*" element={
                         <ProtectedRoute>
+                            {isSuperAdmin ? <Navigate to="/admin" replace /> : (
                             <div className="h-screen w-screen relative overflow-hidden bg-transparent p-2 sm:p-4 lg:p-6 flex items-center justify-center">
                                 {/* Macro Módulo Unificado - Sensación Voladora y de Cristal */}
                                 <div className="w-full max-w-[1920px] h-full rounded-[24px] sm:rounded-[32px] bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex">
@@ -123,7 +147,6 @@ export default function App() {
                                                     <Route path="/users" element={!profileReady ? <PageLoader /> : canManageRoles ? <Users /> : <Navigate to="/" replace />} />
                                                     <Route path="/audit-log" element={!profileReady ? <PageLoader /> : canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
                                                     <Route path="/business" element={!profileReady ? <PageLoader /> : canManageRoles ? <BusinessSettings /> : <Navigate to="/" replace />} />
-                                                    <Route path="/admin/new-tenant" element={!profileReady ? <PageLoader /> : isSuperAdmin ? <AdminOnboarding /> : <Navigate to="/" replace />} />
                                                     <Route path="*" element={<Navigate to="/" replace />} />
                                                 </Routes>
                                             </Suspense>
@@ -135,6 +158,7 @@ export default function App() {
                                     <PlansModal isOpen={isPlansOpen} onClose={closePlans} />
                                 </div>
                             </div>
+                            )}
                         </ProtectedRoute>
                     } />
                 </Routes>

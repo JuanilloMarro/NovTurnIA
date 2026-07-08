@@ -8,6 +8,7 @@ import { formatPhone } from '../../utils/format';
 import { showAptNewToast, showErrorToast } from '../../store/useToastStore';
 import { useAppStore, generateTimeSlots } from '../../store/useAppStore';
 import { useModalFocus } from '../../hooks/useModalFocus';
+import { usePlanLimits } from '../../hooks/usePlanLimits';
 
 // ── Wheel picker ─────────────────────────────────────────────────────────────
 const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -25,6 +26,7 @@ function getInitials(name) {
 }
 
 export default function NewAppointmentModal({ isOpen, onClose, onCreated, initialPatient = null, initialServiceId = null }) {
+    const { canAddAppointment, maxAppointments } = usePlanLimits();
     const businessHoursRaw = useAppStore((state) => state.businessHours);
     const businessHours = businessHoursRaw ?? { schedule_start: '09:00', schedule_end: '18:00' };
     const schedule_start = businessHours.schedule_start || '09:00';
@@ -166,6 +168,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                         <X size={16} />
                     </button>
                 </div>
+
+                {!canAddAppointment && (
+                    <div className="mx-6 mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700 font-semibold">
+                        Límite de {maxAppointments} turnos/mes de tu plan alcanzado. Sube de plan para agendar más este mes.
+                    </div>
+                )}
 
                 {error && (
                     <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">
@@ -330,7 +338,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm min-w-[100px]">
                             <X size={13} /> Cancelar
                         </button>
-                        <button type="submit" disabled={loading}
+                        <button type="submit" disabled={loading || !canAddAppointment}
+                            title={!canAddAppointment ? 'Límite de turnos del mes alcanzado' : undefined}
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/40 border border-white/60 rounded-full text-navy-900 text-[11px] font-bold shadow-sm hover:bg-white/60 transition-all disabled:opacity-50 min-w-[100px]">
                             <Save size={13} />
                             {loading ? 'Guardando...' : 'Guardar turno'}

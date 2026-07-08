@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { supabase } from '../config/supabase';
+import { useNavigate } from 'react-router-dom';
+import { adminOnboardTenant } from '../services/adminService';
 import { showTenantNewToast, showValidationToast, showErrorToast } from '../store/useToastStore';
-import { Building2, User, Lock, Globe, Clock } from 'lucide-react';
+import { Building2, User, Lock, Globe, Clock, ArrowLeft, MessageSquare, Phone, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 const PLANS = ['basic', 'pro', 'enterprise'];
 const TIMEZONES = [
@@ -21,6 +22,7 @@ const DAYS = [
 ];
 
 export default function AdminOnboarding() {
+    const navigate = useNavigate();
     const [form, setForm] = useState({
         business_name: '',
         admin_email: '',
@@ -31,9 +33,12 @@ export default function AdminOnboarding() {
         schedule_start: '09:00',
         schedule_end: '18:00',
         schedule_days: [1, 2, 3, 4, 5],
+        phone_number_id: '',
+        whatsapp_token: '',
     });
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
+    const [showToken, setShowToken] = useState(false);
 
     function toggleDay(day) {
         setForm(f => ({
@@ -53,15 +58,13 @@ export default function AdminOnboarding() {
         setLoading(true);
         setResult(null);
         try {
-            const { data, error } = await supabase.functions.invoke('onboard-tenant', {
-                body: form,
-            });
-            if (error) throw error;
-            if (data?.error) throw new Error(data.error);
+            // fetch directo con timeout — no puede colgarse por el navigator lock
+            // de gotrue como le pasaba a supabase.functions.invoke (2026-07-05).
+            const data = await adminOnboardTenant(form);
 
             setResult(data);
             showTenantNewToast(data.message);
-            setForm(f => ({ ...f, business_name: '', admin_email: '', admin_name: '', admin_password: '' }));
+            setForm(f => ({ ...f, business_name: '', admin_email: '', admin_name: '', admin_password: '', phone_number_id: '', whatsapp_token: '' }));
         } catch (err) {
             showErrorToast('Error al crear tenant', err.message);
         } finally {
@@ -74,6 +77,10 @@ export default function AdminOnboarding() {
 
     return (
         <div className="h-full flex flex-col max-w-2xl mx-auto w-full pt-2 px-0">
+            <button type="button" onClick={() => navigate('/admin')}
+                className="flex items-center gap-1.5 text-[11px] font-bold text-navy-700/50 hover:text-navy-900 uppercase tracking-widest mb-4 transition-colors w-fit">
+                <ArrowLeft size={13} /> Volver al panel
+            </button>
             <div className="mb-6">
                 <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Nuevo Tenant</h1>
                 <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Onboarding de nuevo negocio — solo super-admin</p>
@@ -147,6 +154,38 @@ export default function AdminOnboarding() {
                             ))}
                         </div>
                     </div>
+                </div>
+
+                {/* WhatsApp / Automatización */}
+                <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-[28px] p-6 space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <MessageSquare size={16} className="text-navy-900/60" />
+                        <span className="text-sm font-bold text-navy-900">WhatsApp / Automatización (n8n)</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className={labelClass}>Phone Number ID</label>
+                            <div className="relative">
+                                <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-900/40" />
+                                <input className={`${inputClass} pl-10 font-mono`} placeholder="109876543210987"
+                                    value={form.phone_number_id} onChange={e => setForm(f => ({ ...f, phone_number_id: e.target.value }))} />
+                            </div>
+                        </div>
+                        <div>
+                            <label className={labelClass}>Access Token</label>
+                            <div className="relative">
+                                <KeyRound size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-900/40" />
+                                <input type={showToken ? 'text' : 'password'} className={`${inputClass} pl-10 pr-10 font-mono`} placeholder="EAAG..."
+                                    value={form.whatsapp_token} onChange={e => setForm(f => ({ ...f, whatsapp_token: e.target.value }))} />
+                                <button type="button" onClick={() => setShowToken(s => !s)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-navy-900/40 hover:text-navy-900/70">
+                                    {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-navy-700/50 font-semibold">Opcional al crear — se puede configurar después desde el panel del negocio, una vez aprobada la cuenta de WhatsApp Business.</p>
                 </div>
 
                 {/* Admin */}

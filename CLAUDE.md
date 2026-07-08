@@ -51,8 +51,8 @@ Pages → Components → Custom Hooks → supabaseService.js → Supabase
 
 ### Database
 
-Key tables: `appointments`, `patients`, `staff_users`, `staff_roles`, `phone_numbers`, `notifications`.
-Materialized views `mv_business_stats` and `mv_patient_stats` are used for KPIs/charts (never aggregate raw tables for stats).
+Key tables: `appointments`, `patients`, `patient_phones`, `staff_users`, `staff_roles`, `services`, `notifications`, `businesses`, `plans`, `usage_counters`, plus finance (`income_entries`, `expense_entries`, `supplies`, `service_supplies`) and partitioned `history`/`audit_log`.
+KPIs/charts are computed by `SECURITY DEFINER` RPCs (`get_stats_dashboard`, `get_business_stats`, `get_patient_stats`, `get_finance_summary`, `get_retention_rate`, etc.) — never aggregate raw tables client-side. (The former materialized views `mv_business_stats`/`mv_patient_stats` were removed.)
 Appointments use ISO 8601 with timezone offset. Double-booking is prevented by a DB constraint — the service handles the violation error.
 
 ### Design system
