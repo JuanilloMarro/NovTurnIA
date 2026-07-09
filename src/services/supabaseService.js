@@ -162,6 +162,71 @@ export async function deleteService(id) {
     if (error) throw error;
 }
 
+// ── Categorías de Finanzas (dinámicas por negocio) ─────────
+// kind: 'income' | 'expense'. category_id en income_entries/expense_entries
+// referencia esta tabla (ON DELETE SET NULL — borrar una categoría no rompe asientos).
+
+export async function getFinanceCategories() {
+    const { data, error } = await supabase
+        .from('finance_categories')
+        .select('*')
+        .eq('business_id', getBID())
+        .order('kind', { ascending: true })
+        .order('name', { ascending: true });
+    if (error) throw error;
+    return data || [];
+}
+
+export async function createFinanceCategory({ kind, name, color }) {
+    const { data, error } = await supabase
+        .from('finance_categories')
+        .insert({
+            business_id: getBID(),
+            kind,
+            name: name.trim(),
+            color: color || null,
+            active: true,
+        })
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function updateFinanceCategory(id, { name, color }) {
+    const { data, error } = await supabase
+        .from('finance_categories')
+        .update({
+            name: name.trim(),
+            color: color || null,
+        })
+        .eq('id', id)
+        .eq('business_id', getBID())
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function toggleFinanceCategoryActive(id, active) {
+    const { error } = await supabase
+        .from('finance_categories')
+        .update({ active })
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
+}
+
+export async function deleteFinanceCategory(id) {
+    // No hace falta limpiar FK a mano: category_id tiene ON DELETE SET NULL.
+    const { error } = await supabase
+        .from('finance_categories')
+        .delete()
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
+}
+
 // ── Offers (Enterprise — dynamic_pricing) ─────────────────
 // Tabla offers se enlaza 1:1 con services. La vista services_with_active_offer
 // expone effective_price para front + n8n. RLS scoped por business_id.
@@ -1475,7 +1540,7 @@ export async function getServiceCosts() {
 export async function getIncomeEntries({ start, end, status = 'confirmed', limit = 200 } = {}) {
     let q = supabase
         .from('income_entries')
-        .select('*, patients(display_name)')
+        .select('*, patients(display_name), finance_categories(id, name, color)')
         .eq('business_id', getBID())
         .order('occurred_at', { ascending: false })
         .limit(limit);
@@ -1488,7 +1553,7 @@ export async function getIncomeEntries({ start, end, status = 'confirmed', limit
 }
 
 // Ingreso manual / ad-hoc (venta sin turno, producto, etc.)
-export async function recordIncome({ description, amount, payment_method, occurred_at, quantity = 1, service_id = null, patient_id = null, notes = null, source = 'manual' }) {
+export async function recordIncome({ description, amount, payment_method, occurred_at, quantity = 1, service_id = null, patient_id = null, category_id = null, notes = null, source = 'manual' }) {
     const { data, error } = await supabase
         .from('income_entries')
         .insert({
@@ -1500,6 +1565,7 @@ export async function recordIncome({ description, amount, payment_method, occurr
             payment_method: payment_method || null,
             service_id,
             patient_id,
+            category_id,
             occurred_at: occurred_at || new Date().toISOString(),
             notes: notes?.trim() || null,
         })
@@ -1509,16 +1575,17 @@ export async function recordIncome({ description, amount, payment_method, occurr
     return data;
 }
 
-// Editar un ingreso (descripción, monto, método, fecha, notas)
+// Editar un ingreso (descripción, monto, método, fecha, categoría, notas)
 export async function updateIncome(id, fields) {
     const patch = {};
     if (fields.description !== undefined) patch.description = fields.description.trim();
     if (fields.amount !== undefined) patch.amount = fields.amount;
     if (fields.payment_method !== undefined) patch.payment_method = fields.payment_method || null;
     if (fields.occurred_at !== undefined) patch.occurred_at = fields.occurred_at;
+    if (fields.category_id !== undefined) patch.category_id = fields.category_id || null;
     if (fields.notes !== undefined) patch.notes = fields.notes?.trim() || null;
     const { data, error } = await supabase
-        .from('income_entries').update(patch).eq('id', id).eq('business_id', getBID()).select('*, patients(display_name)').single();
+        .from('income_entries').update(patch).eq('id', id).eq('business_id', getBID()).select('*, patients(display_name), finance_categories(id, name, color)').single();
     if (error) throw error;
     return data;
 }
@@ -1576,7 +1643,7 @@ export async function getPendingValidations() {
 export async function getExpenseEntries({ start, end, status = 'confirmed', limit = 200 } = {}) {
     let q = supabase
         .from('expense_entries')
-        .select('*, supplies(name, unit)')
+        .select('*, supplies(name, unit), finance_categories(id, name, color)')
         .eq('business_id', getBID())
         .order('occurred_at', { ascending: false })
         .limit(limit);
@@ -1588,7 +1655,9 @@ export async function getExpenseEntries({ start, end, status = 'confirmed', limi
     return data || [];
 }
 
-export async function recordExpense({ description, amount, category = 'general', payment_method = null, occurred_at, quantity = 1, supply_id = null, recurring = false, frequency = 'one_time', notes = null }) {
+// category (texto) se conserva por compatibilidad con get_finance_summary/ExpenseSection
+// legacy; category_id es la fuente dinámica nueva — ambos se escriben juntos.
+export async function recordExpense({ description, amount, category = 'general', category_id = null, payment_method = null, occurred_at, quantity = 1, supply_id = null, recurring = false, frequency = 'one_time', notes = null }) {
     const { data, error } = await supabase
         .from('expense_entries')
         .insert({
@@ -1596,6 +1665,7 @@ export async function recordExpense({ description, amount, category = 'general',
             description: description.trim(),
             amount,
             category: category || 'general',
+            category_id,
             payment_method: payment_method || null,
             quantity,
             supply_id,
@@ -1616,12 +1686,13 @@ export async function updateExpense(id, fields) {
     if (fields.description !== undefined) patch.description = fields.description.trim();
     if (fields.amount !== undefined) patch.amount = fields.amount;
     if (fields.category !== undefined) patch.category = fields.category || 'general';
+    if (fields.category_id !== undefined) patch.category_id = fields.category_id || null;
     if (fields.occurred_at !== undefined) patch.occurred_at = fields.occurred_at;
     if (fields.recurring !== undefined) patch.recurring = fields.recurring;
     if (fields.frequency !== undefined) patch.frequency = fields.frequency;
     if (fields.notes !== undefined) patch.notes = fields.notes?.trim() || null;
     const { data, error } = await supabase
-        .from('expense_entries').update(patch).eq('id', id).eq('business_id', getBID()).select('*, supplies(name, unit)').single();
+        .from('expense_entries').update(patch).eq('id', id).eq('business_id', getBID()).select('*, supplies(name, unit), finance_categories(id, name, color)').single();
     if (error) throw error;
     return data;
 }

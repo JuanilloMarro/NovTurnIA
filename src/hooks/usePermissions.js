@@ -70,6 +70,7 @@ export function usePermissions() {
         canRecordExpense:    !!perms.record_expense,              // egresos/gastos
         canManageSupplies:   !!perms.manage_supplies,             // insumos + receta (BOM)
         canVoidFinance:      !!perms.void_finance,                // anular ingresos/egresos
+        canManageFinanceCategories: !!perms.manage_finance_categories, // tab Categorías (crear/editar/eliminar)
 
         // ── Administración ───────────────────────────────────
         canManageRoles:   !!perms.manage_roles,                   // módulo Usuarios, Actividad, Configuración

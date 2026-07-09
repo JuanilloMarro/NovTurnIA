@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, LayoutDashboard, CheckCircle2, ArrowUpRight, ArrowDownRight, Package, Plus, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, LayoutDashboard, CheckCircle2, ArrowUpRight, ArrowDownRight, Package, Plus, Lock, Tags } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useFinance } from '../hooks/useFinance';
 import { useSupplies } from '../hooks/useSupplies';
@@ -15,6 +15,7 @@ import SuppliesSection from '../components/Finance/SuppliesSection';
 import RecordIncomeModal from '../components/Finance/RecordIncomeModal';
 import RecordExpenseModal from '../components/Finance/RecordExpenseModal';
 import FinanceDetailDrawer from '../components/Finance/FinanceDetailDrawer';
+import CategoriesSection from '../components/Finance/CategoriesSection';
 
 const PERIODS = [
     { key: 'day', label: 'Día' },
@@ -58,6 +59,7 @@ const TAB_DEFS = [
     { id: 'ingresos', label: 'Ingresos', icon: ArrowUpRight },
     { id: 'egresos', label: 'Egresos', icon: ArrowDownRight },
     { id: 'insumos', label: 'Insumos', icon: Package },
+    { id: 'categorias', label: 'Categorías', icon: Tags },
 ];
 
 // Datos de muestra para la vista previa del FeatureLock (plan Básico). Alimentan
@@ -108,7 +110,7 @@ function AddBtn({ label, onClick }) {
 }
 
 export default function Finance() {
-    const { canConfirmDelivery, canRecordIncome, canRecordExpense, canManageSupplies, canVoidFinance } = usePermissions();
+    const { canConfirmDelivery, canRecordIncome, canRecordExpense, canManageSupplies, canVoidFinance, canManageFinanceCategories } = usePermissions();
     const [period, setPeriod] = useState('month');
     const [anchorDate, setAnchorDate] = useState(() => new Date());
     const [tab, setTabRaw] = useState('resumen');
@@ -116,6 +118,7 @@ export default function Finance() {
     const [expenseModal, setExpenseModal] = useState(null);
     const [selectedEntry, setSelectedEntry] = useState(null); // { entry, type }
     const [selectedPending, setSelectedPending] = useState(null); // fila de "Por confirmar"
+    const [categoryKind, setCategoryKind] = useState('income');
 
     const setTab = (t) => { setTabRaw(t); setSelectedEntry(null); setSelectedPending(null); };
 
@@ -193,6 +196,22 @@ export default function Finance() {
                 {/* Acción contextual */}
                 {tab === 'ingresos' && canRecordIncome && <AddBtn label="Registrar ingreso" onClick={() => setIncomeModal({ initial: null })} />}
                 {tab === 'egresos' && canRecordExpense && <AddBtn label="Registrar egreso" onClick={() => setExpenseModal({ initial: null })} />}
+                {tab === 'categorias' && (
+                    <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
+                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                        <button onClick={() => setCategoryKind('income')}
+                            className={`relative z-10 px-3 h-8 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${categoryKind === 'income' ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>
+                            <ArrowUpRight size={12} className="shrink-0" />
+                            Ingresos
+                        </button>
+                        <button onClick={() => setCategoryKind('expense')}
+                            className={`relative z-10 px-3 h-8 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${categoryKind === 'expense' ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>
+                            <ArrowDownRight size={12} className="shrink-0" />
+                            Egresos
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -261,13 +280,20 @@ export default function Finance() {
                             scrollList(<IncomeSection income={fin.income} onSelect={e => setSelectedEntry({ entry: e, type: 'income' })} selectedId={selectedEntry?.type === 'income' ? selectedEntry.entry.id : null} />)
                         ) : tab === 'egresos' ? (
                             scrollList(<ExpenseSection expenses={fin.expenses} onSelect={e => setSelectedEntry({ entry: e, type: 'expense' })} selectedId={selectedEntry?.type === 'expense' ? selectedEntry.entry.id : null} />)
-                        ) : (
+                        ) : tab === 'insumos' ? (
                             // Insumos — dos paneles (Insumos / Recetas) lado a lado
                             <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden custom-scrollbar px-2 py-2">
                                 <FeatureLock feature="supplies" variant="blurred" title="Insumos y Recetas" description="El catálogo de insumos y el cálculo de costo real por servicio están disponibles en el plan Enterprise." requiredPlan="Enterprise">
                                     <SuppliesSection supplies={sup.supplies} services={services} canManage={canManageSupplies}
                                         costForService={sup.costForService} create={sup.create} update={sup.update} remove={sup.remove} onReload={sup.reload} />
                                 </FeatureLock>
+                            </div>
+                        ) : (
+                            // Categorías — panel dividido (lista + form), mismo patrón que Servicios
+                            <div className="flex-1 min-h-0 overflow-hidden px-2 py-2">
+                                <div className="mx-auto w-full max-w-[1080px] h-full">
+                                    <CategoriesSection canManage={canManageFinanceCategories} activeKind={categoryKind} setActiveKind={setCategoryKind} />
+                                </div>
                             </div>
                         )}
                     </div>

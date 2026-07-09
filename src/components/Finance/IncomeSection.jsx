@@ -25,7 +25,14 @@ export default function IncomeSection({ income, onSelect, selectedId }) {
                         <div className="min-w-0">
                             <div className="font-bold text-navy-900 text-sm truncate leading-tight">{e.description}</div>
                             <div className="text-[10px] font-semibold text-navy-700/55 flex items-center gap-1.5 leading-tight mt-1 truncate">
-                                <span className="px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10">{SOURCE_LABEL[e.source] || e.source}</span>
+                                {e.finance_categories?.name ? (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10"
+                                        style={e.finance_categories.color ? { background: `${e.finance_categories.color}1a`, borderColor: `${e.finance_categories.color}40`, color: e.finance_categories.color } : undefined}>
+                                        {e.finance_categories.name}
+                                    </span>
+                                ) : (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10">{SOURCE_LABEL[e.source] || e.source}</span>
+                                )}
                                 {e.payment_method && <span>· {METHOD_LABEL[e.payment_method]}</span>}
                                 <span>· {fmtDate(e.occurred_at)}</span>
                             </div>

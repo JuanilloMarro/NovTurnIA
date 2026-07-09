@@ -79,6 +79,7 @@ export default function FinanceDetailDrawer({ entry, type, canVoid, canEdit, onE
                     {isIncome ? (
                         <>
                             <Row icon={Tag} label="Origen" value={SOURCE_LABEL[entry.source] || entry.source} />
+                            {entry.finance_categories?.name && <Row icon={Tag} label="Categoría" value={entry.finance_categories.name} />}
                             {entry.payment_method && <Row icon={CreditCard} label="Método de pago" value={METHOD_LABEL[entry.payment_method]} />}
                             {entry.patients?.display_name && <Row icon={User} label="Cliente" value={entry.patients.display_name} />}
                             <Row icon={Calendar} label="Fecha" value={fullDate(entry.occurred_at)} />
@@ -88,7 +89,7 @@ export default function FinanceDetailDrawer({ entry, type, canVoid, canEdit, onE
                         </>
                     ) : (
                         <>
-                            <Row icon={Tag} label="Categoría" value={CAT_LABEL[entry.category] || entry.category} />
+                            <Row icon={Tag} label="Categoría" value={entry.finance_categories?.name || CAT_LABEL[entry.category] || entry.category} />
                             {entry.supplies?.name && <Row icon={Package} label="Insumo" value={entry.supplies.name} />}
                             <Row icon={Repeat} label="Frecuencia" value={entry.recurring ? 'Mensual (fijo)' : 'Única'} />
                             <Row icon={Calendar} label="Fecha" value={fullDate(entry.occurred_at)} />

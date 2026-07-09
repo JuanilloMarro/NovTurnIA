@@ -16,26 +16,18 @@
 - ❌ `businesses.plan_expires_at` existe como columna pero **ninguna función de la DB la lee** (0 referencias en `pg_proc`).
 - ❌ `is_business_active()` existe pero está **huérfana** — ni políticas RLS ni RPCs la usan → el "bloqueo" es solo visual: el staff de un negocio suspendido aún puede leer/escribir por la API REST, y el bot sigue respondiendo (salvo `ai_paused`).
 
-**Decisión (tuya):** se deja así por ahora. Queda marcado como **Mejora #1** con el diseño completo abajo, listo para implementar cuando digas.
+**Actualización 2026-07-06:** ya NO se deja así — la parte de DB del dunning quedó **implementada y verificada** (ver #1 abajo y doc 07 Aud.#2): cron de suspensión/cancelación automática, `is_business_active()` ahora sí bloquea escritura (RLS), y `record_payment()` extiende el vencimiento. Solo falta el **botón "Marcar pagado"** en el AdminPanel ([TÚ]).
 
 ---
 
 ## A. Monetización y ciclo de vida del cliente
 
-### 1. ⭐ Dunning automatizado 7/30 días (el punto verificado arriba) — Esfuerzo M · Impacto ALTO
-**Qué falta:** que el sistema mueva solo los estados según el pago.
-**Diseño con lo que ya tienes:**
-1. Tabla `payments (id, business_id, amount, method, period_start, period_end, note, created_by, created_at)` — registro manual de pagos (Stripe después se enchufa aquí).
-2. Al registrar pago (botón "Marcar pagado" en AdminPanel → `admin-update-business`): `plan_expires_at = greatest(plan_expires_at, now()) + interval '1 month'` y `plan_status = 'active'`.
-3. Cron diario (pg_cron, como los 8 que ya corren):
-   - `plan_expires_at + 7 días < now()` y status `active` → `suspended` (modal ámbar aparece solo).
-   - `plan_expires_at + 30 días < now()` y status `suspended` → `cancelled` (bloqueo duro).
-4. Aviso previo: reutilizar `notifications` para "tu plan vence en 3 días".
-**Piezas:** pg_cron ✓, AdminPanel ✓, modal ✓ — solo falta la tabla, el cron y el botón.
+### 1. ⭐ Dunning automatizado 7/30 días — ✅ DB IMPLEMENTADA (2026-07-06) · falta el botón
+**Hecho (Aud.#2, doc 07):** tabla `payments`; `record_payment()` (extiende `plan_expires_at` +1 mes, reactiva); cron `run-dunning` diario (active→suspended a 7d, suspended→cancelled a 30d); `is_business_active` ampliada.
+**Falta [TÚ]:** botón "Marcar pagado" en AdminPanel → `admin-update-business` → `record_payment`. (Opcional: aviso "vence en 3 días" vía `notifications`.)
 
-### 2. Enforcement server-side de la suspensión — Esfuerzo S · Impacto ALTO
-**Qué falta:** que suspendido/cancelado bloquee la API, no solo la UI.
-**Cómo:** usar la huérfana `is_business_active()` en las políticas RLS de **escritura** (INSERT/UPDATE/DELETE): `WITH CHECK (business_id = (SELECT get_user_business_id()) AND (SELECT is_business_active()))`. Suspendido = solo-lectura real; cancelado además puede cortar SELECT. El bot: n8n ya consulta el negocio — con `plan_status` en esa lectura deja de responder a cancelados.
+### 2. Enforcement server-side de la suspensión — ✅ HECHO (2026-07-06)
+`is_business_active()` (ampliada a active+trial) añadida a las políticas RLS de **escritura** de 9 tablas de producto (migración `audit2b_rls_suspend_writes`). Suspendido = **solo-lectura real** en el dashboard. Verificado por impersonación (active escribe / suspended bloqueado). El bot usa service_role (ignora RLS) y conserva su gate `¿Plan Activo?`.
 
 ### 3. Trial de 14 días self-service — Esfuerzo S · Impacto MEDIO
 `plan_status = 'trial'` ya existe en el enum y el AdminPanel ya lo muestra. Falta: `onboard-tenant` acepte `plan_status:'trial'` + `plan_expires_at = now() + 14 días`, y el cron del punto 1 lo venza automáticamente. Vender sin cobrar el mes 1 baja la fricción del primer cliente.

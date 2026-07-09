@@ -33,16 +33,32 @@ Cada ítem tiene: `[ ]` estado, **responsable**, **impacto** (🔴 alto / 🟠 m
 - [x] Precios v2 (Q999 / Q1,999 / Q3,999) + límites (50/150/∞ pac.) con enforcement real por triggers.
 - [x] Límite = **solo visualización** para el bot (triggers eximen a service_role); `get_patient_profile` frugal creado.
 
+### Auditorías 2026-07-06 (Fable 5) — detalle en [doc 07](07-auditorias-2026-07-06.md)
+- [x] **Aud.#1 Superficie SECURITY DEFINER**: mínimo privilegio en 30+ funciones; ejecutables por anon **24→3**, por authenticated **41→33**. Tabla función→rol. *(migración `audit1_...`)*
+- [x] **Aud.#2 Dunning end-to-end**: `payments` + `record_payment` + cron `run-dunning` (7/30) + `is_business_active`(active,trial) + **suspensión con dientes** (RLS write-gating 9 tablas). Verificado por impersonación (active escribe / suspended bloqueado). *(migraciones `audit2a_/audit2b_`)*
+- [x] **Aud.#3 Cobertura de índices**: las 7 queries calientes cubiertas por prefijo+orden; sin índices faltantes (prueba de carga en branch → P2).
+- [x] **Aud.#4 Resiliencia n8n**: mapa de ~7 nodos frágiles sin onError + patrón de manejo (documentado para aplicar en n8n).
+- [x] **Aud.#5 Consistencia límites**: matriz plan×límite×comportamiento verificada; 3 inconsistencias menores → backlog.
+- [x] `plans` solo-lectura para clientes; `CLAUDE.md` corregido (mv_* → RPCs).
+
+### Submódulo Categorías Dinámicas de Finanzas (2026-07-06) — detalle en [doc 08](08-submodulo-categorias-finanzas.md)
+- [x] Tabla `finance_categories` (kind income/expense, RLS+triggers clonados de `supplies`, gate `is_business_active`) + `category_id` FK en `income_entries`/`expense_entries` (`ON DELETE SET NULL`) + seed inicial (7 egreso + 3 ingreso) por negocio. Verificado con 4 probes de rollback.
+- [x] Permiso `manage_finance_categories` en toda la pila: `usePermissions`, checkbox en `Users.jsx`, backfill DB (owner=true/secretary=false verificado), `onboard-tenant` v12 redeployado.
+- [x] Service layer (`getFinanceCategories`/CRUD) + hook `useFinanceCategories` (clon de `useServices`) + toasts `showCategory*Toast`.
+- [x] Tab "Categorías" en Finanzas + `CategoriesSection.jsx` (panel dividido idéntico a Servicios: switch Ingreso/Egreso, buscador, Nuevo, form inline con color).
+- [x] Integrado en `RecordExpenseModal`/`RecordIncomeModal` (dropdown dinámico, ya no hardcodeado) y en el display (`ExpenseSection`/`IncomeSection`/`FinanceDetailDrawer` con pill de color).
+- [x] Verificación: 13 módulos compilan limpio (sin login), endpoints REST + joins embebidos responden 200. **Pendiente [TÚ]:** probar clic-a-clic autenticado (crear/editar/borrar categoría; registrar ingreso/egreso con categoría).
+
 ### Documentación
-- [x] Docs 00–05 + Auditoría Técnica + este backlog (06).
+- [x] Docs 00–05 + 07 (auditorías) + 08 (categorías finanzas) + Auditoría Técnica + este backlog (06).
 
 ---
 
 ## 2. 🔴 PENDIENTES P0 — hacer primero (bloquean producción / cobro)
 
 - [ ] **[TÚ] 🔴 Fix rate-limit en n8n** — nodo `DB - Request API Limit` usa key `anon` (revocada) → el bot se cae en cada mensaje al onboardear. Cambiar `apikey`+`Authorization` a service_role. *(doc 05 §1)*
-- [ ] **[MIXTO] 🔴 Dunning 7/30 días automático** — hoy `plan_expires_at` no lo lee nada y ningún cron mueve `active→suspended→cancelled`. Crear tabla `payments`, botón "Marcar pagado" (extiende `plan_expires_at`), y cron diario que suspenda/cancele. *(doc 04 #1)*
-- [ ] **[IA] 🔴 Suspensión con dientes (server-side)** — usar la huérfana `is_business_active()` en las políticas RLS de escritura → un negocio suspendido queda solo-lectura de verdad (hoy el bloqueo es solo visual). *(doc 04 #2)*
+- [~] **[MIXTO] 🔴 Dunning 7/30 días automático** — **DB LISTA** (2026-07-06, Aud.#2): tabla `payments`, `record_payment`, cron `run-dunning`, `is_business_active` ampliada. **Falta [TÚ]:** botón "Marcar pagado" en AdminPanel → `record_payment`. *(doc 07 Aud#2)*
+- [x] **[IA] 🔴 Suspensión con dientes (server-side)** — `is_business_active()` en RLS de escritura de 9 tablas; suspendido = solo-lectura. Verificado por impersonación. *(2026-07-06, migración `audit2b_rls_suspend_writes`)*
 - [ ] **[TÚ] 🔴 Decisión metering** — `record_usage` nunca se llama → panel admin en 0 y `ai_paused` no corta. Cablear el nodo `record_usage` en n8n **o** ajustar el doc 01 para no depender de `ai_paused`. *(doc 05 §1 #4)*
 
 ## 3. 🟠 PENDIENTES P1 — siguientes (retención / consistencia / seguridad)
@@ -50,7 +66,8 @@ Cada ítem tiene: `[ ]` estado, **responsable**, **impacto** (🔴 alto / 🟠 m
 - [ ] **[IA] 🟠 Alerta de churn silencioso** — cron semanal: negocio sin turnos/mensajes en 7 días → `notifications`. *(doc 04 #11)*
 - [ ] **[MIXTO] 🟠 Emails transaccionales** — Edge Function + Resend (gratis) sobre `notification_email`: bienvenida, aviso de pago, corte por límite. *(doc 04 #5)*
 - [ ] **[TÚ] 🟠 Cablear `Tool - Perfil Paciente Enterprise`** en el Agente Enterprise (usa `get_patient_profile`, ya creado) + regla "solo si cliente recurrente". *(doc 05 §2.2)*
-- [ ] **[IA] 🟠 Endurecer funciones SECURITY DEFINER expuestas** — el advisor marca 24 ejecutables por `anon` y 41 por `authenticated`. Revisar una por una y `REVOKE` las que no deban ser públicas (dejar solo las que el frontend/bot realmente llaman). *(advisor security)*
+- [x] **[IA] 🟠 Endurecer funciones SECURITY DEFINER expuestas** — mínimo privilegio aplicado; anon 24→3, cada función mapeada a su rol. *(2026-07-06, Aud.#1, migración `audit1_least_privilege_execute_grants`)*
+- [ ] **[IA] 🟠 Ownership-check en `get_visible_patient_ids/staff_ids`** — forzar `p_business_id := get_user_business_id()` dentro de la función (hoy confían en el parámetro). *(doc 07 Aud#1, gap menor)*
 - [ ] **[TÚ] 🟠 Activar "Leaked password protection" (HIBP)** en Supabase Auth (Studio → Authentication → Policies). 1 clic. *(advisor security)*
 - [ ] **[TÚ] 🟠 Trial de 14 días self-service** — `plan_status='trial'` + `plan_expires_at` en onboarding; el cron de dunning lo vence. *(doc 04 #3)*
 - [ ] **[TÚ] 🟡 Alinear conteos del bot** — `Conversaciones - Contar` cuenta user+assistant (≈2×); gate de turnos usa `created_at` vs `date_start` del trigger; el bot ignora `limit_overrides`. *(doc 05 §1 #5-7)*
@@ -118,4 +135,6 @@ Cada ítem tiene: `[ ]` estado, **responsable**, **impacto** (🔴 alto / 🟠 m
 | [03](03-infraestructura-supabase.md) | Infra Supabase: tablas, retención, particiones, RLS |
 | [04](04-puntos-de-mejora.md) | 13 puntos de mejora + verificación dunning |
 | [05](05-agente-ia-memoria-y-fixes-n8n.md) | Auditoría n8n, memoria frugal, roadmap IA |
+| [07](07-auditorias-2026-07-06.md) | Auditorías #1-#5 (SECURITY DEFINER, dunning, índices, resiliencia, límites) |
+| [08](08-submodulo-categorias-finanzas.md) | Spec: submódulo de categorías dinámicas de Finanzas (para Sonnet) |
 | [Auditoría](Auditoria%20Tecnica%20Multi-Tenant.md) | Auditoría técnica multi-tenant + scorecard |

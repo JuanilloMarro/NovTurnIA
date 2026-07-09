@@ -121,6 +121,13 @@ export const showOfferActivateToast = (message) => toast('success', 'offer_activ
 export const showOfferDeactivateToast = (message) => toast('warning', 'offer_deactivate', 'Oferta Desactivada', message);
 export const showOfferDeleteToast = (message) => toast('error', 'offer_delete', 'Oferta Eliminada', message);
 
+// ── Finance Category ────────────────────────────────────────────────────────
+export const showCategoryNewToast = (message) => toast('success', 'category_new', 'Categoría Creada', message);
+export const showCategoryEditToast = (message) => toast('warning', 'category_edit', 'Categoría Actualizada', message);
+export const showCategoryActivateToast = (message) => toast('success', 'category_activate', 'Categoría Activada', message);
+export const showCategoryDeactivateToast = (message) => toast('warning', 'category_deactivate', 'Categoría Desactivada', message);
+export const showCategoryDeleteToast = (message) => toast('error', 'category_delete', 'Categoría Eliminada', message);
+
 // ── Staff ─────────────────────────────────────────────────────────────────────
 export const showStaffPermsToast = (message) => toast('success', 'staff_perms', 'Permisos Guardados', message);
 

@@ -64,7 +64,7 @@ const OWNER_PERMISSIONS = {
   create_offers: true, edit_offers: true, toggle_offers: true, delete_offers: true,
   // Finanzas
   view_finance: true, confirm_delivery: true, record_income: true, record_expense: true,
-  manage_supplies: true, void_finance: true,
+  manage_supplies: true, void_finance: true, manage_finance_categories: true,
   // Administración
   manage_roles: true, delete_users: true, export_reports: true,
 };
@@ -90,7 +90,7 @@ const SECRETARY_PERMISSIONS = {
   create_offers: false, edit_offers: false, toggle_offers: false, delete_offers: false,
   // Finanzas
   view_finance: false, confirm_delivery: false, record_income: false, record_expense: false,
-  manage_supplies: false, void_finance: false,
+  manage_supplies: false, void_finance: false, manage_finance_categories: false,
   // Administración
   manage_roles: false, delete_users: false, export_reports: false,
 };

@@ -12,15 +12,6 @@ export const PAY_OPTIONS = [
     { id: 'transfer', label: 'Transferencia' },
     { id: 'other', label: 'Otro' },
 ];
-export const EXPENSE_CATS = [
-    { id: 'insumo', label: 'Insumos' },
-    { id: 'renta', label: 'Renta' },
-    { id: 'salario', label: 'Salarios' },
-    { id: 'servicios', label: 'Servicios' },
-    { id: 'marketing', label: 'Marketing' },
-    { id: 'general', label: 'General' },
-    { id: 'otro', label: 'Otro' },
-];
 export const FREQ_OPTIONS = [
     { id: 'one_time', label: 'Una vez' },
     { id: 'monthly', label: 'Mensual (fijo)' },

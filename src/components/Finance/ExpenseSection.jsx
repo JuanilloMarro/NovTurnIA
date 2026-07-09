@@ -27,7 +27,10 @@ export default function ExpenseSection({ expenses, onSelect, selectedId }) {
                                 {e.recurring && <Repeat size={11} className="text-navy-700/40 shrink-0" title="Recurrente mensual" />}
                             </div>
                             <div className="text-[10px] font-semibold text-navy-700/55 flex items-center gap-1.5 leading-tight mt-1 truncate">
-                                <span className="px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10">{CAT_LABEL[e.category] || e.category}</span>
+                                <span className="px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10"
+                                    style={e.finance_categories?.color ? { background: `${e.finance_categories.color}1a`, borderColor: `${e.finance_categories.color}40`, color: e.finance_categories.color } : undefined}>
+                                    {e.finance_categories?.name || CAT_LABEL[e.category] || e.category}
+                                </span>
                                 <span>· {fmtDate(e.occurred_at)}</span>
                             </div>
                         </div>

@@ -267,6 +267,7 @@ export default function Users() {
                                                 { key: 'record_expense', label: 'Registrar egresos' },
                                                 { key: 'manage_supplies', label: 'Gestionar insumos y recetas' },
                                                 { key: 'void_finance', label: 'Anular movimientos' },
+                                                { key: 'manage_finance_categories', label: 'Gestionar categorías de finanzas' },
                                             ]
                                         },
                                         {
