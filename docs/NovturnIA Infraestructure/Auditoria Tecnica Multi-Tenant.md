@@ -88,6 +88,24 @@ Escala **0–10** (0 = ausente/roto, 5 = funcional con deuda, 7 = sólido, 9+ = 
 
 ---
 
+## ★ RE-EVALUACIÓN 2026-07-11 (última revisión — todo verificado en vivo)
+
+Desde la auditoría original (2026-07-03/04) se ejecutó la mayor parte del roadmap que este documento pedía. Estado por área con el **scorecard actualizado**:
+
+| Área | Peso | Antes (07-04) | **Ahora (07-11)** | Qué cambió (verificado) |
+|---|---|---|---|---|
+| A. Base de Datos | 35% | 7.5 | **8.7** | InitPlan en todas las políticas; índices compuestos calientes + poda; particionado automatizado (crons horizonte/limpieza); retención por plan; mínimo privilegio EXECUTE (anon 24→3, Aud.#1); dunning DB completo (payments/record_payment/run-dunning); suspensión con dientes (RLS escritura 10 tablas); `finance_categories` con el patrón completo; advisor: **0 ERROR**. Restan: overloads duplicados de 5 RPCs stats, ownership-check en `get_visible_*_ids`, Vault para tokens |
+| B. Dashboard | 25% | 8.2 | **8.5** | Límites de plan con booleanos reales + FeatureLock sin flash (SAFE_DEFAULTS); RBAC granular ampliado (ofertas, categorías); módulo Categorías; AdminPanel con overrides/ai_paused/uso. Restan: F-1 (gate staff), F-4 (sin retry — sigue siendo el mayor debe del front), 4 `window.confirm` |
+| C. Infraestructura y Resiliencia | 20% | 6.4 | **7.3** | 9 crons activos 0 fallos/7d; buffer/rate-limits con limpieza; Edge Functions ×5 v-actuales; fix del navigator-lock (adminService timeout). Restan: retry/backoff front (§9 sigue abierto), Sentry prod sin DSN, n8n instancia única |
+| D. Producto / SaaS | 20% | 6.4 | **7.2** | Pricing v2 aplicado y v3 decidida con benchmarking GT; enforcement real de límites en dashboard; dunning DB listo. Lo que lo frena (deuda comercial, doc Modelo de Negocio §8): **metering muerto (H1)**, bot ignora `ai_paused` (H2), reminders/auto_confirm vendidos sin motor (H6), `plan_expires_at` NULL (H5) |
+| **GLOBAL** | 100% | **7.2** | **8.1 / 10** | |
+
+**Los 3 hallazgos originales CRÍTICO/ALTO: todos cerrados y verificados** (#1 UPDATE por columnas, #2 escalación RBAC, #3 superficie anon). #4 metering: la arquitectura existe y es correcta — sigue sin productor (H1). #5 ✅ · #6 ✅ · #7 (audit síncrono) aceptado por volumen · #8 fósiles dropeados · #9 **sigue abierto** (retry/backoff) · #10 parcial (rate-limit por usuario sí; por tenant pendiente) · #11 sin Sentry prod · #12 superseded por el [Modelo de Negocio v3](Modelo%20de%20Negocio.md) (Q599/1,999/3,999 — los Q499/Q999 de §12 son históricos).
+
+**Techo actual para pasar de 8.1 → 9:** (1) cerrar H1/H2 (metering + kill-switch del bot), (2) retry/backoff en el front (§9/F-4), (3) Sentry en prod + prueba de carga sintética (Aud.#3 diseñada). Detalle operativo en el [Backlog Maestro](Backlog%20Maestro.md).
+
+---
+
 ## 1. [CRÍTICO] Auto-upgrade de plan y fuga de credenciales por `UPDATE` directo a `businesses`
 
 ### Estado Actual y Funcionamiento
