@@ -92,6 +92,20 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // --- Marcar pagado: registra el pago y extiende plan_expires_at +1 mes ---
+    // record_payment() (solo service_role) inserta en payments, reactiva el plan
+    // (plan_status='active'), quita ai_paused y corre el ciclo de dunning real.
+    if (body.record_payment) {
+      const { amount, method, note } = body.record_payment;
+      const { error: payError } = await supabase.rpc("record_payment", {
+        p_business_id: business_id,
+        p_amount: Number(amount) || 0,
+        p_method: method || "manual",
+        p_note: note || "Marcado pagado desde AdminPanel",
+      });
+      if (payError) throw payError;
+    }
+
     // --- Reset password: send recovery email to a staff member ---
     if (body.reset_password_email) {
       const { error: resetError } = await supabase.auth.admin.generateLink({

@@ -107,6 +107,27 @@ async function handleCreate(
     );
   }
 
+  // 0. Límite de staff del plan: esta función corre con service_role, así que el
+  // trigger enforce_staff_limit NO aplica (exime auth.uid() IS NULL) — el check
+  // debe vivir aquí. Respeta limit_overrides vía get_effective_limit.
+  const { data: maxStaff } = await supabaseAdmin.rpc('get_effective_limit', {
+    p_business_id: caller.business_id,
+    p_key: 'max_staff',
+  });
+  if (maxStaff !== null && maxStaff !== undefined) {
+    const { count: activeStaff } = await supabaseAdmin
+      .from('staff_users')
+      .select('id', { count: 'exact', head: true })
+      .eq('business_id', caller.business_id)
+      .eq('active', true);
+    if ((activeStaff ?? 0) >= maxStaff) {
+      return new Response(
+        JSON.stringify({ error: `Alcanzaste el límite de ${maxStaff} usuarios de tu plan. Sube de plan para agregar más.` }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
   // 1. Crear en auth.users (email_confirm: true = sin email de verificación)
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email: (email as string).trim().toLowerCase(),

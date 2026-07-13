@@ -32,16 +32,18 @@
 
 ## 3. Hallazgos (F-#; los H-# vienen de la auditoría de límites del Modelo de Negocio)
 
+> **Actualización 2026-07-11:** F-1, F-2 y F-8 resueltos; F-3 re-auditado y cerrado como N/A (detalle en cada fila). Verificación: `npm run build` limpio.
+
 | # | Sev | Hallazgo | Fix |
 |---|---|---|---|
-| F-1 (=H4) | 🟠 | `Users.jsx` destructura `staffUsed/maxStaff` pero **no usa `canAddStaff`** para deshabilitar el botón de crear usuario — al tope de staff, el error del trigger DB llega crudo (inconsistente con Nuevo Cliente/Nuevo Turno que sí gatean) | Usar `canAddStaff` + banner, patrón de `NewPatientModal` (15 min) |
-| F-2 (=H8) | 🟡 | `Conversations.jsx:365` compara `patientsUsed > maxConversations` — variable equivocada (afecta solo el texto "Mostrando últimas X conversaciones") | Cambiar a `conversationsUsed` (2 min) |
-| F-3 | 🟠 | `AdminOnboarding.jsx` tiene el **array de planes hardcodeado** en vez de leer la tabla `plans` — al aplicar el pricing v3 quedará desincronizado (mostraría Q999 al crear tenants) | Leer de `plans` (o de `get_plan_limits`); hacerlo **junto con** el UPDATE v3 |
-| F-4 | 🔴 | **Sin resiliencia de red**: ninguna llamada del service tiene retry/backoff; un fallo transitorio de Supabase/red = error directo al usuario (la Auditoría Técnica §9 ya lo pedía; sigue pendiente) | Wrapper `withRetry` (2-3 intentos, backoff exponencial, solo lecturas idempotentes) en `supabaseService` |
-| F-5 | 🟡 | **4 `window.confirm` nativos** (AppointmentDrawer:426, FinanceDetailDrawer:33, PendingValidationDrawer:47, SuppliesSection:186) — rompen el design system glass (CategoriesSection ya usa modal custom por `createPortal`) | Extraer el confirm de CategoriesSection a `ui/ConfirmDialog` y reusar en los 4 |
+| F-1 (=H4) | ✅ | **RESUELTO + re-auditado:** no existía botón de crear usuario en la UI (el `addUser` del hook está huérfano) — el hueco REAL era que `manage-staff` (service_role → trigger exento) no chequeaba `max_staff`: el límite de staff no se aplicaba en la única vía de creación | Check de límite en la Edge (`get_effective_limit` + conteo, 409 amable) → **v8 desplegada**; Users.jsx muestra `X/Y usuarios del plan` |
+| F-2 (=H8) | ✅ | **RESUELTO:** la variable correcta era `maxPatients` (el límite que recorta los chats visibles vía `get_visible_patient_ids`), no `conversationsUsed` como se propuso inicialmente | `maxPatients` + texto "(límite del plan)" |
+| F-3 | ✅ | **Re-auditado — hallazgo sobreestimado, cerrado N/A:** `AdminOnboarding` solo hardcodea los ids de tier (`['basic','pro','enterprise']`), sin precios ni límites → no hay desync posible con la v3 | Ninguno necesario |
+| F-4 | ✅ | **RESUELTO 2026-07-11:** `utils/withRetry.js` (3 intentos, backoff exponencial, SOLO errores transitorios) + adaptador `retryRead` (supabase-js no lanza errores de red — los relanza para reintentar). Aplicado a las 4 lecturas calientes: `getAppointmentsByWeek`, `getPatients`, `getFinanceSummary`, `getPlanLimits`. Solo lecturas, jamás escrituras | Circuit breaker completo queda como mejora futura |
+| F-5 | ✅ | **RESUELTO 2026-07-11:** `ui/ConfirmDialog.jsx` (glass, portal, loading/danger) reemplaza los 4 `window.confirm` nativos — 0 restantes en el código | — |
 | F-6 | 🟡 | **Sentry sin configurar en prod** (`VITE_SENTRY_DSN` no seteado en Vercel) — errores de clientes reales invisibles | [TÚ] setear DSN + sourcemaps ocultos (Auditoría §11) |
 | F-7 | 🟡 | Contadores de uso de conversaciones muestran **siempre 0** — no es bug del front: `conversations_used` lee `usage_counters` vacía (H1 backend). Al cerrar H1 el front funciona sin cambios | Se resuelve solo con H1 |
-| F-8 | 🟡 | El front nunca muestra el error del trigger con `HINT PLAN_LIMIT_*` de forma amable si el gate UX falla (p. ej. dos pestañas): el mensaje crudo de Postgres llega al toast | Mapear `error.hint === 'PLAN_LIMIT_*'` → mensaje de upgrade (30 min) |
+| F-8 | ✅ | **RESUELTO 2026-07-11:** `createPatient` y `createAppointment` mapean `error.hint PLAN_LIMIT_*` → mensaje de upgrade amable (cubre la carrera de dos pestañas) | Aplicado en `supabaseService.js` |
 
 **Bugs históricos ya corregidos (no reabrir):** "se levantan los componentes" al seleccionar chat (scrollIntoView → scrollTop del contenedor, fix 2026-07), alta de tenant "trabada" (navigator lock de gotrue → fetch directo con timeout), 406 del super-admin (`maybeSingle`).
 

@@ -131,6 +131,7 @@ serve(async (req) => {
       schedule_days = [1, 2, 3, 4, 5], // Lun–Vie
       phone_number_id = '',
       whatsapp_token = '',
+      trial = false, // true → plan_status 'trial' con vencimiento a 14 días (el cron run-dunning lo vence solo)
     } = await req.json();
 
     // ── Validaciones ────────────────────────────────────────────────────────
@@ -182,7 +183,8 @@ serve(async (req) => {
       .insert({
         name: business_name,
         plan_id: planRecord.id,
-        plan_status: 'active',
+        plan_status: trial ? 'trial' : 'active',
+        plan_expires_at: trial ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null,
         timezone,
         schedule_start: toHour(schedule_start),
         schedule_end: toHour(schedule_end),

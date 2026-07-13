@@ -8,6 +8,7 @@ import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import AccountStatusModal from './components/AccountStatusModal';
 import PlansModal from './components/PlansModal';
+import CommandPalette from './components/CommandPalette';
 import ToastContainer from './components/ToastContainer';
 
 // T-22: Lazy loading de rutas — los bundles de cada página se cargan solo al navegar.
@@ -156,6 +157,7 @@ export default function App() {
                                         <AccountStatusModal status={businessStatus} />
                                     )}
                                     <PlansModal isOpen={isPlansOpen} onClose={closePlans} />
+                                    <CommandPalette />
                                 </div>
                             </div>
                             )}

@@ -3,6 +3,7 @@ import { Plus, Trash2, Pencil, Package, ChefHat, Search } from 'lucide-react';
 import { getServiceRecipe, setServiceRecipe } from '../../services/supabaseService';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 import { ModalShell, FieldLabel, TextInput, AmountInput, ModalButtons, money } from './financeUi';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 // ── Botón estilo lista "IA pausada" (pill glass + glows + label expandible) ──
 function PillBtn({ icon: Icon, label, onClick, tone = 'default' }) {
@@ -178,14 +179,18 @@ export default function SuppliesSection({ supplies, services, canManage, costFor
     const [recipeService, setRecipeService] = useState(null);
     const [supplyQ, setSupplyQ] = useState('');
     const [serviceQ, setServiceQ] = useState('');
+    const [pendingDelete, setPendingDelete] = useState(null); // insumo a eliminar (ConfirmDialog)
+    const [deleting, setDeleting] = useState(false);
 
     const filteredSupplies = supplies.filter(s => s.name.toLowerCase().includes(supplyQ.toLowerCase().trim()));
     const filteredServices = services.filter(s => s.name.toLowerCase().includes(serviceQ.toLowerCase().trim()));
 
-    async function removeSupply(s) {
-        if (!window.confirm(`¿Eliminar el insumo "${s.name}"? Se quitará de las recetas que lo usen.`)) return;
-        try { await remove(s.id); showSuccessToast('Insumo eliminado', ''); onReload?.(); }
+    async function removeSupply() {
+        if (!pendingDelete) return;
+        setDeleting(true);
+        try { await remove(pendingDelete.id); showSuccessToast('Insumo eliminado', ''); onReload?.(); }
         catch (err) { showErrorToast('No se pudo eliminar', err.message || ''); }
+        finally { setDeleting(false); setPendingDelete(null); }
     }
 
     return (
@@ -208,7 +213,7 @@ export default function SuppliesSection({ supplies, services, canManage, costFor
                         {canManage && (
                             <div className="flex items-center gap-1.5 shrink-0">
                                 <PillBtn icon={Pencil} label="Editar" onClick={() => setSupplyModal({ edit: s })} />
-                                <PillBtn icon={Trash2} label="Eliminar" tone="danger" onClick={() => removeSupply(s)} />
+                                <PillBtn icon={Trash2} label="Eliminar" tone="danger" onClick={() => setPendingDelete(s)} />
                             </div>
                         )}
                     </Ficha>
@@ -256,6 +261,12 @@ export default function SuppliesSection({ supplies, services, canManage, costFor
             {recipeService && (
                 <RecipeModal service={recipeService} supplies={supplies.filter(s => s.active)} onClose={() => setRecipeService(null)} onSaved={onReload} />
             )}
+
+            <ConfirmDialog open={!!pendingDelete} danger loading={deleting}
+                title={`¿Eliminar "${pendingDelete?.name ?? ''}"?`}
+                message="Se quitará de las recetas que lo usen. Esta acción no se puede deshacer."
+                confirmLabel="Sí, eliminar" loadingLabel="Eliminando..."
+                onConfirm={removeSupply} onCancel={() => setPendingDelete(null)} />
         </div>
     );
 }

@@ -77,7 +77,10 @@ export default function Users() {
                 <div className="flex items-center gap-4">
                     <div>
                         <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Gestión de Usuarios</h1>
-                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Administra el personal y sus permisos</p>
+                        <p className="text-xs text-navy-700/60 font-semibold tracking-wide">
+                            Administra el personal y sus permisos
+                            {maxStaff != null && ` · ${staffUsed}/${maxStaff} usuarios del plan`}
+                        </p>
                     </div>
                 </div>
             </div>

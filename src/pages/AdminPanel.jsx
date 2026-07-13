@@ -4,12 +4,12 @@ import {
     Building2, Search, Shield, LogOut, Users, Calendar,
     UserCheck, ChevronRight, Save, Mail, RefreshCw,
     SlidersHorizontal, Clock, Bot, Activity, Power, MessageSquare, Layers, Plus, AlertTriangle,
-    Eye, EyeOff, Phone, KeyRound,
+    Eye, EyeOff, Phone, KeyRound, CreditCard, Download, BarChart3,
 } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAppStore } from '../store/useAppStore';
 import { showSuccessToast, showErrorToast } from '../store/useToastStore';
-import { adminListBusinesses, adminUpdateBusiness, adminResetPassword } from '../services/adminService';
+import { adminListBusinesses, adminUpdateBusiness, adminResetPassword, adminRecordPayment, adminExportTenant } from '../services/adminService';
 
 const STATUS_META = {
     active:    { label: 'Activo',     cls: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' },
@@ -118,6 +118,9 @@ export default function AdminPanel() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [resetting, setResetting] = useState(false);
+    const [paying, setPaying] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const [usageHistory, setUsageHistory] = useState([]);
     const [form, setForm] = useState(null);
     const [tab, setTab] = useState('datos');
     const [showToken, setShowToken] = useState(false);
@@ -238,6 +241,54 @@ export default function AdminPanel() {
             showErrorToast('Error', 'No se pudo guardar el negocio.');
         } finally {
             setSaving(false);
+        }
+    }
+
+    // Histórico de consumo (usage_counters) del negocio seleccionado
+    useEffect(() => {
+        if (!selected?.id) { setUsageHistory([]); return; }
+        let alive = true;
+        supabase.rpc('get_usage_history', { p_business_id: selected.id })
+            .then(({ data }) => { if (alive) setUsageHistory(data || []); })
+            .catch(() => { if (alive) setUsageHistory([]); });
+        return () => { alive = false; };
+    }, [selected?.id]);
+
+    async function handleExport() {
+        if (!selected) return;
+        setExporting(true);
+        try {
+            const res = await adminExportTenant(selected.id);
+            window.open(res.url, '_blank', 'noopener');
+            const c = res.counts || {};
+            showSuccessToast('Export listo', `${c.patients ?? 0} clientes · ${c.appointments ?? 0} turnos. El enlace vence en 24h.`);
+        } catch (err) {
+            showErrorToast('Error al exportar', err?.message || '');
+        } finally {
+            setExporting(false);
+        }
+    }
+
+    async function handleRecordPayment() {
+        if (!selected) return;
+        const price = selected.plans?.monthly_price ?? 0;
+        setPaying(true);
+        try {
+            const updated = await adminRecordPayment(selected.id, {
+                amount: price,
+                method: 'manual',
+                note: `Pago manual — plan ${selected.plans?.name ?? ''}`,
+            });
+            const merged = { ...selected, ...updated, plans: updated.plans };
+            setBusinesses(prev => prev.map(b => b.id === selected.id ? merged : b));
+            setSelected(merged);
+            setForm(f => f ? { ...f, plan_status: merged.plan_status, ai_paused: merged.ai_paused, ai_paused_reason: merged.ai_paused_reason } : f);
+            const vence = merged.plan_expires_at ? new Date(merged.plan_expires_at).toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+            showSuccessToast('Pago registrado', `Plan activo. Vence: ${vence}.`);
+        } catch (err) {
+            showErrorToast('Error', err?.message || 'No se pudo registrar el pago.');
+        } finally {
+            setPaying(false);
         }
     }
 
@@ -377,11 +428,24 @@ export default function AdminPanel() {
                                         ID: <span className="font-mono">{selected.id}</span> · Creado {new Date(selected.created_at).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
                                     </p>
                                 </div>
-                                <button onClick={handleSave} disabled={saving}
-                                    className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-navy-900 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-navy-800 transition-colors duration-200 disabled:opacity-50">
-                                    {saving ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={13} />}
-                                    Guardar
-                                </button>
+                                <div className="flex-shrink-0 flex items-center gap-2">
+                                    <button onClick={handleExport} disabled={exporting}
+                                        title="Exporta todos los datos del negocio a JSON (enlace de descarga válido 24h)"
+                                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold uppercase tracking-widest hover:bg-white/60 transition-colors duration-200 disabled:opacity-50">
+                                        {exporting ? <div className="w-3.5 h-3.5 border-2 border-navy-900/20 border-t-navy-900 rounded-full animate-spin" /> : <Download size={13} />}
+                                    </button>
+                                    <button onClick={handleRecordPayment} disabled={paying}
+                                        title={`Registra el pago del mes (Q${selected.plans?.monthly_price ?? 0}), extiende el vencimiento +1 mes y reactiva el plan`}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-colors duration-200 disabled:opacity-50">
+                                        {paying ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CreditCard size={13} />}
+                                        Marcar pagado
+                                    </button>
+                                    <button onClick={handleSave} disabled={saving}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-navy-900 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-navy-800 transition-colors duration-200 disabled:opacity-50">
+                                        {saving ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={13} />}
+                                        Guardar
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Tab nav */}
@@ -408,9 +472,33 @@ export default function AdminPanel() {
                                             <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl p-4">
                                                 <p className="text-[11px] font-bold text-navy-700/50 uppercase tracking-wider mb-2">Plan actual</p>
                                                 <p className="text-[15px] font-bold text-navy-900">{selected.plans.name}</p>
-                                                <p className="text-[12px] text-navy-700/50 font-medium mt-0.5">${selected.plans.monthly_price}/mes · {selected.plans.tier}</p>
+                                                <p className="text-[12px] text-navy-700/50 font-medium mt-0.5">Q{selected.plans.monthly_price}/mes · {selected.plans.tier}</p>
+                                                {selected.plan_expires_at && (
+                                                    <p className="text-[11px] text-navy-700/50 font-medium mt-1">Vence: {new Date(selected.plan_expires_at).toLocaleDateString('es-GT', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                                )}
                                             </div>
                                         )}
+
+                                        {/* Histórico de consumo (usage_counters, últimos meses) */}
+                                        <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl p-4">
+                                            <p className="text-[11px] font-bold text-navy-700/50 uppercase tracking-wider mb-2 flex items-center gap-1.5"><BarChart3 size={12} /> Consumo IA por mes</p>
+                                            {usageHistory.length === 0 ? (
+                                                <p className="text-[11px] text-navy-700/40 font-medium">Sin datos de consumo aún — el metering se activa al cablear `record_usage` en el bot (H1).</p>
+                                            ) : (() => {
+                                                const maxMsgs = Math.max(...usageHistory.map(u => u.messages), 1);
+                                                return usageHistory.map(u => (
+                                                    <div key={u.period} className="mb-2 last:mb-0">
+                                                        <div className="flex items-center justify-between text-[10px] font-bold text-navy-700/60 mb-0.5">
+                                                            <span>{new Date(u.period + 'T12:00:00').toLocaleDateString('es-GT', { month: 'short', year: '2-digit' })}</span>
+                                                            <span>{u.messages.toLocaleString()} msgs{u.tokens_in + u.tokens_out > 0 ? ` · ${((u.tokens_in + u.tokens_out) / 1000).toFixed(0)}k tok` : ''}</span>
+                                                        </div>
+                                                        <div className="h-1.5 rounded-full bg-navy-900/5 overflow-hidden">
+                                                            <div className="h-full rounded-full bg-navy-700/60" style={{ width: `${Math.max((u.messages / maxMsgs) * 100, 3)}%` }} />
+                                                        </div>
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </div>
                                     </div>
 
                                     <div className="lg:col-span-2 bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl p-5 space-y-4">

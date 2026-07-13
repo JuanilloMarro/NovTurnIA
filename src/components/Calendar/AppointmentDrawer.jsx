@@ -8,6 +8,7 @@ import EditAppointmentModal from './EditAppointmentModal';
 import NewAppointmentModal from './NewAppointmentModal';
 import ConfirmDeliveryModal from '../Finance/ConfirmDeliveryModal';
 import AIStar from '../Icons/AIStar';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { formatPhone } from '../../utils/format';
 import { showAptNoShowToast, showAptCancelToast, showAptConfirmToast, showAptPendingToast, showBotPauseToast, showBotReactivateToast, showErrorToast, showSuccessToast } from '../../store/useToastStore';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -22,6 +23,8 @@ function getInitials(name) {
 export default function AppointmentDrawer({ appointment, onClose, onUpdated, variant }) {
     const navigate = useNavigate();
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [showPurgeConfirm, setShowPurgeConfirm] = useState(false); // F-5: borrado permanente
+    const [purging, setPurging] = useState(false);
     const [canceling, setCanceling] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [showReschedule, setShowReschedule] = useState(false);
@@ -422,17 +425,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     {/* 8. Borrar permanentemente (para No-show o Cancelados) */}
                     {canPurgeAppointments && (status === 'no_show' || status === 'cancelled') && (
                         <button
-                            onClick={async () => {
-                                if (window.confirm('¿Estás seguro de que deseas borrar permanentemente este registro de la base de datos?')) {
-                                    try {
-                                        await deleteAppointment(id);
-                                        onUpdated?.();
-                                        onClose();
-                                    } catch (err) {
-                                        showErrorToast('Error al borrar', err.message);
-                                    }
-                                }
-                            }}
+                            onClick={() => setShowPurgeConfirm(true)}
                             className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-rose-600 text-[11px] font-bold rounded-full shadow-md hover:bg-rose-600 hover:border-rose-600 hover:text-white transition-all duration-300"
                         >
                             <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
@@ -443,6 +436,25 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     )}
                 </div>
             </div>
+
+            {/* F-5: confirmación de borrado permanente (No-show / Cancelados) */}
+            <ConfirmDialog open={showPurgeConfirm} danger loading={purging}
+                title="¿Borrar este registro permanentemente?"
+                message="Se elimina de la base de datos y no se puede recuperar."
+                confirmLabel="Sí, borrar" loadingLabel="Borrando..."
+                onConfirm={async () => {
+                    setPurging(true);
+                    try {
+                        await deleteAppointment(id);
+                        onUpdated?.();
+                        onClose();
+                    } catch (err) {
+                        showErrorToast('Error al borrar', err.message);
+                        setPurging(false);
+                        setShowPurgeConfirm(false);
+                    }
+                }}
+                onCancel={() => setShowPurgeConfirm(false)} />
 
             {/* Cancel Confirmation */}
             {showCancelConfirm && createPortal(

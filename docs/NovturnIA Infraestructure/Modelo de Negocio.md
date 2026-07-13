@@ -26,7 +26,7 @@ Claves estructurales (validadas con números en §4-§6):
 ## 2. ★ ESTRUCTURA DE PRECIOS FINAL v3 — 3 planes (decidida 2026-07-10)
 
 > **Decisión del usuario:** solo 3 planes (patrón Good-Better-Best; más opciones = más duda), manteniendo el **pitch de ahorro de planilla**. La v3 **solo toca el Básico** (precio y mensajes); Pro y Enterprise quedan intactos porque el benchmark (§7) los sostiene con holgura.
-> **Estado:** decidida y documentada. **Pendiente de aplicar en DB** (1 `UPDATE` a `plans`: basic `monthly_price` 999→599 y `max_conversations` 1000→500 — [IA] lo aplica en 1 min con confirmación). Los precios en producción siguen siendo los v2 hasta entonces.
+> **Estado:** ✅ **APLICADA EN PRODUCCIÓN (2026-07-11)** — migración `pricing_v3_basic_and_drop_unused_overloads`, verificado en vivo: basic **Q599/500 msgs** · pro Q1,999/5,000 · enterprise Q3,999/20,000. `AdminOnboarding` no requirió cambio (solo referencia tiers, sin precios).
 
 ### 2.1 La escalera
 
@@ -202,10 +202,10 @@ El margen converge a ~88% — estructura de SaaS sano. **El primer cliente ideal
 | H2 | 🔴 | El bot ignora `ai_paused` (ni corte automático ni kill-switch manual lo detienen) | n8n: condición extra en `¿Plan Activo?` (dato ya cargado, 0 requests) |
 | H6 | 🔴 | `reminders`/`auto_confirm` se venden sin motor (sin `scheduleTrigger`) | portar del workflow viejo o quitar los flags hasta implementarlos |
 | H3 | 🟠 | Gates del bot miden distinto que la DB (turnos por `created_at`; conversaciones 2×; sin overrides) | n8n |
-| H4 | 🟠 | `Users.jsx` no deshabilita "crear usuario" al tope de staff | front (usar `canAddStaff`, ya existe en el hook) |
-| H5 | 🟠 | `plan_expires_at` NULL → dunning inoperante; falta botón "Marcar pagado" | onboard-tenant + AdminPanel |
+| H4 | ✅ | **Resuelto 2026-07-11** (y re-auditado: no existía botón de crear en la UI — el hueco real era que `manage-staff` corre con service_role, exento del trigger, y no chequeaba `max_staff`). Fix: check de límite en la Edge (**v8**) + contador `X/Y usuarios del plan` en Users.jsx | — |
+| H5 | 🟢 | **Casi resuelto 2026-07-11**: botón "Marcar pagado" en AdminPanel (edge v9 → `record_payment`) + trial 14d con vencimiento (onboard-tenant v13). [TÚ] queda 1 clic: marcar pagado al negocio real | — |
 | H7 | 🟡 | `custom_prompt` inyectado a todos los planes en el bot | n8n (condición por tier) o aceptar |
-| H8 | 🟡 | `Conversations.jsx:365` usa la variable equivocada en un texto | front |
+| H8 | ✅ | **Resuelto 2026-07-11**: la comparación correcta era contra `maxPatients` (el límite que recorta los chats visibles) | — |
 
 **Lo que SÍ está sólido:** límites duros de pacientes/staff/turnos en dashboard con 3 capas coherentes (trigger + visibilidad + UX), `limit_overrides` respetado en DB y front, suspensión con dientes (RLS 10 tablas + modal + gate del bot), retención por plan, gating de features del front completo, y el submódulo de Categorías correctamente encuadrado en Pro/Enterprise vía `finance`.
 

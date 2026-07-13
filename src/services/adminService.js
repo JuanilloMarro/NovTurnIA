@@ -76,8 +76,23 @@ export async function adminResetPassword(businessId, email) {
     return invokeAdminFn('admin-update-business', { business_id: businessId, reset_password_email: email });
 }
 
+// Marcar pagado: record_payment() extiende plan_expires_at +1 mes, reactiva el
+// plan (active) y quita ai_paused. Arranca el ciclo real de dunning 7/30.
+export async function adminRecordPayment(businessId, { amount = 0, method = 'manual', note } = {}) {
+    return invokeAdminFn('admin-update-business', {
+        business_id: businessId,
+        record_payment: { amount, method, note },
+    });
+}
+
 // Alta de tenant (AdminOnboarding). phone_number_id/whatsapp_token pueden ir
 // vacíos: la Edge Function inserta '' y se configuran después desde el panel.
 export async function adminOnboardTenant(form) {
     return invokeAdminFn('onboard-tenant', form, { timeoutMs: 30000 });
+}
+
+// Export completo del tenant a JSON en Storage (bucket privado) con URL firmada
+// de 24h — churn ordenado / backup lógico. Devuelve { url, path, counts }.
+export async function adminExportTenant(businessId) {
+    return invokeAdminFn('export-tenant-data', { business_id: businessId }, { timeoutMs: 60000 });
 }

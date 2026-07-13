@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronLeft, Trash2, Pencil, ArrowUpRight, ArrowDownRight, Calendar, CreditCard, Tag, User, Package, Repeat, Layers } from 'lucide-react';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 const money = (n) => `Q${Number(n || 0).toFixed(2)}`;
 const SOURCE_LABEL = { appointment: 'Turno confirmado', manual: 'Manual', product: 'Producto' };
@@ -26,11 +27,11 @@ function Row({ icon: Icon, label, value, accent }) {
 
 export default function FinanceDetailDrawer({ entry, type, canVoid, canEdit, onEdit, onClose, onVoid }) {
     const [voiding, setVoiding] = useState(false);
+    const [confirmingVoid, setConfirmingVoid] = useState(false);
     if (!entry) return null;
     const isIncome = type === 'income';
 
     async function handleVoid() {
-        if (!window.confirm(`¿Anular este ${isIncome ? 'ingreso' : 'egreso'} de ${money(entry.amount)}? No se puede deshacer.`)) return;
         setVoiding(true);
         try {
             await onVoid(entry.id, 'Anulado manualmente');
@@ -39,6 +40,7 @@ export default function FinanceDetailDrawer({ entry, type, canVoid, canEdit, onE
         } catch (err) {
             showErrorToast('No se pudo anular', err.message || '');
             setVoiding(false);
+            setConfirmingVoid(false);
         }
     }
 
@@ -124,7 +126,7 @@ export default function FinanceDetailDrawer({ entry, type, canVoid, canEdit, onE
                         </button>
                     )}
                     {canVoid && (
-                        <button onClick={handleVoid} disabled={voiding}
+                        <button onClick={() => setConfirmingVoid(true)} disabled={voiding}
                             className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-rose-500 text-[11px] font-bold rounded-full shadow-md hover:bg-rose-500 hover:border-rose-500 hover:text-white transition-all duration-300 disabled:opacity-50">
                             <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                             <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
@@ -134,6 +136,12 @@ export default function FinanceDetailDrawer({ entry, type, canVoid, canEdit, onE
                     )}
                 </div>
             )}
+
+            <ConfirmDialog open={confirmingVoid} danger loading={voiding}
+                title={`¿Anular este ${isIncome ? 'ingreso' : 'egreso'}?`}
+                message={`Se anulará el movimiento de ${money(entry.amount)}. No se puede deshacer.`}
+                confirmLabel="Sí, anular" loadingLabel="Anulando..."
+                onConfirm={handleVoid} onCancel={() => setConfirmingVoid(false)} />
         </div>
     );
 }

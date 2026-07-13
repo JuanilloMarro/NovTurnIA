@@ -15,7 +15,7 @@
 | Advisors rendimiento | ✅ | Solo INFO `unused_index` (~25) — esperado con volumen ~0; ninguno accionable aún (§6) |
 | Cron jobs | ✅ | **9 jobs activos, 0 fallos en 7 días**, todos `succeeded` en su última corrida (§5) |
 | Particionado | ✅ | `history` y `audit_log` particionadas por mes: jul/ago/sep 2026 + default; crons de horizonte y limpieza operando |
-| Edge Functions | ✅ | 5 ACTIVE: `onboard-tenant` v12, `manage-staff` v7, `admin-list-businesses` v8, `admin-update-business` v8, `wa-human-reply` v3 |
+| Edge Functions | ✅ | **6** ACTIVE (2026-07-11): `onboard-tenant` **v13** (+trial 14d), `manage-staff` **v8** (+límite de staff), `admin-list-businesses` v8, `admin-update-business` **v9** (+record_payment), `wa-human-reply` v3, **`export-tenant-data` v1** (export JSON a Storage con URL firmada 24h) |
 | Funciones SQL | ✅/🟡 | 59 en `public`, 50 SECURITY DEFINER — superficie endurecida en Aud.#1 (apéndice A.1); overloads duplicados por limpiar (§6.2) |
 | Backups | ✅ | Diarios, retención 7 días (incluidos en Pro). PITR NO activado (correcto: cuesta $100/mes) |
 | Metering | 🔴 | `usage_counters` = 0 filas — la infra de metering existe y funciona pero nadie la alimenta (H1, ver Modelo de Negocio §8) |
@@ -58,10 +58,10 @@
   - `SECURITY DEFINER ejecutable por anon` ×4: `get_user_business_id`, `is_business_active`, `has_feature`, `user_has_permission` — **deliberado**: son los helpers que evalúan RLS; solo devuelven datos del propio caller (con JWT anon devuelven NULL/false). Documentado en Aud.#1.
   - `SECURITY DEFINER ejecutable por authenticated` ×~30: es la **superficie de API del frontend** (RPCs de stats/finanzas/validaciones) — intencional; el mínimo privilegio se aplicó en Aud.#1 (anon 24→3, authenticated 41→33).
   - `Leaked password protection (HIBP) disabled` — **pendiente [TÚ]**, 1 clic en Studio → Authentication → Policies. En backlog P1 desde 07-06.
-- **Gap conocido en radar (P1):** `get_visible_patient_ids/staff_ids` confían en el `p_business_id` del parámetro (un authenticated podría pasar otro id y obtener UUIDs opacos ajenos). Fix: forzar `p_business_id := get_user_business_id()` dentro.
+- **Gap `get_visible_*_ids` — ✅ CERRADO (2026-07-11):** ahora fuerzan el negocio del caller autenticado con perfil de staff (service_role y super-admin conservan el parámetro). Verificado con probe de impersonación: pedir el negocio ajeno → 0 fugas. *(migración `ownership_check_get_visible_ids`)*
 - **Suspensión con dientes:** `is_business_active()` en las políticas de escritura de 10 tablas de producto (verificado en `pg_policies`).
 
-## 5. Cron jobs (9 — verificados con `job_run_details`, 0 fallos en 7 días)
+## 5. Cron jobs (10 desde 2026-07-11 — verificados con `job_run_details`, 0 fallos en 7 días)
 
 | Job | Schedule | Última corrida | Status |
 |---|---|---|---|
@@ -74,14 +74,15 @@
 | `ensure-future-partitions` | domingos 03:00 | 2026-07-05 | ✅ |
 | `drop-old-partitions` | día 1 03:15 | (aún sin primera corrida — creado post 1-jul) | pendiente natural |
 | `reset-usage-ai-pause` | día 1 00:05 | 2026-07-01 | ✅ |
+| `churn-silent-alert` 🆕 | lunes 08:30 | (creado 2026-07-11) | negocio activo sin turnos/mensajes en 7 días → notificación `churn_risk` (dedupe 7d) |
 
 ## 6. Rendimiento
 
 ### 6.1 Estado
 Solo INFO `unused_index` (~25). Con 2 negocios y ~0 filas es **ruido esperado** — los índices compuestos calientes (`history`, `audit_log`, `appointments`) se diseñaron para el patrón de query, no para el volumen actual. **No borrar nada todavía**; re-evaluar con la prueba de carga sintética (backlog P2, Aud.#3 la dejó diseñada).
 
-### 6.2 Única limpieza accionable: overloads duplicados
-El advisor evidencia **firmas dobles** de 5 RPCs de stats: `get_patient_ltv`, `get_retention_rate`, `get_service_analytics`, `get_appointment_prediction`, `get_stats_dashboard` (versión vieja `p_months integer` y nueva `p_start_date/p_end_date`). El frontend usa las de fechas. **Recomendación [IA]:** verificar con grep qué firma llama `supabaseService.js` y dropear la obsoleta de cada una (5 `DROP FUNCTION` — evita ambigüedad futura de PostgREST, el mismo tipo de bug que ya mordió con `get_available_slots`).
+### 6.2 Overloads duplicados — ✅ RESUELTO (2026-07-11)
+Había firmas dobles en 5 RPCs de stats. **Corrección al diagnóstico inicial:** el frontend llama `{p_business_id, p_end_date}` → PostgREST resuelve a las firmas con **`p_months DEFAULT`** (no a las de fechas). Se dropearon las 4 firmas `p_start_date` huérfanas + `get_stats_dashboard(2 args)` (migración `pricing_v3_basic_and_drop_unused_overloads`). Verificado: queda exactamente **1 firma por función**.
 
 ### 6.3 Cobertura de índices de las queries calientes (verificada estructuralmente, Aud.#3 2026-07-06)
 
@@ -114,13 +115,13 @@ Micro (2-core/1GB, incluido) aguanta 10-30 tenants de este perfil. Señal para s
 | # | Sev | Hallazgo | Acción |
 |---|---|---|---|
 | I-1 | 🔴 | `usage_counters` vacía (= H1 del Modelo de Negocio): la infra de metering está lista pero sin productor | Cablear `record_usage` en n8n |
-| I-2 | 🟠 | `plans` aún con precios v2 (Q999/1,000 msgs) — la v3 está decidida | `UPDATE plans` con confirmación + des-hardcodear `AdminOnboarding` |
-| I-3 | 🟠 | `plan_expires_at` NULL en los 2 negocios → `run-dunning` corre pero nunca actúa (H5) | Setear vencimiento en alta/cobro + botón "Marcar pagado" |
-| I-4 | 🟡 | 5 RPCs de stats con overload duplicado (firma vieja `p_months`) | 5 `DROP FUNCTION` tras verificar uso ([IA]) |
+| I-2 | ✅ | ~~`plans` con precios v2~~ — **v3 aplicada 2026-07-11** (basic Q599/500, verificado); AdminOnboarding no requería cambio (solo tiers) | HECHO |
+| I-3 | 🟢 | ~~dunning inoperante~~ — **herramientas listas 2026-07-11**: botón "Marcar pagado" (admin-update-business v9) + trial con vencimiento (onboard-tenant v13). **[TÚ] 1 clic:** marcar pagado al negocio real para iniciar su ciclo | casi HECHO |
+| I-4 | ✅ | ~~Overloads duplicados~~ — **dropeados 2026-07-11** (ver §6.2: se fueron las firmas `p_start_date` huérfanas) | HECHO |
 | I-5 | 🟡 | HIBP desactivado | 1 clic [TÚ] en Studio |
-| I-6 | 🟡 | `get_visible_*_ids` confían en el parámetro | Forzar `get_user_business_id()` interno ([IA]) |
+| I-6 | ✅ | ~~`get_visible_*_ids` confían en el parámetro~~ — **ownership-check aplicado 2026-07-11**, probe sin fugas | HECHO |
 | I-7 | 🟡 | `supabase_vault` instalada sin uso; `whatsapp_token` en texto plano (decisión deliberada para no romper n8n) | Mantener en radar; migrar al pasar a Tech Provider |
-| I-8 | 🟡 | Negocio de prueba sin `services` → bloquea el test E2E del bot | Sembrar 2-3 servicios ([IA], 1 min) |
+| I-8 | ✅ | ~~Negocio de prueba sin `services`~~ — **3 servicios sembrados 2026-07-11** (Consulta Q250/30, Limpieza Q350/30, Extracción Q500/60) | HECHO |
 
 ---
 

@@ -1,9 +1,26 @@
 import { supabase } from '../config/supabase';
 import { useAppStore } from '../store/useAppStore';
+import { withRetry } from '../utils/withRetry';
 
 // T-20: getBID() movido al store. Usar getBID() en cada función de servicio
 // para leer el valor actual en el momento de la llamada (no en el momento de importar).
 const getBID = () => useAppStore.getState().businessId;
+
+// F-4: supabase-js NO lanza los errores — llegan en `res.error` — así que este
+// helper relanza SOLO los transitorios (red caída / 5xx) para que withRetry
+// reintente; los errores de negocio (RLS, 4xx, PGRST*) pasan sin reintento.
+// Usar únicamente en LECTURAS (un retry de escritura puede duplicar datos).
+async function retryRead(buildQuery, label) {
+    return withRetry(async () => {
+        const res = await buildQuery();
+        if (res.error && ((res.status ?? 0) >= 500 || /failed to fetch|networkerror|load failed/i.test(res.error.message || ''))) {
+            const err = new Error(res.error.message);
+            err.status = res.status || 503;
+            throw err;
+        }
+        return res;
+    }, { label });
+}
 
 // Caché de timezone del negocio — se carga una vez por sesión
 // T-60: getBusinessTimezone reutiliza getBusinessInfo en lugar de hacer una query separada
@@ -336,13 +353,14 @@ export async function getOccupiedSlotsForDate(date) {
 }
 
 export async function getAppointmentsByWeek(weekStart, weekEnd) {
-    const { data, error } = await supabase
+    // F-4: lectura caliente del calendario — reintenta fallos transitorios de red
+    const { data, error } = await retryRead(() => supabase
         .from('appointments')
         .select('*, patients(display_name, human_takeover, patient_phones(phone)), services(name, duration_minutes, price)')
         .eq('business_id', getBID())
         .gte('date_start', weekStart)
         .lt('date_start', weekEnd)
-        .order('date_start', { ascending: true });
+        .order('date_start', { ascending: true }), 'appointmentsByWeek');
 
     if (error) throw error;
     return data || [];
@@ -372,6 +390,11 @@ export async function createAppointment({ patientId, serviceId, date, startTime,
         }
         if (/horario del negocio/i.test(error.message || '')) {
             throw new Error('El turno está fuera del horario del negocio.');
+        }
+        // El trigger enforce_appointment_limit rechaza con HINT PLAN_LIMIT_* si el gate
+        // de la UI no alcanzó a frenar (p. ej. dos pestañas abiertas).
+        if (error.hint?.startsWith('PLAN_LIMIT')) {
+            throw new Error('Alcanzaste el límite de turnos del mes de tu plan. Sube de plan para agendar más.');
         }
         console.error('Insert Error — code:', error.code, '| message:', error.message, '| details:', error.details, '| hint:', error.hint);
         throw error;
@@ -544,7 +567,8 @@ export async function getPatients(search = '', { page = 0, pageSize = 50 } = {})
         query = query.or(`display_name.ilike.%${safe}%`);
     }
 
-    const { data, error, count } = await query;
+    // F-4: re-awaitear el mismo builder re-ejecuta el fetch (postgrest-js no cachea)
+    const { data, error, count } = await retryRead(() => query, 'patients');
     if (error) throw error;
     return { data: data || [], count: count || 0, hasMore: to < (count || 0) - 1 };
 }
@@ -552,6 +576,16 @@ export async function getPatients(search = '', { page = 0, pageSize = 50 } = {})
 // Búsqueda typeahead de pacientes (alta de turnos). RPC con ranking por relevancia
 // (prefijo > inicio de palabra > subcadena > teléfono > similitud), insensible a
 // tildes y tolerante a typos. Devuelve [{ id, display_name, phone }].
+// Búsqueda global (Ctrl+K): pacientes + servicios + turnos próximos del negocio.
+// RPC search_global — respeta la visibilidad por plan (reusa search_patients).
+export async function searchGlobal(q, limit = 6) {
+    const term = (q || '').trim();
+    if (term.length < 2) return [];
+    const { data, error } = await supabase.rpc('search_global', { p_q: term, p_limit: limit });
+    if (error) throw error;
+    return data || [];
+}
+
 export async function searchPatients(q, limit = 10) {
     const term = (q || '').trim();
     if (!term) return [];
@@ -720,6 +754,8 @@ export async function createPatient({ display_name, phone }) {
     if (error) {
         // T-23: código específico para duplicado de teléfono; resto relanza el error original
         if (error.code === '23505') throw new Error('Ya existe un cliente con ese teléfono.');
+        // Trigger enforce_patient_limit (HINT PLAN_LIMIT_*): carrera contra el gate de la UI
+        if (error.hint?.startsWith('PLAN_LIMIT')) throw new Error('Alcanzaste el límite de clientes de tu plan. Sube de plan para agregar más.');
         throw error;
     }
 
@@ -1369,9 +1405,10 @@ export async function updateStaffUserRole(userId, roleId) {
  * Si la RPC no existe (pre-migración), retorna null → el hook trata null como ilimitado.
  */
 export async function getPlanLimits() {
-    const { data, error } = await supabase.rpc('get_plan_limits', {
+    // F-4: corre en cada página (usePlanLimits) — reintenta fallos transitorios
+    const { data, error } = await retryRead(() => supabase.rpc('get_plan_limits', {
         p_business_id: getBID(),
-    });
+    }), 'planLimits');
     // PGRST202 = function not found (migración aún no ejecutada) → ilimitado
     if (error) {
         if (error.code === 'PGRST202' || error.code === '42883') return null;
@@ -1705,11 +1742,12 @@ export async function voidExpense(id, reason = null) {
 
 // ── Resumen financiero (KPIs + serie + desgloses, 1 round-trip) ──
 export async function getFinanceSummary(start, end, granularity = 'day') {
-    const { data, error } = await supabase.rpc('get_finance_summary', {
+    // F-4: lectura caliente de Finanzas — reintenta fallos transitorios
+    const { data, error } = await retryRead(() => supabase.rpc('get_finance_summary', {
         p_start: start,
         p_end: end,
         p_granularity: granularity,
-    });
+    }), 'financeSummary');
     if (error) throw error;
     return data;
 }

@@ -35,6 +35,7 @@ export default function AdminOnboarding() {
         schedule_days: [1, 2, 3, 4, 5],
         phone_number_id: '',
         whatsapp_token: '',
+        trial: false,
     });
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
@@ -116,6 +117,16 @@ export default function AdminOnboarding() {
                             </select>
                         </div>
                     </div>
+
+                    <label className="flex items-start gap-3 bg-white/40 border border-white/60 rounded-2xl px-4 py-3 cursor-pointer select-none">
+                        <input type="checkbox" checked={form.trial}
+                            onChange={e => setForm(f => ({ ...f, trial: e.target.checked }))}
+                            className="mt-0.5 w-4 h-4 accent-navy-900" />
+                        <span>
+                            <span className="block text-sm font-bold text-navy-900">Trial de 14 días</span>
+                            <span className="block text-[11px] text-navy-700/50 font-medium">Arranca sin cobrar: vence solo a los 14 días (dunning automático). Al pagar, usa "Marcar pagado" en el panel.</span>
+                        </span>
+                    </label>
                 </div>
 
                 {/* Horario */}

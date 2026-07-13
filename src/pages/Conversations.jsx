@@ -48,7 +48,7 @@ export default function Conversations() {
     const [showFilter, setShowFilter] = useState(false);
     const filterRef = useRef(null);
     const { canToggleAi, canDeletePatients, canReplyConversations, canClearConversations, canDeleteConversations } = usePermissions();
-    const { maxConversations, patientsUsed } = usePlanLimits();
+    const { maxPatients, patientsUsed } = usePlanLimits();
     const humanTakeoverMap = useAppStore(s => s.humanTakeoverMap);
 
     // Cierra el dropdown al hacer click fuera
@@ -362,8 +362,8 @@ export default function Conversations() {
                     <div>
                         <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Conversaciones</h1>
                         <p className="text-xs text-navy-700/60 font-semibold tracking-wide">
-                            {maxConversations !== null && patientsUsed > maxConversations ? (
-                                `Mostrando últimas ${maxConversations} conversaciones`
+                            {maxPatients !== null && patientsUsed > maxPatients ? (
+                                `Mostrando últimas ${maxPatients} conversaciones (límite del plan)`
                             ) : (
                                 "Atención directa vía WhatsApp"
                             )}
