@@ -1,6 +1,6 @@
 import { useRef, useLayoutEffect } from 'react';
 
-export default function WheelColumn({ items, selected, onSelect, displayFn, disabled = false, itemHeight = 26, height, align = 'center' }) {
+export default function WheelColumn({ items, selected, onSelect, displayFn, disabled = false, itemHeight = 26, height, align = 'center', selectedFontSize = 12, unselectedFontSize = 11 }) {
     const containerRef = useRef(null);
     const trackRef = useRef(null);
     const offsetRef = useRef(0);
@@ -110,8 +110,8 @@ export default function WheelColumn({ items, selected, onSelect, displayFn, disa
                 {items.map(item => {
                     const isSelected = item === selected;
                     return (
-                        <div key={item} style={{ height: itemHeight }}
-                            className={`flex items-center justify-center transition-all duration-150 px-3 text-center leading-none ${isSelected ? 'text-navy-900 font-bold text-[12px]' : 'text-navy-900/30 font-medium text-[11px]'}`}>
+                        <div key={item} style={{ height: itemHeight, fontSize: isSelected ? selectedFontSize : unselectedFontSize }}
+                            className={`flex items-center justify-center transition-all duration-150 px-3 text-center leading-none ${isSelected ? 'text-navy-900 font-bold' : 'text-navy-900/30 font-medium'}`}>
                             <span className="truncate w-full text-center flex justify-center items-center">{displayFn ? displayFn(item) : item}</span>
                         </div>
                     );

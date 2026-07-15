@@ -102,8 +102,9 @@ function AppointmentRow({ apt }) {
     );
 }
 
-// 1. PatientInfoPanel (Ficha del cliente — teléfono, alta, notas, turno, ventana 24h)
-export function PatientInfoPanel({ patient, windowOpen, hoursLeft }) {
+// 1. PatientInfoContent (Ficha del cliente — teléfono, alta, notas, turno, ventana 24h)
+// Sin tarjeta propia: vive dentro del panel único ContextPanels.
+function PatientInfoContent({ patient, windowOpen, hoursLeft }) {
     const [appointments, setAppointments] = useState([]);
     const [notesOpen, setNotesOpen] = useState(false);
 
@@ -127,8 +128,7 @@ export function PatientInfoPanel({ patient, windowOpen, hoursLeft }) {
         || patient?.patient_phones?.[0]?.phone || '';
 
     return (
-        <div className={`${PANEL} p-4`}>
-            <PanelGlow />
+        <div className="relative">
             <PanelHeader icon={Contact} title="Ficha del cliente" />
 
             <div className="relative z-10 px-1 mt-2 space-y-2.5">
@@ -230,8 +230,9 @@ export function MiniCard({ title, subtitle, badge, badgeClass, isSelected, selec
     );
 }
 
-// 2. ActiveServicesPanel (rollo horizontal — inicia en 0, botones Insertar / Ver)
-export function ActiveServicesPanel({ onInsert }) {
+// 2. ActiveServicesContent (rollo horizontal — inicia en 0, botones Insertar / Ver)
+// Sin tarjeta propia: vive dentro del panel único ContextPanels.
+function ActiveServicesContent({ onInsert }) {
     const { services } = useServices();
     const [selectedService, setSelectedService] = useState(null);
     const navigate = useNavigate();
@@ -280,8 +281,7 @@ export function ActiveServicesPanel({ onInsert }) {
     );
 
     return (
-        <div className={`${PANEL} flex flex-col p-3`}>
-            <PanelGlow />
+        <div className="relative">
             <div className="relative z-10 flex flex-col">
                 <PanelHeader icon={Layers} title="Servicios activos" count={activeServices.length || null} />
                 <FeatureLock feature="custom_prompt" requiredPlan="Pro">
@@ -313,8 +313,9 @@ export function ActiveServicesPanel({ onInsert }) {
     );
 }
 
-// 3. ActiveOffersPanel (rollo horizontal — inicia en 0, botones Insertar / Ver)
-export function ActiveOffersPanel({ onInsert }) {
+// 3. ActiveOffersContent (rollo horizontal — inicia en 0, botones Insertar / Ver)
+// Sin tarjeta propia: vive dentro del panel único ContextPanels.
+function ActiveOffersContent({ onInsert }) {
     const { offers } = useOffers();
     const { hasFeature } = usePlanLimits();
     const offersUnlocked = hasFeature('dynamic_pricing');
@@ -407,8 +408,7 @@ export function ActiveOffersPanel({ onInsert }) {
     );
 
     return (
-        <div className={`${PANEL} flex flex-col p-3`}>
-            <PanelGlow />
+        <div className="relative">
             <div className="relative z-10 flex flex-col">
                 <PanelHeader icon={Tag} title="Ofertas activas" count={offersUnlocked ? (activeOffers.length || null) : 1} />
                 {offersUnlocked ? realContent : (
@@ -417,6 +417,23 @@ export function ActiveOffersPanel({ onInsert }) {
                     </FeatureLock>
                 )}
             </div>
+        </div>
+    );
+}
+
+// Panel único: junta Ficha del cliente + Servicios activos + Ofertas activas
+// en una sola tarjeta de cristal, separadas por un divisor sutil en vez de
+// tarjetas independientes — mismo lenguaje "todo flota junto" del resto del
+// sistema (Centro IA, etc.).
+export function ContextPanels({ patient, windowOpen, hoursLeft, onInsert }) {
+    return (
+        <div className={`${PANEL} p-4 flex flex-col gap-4`}>
+            <PanelGlow />
+            <PatientInfoContent patient={patient} windowOpen={windowOpen} hoursLeft={hoursLeft} />
+            <div className="relative z-10 h-px bg-navy-900/8 shrink-0" />
+            <ActiveServicesContent onInsert={onInsert} />
+            <div className="relative z-10 h-px bg-navy-900/8 shrink-0" />
+            <ActiveOffersContent onInsert={onInsert} />
         </div>
     );
 }

@@ -9,6 +9,7 @@ import { showPatientDeleteToast, showPatientGdprToast, showBotPauseToast, showBo
 import { usePermissions } from '../../hooks/usePermissions';
 import EditPatientModal from './EditPatientModal';
 import AIStar from '../Icons/AIStar';
+import PatientAIBlock from '../AIHub/PatientAIBlock';
 import { useAppStore } from '../../store/useAppStore';
 
 function getInitials(name) {
@@ -148,6 +149,8 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                         </div>
                     </FeatureLock>
                 </div>
+
+                <PatientAIBlock patient={patient} />
 
                 <div className="flex items-center gap-3 px-1 mb-2">
                     <h4 className="text-[11px] font-bold text-navy-800 leading-none">

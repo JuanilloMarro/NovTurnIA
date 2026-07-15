@@ -1464,6 +1464,97 @@ export async function getAppointmentPrediction(startDate, endDate) {
     return data || [];
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// Centro IA — insights bajo demanda + chat de negocio (doc "Automatización
+// Agente IA" · Parte B). Principio "pull, no push": la UI SIEMPRE lee de
+// ai_insights/ai_chat_messages (cache → verlo cuesta 0 tokens); solo
+// Generar/Regenerar y enviar un mensaje de chat invocan la Edge Function y
+// gastan. El backend (tablas + Edge Functions ai-insights/ai-chat) puede no
+// existir aún: la lectura degrada a [] y la generación lanza un error legible.
+// business_id NUNCA viaja en el body: la Edge Function lo deriva del JWT.
+// ════════════════════════════════════════════════════════════════════════════
+
+// Códigos PostgREST cuando la tabla aún no está creada/expuesta.
+const AI_TABLE_MISSING = new Set(['42P01', 'PGRST205', 'PGRST106', 'PGRST202']);
+
+export async function getAIInsights({ scope = null, refId = null, limit = 20 } = {}) {
+    let query = supabase
+        .from('ai_insights')
+        .select('id, scope, ref_id, content, generated_at')
+        .eq('business_id', getBID())
+        .order('generated_at', { ascending: false })
+        .limit(limit);
+    if (scope) query = query.eq('scope', scope);
+    if (refId) query = query.eq('ref_id', refId);
+
+    const { data, error } = await query;
+    if (error) {
+        if (AI_TABLE_MISSING.has(error.code)) return []; // backend pendiente → sin cache
+        throw error;
+    }
+    return data || [];
+}
+
+export async function getLatestAIInsight(scope, refId = null) {
+    const rows = await getAIInsights({ scope, refId, limit: 1 });
+    return rows[0] || null;
+}
+
+// Genera (o regenera) un insight — ÚNICA operación de este módulo que gasta
+// tokens. La Edge Function escribe en ai_insights y devuelve la fila creada.
+export async function generateAIInsight(scope, { refId = null, regenerate = true } = {}) {
+    const { data, error } = await supabase.functions.invoke('ai-insights', {
+        body: { scope, ref_id: refId, regenerate },
+    });
+    if (error) {
+        throw new Error('El generador de análisis IA aún no está disponible. Inténtalo más tarde.');
+    }
+    return data;
+}
+
+// Chat de negocio (Enterprise): pregunta libre sobre los datos propios. El
+// historial del hilo lo mantiene el backend (tabla ai_chat_messages, un hilo
+// por staff_user_id) — el cliente solo manda el mensaje nuevo.
+export async function getAIChatMessages(limit = 50) {
+    const { data, error } = await supabase
+        .from('ai_chat_messages')
+        .select('id, role, content, created_at')
+        .eq('business_id', getBID())
+        .order('created_at', { ascending: true })
+        .limit(limit);
+    if (error) {
+        if (AI_TABLE_MISSING.has(error.code)) return [];
+        throw error;
+    }
+    return data || [];
+}
+
+export async function askBusinessAI(message) {
+    const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: { message },
+    });
+    if (error) {
+        throw new Error('El chat de negocio IA aún no está disponible. Inténtalo más tarde.');
+    }
+    // Incluye los ids de los 2 mensajes insertados (usuario+asistente) para
+    // poder borrarlos individualmente sin recargar el hilo.
+    return {
+        answer: data?.answer ?? '',
+        userMessageId: data?.userMessageId ?? null,
+        assistantMessageId: data?.assistantMessageId ?? null,
+    };
+}
+
+export async function deleteAIChatMessage(id) {
+    const { error } = await supabase.from('ai_chat_messages').delete().eq('id', id);
+    if (error) throw error;
+}
+
+export async function deleteAllAIChatMessages() {
+    const { error } = await supabase.from('ai_chat_messages').delete().eq('business_id', getBID());
+    if (error) throw error;
+}
+
 // ── Helpers custom_prompt (nombre agente + instrucciones) ─
 
 // Separa el custom_prompt en sus dos partes editables desde el UI.

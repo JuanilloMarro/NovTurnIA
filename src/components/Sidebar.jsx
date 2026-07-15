@@ -57,6 +57,7 @@ export default function Sidebar({ onOpenPlans }) {
     const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations, canViewFollowUp, canViewFinance } = usePermissions();
     const { hasFeature } = usePlanLimits();
     const statsUnlocked = hasFeature('dashboard');
+    const aiHubUnlocked = hasFeature('stats_intelligence');
     const auditUnlocked = hasFeature('audit_log');
     const offersUnlocked = hasFeature('dynamic_pricing');
     const followUpUnlocked = hasFeature('followup');
@@ -64,7 +65,7 @@ export default function Sidebar({ onOpenPlans }) {
     const { profile } = useAuth();
     const { isSidebarOpen, toggleSidebar } = useAppStore();
     const [businessName, setBusinessName] = useState('');
-    // Aurora del botón de IA: se enciende un ratito al hacer clic y se apaga sola.
+    // Aurora del botón de Centro IA: se enciende un ratito al hacer clic y se apaga sola.
     const { className: aiAuroraClass, pulse: pulseAiAurora } = useAuroraPulse();
 
     const businessId = profile?.business_id || '';
@@ -139,19 +140,23 @@ export default function Sidebar({ onOpenPlans }) {
                         <NavItem to="/finance" icon={Wallet} label="Finanzas" locked={!financeUnlocked} onClick={closeMobile} />
                     )}
 
+                    {(canManageRoles || canViewStats) && (
+                        <NavItem
+                            to="/ai"
+                            icon={AIStar}
+                            label="Centro IA"
+                            locked={!canManageRoles && !aiHubUnlocked}
+                            aurora
+                            auroraClass={aiAuroraClass}
+                            onClick={() => { pulseAiAurora(2400); closeMobile(); }}
+                        />
+                    )}
+
                     {canManageRoles && (
                         <>
+                            <NavItem to="/business" icon={Settings} label="Configuración IA" onClick={closeMobile} />
                             <NavItem to="/audit-log" icon={List} label="Actividad" locked={!auditUnlocked} onClick={closeMobile} />
                             <NavItem to="/users" icon={ShieldCheck} label="Usuarios" onClick={closeMobile} />
-                            <NavItem
-                                to="/business"
-                                icon={Bot}
-                                iconSize={18}
-                                label="Inteligencia Artificial"
-                                aurora
-                                auroraClass={aiAuroraClass}
-                                onClick={() => { pulseAiAurora(2400); closeMobile(); }}
-                            />
                         </>
                     )}
 

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { Search, MessageCircle, Bot, ShieldAlert, SlidersHorizontal, Send, Clock, PanelRight, MoreVertical, Trash2, X, Eraser } from 'lucide-react';
 import AIStar from '../components/Icons/AIStar';
-import { PatientInfoPanel, ActiveServicesPanel, ActiveOffersPanel } from '../components/conversations/ContextSidebar';
+import { ContextPanels } from '../components/conversations/ContextSidebar';
 import { usePermissions } from '../hooks/usePermissions';
 import { getPatientHistory, setHumanTakeover, getPatientsForConversations, sendHumanMessage, deletePatient, clearPatientHistory } from '../services/supabaseService';
 import { showErrorToast } from '../store/useToastStore';
@@ -780,10 +780,13 @@ export default function Conversations() {
                                             </button>
                                             <div className="font-bold text-navy-900 text-sm">Paneles</div>
                                         </div>
-                                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-2">
-                                            <PatientInfoPanel patient={selectedPatientEffective} windowOpen={windowOpen} hoursLeft={hoursLeft} />
-                                            <ActiveServicesPanel onInsert={(t) => { handleInsert(t); setMobilePanelsOpen(false); }} />
-                                            <ActiveOffersPanel onInsert={(t) => { handleInsert(t); setMobilePanelsOpen(false); }} />
+                                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                                            <ContextPanels
+                                                patient={selectedPatientEffective}
+                                                windowOpen={windowOpen}
+                                                hoursLeft={hoursLeft}
+                                                onInsert={(t) => { handleInsert(t); setMobilePanelsOpen(false); }}
+                                            />
                                         </div>
                                     </div>
                                 )}
@@ -802,10 +805,13 @@ export default function Conversations() {
 
                 {/* Right Column: Context Panels — fuera del box principal, a la derecha */}
                 {selectedPatient && showContext && (
-                    <div className="hidden xl:flex w-[380px] flex-col gap-2 shrink-0 min-h-0 overflow-y-auto no-scrollbar px-2 pt-1 pb-4">
-                        <PatientInfoPanel patient={selectedPatientEffective} windowOpen={windowOpen} hoursLeft={hoursLeft} grow />
-                        <ActiveServicesPanel onInsert={handleInsert} />
-                        <ActiveOffersPanel onInsert={handleInsert} />
+                    <div className="hidden xl:flex w-[380px] flex-col shrink-0 min-h-0 overflow-y-auto no-scrollbar px-2 pt-1 pb-4">
+                        <ContextPanels
+                            patient={selectedPatientEffective}
+                            windowOpen={windowOpen}
+                            hoursLeft={hoursLeft}
+                            onInsert={handleInsert}
+                        />
                     </div>
                 )}
             </div>

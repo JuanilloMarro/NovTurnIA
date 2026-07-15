@@ -25,7 +25,8 @@ const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Offers = lazy(() => import('./pages/Offers'));
 const Finance = lazy(() => import('./pages/Finance'));
-const BusinessSettings = lazy(() => import('./pages/BusinessSettings'));
+const AIHub = lazy(() => import('./pages/AIHub'));
+const AIConfig = lazy(() => import('./pages/AIConfig'));
 const Login = lazy(() => import('./pages/Login'));
 
 function PageLoader() {
@@ -147,7 +148,8 @@ export default function App() {
                                                     <Route path="/finance" element={!profileReady ? <PageLoader /> : canViewFinance ? <Finance /> : <Navigate to="/" replace />} />
                                                     <Route path="/users" element={!profileReady ? <PageLoader /> : canManageRoles ? <Users /> : <Navigate to="/" replace />} />
                                                     <Route path="/audit-log" element={!profileReady ? <PageLoader /> : canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
-                                                    <Route path="/business" element={!profileReady ? <PageLoader /> : canManageRoles ? <BusinessSettings /> : <Navigate to="/" replace />} />
+                                                    <Route path="/ai" element={!profileReady ? <PageLoader /> : (canManageRoles || canViewStats) ? <AIHub /> : <Navigate to="/" replace />} />
+                                                    <Route path="/business" element={!profileReady ? <PageLoader /> : canManageRoles ? <AIConfig /> : <Navigate to="/" replace />} />
                                                     <Route path="*" element={<Navigate to="/" replace />} />
                                                 </Routes>
                                             </Suspense>

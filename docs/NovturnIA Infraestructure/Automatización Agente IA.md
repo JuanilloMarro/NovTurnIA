@@ -335,13 +335,41 @@ src/services/supabaseService.js     ← getAIInsights(scope, refId?), getAIChatM
 
 ## B.5 Orden de implementación para Sonnet + verificación
 
-**Fase 1 — Fundación (1 sesión):** migración `ai_module_foundation` (tablas+RLS+RPC context pack+grants) → probes de rollback (SELECT con impersonación authenticated: propio sí / ajeno no / sin feature no) → permiso `use_ai_module` en toda la pila (patrón doc 08 §2) → redeploy `onboard-tenant`.
-**Fase 2 — `ai-insights` + primer scope (1 sesión):** Edge Function con `kpi_narrative` (el más simple: context pack ya agregado) → botón en Stats → cache/regenerate/metering verificados con curl (JWT real) antes de UI.
-**Fase 3 — Chat (1-2 sesiones):** `ai-chat` (router+allowlist) → `Intelligence.jsx` + `AIChatPanel` + hooks → probar las 5 preguntas ejemplo de B.2.7 contra datos del negocio de prueba.
-**Fase 4 — Resto de scopes + batch (1-2 sesiones):** patient_summary/strategy en la ficha, retention+digest+cron, content_offer→Ofertas.
+**Fase 1 — Fundación:** ✅ **HECHO** (2026-07-14, por API). Migración `ai_module_foundation` (tablas `ai_insights`/`ai_chat_messages`+RLS+RPC `get_business_context_pack`+grants) y `ai_module_at_risk_patients_rpc` (`get_at_risk_patients`, necesaria para el scope `retention`) aplicadas y verificadas con probes de rollback. ❌ El permiso RBAC dedicado `use_ai_module` **NO** se creó — decisión consciente (ver B.6): el usuario prefirió que Configuración+Insights vivan en un solo módulo gateado por `canManageRoles`/`stats_intelligence` existentes; crear un permiso sin consumidor real era abstracción muerta.
+**Fase 2 — `ai-insights`:** ✅ **HECHO.** Edge Function desplegada (los 6 scopes, no solo `kpi_narrative` — se implementaron todos de una vez) con cache-first, rate limit (`check_rate_limit`, 30/h), y `responseSchema` de Gemini exacto por scope.
+**Fase 3 — Chat:** ✅ **HECHO.** `ai-chat` desplegada: router de intents (`gemini-2.5-flash-lite`) → fetch determinista (kpis/finanzas/retención/pacientes/servicios/agenda/general) → respuesta (`gemini-2.5-flash`) → persiste en `ai_chat_messages`.
+**Fase 4 — Resto de scopes + batch:** 🟡 **PARCIAL.** ✅ Los 6 scopes de insights + `patient_summary`/`patient_strategy` en la ficha del paciente (`PatientAIBlock.jsx`). ❌ Batch semanal `pg_cron` (`weekly_digest`/`retention` automáticos) — no implementado, hoy solo on-demand. ❌ Botón "Crear oferta" que pre-llena el módulo Ofertas desde `content_offer` — no implementado.
+**Pendiente de config (no es código, es un paso manual del usuario):** el secret `GEMINI_API_KEY` en las Edge Functions del proyecto — no se pudo verificar ni configurar por MCP (no hay herramienta para leer/escribir secrets, y es una credencial que no corresponde manejar por este medio). Sin ese secret, `ai-insights`/`ai-chat` devuelven error 500 al intentar llamar a Gemini.
 **Verificación transversal:** cada fase termina con (a) probe SQL de RLS, (b) curl a la Edge con y sin permiso/feature (403 esperado), (c) `usage_counters` incrementando, (d) preview del front compilando + snapshot.
 
 **Qué NO hacer (deuda conocida que este módulo no debe heredar):** memoria semántica pgvector (diferida — Parte C §C.3), envío automático de mensajes de marketing, darle al LLM acceso SQL libre, prompts sin `responseSchema`, modelos sin `modelName` fijo.
+
+## B.6 Estado de implementación — Frontend + Backend (actualizado 2026-07-14)
+
+**✅ Frontend** (sesión 2026-07-13, sin tocar Supabase):
+- `src/pages/AIHub.jsx` (ruta `/ai`) + `src/components/AIHub/` (`aiActions.js`, `InsightContent.jsx`, `InsightDrawer.jsx`, `RecentInsights.jsx`, `AIConfigPanel.jsx`, `PausedAIPanel.jsx`, `PatientAIBlock.jsx`) + `src/hooks/useAIInsights.js` + `src/hooks/useAIChat.js`.
+- `InsightContent.jsx` renderiza el **schema JSON exacto de cada scope** descrito en §B.2 (no un volcado genérico) — cae a un fallback legible solo si el backend responde con una forma inesperada.
+- `PatientAIBlock` en la ficha del paciente (`src/components/Patients/PatientDrawer.jsx`, bajo Notas).
+- **Decisión de producto confirmada con el usuario (diverge de B.3.2 a propósito):** Configuración del asistente + horario + "IA pausada" viven DENTRO de Centro IA para **todos los planes** (no solo Enterprise) — reemplazan la antigua pantalla `/business`, retirada. Solo la grilla de insights + el chat quedan detrás de `stats_intelligence`. Gate de edición: `canManageRoles`.
+
+**✅ Backend** (sesión 2026-07-14, por API/MCP — n8n excluido a propósito, queda para cuando exista el túnel):
+- Migración `ai_module_foundation`: tablas `ai_insights`/`ai_chat_messages` (RLS: propio negocio + `has_feature('stats_intelligence')`; escritura solo `service_role`), RPC `get_business_context_pack(p_business_id)` (reusa `get_stats_dashboard`/`get_retention_rate`/`get_service_analytics`; finanzas se calculan inline porque `get_finance_summary` deriva el negocio de `auth.uid()` y no es llamable desde `service_role` con un `business_id` explícito).
+- Migración `ai_module_at_risk_patients_rpc`: `get_at_risk_patients` (≥2 visitas, +45 días sin volver) para el scope `retention`.
+- Verificado con probes de impersonación: negocio propio + feature → ve sus filas; otro negocio sin feature → 0 filas.
+- Edge Functions `ai-insights` y `ai-chat` desplegadas (`supabase/functions/ai-insights`, `supabase/functions/ai-chat`, comparten `_shared/cors.ts`, `_shared/auth.ts`, `_shared/gemini.ts`). `business_id` siempre derivado del JWT vía `staff_users`, nunca del body. Probado sin sesión real (401 correcto); el llamado completo con Gemini requiere el secret `GEMINI_API_KEY` (pendiente, ver abajo) y una sesión real del usuario.
+- `record_usage` cableado desde el día 1 (`p_messages: 0`, solo tokens) — este módulo no hereda el hallazgo A.3 #6.
+
+**❌ Pendiente:**
+- **Secret `GEMINI_API_KEY`** en el proyecto de Supabase — paso manual del usuario (Dashboard → Edge Functions → Secrets, o `supabase secrets set`); no se puede verificar ni configurar por MCP.
+- Permiso RBAC `use_ai_module` — omitido a propósito (ver decisión de producto arriba).
+- Batch semanal `pg_cron` para `weekly_digest`/`retention` automáticos.
+- Botón "Crear oferta" (§B.2 #6) que pre-llena el módulo Ofertas desde un insight `content_offer`.
+- n8n / tunnel MCP — explícitamente diferido por el usuario a otra sesión.
+- Verificación end-to-end real (clic en "Generar" / pregunta al chat) — pendiente de que el usuario la haga con su propia sesión, una vez puesto el secret.
+
+**Cosmético, no bloqueante:** nombres/ruta (`AIHub.jsx`/`/ai` en vez de `Intelligence.jsx`/`/ia`) y layout de 3 columnas (en vez del 60/40 de B.3.3) — aprobados visualmente por el usuario, no se van a renombrar.
+
+**Hallazgo de seguridad descubierto de paso (fuera de alcance, no corregido):** `get_stats_dashboard`, `get_retention_rate`, `get_service_analytics` y `search_patients` aceptan `p_business_id`/derivan el negocio pero **no verifican** que corresponda al `get_user_business_id()` del caller — cualquier `authenticated` podría, en teoría, pasar el `business_id` de OTRO negocio y leer sus estadísticas. Preexistente a este módulo, no se tocó. Vale una revisión aparte.
 
 ---
 
