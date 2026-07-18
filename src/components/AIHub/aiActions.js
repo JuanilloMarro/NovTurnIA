@@ -1,4 +1,4 @@
-import { FileText, Target, HeartPulse, TrendingUp, Newspaper, Megaphone } from 'lucide-react';
+import { FileText, Target, HeartPulse, TrendingUp, Newspaper, Megaphone, Landmark } from 'lucide-react';
 
 // Catálogo de acciones del Centro IA (doc "Automatización Agente IA" · Parte
 // B §B.2). Cada acción mapea a un scope de ai_insights (CHECK constraint de
@@ -53,6 +53,15 @@ export const AI_ACTIONS = [
         desc: 'Promos para días flojos con el texto listo para publicar.',
         icon: Megaphone,
         feature: 'content_gen',
+        mode: 'A pedido',
+    },
+    {
+        // Finanzas v2: salud financiera del mes con contexto completo
+        // (mes vs anterior, por cobrar, meta, proyección — RPC get_finance_pack).
+        scope: 'finance_narrative',
+        title: 'Salud financiera',
+        desc: 'Cómo van tus finanzas del mes y qué hacer al respecto.',
+        icon: Landmark,
         mode: 'A pedido',
     },
 ];

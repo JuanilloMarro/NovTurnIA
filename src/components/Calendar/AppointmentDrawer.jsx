@@ -489,8 +489,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     clientName={patients?.display_name}
                     defaultAmount={appointment.services?.price}
                     onClose={() => setShowDeliver(false)}
-                    onConfirm={async ({ amount, paymentMethod, notes }) => {
-                        const row = await submitIncomeValidation({ appointmentId: id, amount, paymentMethod, notes });
+                    onConfirm={async ({ amount, paymentMethod, notes, staffId }) => {
+                        const row = await submitIncomeValidation({ appointmentId: id, amount, paymentMethod, notes, staffId });
                         setDeliveredIncome(row);
                         showSuccessToast('Cobro enviado a validación', `Q${Number(amount).toFixed(2)} en espera de confirmación.`);
                         onUpdated?.();

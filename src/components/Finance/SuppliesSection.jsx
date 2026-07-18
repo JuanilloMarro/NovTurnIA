@@ -78,18 +78,26 @@ function Avatar({ text }) {
     );
 }
 
-// ── Modal: crear / editar insumo ──
+// ── Modal: crear / editar insumo (con stock/mínimo — Inventario v2) ──
 function SupplyModal({ initial, onClose, onSave }) {
-    const [form, setForm] = useState(initial || { name: '', unit: 'unidad', unit_cost: '', category: '' });
+    const [form, setForm] = useState(initial || { name: '', unit: 'unidad', unit_cost: '', category: '', stock: '', min_stock: '' });
     const [saving, setSaving] = useState(false);
     async function submit() {
         if (!form.name.trim()) { showErrorToast('Falta nombre', 'Ingresa el nombre del insumo.'); return; }
         setSaving(true);
-        try { await onSave({ ...form, unit_cost: Number(form.unit_cost) || 0 }); onClose(); }
+        try {
+            await onSave({
+                ...form,
+                unit_cost: Number(form.unit_cost) || 0,
+                stock: Number(form.stock) || 0,
+                min_stock: Number(form.min_stock) || 0,
+            });
+            onClose();
+        }
         catch (err) { showErrorToast('No se pudo guardar', err.message || ''); setSaving(false); }
     }
     return (
-        <ModalShell title={initial ? 'Editar insumo' : 'Nuevo insumo'} subtitle="Material o costo que consume tu negocio (sirve para cualquier rubro)."
+        <ModalShell title={initial ? 'Editar insumo' : 'Nuevo insumo'} subtitle="Material o producto de tu inventario (sirve para cualquier rubro)."
             onClose={onClose} footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Guardar" loading={saving} />}>
             <div>
                 <FieldLabel title="Nombre" subtitle="¿Cómo se llama el insumo? (ej: tinte, anestesia, guantes)" />
@@ -102,6 +110,18 @@ function SupplyModal({ initial, onClose, onSave }) {
             <div>
                 <FieldLabel title="Unidad" subtitle="Cómo se mide: unidad, ml, g, hora…" />
                 <TextInput value={form.unit} onChange={v => setForm(f => ({ ...f, unit: v }))} placeholder="unidad" maxLength={20} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <FieldLabel title="Stock actual" subtitle="Cuánto hay hoy. Las compras (egresos con insumo) lo suman solas." />
+                    <input type="number" min="0" step="0.001" inputMode="decimal" value={form.stock ?? ''} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} placeholder="0"
+                        className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-sm font-semibold outline-none focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm text-navy-900" />
+                </div>
+                <div>
+                    <FieldLabel title="Stock mínimo" subtitle="Bajo este nivel verás la alerta de reponer." />
+                    <input type="number" min="0" step="0.001" inputMode="decimal" value={form.min_stock ?? ''} onChange={e => setForm(f => ({ ...f, min_stock: e.target.value }))} placeholder="0"
+                        className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-sm font-semibold outline-none focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm text-navy-900" />
+                </div>
             </div>
             <div>
                 <FieldLabel title="Categoría" subtitle="Opcional, para agrupar tus insumos." />
@@ -195,29 +215,47 @@ export default function SuppliesSection({ supplies, services, canManage, costFor
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:h-full">
-            {/* Panel Insumos */}
+            {/* Panel Inventario: stock vivo (compras suman, recetas confirmadas restan) */}
             <Panel
-                icon={Package} title="Insumos"
+                icon={Package} title="Inventario"
                 searchValue={supplyQ} searchOnChange={setSupplyQ} searchPlaceholder="Buscar insumo..."
                 action={canManage && <PillBtn icon={Plus} label="Nuevo" onClick={() => setSupplyModal(true)} />}
             >
                 {filteredSupplies.length === 0 ? (
                     <p className="text-[12px] font-semibold text-navy-700/40 text-center py-8">{supplyQ ? 'Sin coincidencias.' : 'Sin insumos. Crea el primero.'}</p>
-                ) : filteredSupplies.map(s => (
-                    <Ficha key={s.id}>
-                        <Avatar text={s.name} />
-                        <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-navy-900 truncate">{s.name}</div>
-                            <div className="text-[11px] font-bold text-navy-700/60 mt-0.5">{money(s.unit_cost)} / {s.unit}{s.category ? ` · ${s.category}` : ''}</div>
-                        </div>
-                        {canManage && (
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                <PillBtn icon={Pencil} label="Editar" onClick={() => setSupplyModal({ edit: s })} />
-                                <PillBtn icon={Trash2} label="Eliminar" tone="danger" onClick={() => setPendingDelete(s)} />
+                ) : filteredSupplies.map(s => {
+                    const stock = Number(s.stock ?? 0);
+                    const minStock = Number(s.min_stock ?? 0);
+                    const low = minStock > 0 && stock <= minStock;
+                    const negative = stock < 0;
+                    return (
+                        <Ficha key={s.id}>
+                            <Avatar text={s.name} />
+                            <div className="flex-1 min-w-0">
+                                <div className="text-sm font-bold text-navy-900 truncate flex items-center gap-1.5">
+                                    {s.name}
+                                    {negative ? (
+                                        <span className="px-1.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 text-[8px] font-bold uppercase tracking-wide shrink-0" title="Se consumió más de lo comprado — revisa compras o receta">Stock negativo</span>
+                                    ) : low ? (
+                                        <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-[8px] font-bold uppercase tracking-wide shrink-0">Reponer</span>
+                                    ) : null}
+                                </div>
+                                <div className="text-[11px] font-bold text-navy-700/60 mt-0.5">
+                                    {money(s.unit_cost)} / {s.unit}
+                                    <span className={negative ? 'text-rose-600' : low ? 'text-amber-700' : ''}> · stock {Number.isInteger(stock) ? stock : stock.toFixed(2)} {s.unit}</span>
+                                    {minStock > 0 && <span className="text-navy-700/40"> (mín. {Number.isInteger(minStock) ? minStock : minStock.toFixed(2)})</span>}
+                                    {s.category ? ` · ${s.category}` : ''}
+                                </div>
                             </div>
-                        )}
-                    </Ficha>
-                ))}
+                            {canManage && (
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    <PillBtn icon={Pencil} label="Editar" onClick={() => setSupplyModal({ edit: s })} />
+                                    <PillBtn icon={Trash2} label="Eliminar" tone="danger" onClick={() => setPendingDelete(s)} />
+                                </div>
+                            )}
+                        </Ficha>
+                    );
+                })}
             </Panel>
 
             {/* Panel Recetas */}

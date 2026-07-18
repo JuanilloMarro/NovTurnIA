@@ -1,17 +1,101 @@
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save } from 'lucide-react';
 import WheelColumn from '../ui/WheelColumn';
+import { getPaymentMethods, getStaffProduction } from '../../services/supabaseService';
 
 // ── Helpers compartidos para mantener la armonía con Nuevo Turno / Nuevo Cliente ──
 
 export const money = (n) => `Q${Number(n || 0).toFixed(2)}`;
 
+// Fallback legacy — los métodos reales por negocio viven en payment_methods
+// (Finanzas v2) y se cargan con useMethodOptions().
 export const PAY_OPTIONS = [
     { id: 'cash', label: 'Efectivo' },
     { id: 'card', label: 'Tarjeta' },
     { id: 'transfer', label: 'Transferencia' },
     { id: 'other', label: 'Otro' },
 ];
+
+// Métodos de pago configurados por el negocio → opciones de wheel. Los modales
+// se auto-abastecen (sin prop-drilling desde la página ni desde la agenda).
+export function useMethodOptions() {
+    const [options, setOptions] = useState(PAY_OPTIONS);
+    useEffect(() => {
+        let alive = true;
+        getPaymentMethods({ activeOnly: true })
+            .then(rows => {
+                if (alive && rows.length > 0) setOptions(rows.map(m => ({ id: m.code, label: m.label })));
+            })
+            .catch(() => { /* tabla aún no migrada → fallback legacy */ });
+        return () => { alive = false; };
+    }, []);
+    return options;
+}
+
+// Etiqueta de un método guardado en un ledger (code → label del negocio).
+export function methodLabelFrom(code, methods = []) {
+    if (!code) return null;
+    const m = methods.find(x => (x.code ?? x.id) === code);
+    if (m) return m.label;
+    return PAY_OPTIONS.find(o => o.id === code)?.label || code;
+}
+
+// Roster del equipo para atribuir cobros (comisiones). La RPC de producción
+// devuelve a todo el staff del negocio con su % vigente.
+export function useFinanceStaff() {
+    const [staff, setStaff] = useState([]);
+    useEffect(() => {
+        let alive = true;
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        getStaffProduction(start, now.toISOString())
+            .then(rows => { if (alive) setStaff(rows.filter(r => r.active)); })
+            .catch(() => { /* backend pendiente → sin selector de staff */ });
+        return () => { alive = false; };
+    }, []);
+    return staff;
+}
+
+// Exporta el período visible a CSV (para el contador): ambos libros en un
+// archivo, con BOM para que Excel respete acentos.
+export function exportFinanceCsv({ income = [], expenses = [], methods = [], label = 'periodo' }) {
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const fmtD = (iso) => iso ? new Date(iso).toLocaleDateString('es-GT') : '';
+    const rows = [['Tipo', 'Fecha', 'Descripción', 'Categoría', 'Método de pago', 'Monto (Q)', 'Estado']];
+    income.forEach(e => rows.push([
+        'Ingreso', fmtD(e.occurred_at), e.description,
+        e.finance_categories?.name || e.source || '',
+        methodLabelFrom(e.payment_method, methods) || '',
+        Number(e.amount || 0).toFixed(2), e.status,
+    ]));
+    expenses.forEach(e => rows.push([
+        'Egreso', fmtD(e.occurred_at), e.description,
+        e.finance_categories?.name || e.category || '',
+        methodLabelFrom(e.payment_method, methods) || '',
+        `-${Number(e.amount || 0).toFixed(2)}`, e.status,
+    ]));
+    const csv = '﻿' + rows.map(r => r.map(esc).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `finanzas_${label.replace(/\s+/g, '_').toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Buscador compacto para filtrar los libros (Ingresos/Egresos/Por cobrar).
+export function LedgerSearch({ value, onChange, placeholder = 'Buscar…' }) {
+    return (
+        <input
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full sm:w-64 bg-white/40 border border-white/60 rounded-full px-4 py-2 text-[12px] font-semibold outline-none focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/40 shadow-sm text-navy-900"
+        />
+    );
+}
 export const FREQ_OPTIONS = [
     { id: 'one_time', label: 'Una vez' },
     { id: 'monthly', label: 'Mensual (fijo)' },

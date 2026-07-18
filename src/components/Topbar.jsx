@@ -5,6 +5,7 @@ import { usePendingReminder } from '../hooks/usePendingReminder';
 import { useAppStore } from '../store/useAppStore';
 import { useToastStore } from '../store/useToastStore';
 import { useAuth } from '../hooks/useAuth';
+import AIAssistantLauncher from './AIAssistant/AIAssistantLauncher';
 
 function getInitials(name) {
     if (!name) return '?';
@@ -77,6 +78,9 @@ export default function Topbar() {
             </button>
 
             <div className="flex items-center gap-2 mt-2">
+
+                {/* ── Asistente IA global (se oculta dentro del Centro IA) ── */}
+                <AIAssistantLauncher />
 
                 {/* ── Notificaciones ─────────────────────────────────── */}
                 <div className="relative" ref={notifRef}>

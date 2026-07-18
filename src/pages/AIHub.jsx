@@ -8,6 +8,7 @@ import RecentInsights from '../components/AIHub/RecentInsights';
 import { AI_ACTIONS, SCOPE_META, timeAgo } from '../components/AIHub/aiActions';
 import { useAIInsights } from '../hooks/useAIInsights';
 import { useAIChat } from '../hooks/useAIChat';
+import { useAIUsage } from '../hooks/useAIUsage';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { useAuth } from '../hooks/useAuth';
 import { useAuroraPulse } from '../hooks/useAuroraPulse';
@@ -16,10 +17,10 @@ import { useAppStore } from '../store/useAppStore';
 // Centro IA — módulo IA del sistema (doc "Automatización Agente IA" · Parte B).
 // 3 paneles independientes (20/50/30), cada uno su propia tarjeta de cristal:
 //   Actividad reciente · Orbe + acciones IA · Chat de negocio.
-// La configuración del asistente y el listado de "IA pausada" salieron de acá
-// (irán a un submódulo propio más adelante, dentro de IA — pendiente).
-// Cache-first: la UI lee de ai_insights (0 tokens); solo Generar/Regenerar y
-// el chat invocan la IA.
+// La configuración del asistente y el listado de "IA pausada" viven en la
+// página Configuración (/business). Cache-first: la UI lee de ai_insights
+// (0 tokens); solo Generar/Regenerar y el chat invocan la IA — con límite
+// semanal REAL de tokens por plan (Pro/Enterprise), aplicado en el backend.
 
 const HOURS_AGO = (h) => new Date(Date.now() - h * 3600_000).toISOString();
 
@@ -73,16 +74,23 @@ function timeShort(iso) {
     return new Date(iso).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
-// Barra de consumo IA (chat + generación de reportes) — reemplaza al botón
-// "Limpiar", siempre visible (sin esconderla detrás de un clic). Degradado
-// azul→morado tomado directo de los glows del sistema (rgba(64,98,200) /
-// rgba(120,110,230)), a opacidad plena para que se note bien.
-// Solo UI por ahora: el % es de muestra hasta que exista un límite real de
-// tokens configurado para planes Pro/Enterprise.
-function UsageBar({ percent = 0 }) {
-    const pct = Math.min(100, Math.max(0, percent));
+// Barra de consumo IA (chat + generación de reportes) — siempre visible.
+// Degradado azul→morado tomado de los glows del sistema (rgba(64,98,200) /
+// rgba(120,110,230)). El % es REAL: consumo semanal de tokens vs el límite del
+// plan (RPC get_ai_usage); el tope duro lo aplica el backend (429).
+function fmtTokens(n) {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)}M`;
+    if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+    return String(n);
+}
+
+function UsageBar({ usage }) {
+    const { pct, usedTokens, limitTokens } = usage;
+    const title = limitTokens > 0
+        ? `${fmtTokens(usedTokens)} de ${fmtTokens(limitTokens)} tokens esta semana · se reinicia el lunes`
+        : 'Consumo IA de la semana (chat y reportes)';
     return (
-        <div className="flex items-center gap-2" title={`${pct}% del consumo IA de este mes (chat y reportes)`}>
+        <div className="flex items-center gap-2" title={title}>
             <div className="w-20 h-2 rounded-full bg-navy-900/10 overflow-hidden shrink-0">
                 <div
                     className="h-full rounded-full transition-all duration-500"
@@ -97,7 +105,7 @@ function UsageBar({ percent = 0 }) {
 // Panel 3 (30%) — Chat de negocio, tarjeta independiente. Burbujas con el
 // mismo estilo que Conversaciones (cristal bg-white/50, esquina recortada del
 // lado de quien habla).
-function ChatPanel({ mock, question, setQuestion, messages, asking, onRemove, onSubmit }) {
+function ChatPanel({ mock, question, setQuestion, messages, asking, usage, onRemove, onSubmit }) {
     const { className: auroraClass, pulse: pulseAurora } = useAuroraPulse();
     useEffect(() => { if (!mock) pulseAurora(4200); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -121,7 +129,7 @@ function ChatPanel({ mock, question, setQuestion, messages, asking, onRemove, on
                     <span className="flex items-center gap-1.5 text-[11px] font-bold text-navy-900 tracking-tight">
                         <AIStar size={12} /> Chat de negocio
                     </span>
-                    {!mock && <UsageBar percent={42} />}
+                    {!mock && <UsageBar usage={usage} />}
                 </div>
 
                 <div ref={scrollRef} className="relative z-10 flex-1 min-h-0 overflow-y-auto custom-scrollbar px-5 space-y-3">
@@ -189,14 +197,14 @@ function ChatPanel({ mock, question, setQuestion, messages, asking, onRemove, on
                         <input
                             value={question}
                             onChange={e => setQuestion(e.target.value)}
-                            disabled={mock || asking}
-                            placeholder="Pregúntale a tu negocio..."
+                            disabled={mock || asking || usage.blocked}
+                            placeholder={usage.blocked ? 'Límite semanal de IA alcanzado · vuelve el lunes' : 'Pregúntale a tu negocio...'}
                             className="flex-1 min-w-0 bg-transparent text-[12px] font-semibold text-navy-900 outline-none placeholder-navy-700/40 disabled:cursor-not-allowed"
                         />
                         <button
                             type="submit"
-                            disabled={mock || asking || !question.trim()}
-                            title="Enviar pregunta"
+                            disabled={mock || asking || usage.blocked || !question.trim()}
+                            title={usage.blocked ? 'Límite semanal de IA alcanzado' : 'Enviar pregunta'}
                             className="w-8 h-8 rounded-full bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card hover:bg-navy-800 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                         >
                             <Send size={13} />
@@ -273,8 +281,18 @@ export default function AIHub() {
 
     const [question, setQuestion] = useState('');
     const { messages, sending: asking, send, remove } = useAIChat(unlocked);
+    const usage = useAIUsage(unlocked);
 
     const firstName = profile?.full_name?.trim().split(/\s+/)[0] || '';
+
+    // Toda operación que gasta IA refresca la barra de consumo al terminar.
+    async function generateTracked(...args) {
+        try {
+            return await generate(...args);
+        } finally {
+            usage.refresh();
+        }
+    }
 
     // Drawer de detalle: { action, refId } o null
     const [drawer, setDrawer] = useState(null);
@@ -294,9 +312,10 @@ export default function AIHub() {
     async function handleAsk(e) {
         e.preventDefault();
         const q = question.trim();
-        if (!q || asking || mock) return;
+        if (!q || asking || mock || usage.blocked) return;
         setQuestion('');
         await send(q);
+        usage.refresh();
     }
 
     const panels = (
@@ -316,6 +335,7 @@ export default function AIHub() {
                 setQuestion={setQuestion}
                 messages={messages}
                 asking={asking}
+                usage={usage}
                 onRemove={remove}
                 onSubmit={handleAsk}
             />
@@ -329,9 +349,11 @@ export default function AIHub() {
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Centro IA</h1>
                     <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Análisis, estrategias y chat sobre tu negocio</p>
                 </div>
-                {unlocked && plan === 'enterprise' && (
-                    <span className="text-[10px] font-bold px-3 py-1.5 rounded-full border shrink-0 bg-violet-50 text-violet-700 border-violet-200">
-                        Plan Enterprise
+                {unlocked && (plan === 'enterprise' || plan === 'pro') && (
+                    <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full border shrink-0 ${plan === 'enterprise'
+                        ? 'bg-violet-50 text-violet-700 border-violet-200'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                        {plan === 'enterprise' ? 'Plan Enterprise' : 'Plan Pro'}
                     </span>
                 )}
             </div>
@@ -344,8 +366,8 @@ export default function AIHub() {
                                 feature="stats_intelligence"
                                 variant="blurred"
                                 title="Centro IA"
-                                description="Resúmenes, estrategias y análisis inteligentes de tu negocio, disponibles en plan Enterprise."
-                                requiredPlan="Enterprise"
+                                description="Resúmenes, estrategias y análisis inteligentes de tu negocio, disponibles desde el plan Pro."
+                                requiredPlan="Pro"
                             >
                                 {panels}
                             </FeatureLock>
@@ -356,7 +378,7 @@ export default function AIHub() {
                         <InsightDrawer
                             action={drawer.action}
                             initialRefId={drawer.refId}
-                            onGenerate={generate}
+                            onGenerate={generateTracked}
                             onClose={() => setDrawer(null)}
                         />
                     )}

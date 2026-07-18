@@ -230,7 +230,7 @@ GRANT EXECUTE ON FUNCTION public.get_business_context_pack(uuid) TO service_role
 2. Si `!regenerate` y existe insight del scope (< 24h para negocio, < 7 días para paciente) → devolver cache (0 tokens).
 3. Rate limit: `check_rate_limit('ai:'+business_id, hora)` → máx 30 generaciones/h por negocio.
 4. Armar contexto según scope (B.2): `get_business_context_pack` o `get_patient_profile` + extras puntuales.
-5. Llamar Gemini (`generativelanguage.googleapis.com`, key en secret `GEMINI_API_KEY`) con `responseMimeType: application/json` + schema del scope + `maxOutputTokens` del scope.
+5. Llamar Gemini (`generativelanguage.googleapis.com`, key en secret `GEMINI_API_KEY`) con `responseMimeType: application/json` + schema del scope + `maxOutputTokens` del scope + **`thinkingConfig: { thinkingBudget: 0 }`** (los 2.5 piensan por defecto y ese razonamiento consume el budget de salida — bug 2026-07-14: respuestas truncadas a 3-8 tokens cacheadas como `{ raw }`). Si el JSON no calza con el schema tras 1 reintento (budget x2), la Edge responde 502 y **no cachea nada**.
 6. INSERT `ai_insights` (con tokens del `usageMetadata` de la respuesta) + `record_usage(business_id, 0, tokens_in, tokens_out)` → devolver el insight.
 
 **`ai-chat`** (POST): body `{ message }`. Mismo auth/gates que arriba.
@@ -252,28 +252,28 @@ GRANT EXECUTE ON FUNCTION public.get_business_context_pack(uuid) TO service_role
 - **Disparo:** botón "Resumen IA" en la ficha del paciente (PatientDrawer).
 - **Contexto (~350 tokens):** `get_patient_profile(biz, patient)` (visitas, no_shows, servicio_frecuente, ultima_visita, prioridad — ya existe, 0 LLM) + últimos 15 mensajes de `history` (solo `role,content`, truncados a 150 chars) + próximas citas (`get_patient_appointments`).
 - **Prompt:** "Eres asistente clínico/comercial de {negocio}. Con PERFIL, CHAT y CITAS, resume la situación de este cliente para el dueño."
-- **Salida:** `{ resumen: string(≤400), estado: 'activo'|'en_riesgo'|'inactivo'|'nuevo', siguiente_accion: string(≤200) }` · `maxOutputTokens: 250` · flash-lite.
+- **Salida:** `{ resumen: string(≤400), estado: 'activo'|'en_riesgo'|'inactivo'|'nuevo', siguiente_accion: string(≤200) }` · `maxOutputTokens: 320` · flash-lite.
 - **UI:** card en la ficha; muestra `generated_at` + botón Regenerar.
 - **Costo:** ~$0.0001/clic. Cache 7 días.
 
 ### 2) Estrategia por cliente (`patient_strategy`, on-demand)
 - **Contexto:** el del #1 + ofertas activas del negocio (select frugal del bot) + precio de sus 3 servicios más usados.
 - **Prompt:** "Propón UNA acción comercial concreta según prioridad ({alta: fidelizar/upsell, media: recurrencia, en_riesgo: reactivar}) y redacta el borrador de WhatsApp (≤300 chars, tono cercano guatemalteco)."
-- **Salida:** `{ accion: string, razon: string(≤150), borrador_whatsapp: string(≤300) }` · `maxOutputTokens: 300` · **flash** (calidad de copy).
+- **Salida:** `{ accion: string, razon: string(≤150), borrador_whatsapp: string(≤300) }` · `maxOutputTokens: 512` · **flash** (calidad de copy).
 - **UI:** card con botón **"Copiar borrador"** — el dueño lo envía él mismo (el sistema NUNCA envía marketing solo; plantillas marketing cuestan $0.0851 — doc 02).
 - **Costo:** ~$0.0004/clic.
 
 ### 3) Análisis de retención (`retention`, batch semanal + on-demand)
 - **Contexto (~500 tokens):** SQL determinista previa (0 LLM): pacientes con `ultima_visita > 45 días` y `visitas ≥ 2` (máx 15, solo `display_name, visitas, servicio_frecuente, dias_sin_venir`) + `get_retention_rate`.
 - **Prompt:** "Prioriza a quién contactar esta semana y por qué. Máximo 5."
-- **Salida:** `{ tasa_retencion: number, prioridades: [{nombre, razon(≤100), sugerencia(≤150)}], insight_general: string(≤200) }` · `maxOutputTokens: 500` · flash.
+- **Salida:** `{ tasa_retencion: number, prioridades: [{nombre, razon(≤100), sugerencia(≤150)}], insight_general: string(≤200) }` · `maxOutputTokens: 1024` · flash.
 - **UI:** sección "Retención" del módulo; batch deja notificación "Tu análisis semanal está listo".
 - **Costo:** ~$0.0005/negocio/semana.
 
 ### 4) Narrativa de KPIs (`kpi_narrative`, on-demand desde Stats)
 - **Contexto:** `get_business_context_pack` (§B.1.1) — TODO ya agregado, ~400 tokens.
 - **Prompt:** "Explica en lenguaje de dueño de negocio el PORQUÉ detrás de estos números del mes y da 3 recomendaciones accionables."
-- **Salida:** `{ titular: string(≤100), analisis: string(≤500), recomendaciones: [string(≤150)] x3 }` · `maxOutputTokens: 450` · flash.
+- **Salida:** `{ titular: string(≤100), analisis: string(≤500), recomendaciones: [string(≤150)] x3 }` · `maxOutputTokens: 768` · flash.
 - **UI:** botón "✨ Explicar con IA" arriba de Stats → card colapsable. Cache 24h.
 
 ### 5) Digest semanal (`weekly_digest`, batch lunes)
@@ -336,13 +336,13 @@ src/services/supabaseService.js     ← getAIInsights(scope, refId?), getAIChatM
 ## B.5 Orden de implementación para Sonnet + verificación
 
 **Fase 1 — Fundación:** ✅ **HECHO** (2026-07-14, por API). Migración `ai_module_foundation` (tablas `ai_insights`/`ai_chat_messages`+RLS+RPC `get_business_context_pack`+grants) y `ai_module_at_risk_patients_rpc` (`get_at_risk_patients`, necesaria para el scope `retention`) aplicadas y verificadas con probes de rollback. ❌ El permiso RBAC dedicado `use_ai_module` **NO** se creó — decisión consciente (ver B.6): el usuario prefirió que Configuración+Insights vivan en un solo módulo gateado por `canManageRoles`/`stats_intelligence` existentes; crear un permiso sin consumidor real era abstracción muerta.
-**Fase 2 — `ai-insights`:** ✅ **HECHO.** Edge Function desplegada (los 6 scopes, no solo `kpi_narrative` — se implementaron todos de una vez) con cache-first, rate limit (`check_rate_limit`, 30/h), y `responseSchema` de Gemini exacto por scope.
+**Fase 2 — `ai-insights`:** ✅ **HECHO.** Edge Function desplegada (los 6 scopes, no solo `kpi_narrative` — se implementaron todos de una vez) con cache-first, rate limit (`check_rate_limit`, 30/h), y `responseSchema` de Gemini exacto por scope. **Fix 2026-07-16 (v3):** `thinkingBudget: 0` en el cliente Gemini (el thinking por defecto de los 2.5 consumía el `maxOutputTokens` → `content_offer`/`patient_strategy` salían truncados a 3-8 tokens y se cacheaban como `{ raw: ... }`), budgets de salida recalibrados (320-1024), extracción robusta de JSON + validación de claves `required` + 1 reintento con budget x2, error 502 sin cachear si aun así falla, `tokens_out` ahora suma `thoughtsTokenCount` (facturable). El código fuente ahora está versionado en el repo (`supabase/functions/ai-insights/`, `ai-chat/`, `_shared/gemini.ts`) — antes solo existía desplegado.
 **Fase 3 — Chat:** ✅ **HECHO.** `ai-chat` desplegada: router de intents (`gemini-2.5-flash-lite`) → fetch determinista (kpis/finanzas/retención/pacientes/servicios/agenda/general) → respuesta (`gemini-2.5-flash`) → persiste en `ai_chat_messages`.
 **Fase 4 — Resto de scopes + batch:** 🟡 **PARCIAL.** ✅ Los 6 scopes de insights + `patient_summary`/`patient_strategy` en la ficha del paciente (`PatientAIBlock.jsx`). ❌ Batch semanal `pg_cron` (`weekly_digest`/`retention` automáticos) — no implementado, hoy solo on-demand. ❌ Botón "Crear oferta" que pre-llena el módulo Ofertas desde `content_offer` — no implementado.
 **Pendiente de config (no es código, es un paso manual del usuario):** el secret `GEMINI_API_KEY` en las Edge Functions del proyecto — no se pudo verificar ni configurar por MCP (no hay herramienta para leer/escribir secrets, y es una credencial que no corresponde manejar por este medio). Sin ese secret, `ai-insights`/`ai-chat` devuelven error 500 al intentar llamar a Gemini.
 **Verificación transversal:** cada fase termina con (a) probe SQL de RLS, (b) curl a la Edge con y sin permiso/feature (403 esperado), (c) `usage_counters` incrementando, (d) preview del front compilando + snapshot.
 
-**Qué NO hacer (deuda conocida que este módulo no debe heredar):** memoria semántica pgvector (diferida — Parte C §C.3), envío automático de mensajes de marketing, darle al LLM acceso SQL libre, prompts sin `responseSchema`, modelos sin `modelName` fijo.
+**Qué NO hacer (deuda conocida que este módulo no debe heredar):** memoria semántica pgvector (diferida — Parte C §C.3), envío automático de mensajes de marketing, darle al LLM acceso SQL libre, prompts sin `responseSchema`, modelos sin `modelName` fijo, **modelos 2.5 sin `thinkingBudget: 0` explícito** (el razonamiento por defecto consume el budget de salida y trunca el JSON — bug 2026-07-14), **cachear salidas que no parsean** (jamás guardar `{ raw }` en `ai_insights`).
 
 ## B.6 Estado de implementación — Frontend + Backend (actualizado 2026-07-14)
 
@@ -350,6 +350,7 @@ src/services/supabaseService.js     ← getAIInsights(scope, refId?), getAIChatM
 - `src/pages/AIHub.jsx` (ruta `/ai`) + `src/components/AIHub/` (`aiActions.js`, `InsightContent.jsx`, `InsightDrawer.jsx`, `RecentInsights.jsx`, `AIConfigPanel.jsx`, `PausedAIPanel.jsx`, `PatientAIBlock.jsx`) + `src/hooks/useAIInsights.js` + `src/hooks/useAIChat.js`.
 - `InsightContent.jsx` renderiza el **schema JSON exacto de cada scope** descrito en §B.2 (no un volcado genérico) — cae a un fallback legible solo si el backend responde con una forma inesperada.
 - `PatientAIBlock` en la ficha del paciente (`src/components/Patients/PatientDrawer.jsx`, bajo Notas).
+- **Asistente IA global** (2026-07-17): `src/components/AIAssistant/AIAssistantLauncher.jsx`, montado en el Topbar junto a la campana de notificaciones — la IA "a la mano" en todo el sistema. Panel desplegable con (1) acciones contextuales según el módulo activo (mapa ruta→scopes: Clientes→resumen/estrategia, Seguimiento→retención/estrategia, Stats→KPIs/retención, Ofertas→content_offer, Finanzas→KPIs/digest, Agenda→digest/KPIs), (2) fila "Más análisis" con el resto de scopes, y (3) el chat de negocio compacto con UsageBar. Reusa `InsightDrawer` (lazy, portal a body), `useAIChat`, `useAIUsage`, `useAIInsights` — cero lógica duplicada. Se oculta en `/ai` (el Centro IA ya es la experiencia completa); misma visibilidad de permisos que la ruta `/ai`; sin `stats_intelligence` muestra candado y abre el modal de planes.
 - **Decisión de producto confirmada con el usuario (diverge de B.3.2 a propósito):** Configuración del asistente + horario + "IA pausada" viven DENTRO de Centro IA para **todos los planes** (no solo Enterprise) — reemplazan la antigua pantalla `/business`, retirada. Solo la grilla de insights + el chat quedan detrás de `stats_intelligence`. Gate de edición: `canManageRoles`.
 
 **✅ Backend** (sesión 2026-07-14, por API/MCP — n8n excluido a propósito, queda para cuando exista el túnel):

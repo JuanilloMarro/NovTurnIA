@@ -1500,6 +1500,24 @@ export async function getLatestAIInsight(scope, refId = null) {
     return rows[0] || null;
 }
 
+// invoke() esconde el body de una respuesta no-2xx dentro de error.context
+// (un Response). Sin esto, el usuario vería "no disponible" aunque la función
+// haya explicado el motivo real (rate limit, plan, IA inválida...). Además
+// adjunta el `code` del body (p. ej. 'ai_limit_reached') en err.code para que
+// la UI pueda reaccionar (bloquear el input) sin parsear el texto.
+async function functionError(error, fallback) {
+    let message = fallback;
+    let code = null;
+    try {
+        const body = await error?.context?.json();
+        if (typeof body?.error === 'string' && body.error) message = body.error;
+        if (typeof body?.code === 'string' && body.code) code = body.code;
+    } catch { /* sin body JSON (p. ej. función caída o CORS) → fallback */ }
+    const err = new Error(message);
+    if (code) err.code = code;
+    return err;
+}
+
 // Genera (o regenera) un insight — ÚNICA operación de este módulo que gasta
 // tokens. La Edge Function escribe en ai_insights y devuelve la fila creada.
 export async function generateAIInsight(scope, { refId = null, regenerate = true } = {}) {
@@ -1507,7 +1525,7 @@ export async function generateAIInsight(scope, { refId = null, regenerate = true
         body: { scope, ref_id: refId, regenerate },
     });
     if (error) {
-        throw new Error('El generador de análisis IA aún no está disponible. Inténtalo más tarde.');
+        throw await functionError(error, 'El generador de análisis IA aún no está disponible. Inténtalo más tarde.');
     }
     return data;
 }
@@ -1534,7 +1552,7 @@ export async function askBusinessAI(message) {
         body: { message },
     });
     if (error) {
-        throw new Error('El chat de negocio IA aún no está disponible. Inténtalo más tarde.');
+        throw await functionError(error, 'El chat de negocio IA aún no está disponible. Inténtalo más tarde.');
     }
     // Incluye los ids de los 2 mensajes insertados (usuario+asistente) para
     // poder borrarlos individualmente sin recargar el hilo.
@@ -1543,6 +1561,16 @@ export async function askBusinessAI(message) {
         userMessageId: data?.userMessageId ?? null,
         assistantMessageId: data?.assistantMessageId ?? null,
     };
+}
+
+// Consumo semanal REAL de tokens IA del negocio (chat + reportes) para la
+// UsageBar del Centro IA. El tope de verdad lo aplica el backend (429
+// ai_limit_reached en las Edge Functions); esto es solo lectura.
+// Devuelve { used_tokens, limit_tokens, week_start, resets_at } o null.
+export async function getAIUsage() {
+    const { data, error } = await supabase.rpc('get_ai_usage');
+    if (error) throw error;
+    return data;
 }
 
 export async function deleteAIChatMessage(id) {
@@ -1590,7 +1618,7 @@ export async function getSupplies({ activeOnly = false } = {}) {
     return data || [];
 }
 
-export async function createSupply({ name, unit, unit_cost, category, notes }) {
+export async function createSupply({ name, unit, unit_cost, category, notes, stock = 0, min_stock = 0 }) {
     const { data, error } = await supabase
         .from('supplies')
         .insert({
@@ -1600,6 +1628,8 @@ export async function createSupply({ name, unit, unit_cost, category, notes }) {
             unit_cost: unit_cost ?? 0,
             category: category?.trim() || null,
             notes: notes?.trim() || null,
+            stock: stock ?? 0,
+            min_stock: min_stock ?? 0,
         })
         .select()
         .single();
@@ -1614,6 +1644,8 @@ export async function updateSupply(id, fields) {
     });
     if (fields.unit_cost !== undefined) patch.unit_cost = fields.unit_cost;
     if (fields.active !== undefined) patch.active = fields.active;
+    if (fields.stock !== undefined) patch.stock = fields.stock;
+    if (fields.min_stock !== undefined) patch.min_stock = fields.min_stock;
     const { data, error } = await supabase
         .from('supplies').update(patch).eq('id', id).eq('business_id', getBID()).select().single();
     if (error) throw error;
@@ -1681,7 +1713,7 @@ export async function getIncomeEntries({ start, end, status = 'confirmed', limit
 }
 
 // Ingreso manual / ad-hoc (venta sin turno, producto, etc.)
-export async function recordIncome({ description, amount, payment_method, occurred_at, quantity = 1, service_id = null, patient_id = null, category_id = null, notes = null, source = 'manual' }) {
+export async function recordIncome({ description, amount, payment_method, occurred_at, quantity = 1, service_id = null, patient_id = null, category_id = null, notes = null, source = 'manual', staff_id = null }) {
     const { data, error } = await supabase
         .from('income_entries')
         .insert({
@@ -1694,6 +1726,7 @@ export async function recordIncome({ description, amount, payment_method, occurr
             service_id,
             patient_id,
             category_id,
+            staff_id,
             occurred_at: occurred_at || new Date().toISOString(),
             notes: notes?.trim() || null,
         })
@@ -1720,12 +1753,15 @@ export async function updateIncome(id, fields) {
 
 // Paso 1 — enviar el cobro de un turno a validación (crea ingreso 'pending',
 // aún NO cuenta como ingreso). Aparece en la lista "Por confirmar".
-export async function submitIncomeValidation({ appointmentId, amount, paymentMethod = null, notes = null }) {
+// staffId (opcional) atribuye el servicio a un profesional para comisiones —
+// el % vigente se congela en la entrada (snapshot vía trigger en DB).
+export async function submitIncomeValidation({ appointmentId, amount, paymentMethod = null, notes = null, staffId = null }) {
     const { data, error } = await supabase.rpc('submit_income_validation', {
         p_appointment_id: appointmentId,
         p_amount: amount,
         p_payment_method: paymentMethod,
         p_notes: notes,
+        p_staff_id: staffId,
     });
     if (error) throw error;
     return data;
@@ -1852,4 +1888,176 @@ export async function getFinanceTrend(granularity = 'month', start, end) {
     });
     if (error) throw error;
     return data || [];
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Finanzas v2 — meta mensual, métodos de pago, por cobrar (abonos), producción
+// por profesional, caja diaria y proyección de cierre.
+// (doc "Finanzas v2 - Evaluacion y Roadmap")
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Ajustes: meta mensual ────────────────────────────────
+export async function getFinanceSettings() {
+    const { data, error } = await supabase
+        .from('finance_settings').select('*').eq('business_id', getBID()).maybeSingle();
+    if (error) throw error;
+    return data;
+}
+
+export async function saveFinanceSettings({ monthly_goal }) {
+    const { data, error } = await supabase
+        .from('finance_settings')
+        .upsert({ business_id: getBID(), monthly_goal: monthly_goal ?? 0 }, { onConflict: 'business_id' })
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+// ── Métodos de pago configurables ────────────────────────
+// `code` es el identificador que se guarda en income/expense.payment_method:
+// se genera del label al crear y NUNCA cambia (estabilidad del histórico).
+export async function getPaymentMethods({ activeOnly = false } = {}) {
+    let q = supabase.from('payment_methods').select('*').eq('business_id', getBID())
+        .order('sort_order', { ascending: true }).order('created_at', { ascending: true });
+    if (activeOnly) q = q.eq('active', true);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+}
+
+function slugifyMethodCode(label) {
+    return (label || '').trim().toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+        .slice(0, 40) || 'metodo';
+}
+
+export async function createPaymentMethod({ label, fee_pct = 0, is_cash = false }) {
+    const { data, error } = await supabase
+        .from('payment_methods')
+        .insert({
+            business_id: getBID(),
+            code: slugifyMethodCode(label),
+            label: label.trim(),
+            fee_pct: fee_pct ?? 0,
+            is_cash,
+            sort_order: 99,
+        })
+        .select()
+        .single();
+    if (error) {
+        if (error.code === '23505') throw new Error('Ya existe un método con ese nombre.');
+        throw error;
+    }
+    return data;
+}
+
+export async function updatePaymentMethod(id, fields) {
+    const patch = {};
+    if (fields.label !== undefined) patch.label = fields.label.trim();
+    if (fields.fee_pct !== undefined) patch.fee_pct = fields.fee_pct ?? 0;
+    if (fields.is_cash !== undefined) patch.is_cash = fields.is_cash;
+    if (fields.active !== undefined) patch.active = fields.active;
+    const { data, error } = await supabase
+        .from('payment_methods').update(patch).eq('id', id).eq('business_id', getBID()).select().single();
+    if (error) throw error;
+    return data;
+}
+
+export async function deletePaymentMethod(id) {
+    const { error } = await supabase.from('payment_methods').delete().eq('id', id).eq('business_id', getBID());
+    if (error) throw error;
+}
+
+// ── Por cobrar: planes de pago + abonos ──────────────────
+export async function getPaymentPlans(status = null) {
+    const { data, error } = await supabase.rpc('get_payment_plans', { p_status: status });
+    if (error) throw error;
+    return data || [];
+}
+
+export async function createPaymentPlan({ patient_id = null, description, total_amount, notes = null }) {
+    const { data, error } = await supabase
+        .from('payment_plans')
+        .insert({
+            business_id: getBID(),
+            patient_id,
+            description: description.trim(),
+            total_amount,
+            notes: notes?.trim() || null,
+        })
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+// Abono atómico (RPC): inserta el ingreso confirmado y completa el plan si el
+// saldo llega a 0. Devuelve { entry, paid, balance, completed }.
+export async function recordPlanPayment({ planId, amount, paymentMethod = null, notes = null }) {
+    const { data, error } = await supabase.rpc('record_plan_payment', {
+        p_plan_id: planId,
+        p_amount: amount,
+        p_payment_method: paymentMethod,
+        p_notes: notes,
+    });
+    if (error) throw error;
+    return data;
+}
+
+export async function cancelPaymentPlan(id, reason = null) {
+    const { data, error } = await supabase.rpc('cancel_payment_plan', { p_id: id, p_reason: reason });
+    if (error) throw error;
+    return data;
+}
+
+// ── Producción y comisiones por profesional ──────────────
+export async function getStaffProduction(start, end) {
+    const { data, error } = await supabase.rpc('get_staff_production', { p_start: start, p_end: end });
+    if (error) throw error;
+    return data || [];
+}
+
+export async function setStaffCommission(staffId, pct) {
+    const { data, error } = await supabase.rpc('set_staff_commission', { p_staff_id: staffId, p_pct: pct });
+    if (error) throw error;
+    return data;
+}
+
+// ── Caja diaria ──────────────────────────────────────────
+// Estado vivo de la caja abierta: { session, cash_in, cash_out, expected } o null.
+export async function getCashStatus(sessionId = null) {
+    const { data, error } = await supabase.rpc('get_cash_session_status', { p_id: sessionId });
+    if (error) throw error;
+    return data;
+}
+
+export async function openCashSession(openingAmount, notes = null) {
+    const { data, error } = await supabase.rpc('open_cash_session', {
+        p_opening_amount: openingAmount, p_notes: notes,
+    });
+    if (error) throw error;
+    return data;
+}
+
+export async function closeCashSession(countedAmount, notes = null) {
+    const { data, error } = await supabase.rpc('close_cash_session', {
+        p_counted_amount: countedAmount, p_notes: notes,
+    });
+    if (error) throw error;
+    return data;
+}
+
+export async function getCashSessions(limit = 30) {
+    const { data, error } = await supabase.rpc('get_cash_sessions', { p_limit: limit });
+    if (error) throw error;
+    return data || [];
+}
+
+// ── Proyección de cierre del mes (agenda × asistencia histórica) ──
+export async function getFinanceProjection() {
+    const { data, error } = await supabase.rpc('get_finance_projection');
+    if (error) throw error;
+    return data;
 }

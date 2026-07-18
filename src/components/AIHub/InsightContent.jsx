@@ -295,6 +295,80 @@ function GenericFallback({ content }) {
     );
 }
 
+// ── 7) finance_narrative: { titular, salud, analisis, recomendaciones } ─────
+const SALUD_META = {
+    buena:    { label: 'Salud buena',        cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700' },
+    atencion: { label: 'Requiere atención',  cls: 'bg-amber-500/10 border-amber-500/20 text-amber-700' },
+    critica:  { label: 'Situación crítica',  cls: 'bg-rose-500/10 border-rose-500/20 text-rose-600' },
+};
+
+function FinanceNarrative({ content }) {
+    const { titular, salud, analisis, recomendaciones } = content;
+    const meta = SALUD_META[salud];
+    return (
+        <div className="space-y-4">
+            {meta && (
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${meta.cls}`}>
+                    {meta.label}
+                </span>
+            )}
+            {titular && <h4 className="text-[14px] font-bold text-navy-900 tracking-tight leading-snug">{titular}</h4>}
+            {analisis && <Body>{analisis}</Body>}
+            {Array.isArray(recomendaciones) && recomendaciones.length > 0 && (
+                <div>
+                    <Label>Recomendaciones</Label>
+                    <ul className="space-y-2">
+                        {recomendaciones.map((r, i) => (
+                            <li key={i} className="flex items-start gap-2.5 bg-navy-900/3 border border-navy-900/5 rounded-2xl px-3.5 py-2.5">
+                                <span className="w-4 h-4 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-[8px] font-bold text-navy-800 shrink-0 mt-0.5">{i + 1}</span>
+                                <p className="text-[11.5px] font-bold text-navy-900 leading-relaxed">{r}</p>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Insight incompleto: la generación vieja guardó { raw: "<texto cortado>" } ──
+// (bug del 2026-07-14: el thinking de Gemini se comía el maxOutputTokens y la
+// Edge Function cacheaba la salida truncada). El backend ya no guarda estas
+// filas; esto cubre las históricas que sigan en cache.
+function IncompleteInsight() {
+    return (
+        <div className="flex items-start gap-2.5 bg-amber-500/5 border border-amber-500/15 rounded-2xl px-3.5 py-3">
+            <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+                <p className="text-[11.5px] font-bold text-amber-800 leading-relaxed">Este análisis quedó incompleto</p>
+                <p className="text-[10.5px] font-semibold text-navy-700/60 leading-relaxed mt-0.5">
+                    Vuelve a generarlo para obtener el resultado completo.
+                </p>
+            </div>
+        </div>
+    );
+}
+
+// Intenta rescatar el JSON de un `raw` guardado: parse directo → bloque
+// ```json``` → substring del primer { al último }. null si nada parsea.
+function salvageRaw(raw) {
+    if (typeof raw !== 'string' || !raw.trim()) return null;
+    const text = raw.trim();
+    const candidates = [text];
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenced?.[1]) candidates.push(fenced[1].trim());
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end > start) candidates.push(text.slice(start, end + 1));
+    for (const c of candidates) {
+        try {
+            const parsed = JSON.parse(c);
+            if (parsed && typeof parsed === 'object') return parsed;
+        } catch { /* siguiente candidato */ }
+    }
+    return null;
+}
+
 const SCOPE_RENDERERS = {
     patient_summary: PatientSummary,
     patient_strategy: PatientStrategy,
@@ -302,6 +376,7 @@ const SCOPE_RENDERERS = {
     kpi_narrative: KpiNarrative,
     weekly_digest: WeeklyDigest,
     content_offer: ContentOffer,
+    finance_narrative: FinanceNarrative,
 };
 
 // Claves que identifican cada schema — si el content no trae ninguna de las
@@ -314,11 +389,20 @@ const SCOPE_KEYS = {
     kpi_narrative: ['titular', 'analisis', 'recomendaciones'],
     weekly_digest: ['semana', 'resumen', 'wins', 'alertas', 'foco_siguiente_semana'],
     content_offer: ['promos'],
+    finance_narrative: ['titular', 'salud', 'analisis', 'recomendaciones'],
 };
 
 export default function InsightContent({ scope, content }) {
     if (content == null) return null;
     if (typeof content === 'string') return <Body>{content}</Body>;
+
+    // Fila { raw } de una generación fallida: rescatar el JSON si se puede,
+    // si no, estado claro de "incompleto" — nunca volcar el texto crudo.
+    if (typeof content.raw === 'string' && Object.keys(content).length === 1) {
+        const salvaged = salvageRaw(content.raw);
+        if (!salvaged) return <IncompleteInsight />;
+        content = salvaged;
+    }
 
     const Renderer = SCOPE_RENDERERS[scope];
     const keys = SCOPE_KEYS[scope];
