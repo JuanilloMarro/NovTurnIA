@@ -4,7 +4,7 @@ import { getLostAppointments } from '../../services/supabaseService';
 import { formatPhone } from '../../utils/format';
 import { usePermissions } from '../../hooks/usePermissions';
 import { withTimeout } from '../../utils/withTimeout';
-import { UserX, X, RotateCcw, MessageCircle, ChevronRight, ChevronDown, Search } from 'lucide-react';
+import { UserX, X, RotateCcw, MessageCircle, ChevronRight, ChevronDown } from 'lucide-react';
 import NewAppointmentModal from './NewAppointmentModal';
 
 const PAGE_SIZE = 30;
@@ -26,7 +26,7 @@ function StatusBadge({ status }) {
     );
 }
 
-export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, onLoadingChange, onAppointmentSelected }) {
+export default function FollowUpList({ type = 'all', days = 30, search = '', reloadKey = 0, onLoadingChange, onAppointmentSelected }) {
     const navigate = useNavigate();
     const { canViewConversations, canEditAppointments } = usePermissions();
 
@@ -35,7 +35,6 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [rescheduleTarget, setRescheduleTarget] = useState(null);
-    const [searchStr, setSearchStr] = useState('');
     const hasMore = appointments.length < total;
 
     // Notificar al padre del estado loading para que pueda mostrar el spinner
@@ -78,14 +77,14 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
 
     // Filtra sobre lo ya cargado — mismo patrón que Finanzas/Servicios/Ofertas.
     const visible = useMemo(() => {
-        const q = searchStr.trim().toLowerCase();
+        const q = search.trim().toLowerCase();
         if (!q) return appointments;
         return appointments.filter(apt => {
             const name = apt.patients?.display_name?.toLowerCase() || '';
             const phones = apt.patients?.patient_phones?.map(p => p.phone).join(' ') || '';
             return name.includes(q) || phones.includes(q);
         });
-    }, [appointments, searchStr]);
+    }, [appointments, search]);
 
     function formatDate(iso) {
         return new Date(iso).toLocaleDateString('es-GT', {
@@ -103,19 +102,6 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
 
     return (
         <div className="h-full flex flex-col min-h-0 w-full pt-2 transition-all duration-300">
-            {/* Búsqueda por nombre o teléfono — filtra sobre lo ya cargado */}
-            <div className="px-2 pb-3 shrink-0">
-                <div className="relative max-w-xs">
-                    <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-navy-900/30 pointer-events-none" />
-                    <input
-                        value={searchStr}
-                        onChange={e => setSearchStr(e.target.value)}
-                        placeholder="Buscar por nombre o teléfono…"
-                        className="w-full h-9 pl-9 pr-4 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full text-[11px] font-bold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/40 shadow-md"
-                    />
-                </div>
-            </div>
-
             {/* Scrollable list */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pb-10 space-y-3 px-2">
                 {loading ? (
@@ -130,7 +116,7 @@ export default function FollowUpList({ type = 'all', days = 30, reloadKey = 0, o
                         <div className="text-center">
                             <p className="text-sm font-bold text-navy-900/60">Sin registros</p>
                             <p className="text-[11px] font-semibold text-navy-700/40 mt-0.5">
-                                {searchStr ? 'Nadie coincide con esa búsqueda' : 'No hay clientes perdidos en este período'}
+                                {search ? 'Nadie coincide con esa búsqueda' : 'No hay clientes perdidos en este período'}
                             </p>
                         </div>
                     </div>

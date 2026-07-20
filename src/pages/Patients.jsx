@@ -61,7 +61,7 @@ export default function Patients() {
     const sortLabel = sortOptions.find(o => o.id === sortOrder)?.label || 'Ordenar';
 
     return (
-        <div className={`h-full flex flex-col w-full pt-2 relative transition-all duration-300 ${selectedPatient ? 'sm:pr-[380px] px-2 sm:px-0' : 'px-4'}`}>
+        <div className={`h-full flex flex-col w-full pt-2 relative transition-all duration-300 ${selectedPatient ? 'px-2 sm:pl-0 sm:pr-[380px]' : 'px-4'}`}>
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
