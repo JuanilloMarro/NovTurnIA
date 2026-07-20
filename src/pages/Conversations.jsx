@@ -607,8 +607,8 @@ export default function Conversations() {
                                                         {/* Eliminar mensaje individual (izquierda para salientes) */}
                                                         {canDeleteConversations && !msg._pending && isOutgoing && (
                                                             <button onClick={() => handleDeleteMessage(msg.id)} title="Eliminar mensaje"
-                                                                className="opacity-0 group-hover/msg:opacity-100 shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/50 border border-white/60 text-rose-500 hover:bg-rose-500 hover:text-white shadow-sm transition-all">
-                                                                <Trash2 size={12} />
+                                                                className="opacity-0 group-hover/msg:opacity-100 shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-all">
+                                                                <X size={12} />
                                                             </button>
                                                         )}
                                                         <div className={`max-w-[75%] relative overflow-hidden px-4 py-2.5 text-[13px] leading-relaxed font-medium backdrop-blur-2xl shadow-md bg-white/40 border border-white/60 text-navy-900 rounded-[20px] ${isOutgoing ? 'rounded-br-[4px]' : 'rounded-bl-[4px]'} ${msg._pending ? 'opacity-60' : ''}`}>
@@ -619,11 +619,9 @@ export default function Conversations() {
                                                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                                                                 <div className={`text-[9px] uppercase font-bold tracking-widest mt-1.5 flex items-center gap-1.5 text-navy-900/55 ${isOutgoing ? 'justify-end' : ''}`}>
                                                                     {isOutgoing && (
-                                                                        <span className={`px-1.5 py-[1px] rounded-full tracking-wider ${isAgent
-                                                                            ? 'bg-navy-900/10 text-navy-900/70'
-                                                                            : 'text-white'}`}
-                                                                            style={!isAgent ? { background: 'linear-gradient(90deg, rgba(64,98,200,1), rgba(120,110,230,1))' } : undefined}>
-                                                                            {isAgent ? 'Tú' : 'IA'}
+                                                                        <span className="relative overflow-hidden px-2 py-[2px] rounded-full tracking-wider shadow-sm border border-white/60 backdrop-blur-sm bg-white/50 text-navy-900/75">
+                                                                            <span className="absolute inset-0 pointer-events-none" style={{ background: isAgent ? 'linear-gradient(120deg, rgba(26,58,107,0.12), rgba(26,58,107,0.02))' : 'linear-gradient(120deg, rgba(64,98,200,0.25), rgba(120,110,230,0.25))' }} />
+                                                                            <span className="relative z-10">{isAgent ? 'Tú' : 'IA'}</span>
                                                                         </span>
                                                                     )}
                                                                     <span>
@@ -637,8 +635,8 @@ export default function Conversations() {
                                                         {/* Eliminar mensaje entrante (a la derecha del cliente) */}
                                                         {canDeleteConversations && !msg._pending && !isOutgoing && (
                                                             <button onClick={() => handleDeleteMessage(msg.id)} title="Eliminar mensaje"
-                                                                className="opacity-0 group-hover/msg:opacity-100 shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/50 border border-white/60 text-rose-500 hover:bg-rose-500 hover:text-white shadow-sm transition-all">
-                                                                <Trash2 size={12} />
+                                                                className="opacity-0 group-hover/msg:opacity-100 shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-all">
+                                                                <X size={12} />
                                                             </button>
                                                         )}
                                                     </div>
@@ -655,51 +653,51 @@ export default function Conversations() {
                                         <div className="flex items-end gap-2">
                                             {/* Control de IA — solo con permiso de pausar IA */}
                                             {canToggleAi && (
-                                            <button
-                                                onClick={handleToggleAI}
-                                                title={selectedPatientEffective?.human_takeover ? 'La IA está pausada — reactivar' : 'Pausar la IA'}
-                                                className={`group/ia relative overflow-hidden shrink-0 flex items-center justify-center gap-0 hover:gap-1.5 h-10 px-3 hover:px-4 border rounded-full shadow-md transition-all duration-300 ${selectedPatientEffective?.human_takeover
-                                                    ? 'bg-amber-50/80 backdrop-blur-2xl border-amber-200/70 text-amber-700 hover:bg-amber-100/80'
-                                                    : 'bg-white/40 backdrop-blur-2xl border-white/60 text-navy-900 hover:bg-white/60'}`}
-                                            >
-                                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                                                <div className="relative z-10 shrink-0 w-4 h-4 flex items-center justify-center">
-                                                    <Bot size={14} strokeWidth={2.5} />
-                                                    <AIStar size={6} className="absolute -top-1 -left-1" strokeWidth={2.5} />
-                                                </div>
-                                                <span className="max-w-0 overflow-hidden group-hover/ia:max-w-[90px] transition-all duration-300 whitespace-nowrap text-[11px] font-bold relative z-10">
-                                                    {selectedPatientEffective?.human_takeover ? 'Reactivar IA' : 'Pausar IA'}
-                                                </span>
-                                            </button>
+                                                <button
+                                                    onClick={handleToggleAI}
+                                                    title={selectedPatientEffective?.human_takeover ? 'La IA está pausada — reactivar' : 'Pausar la IA'}
+                                                    className={`group/ia relative overflow-hidden shrink-0 flex items-center justify-center gap-0 hover:gap-1.5 h-10 px-3 hover:px-4 border rounded-full shadow-md transition-all duration-300 ${selectedPatientEffective?.human_takeover
+                                                        ? 'bg-amber-50/80 backdrop-blur-2xl border-amber-200/70 text-amber-700 hover:bg-amber-100/80'
+                                                        : 'bg-white/40 backdrop-blur-2xl border-white/60 text-navy-900 hover:bg-white/60'}`}
+                                                >
+                                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                                    <div className="relative z-10 shrink-0 w-4 h-4 flex items-center justify-center">
+                                                        <Bot size={14} strokeWidth={2.5} />
+                                                        <AIStar size={6} className="absolute -top-1 -left-1" strokeWidth={2.5} />
+                                                    </div>
+                                                    <span className="max-w-0 overflow-hidden group-hover/ia:max-w-[90px] transition-all duration-300 whitespace-nowrap text-[11px] font-bold relative z-10">
+                                                        {selectedPatientEffective?.human_takeover ? 'Reactivar IA' : 'Pausar IA'}
+                                                    </span>
+                                                </button>
                                             )}
                                             {canReplyConversations && (<>
-                                            <textarea
-                                                ref={textareaRef}
-                                                value={draft}
-                                                onChange={e => setDraft(e.target.value)}
-                                                onKeyDown={e => {
-                                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                                        e.preventDefault();
-                                                        handleSend();
-                                                    }
-                                                }}
-                                                rows={1}
-                                                placeholder={windowOpen ? 'Escribe un mensaje…' : 'La ventana de 24h está cerrada'}
-                                                disabled={sending || !windowOpen}
-                                                className="flex-1 resize-none max-h-32 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-3xl px-4 py-2.5 text-[13px] font-medium text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-colors placeholder-navy-900/50 shadow-md disabled:opacity-50 disabled:cursor-not-allowed custom-scrollbar"
-                                            />
-                                            <button
-                                                onClick={handleSend}
-                                                disabled={sending || !draft.trim() || !windowOpen}
-                                                className="group/send relative overflow-hidden shrink-0 flex items-center justify-center gap-0 hover:gap-1.5 h-10 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 rounded-full shadow-md hover:bg-white/60 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
-                                                aria-label="Enviar mensaje"
-                                            >
-                                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                                                <Send size={16} strokeWidth={2.5} className="shrink-0 relative z-10" />
-                                                <span className="max-w-0 overflow-hidden group-hover/send:max-w-[60px] transition-all duration-300 whitespace-nowrap text-[11px] font-bold relative z-10">Enviar</span>
-                                            </button>
+                                                <textarea
+                                                    ref={textareaRef}
+                                                    value={draft}
+                                                    onChange={e => setDraft(e.target.value)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            handleSend();
+                                                        }
+                                                    }}
+                                                    rows={1}
+                                                    placeholder={windowOpen ? 'Escribe un mensaje…' : 'La ventana de 24h está cerrada'}
+                                                    disabled={sending || !windowOpen}
+                                                    className="flex-1 resize-none max-h-32 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-3xl px-4 py-2.5 text-[13px] font-medium text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-colors placeholder-navy-900/50 shadow-md disabled:opacity-50 disabled:cursor-not-allowed custom-scrollbar"
+                                                />
+                                                <button
+                                                    onClick={handleSend}
+                                                    disabled={sending || !draft.trim() || !windowOpen}
+                                                    className="group/send relative overflow-hidden shrink-0 flex items-center justify-center gap-0 hover:gap-1.5 h-10 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 rounded-full shadow-md hover:bg-white/60 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                    aria-label="Enviar mensaje"
+                                                >
+                                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                                    <Send size={16} strokeWidth={2.5} className="shrink-0 relative z-10" />
+                                                    <span className="max-w-0 overflow-hidden group-hover/send:max-w-[60px] transition-all duration-300 whitespace-nowrap text-[11px] font-bold relative z-10">Enviar</span>
+                                                </button>
                                             </>)}
                                         </div>
                                         {windowOpen && selectedPatientEffective && !selectedPatientEffective.human_takeover && (
@@ -767,7 +765,7 @@ export default function Conversations() {
 
                 {/* Right Column: Context Panels — fuera del box principal, a la derecha */}
                 {selectedPatient && showContext && (
-                    <div className="hidden xl:flex w-[380px] flex-col shrink-0 min-h-0 overflow-y-auto no-scrollbar px-2 pt-1 pb-4">
+                    <div className="hidden xl:flex w-[380px] flex-col shrink-0 min-h-0 overflow-y-auto no-scrollbar px-2">
                         <ContextPanels
                             patient={selectedPatientEffective}
                             windowOpen={windowOpen}

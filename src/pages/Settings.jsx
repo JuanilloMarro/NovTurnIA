@@ -447,11 +447,6 @@ export default function Settings() {
                                                 <ChevronLeft size={16} />
                                             </button>
                                             <div className="flex-1 min-w-0">
-                                                {!isNew && selectedService && (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 mb-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold uppercase tracking-wider text-amber-700">
-                                                        <Pencil size={9} /> Editando
-                                                    </span>
-                                                )}
                                                 <h2 className="text-lg font-bold text-navy-900 tracking-tight">
                                                     {isNew ? 'Nuevo Servicio' : (selectedService?.name || '—')}
                                                 </h2>
@@ -463,10 +458,10 @@ export default function Settings() {
                                                 </p>
                                             </div>
                                             {!isNew && selectedService && (
-                                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/40 border border-white/60 shadow-sm">
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${selectedService.active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'}`} />
-                                                    <span className="text-[10px] font-bold text-navy-900/60 uppercase tracking-wider">
-                                                        {selectedService.active ? 'Activo' : 'Inactivo'}
+                                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 shadow-sm">
+                                                    <Pencil size={11} className="text-amber-700" />
+                                                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                                                        Editando
                                                     </span>
                                                 </div>
                                             )}
