@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Save } from 'lucide-react';
 import { useFinanceCategories } from '../../hooks/useFinanceCategories';
 import { showErrorToast } from '../../store/useToastStore';
-import { ModalShell, FieldLabel, TextInput, AmountInput, DateWheels, OptionWheel, NotesField, ModalButtons, useMethodOptions, useFinanceStaff, todayISO, isoToTimestamp, isoToDateInput } from './financeUi';
+import { ModalShell, FieldLabel, TextInput, CentsAmountInput, decimalToCents, centsToDecimal, DateWheels, OptionWheel, NotesField, ModalButtons, useMethodOptions, useFinanceStaff, todayISO, isoToTimestamp, isoToDateInput } from './financeUi';
 
 // initial = entrada a editar (o null para crear). onSubmit(fields) → Promise.
 export default function RecordIncomeModal({ initial = null, onClose, onSubmit }) {
@@ -13,7 +13,7 @@ export default function RecordIncomeModal({ initial = null, onClose, onSubmit })
     const staff = useFinanceStaff();
 
     const [description, setDescription] = useState(initial?.description || '');
-    const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '');
+    const [amountCents, setAmountCents] = useState(decimalToCents(initial?.amount));
     const [categoryId, setCategoryId] = useState(initial?.category_id || null);
     const [date, setDate] = useState(initial?.occurred_at ? isoToDateInput(initial.occurred_at) : todayISO());
     const [method, setMethod] = useState(initial?.payment_method || 'cash');
@@ -33,12 +33,11 @@ export default function RecordIncomeModal({ initial = null, onClose, onSubmit })
     }, [catsLoading, incomeCats.length]);
 
     async function submit() {
-        const amt = Number(amount);
         if (!description.trim()) { showErrorToast('Falta descripción', 'Describe el ingreso.'); return; }
-        if (!(amt >= 0)) { showErrorToast('Monto inválido', 'Ingresa un monto válido.'); return; }
+        if (!amountCents || amountCents <= 0) { showErrorToast('Monto inválido', 'Ingresa un monto válido.'); return; }
         setSaving(true);
         try {
-            await onSubmit({ description: description.trim(), amount: amt, payment_method: method, category_id: categoryId, occurred_at: isoToTimestamp(date), notes: notes.trim() || null, source: 'manual', staff_id: staffId === 'none' ? null : staffId });
+            await onSubmit({ description: description.trim(), amount: centsToDecimal(amountCents), payment_method: method, category_id: categoryId, occurred_at: isoToTimestamp(date), notes: notes.trim() || null, source: 'manual', staff_id: staffId === 'none' ? null : staffId });
             onClose();
         } catch (err) {
             showErrorToast('No se pudo guardar', err.message || 'Intenta de nuevo.');
@@ -59,7 +58,7 @@ export default function RecordIncomeModal({ initial = null, onClose, onSubmit })
             </div>
             <div>
                 <FieldLabel title="Monto" subtitle="Total recibido por este ingreso." />
-                <AmountInput value={amount} onChange={setAmount} />
+                <CentsAmountInput cents={amountCents} onChange={setAmountCents} />
             </div>
             <div>
                 <FieldLabel title="Categoría" subtitle="Tipo de ingreso para los reportes." />
@@ -79,9 +78,9 @@ export default function RecordIncomeModal({ initial = null, onClose, onSubmit })
                 <FieldLabel title="Método de pago" subtitle="¿Cómo te pagaron?" />
                 <OptionWheel options={methodOptions} value={method} onChange={setMethod} />
             </div>
-            {!editing && staff.length > 0 && (
+            {staff.length > 0 && (
                 <div>
-                    <FieldLabel title="Atendido por" subtitle="Opcional — atribuye este ingreso a un profesional (comisiones)." />
+                    <FieldLabel title="Atendido por" subtitle="Opcional: atribuye este ingreso a un profesional (comisiones)." />
                     <OptionWheel options={staffOptions} value={staffId ?? 'none'} onChange={setStaffId} />
                 </div>
             )}

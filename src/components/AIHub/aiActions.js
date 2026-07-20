@@ -1,4 +1,4 @@
-import { FileText, Target, HeartPulse, TrendingUp, Newspaper, Megaphone, Landmark } from 'lucide-react';
+import { FileText, Target, HeartPulse, TrendingUp, Newspaper, Megaphone, Landmark, CalendarClock } from 'lucide-react';
 
 // Catálogo de acciones del Centro IA (doc "Automatización Agente IA" · Parte
 // B §B.2). Cada acción mapea a un scope de ai_insights (CHECK constraint de
@@ -64,9 +64,27 @@ export const AI_ACTIONS = [
         icon: Landmark,
         mode: 'A pedido',
     },
+    {
+        // Turnos de hoy (hora, cliente, servicio, estado) — el modelo detecta
+        // huecos grandes y turnos sin confirmar, no se precalcula en código.
+        scope: 'agenda_narrative',
+        title: 'Resumen del día',
+        desc: 'Cómo viene tu agenda de hoy: turnos, huecos y qué confirmar.',
+        icon: CalendarClock,
+        mode: 'A pedido',
+    },
 ];
 
 export const SCOPE_META = Object.fromEntries(AI_ACTIONS.map(a => [a.scope, a]));
+
+// Semáforo del consumo semanal de IA — mismos 3 colores que el de "por cobrar"
+// en Finanzas, pero INVERTIDO: ahí más% es mejor (más cobrado), aquí más% es
+// peor (más cerca del límite semanal).
+export function usageColor(pct) {
+    if (pct > 75) return '#f43f5e';
+    if (pct > 40) return '#f59e0b';
+    return '#10b981';
+}
 
 // "hace 5 min" / "hace 3 h" / "hace 2 días" / fecha corta
 export function timeAgo(iso) {

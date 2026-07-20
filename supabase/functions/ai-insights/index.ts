@@ -13,7 +13,7 @@ import { corsHeaders, handleCors } from '../_shared/cors.ts';
 import { supabaseAdmin } from '../_shared/auth.ts';
 import { callGeminiJSON, costMicroUsd } from '../_shared/gemini.ts';
 
-const VALID_SCOPES = ['patient_summary', 'patient_strategy', 'retention', 'kpi_narrative', 'weekly_digest', 'content_offer', 'finance_narrative'];
+const VALID_SCOPES = ['patient_summary', 'patient_strategy', 'retention', 'kpi_narrative', 'weekly_digest', 'content_offer', 'finance_narrative', 'agenda_narrative'];
 const NEEDS_PATIENT = new Set(['patient_summary', 'patient_strategy']);
 
 // Horas de frescura del cache antes de permitir servir sin regenerar (doc B.1.2 paso 2).
@@ -25,6 +25,7 @@ const CACHE_HOURS: Record<string, number> = {
   weekly_digest: 24 * 7,
   content_offer: 24 * 7,
   finance_narrative: 24,
+  agenda_narrative: 6,
 };
 
 const SCHEMAS: Record<string, object> = {
@@ -111,6 +112,16 @@ const SCHEMAS: Record<string, object> = {
     },
     required: ['titular', 'salud', 'analisis', 'recomendaciones'],
   },
+  agenda_narrative: {
+    type: 'OBJECT',
+    properties: {
+      titular: { type: 'STRING' },
+      analisis: { type: 'STRING' },
+      huecos: { type: 'ARRAY', items: { type: 'STRING' } },
+      recomendaciones: { type: 'ARRAY', items: { type: 'STRING' } },
+    },
+    required: ['titular', 'analisis', 'huecos', 'recomendaciones'],
+  },
 };
 
 // Presupuestos de SALIDA real por scope (el thinking va apagado en el cliente:
@@ -124,6 +135,7 @@ const MODEL_CONFIG: Record<string, { model: string; maxOutputTokens: number }> =
   weekly_digest: { model: 'gemini-2.5-flash-lite', maxOutputTokens: 768 },
   content_offer: { model: 'gemini-2.5-flash', maxOutputTokens: 768 },
   finance_narrative: { model: 'gemini-2.5-flash', maxOutputTokens: 768 },
+  agenda_narrative: { model: 'gemini-2.5-flash-lite', maxOutputTokens: 640 },
 };
 
 function json(body: unknown, status = 200) {
@@ -194,6 +206,33 @@ async function buildContext(scope: string, businessId: string, refId: string | n
     return finPack ?? {};
   }
 
+  // Agenda de hoy: turnos del día (hora, cliente, servicio, estado) — pack
+  // liviano de KPIs para contexto, más la lista cruda de citas de hoy (el
+  // modelo razona los huecos, no se precalculan en código).
+  if (scope === 'agenda_narrative') {
+    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+    const { data: todays } = await supabaseAdmin
+      .from('appointments')
+      .select('date_start, date_end, status, confirmed, patients(display_name), services(name)')
+      .eq('business_id', businessId)
+      .gte('date_start', dayStart.toISOString())
+      .lt('date_start', dayEnd.toISOString())
+      .order('date_start', { ascending: true });
+    const { data: pack } = await supabaseAdmin.rpc('get_business_context_pack', { p_business_id: businessId });
+    return {
+      ...pack,
+      turnos_hoy: (todays ?? []).map((a: any) => ({
+        hora: a.date_start,
+        hora_fin: a.date_end,
+        cliente: a.patients?.display_name ?? null,
+        servicio: a.services?.name ?? null,
+        estado: a.status,
+        confirmado: a.confirmed,
+      })),
+    };
+  }
+
   const { data: pack } = await supabaseAdmin.rpc('get_business_context_pack', { p_business_id: businessId });
 
   if (scope === 'retention') {
@@ -228,6 +267,8 @@ function buildPrompt(scope: string, ctx: unknown): string {
       return `Eres el asistente de marketing de este negocio. Con los servicios top y las ofertas activas (en DATOS), sugiere 1 o 2 promos para llenar días/horarios flojos y redacta el copy de cada una (WhatsApp status/story, máximo 280 caracteres). Responde SOLO el JSON del schema.\n${datos}`;
     case 'finance_narrative':
       return `Eres el asesor financiero de este negocio. Con las finanzas del mes (en DATOS: ingresos/egresos del mes y del anterior, costo de insumos, egresos por categoría, servicios top con costo, cuentas por cobrar, meta mensual y turnos futuros), evalúa la salud financiera (buena/atencion/critica), explica el porqué en lenguaje de dueño con números concretos y da 3 recomendaciones accionables. Si hay saldo por cobrar alto o la meta se ve lejos, menciónalo. Responde SOLO el JSON del schema.\n${datos}`;
+    case 'agenda_narrative':
+      return `Eres el asistente de agenda de este negocio. Con la lista de turnos de HOY (hora, cliente, servicio, estado, confirmado) y el horario del negocio (en DATOS), arma un briefing corto: cuántos turnos hay y cómo viene el día, identifica huecos grandes sin turnos dentro del horario laboral (como lista de rangos de hora en texto, ej. "2:00pm - 4:00pm") y turnos aún sin confirmar que convendría recordar. Da 2-3 recomendaciones accionables para aprovechar mejor el día. Responde SOLO el JSON del schema.\n${datos}`;
     default:
       return datos;
   }

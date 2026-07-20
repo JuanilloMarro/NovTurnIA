@@ -1,21 +1,21 @@
 import { useState, useMemo } from 'react';
-import { ChevronRight, ArrowUpRight, ChevronDown, User } from 'lucide-react';
-import { LedgerSearch, methodLabelFrom } from './financeUi';
+import { ChevronRight, ArrowUpRight, ChevronDown, User, Plus, DollarSign } from 'lucide-react';
+import { LedgerSearch, AddBtn, MiniStatCard, methodLabelFrom } from './financeUi';
 
 const money = (n) => `Q${Number(n || 0).toFixed(2)}`;
 const SOURCE_LABEL = { appointment: 'Turno', manual: 'Manual', product: 'Producto', plan: 'Abono' };
-const PAGE = 30;
 
 function fmtDate(iso) {
     if (!iso) return '';
     return new Date(iso).toLocaleDateString('es-GT', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-// Libro de ingresos con búsqueda local y paginación oculta ("mostrar más"):
-// el filtro corre sobre lo ya cargado — 0 queries extra a Supabase.
-export default function IncomeSection({ income, methods = [], onSelect, selectedId }) {
+// Libro de ingresos — paginación real (`hasMore`/`onLoadMore` vienen de
+// useFinance, que pide la siguiente página a Supabase; ver financeUi/useFinance).
+// La búsqueda filtra sobre lo ya cargado; "Cargar más" también amplía lo que
+// alcanza la búsqueda.
+export default function IncomeSection({ income, hasMore, loadingMore, onLoadMore, methods = [], onSelect, selectedId, canRecord, onAdd }) {
     const [query, setQuery] = useState('');
-    const [visible, setVisible] = useState(PAGE);
 
     const filtered = useMemo(() => {
         const t = query.trim().toLowerCase();
@@ -28,22 +28,23 @@ export default function IncomeSection({ income, methods = [], onSelect, selected
         );
     }, [income, query, methods]);
 
-    const shown = filtered.slice(0, visible);
-
-    if (income.length === 0) return <p className="text-[12px] font-semibold text-navy-700/40 text-center py-12">Sin ingresos en este período.</p>;
-
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between gap-2 flex-wrap px-1">
-                <LedgerSearch value={query} onChange={v => { setQuery(v); setVisible(PAGE); }} placeholder="Buscar por descripción, cliente, categoría…" />
-                <span className="text-[10px] font-bold text-navy-900/40">{filtered.length} {filtered.length === 1 ? 'movimiento' : 'movimientos'}</span>
+                <MiniStatCard icon={DollarSign} label="Movimientos" value={filtered.length} />
+                <div className="flex items-center gap-2">
+                    <LedgerSearch wide value={query} onChange={setQuery} placeholder="Buscar por descripción, cliente, categoría…" />
+                    {canRecord && <AddBtn icon={Plus} label="Registrar ingreso" onClick={onAdd} />}
+                </div>
             </div>
 
-            {shown.length === 0 && (
+            {income.length === 0 ? (
+                <p className="text-[12px] font-semibold text-navy-700/40 text-center py-12">Sin ingresos en este período.</p>
+            ) : filtered.length === 0 && (
                 <p className="text-[12px] font-semibold text-navy-700/40 text-center py-10">Sin coincidencias para tu búsqueda.</p>
             )}
 
-            {shown.map(e => (
+            {filtered.map(e => (
                 <button key={e.id} onClick={() => onSelect?.(e)}
                     className={`group relative overflow-hidden backdrop-blur-2xl rounded-2xl p-4 w-full flex items-center justify-between gap-3 border shadow-md text-left transition-all ${selectedId === e.id ? 'bg-white/60 border-white/80' : 'bg-white/40 border-white/60 hover:bg-white/60'}`}>
                     <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(16,185,129,0.05)' }} />
@@ -82,10 +83,10 @@ export default function IncomeSection({ income, methods = [], onSelect, selected
                 </button>
             ))}
 
-            {filtered.length > visible && (
-                <button onClick={() => setVisible(v => v + PAGE)}
-                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-white/30 border border-white/50 text-[11px] font-bold text-navy-700/60 hover:bg-white/50 hover:text-navy-900 transition-all">
-                    <ChevronDown size={13} /> Mostrar más ({filtered.length - visible} restantes)
+            {hasMore && (
+                <button onClick={onLoadMore} disabled={loadingMore}
+                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-white/30 border border-white/50 text-[11px] font-bold text-navy-700/60 hover:bg-white/50 hover:text-navy-900 transition-all disabled:opacity-50">
+                    <ChevronDown size={13} /> {loadingMore ? 'Cargando…' : 'Cargar más'}
                 </button>
             )}
         </div>

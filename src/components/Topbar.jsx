@@ -138,7 +138,7 @@ export default function Topbar() {
                 <div className="relative" ref={profileRef}>
                     <button
                         onClick={() => { setShowProfile(!showProfile); setShowNotif(false); }}
-                        className="w-11 h-11 rounded-full bg-navy-900 border border-white/20 flex items-center justify-center text-white font-bold shadow-card shadow-navy-900/20 text-[15px] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+                        className="w-11 h-11 rounded-full bg-gradient-to-b from-white to-gray-100 border border-gray-200/60 flex items-center justify-center text-navy-900 font-bold shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-[15px] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
                         aria-label="Menú de usuario"
                     >
                         {getInitials(profile?.full_name || profile?.display_name)}
@@ -149,7 +149,7 @@ export default function Topbar() {
 
                             {/* Info del usuario */}
                             <div className="px-4 pt-4 pb-3 flex flex-col items-center text-center gap-1.5">
-                                <div className="w-14 h-14 rounded-full bg-navy-900 flex items-center justify-center text-white font-bold text-xl shadow-md mb-0.5">
+                                <div className="w-14 h-14 rounded-full bg-gradient-to-b from-white to-gray-100 border border-gray-200/60 flex items-center justify-center text-navy-900 font-bold text-xl shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] mb-0.5">
                                     {getInitials(profile?.full_name || profile?.display_name)}
                                 </div>
                                 <p className="font-bold text-navy-900 text-sm leading-tight truncate max-w-full">

@@ -351,22 +351,29 @@ src/services/supabaseService.js     ← getAIInsights(scope, refId?), getAIChatM
 - `InsightContent.jsx` renderiza el **schema JSON exacto de cada scope** descrito en §B.2 (no un volcado genérico) — cae a un fallback legible solo si el backend responde con una forma inesperada.
 - `PatientAIBlock` en la ficha del paciente (`src/components/Patients/PatientDrawer.jsx`, bajo Notas).
 - **Asistente IA global** (2026-07-17): `src/components/AIAssistant/AIAssistantLauncher.jsx`, montado en el Topbar junto a la campana de notificaciones — la IA "a la mano" en todo el sistema. Panel desplegable con (1) acciones contextuales según el módulo activo (mapa ruta→scopes: Clientes→resumen/estrategia, Seguimiento→retención/estrategia, Stats→KPIs/retención, Ofertas→content_offer, Finanzas→KPIs/digest, Agenda→digest/KPIs), (2) fila "Más análisis" con el resto de scopes, y (3) el chat de negocio compacto con UsageBar. Reusa `InsightDrawer` (lazy, portal a body), `useAIChat`, `useAIUsage`, `useAIInsights` — cero lógica duplicada. Se oculta en `/ai` (el Centro IA ya es la experiencia completa); misma visibilidad de permisos que la ruta `/ai`; sin `stats_intelligence` muestra candado y abre el modal de planes.
-- **Decisión de producto confirmada con el usuario (diverge de B.3.2 a propósito):** Configuración del asistente + horario + "IA pausada" viven DENTRO de Centro IA para **todos los planes** (no solo Enterprise) — reemplazan la antigua pantalla `/business`, retirada. Solo la grilla de insights + el chat quedan detrás de `stats_intelligence`. Gate de edición: `canManageRoles`.
+- **Revertido (2026-07-18):** Configuración del asistente + horario + "IA pausada" **volvieron a vivir en su propia página** `/business` ("Configuración", `src/pages/AIConfig.jsx` + `AIConfigPanel.jsx`/`PausedAIPanel.jsx`), separada de Centro IA — el usuario pidió deshacer la fusión de la nota anterior. Disponible en todos los planes (no es feature Enterprise), gate de edición `canManageRoles`. Centro IA (`/ai`) quedó solo con la grilla de insights + el chat, detrás de `stats_intelligence`.
+- **`stats_intelligence` ahora se desbloquea desde Pro** (antes solo Enterprise) — Centro IA se vende en Pro y Enterprise. Al hacerlo se detectó que el flag gateaba también las 4 estadísticas avanzadas de BI (LTV/predicción/retención/rentabilidad); se separó en un flag nuevo `business_intelligence` (Enterprise-only) para no regalarlas — ver Modelo de Negocio.md §8.3.
+- **Límite semanal REAL de tokens (2026-07-18):** antes el consumo de Centro IA no tenía ningún tope aplicado de verdad (solo el rate limit de 30/h). Ahora hay un presupuesto semanal por plan (Pro 750,000 tokens/sem · Enterprise 2,000,000/sem) aplicado en el backend — ver detalle abajo en "Backend".
 
 **✅ Backend** (sesión 2026-07-14, por API/MCP — n8n excluido a propósito, queda para cuando exista el túnel):
 - Migración `ai_module_foundation`: tablas `ai_insights`/`ai_chat_messages` (RLS: propio negocio + `has_feature('stats_intelligence')`; escritura solo `service_role`), RPC `get_business_context_pack(p_business_id)` (reusa `get_stats_dashboard`/`get_retention_rate`/`get_service_analytics`; finanzas se calculan inline porque `get_finance_summary` deriva el negocio de `auth.uid()` y no es llamable desde `service_role` con un `business_id` explícito).
 - Migración `ai_module_at_risk_patients_rpc`: `get_at_risk_patients` (≥2 visitas, +45 días sin volver) para el scope `retention`.
 - Verificado con probes de impersonación: negocio propio + feature → ve sus filas; otro negocio sin feature → 0 filas.
 - Edge Functions `ai-insights` y `ai-chat` desplegadas (`supabase/functions/ai-insights`, `supabase/functions/ai-chat`, comparten `_shared/cors.ts`, `_shared/auth.ts`, `_shared/gemini.ts`). `business_id` siempre derivado del JWT vía `staff_users`, nunca del body. Probado sin sesión real (401 correcto); el llamado completo con Gemini requiere el secret `GEMINI_API_KEY` (pendiente, ver abajo) y una sesión real del usuario.
-- `record_usage` cableado desde el día 1 (`p_messages: 0`, solo tokens) — este módulo no hereda el hallazgo A.3 #6.
+- `record_usage` cableado desde el día 1 (`p_messages: 0`, solo tokens) — este módulo no hereda el hallazgo A.3 #6. **(2026-07-18: `ai-chat`/`ai-insights` dejaron de llamar `record_usage` — ese contador mensual es exclusivo del bot de WhatsApp. Ahora usan `record_ai_usage`, ver abajo.)**
+- **Migración `ai_token_metering` (2026-07-18):** tabla `ai_usage_weekly` (business_id, week_start, tokens_in/out, cost_microusd — RLS SELECT propio negocio, escritura solo RPC) + `plans.ai_weekly_tokens` (basic 0 · pro 750,000 · enterprise 2,000,000) + `plans.features.stats_intelligence = true` en Pro. RPCs: `get_ai_usage()` (authenticated, para la UsageBar), `check_ai_budget(p_business_id)` y `record_ai_usage(...)` (ambas service_role only, mismo patrón de grants que `record_usage`/`check_rate_limit`).
+- **Migración `split_business_intelligence_flag` (2026-07-18):** separa `business_intelligence` (Enterprise) de `stats_intelligence` (Pro+Ent) — ver nota arriba.
+- `ai-chat`/`ai-insights` (v5/v4): llaman `check_ai_budget` justo antes de gastar en Gemini → 429 `{ code: 'ai_limit_reached', resets_at }` si el negocio agotó su semana; después de la respuesta llaman `record_ai_usage` con tokens y costo reales (`costMicroUsd()` en `_shared/gemini.ts`, tarifas Gemini vigentes).
+- Frontend: `useAIUsage.js` (hook) + `UsageBar` en `AIHub.jsx` con el % REAL (antes era `percent={42}` de muestra); input del chat y drawer de insights se bloquean cuando `usage.blocked`.
+
+**✅ Resuelto:**
+- Secret `GEMINI_API_KEY` — el usuario lo configuró en el Dashboard de Supabase.
 
 **❌ Pendiente:**
-- **Secret `GEMINI_API_KEY`** en el proyecto de Supabase — paso manual del usuario (Dashboard → Edge Functions → Secrets, o `supabase secrets set`); no se puede verificar ni configurar por MCP.
 - Permiso RBAC `use_ai_module` — omitido a propósito (ver decisión de producto arriba).
 - Batch semanal `pg_cron` para `weekly_digest`/`retention` automáticos.
 - Botón "Crear oferta" (§B.2 #6) que pre-llena el módulo Ofertas desde un insight `content_offer`.
 - n8n / tunnel MCP — explícitamente diferido por el usuario a otra sesión.
-- Verificación end-to-end real (clic en "Generar" / pregunta al chat) — pendiente de que el usuario la haga con su propia sesión, una vez puesto el secret.
 
 **Cosmético, no bloqueante:** nombres/ruta (`AIHub.jsx`/`/ai` en vez de `Intelligence.jsx`/`/ia`) y layout de 3 columnas (en vez del 60/40 de B.3.3) — aprobados visualmente por el usuario, no se van a renombrar.
 

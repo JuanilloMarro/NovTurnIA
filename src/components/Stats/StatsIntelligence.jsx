@@ -1,12 +1,14 @@
 import {
     ResponsiveContainer,
-    BarChart, Bar, XAxis, YAxis, Tooltip, LabelList, Cell,
+    BarChart, Bar, XAxis, YAxis, LabelList, Cell,
     RadialBarChart, RadialBar, PolarAngleAxis,
-    Treemap,
-    RadarChart, Radar, PolarGrid, PolarRadiusAxis,
+    RadarChart, Radar, PolarGrid,
 } from 'recharts';
-import { Brain, TrendingUp, Layers, CalendarDays, AlertCircle, Activity } from 'lucide-react';
+import { Brain, TrendingUp, Users, UserPlus, Repeat, CalendarDays, AlertCircle } from 'lucide-react';
 import FeatureLock from '../FeatureLock';
+import KpiCard, { KpiDelta } from './KpiCard';
+import { InquiryConversionCard } from './InquiryConversionCard';
+import { ClientsTrendChart } from './ClientsTrendChart';
 import { useStats, getStatsDateRange } from '../../hooks/useStats';
 import { useStatsIntelligence } from '../../hooks/useStatsIntelligence';
 import { usePlanLimits } from '../../hooks/usePlanLimits';
@@ -32,11 +34,11 @@ const MOCK_RETENTION = {
     total_patients: 48, retained_patients: 34,
     retention_pct: 70.8, period_label: 'Últimos 6 meses',
 };
-const MOCK_SERVICES = [
-    { service_name: 'Consulta General', appointment_count: 45, total_revenue: 13500, pct_of_total: 52.3 },
-    { service_name: 'Limpieza', appointment_count: 28, total_revenue: 8400, pct_of_total: 32.5 },
-    { service_name: 'Radiografía', appointment_count: 12, total_revenue: 3600, pct_of_total: 13.9 },
-];
+const MOCK_CLIENTS = {
+    newCount: 24, recurringCount: 58, newChange: '12.0', recurringChange: '4.5',
+    trend: ['Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'].map((_, i) => ({ month: `2026-0${i + 2}`, new_count: [14, 18, 20, 22, 19, 24][i], recurring_count: [30, 36, 41, 47, 52, 58][i] })),
+};
+const MOCK_INQUIRY = { asked: 34, booked: 24, notBooked: 10 };
 const MOCK_PREDICTION = [
     { day_label: 'Dom', avg_appointments: 0.2, has_sufficient_data: true },
     { day_label: 'Lun', avg_appointments: 4.1, has_sufficient_data: true },
@@ -216,64 +218,7 @@ function RetentionGauge({ data, loading, error }) {
     );
 }
 
-// ── 3. Análisis de Servicios ──────────────────────────────
-function ServiceTreemap({ data, loading, error, ownServices = [] }) {
-    if (loading) return <SectionLoader />;
-    if (error) return <SectionError message={error} />;
-
-    const TOP_N = 3;
-    const rawTop = [...(data || [])].sort((a, b) => b.total_revenue - a.total_revenue).slice(0, TOP_N);
-
-    // Padding con servicios reales del negocio (ordenados por nombre) que aún no tengan stats
-    const statsNames = new Set(rawTop.map(s => s.service_name));
-    const paddingPool = ownServices
-        .filter(s => !statsNames.has(s.name))
-        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-
-    const chartData = Array.from({ length: TOP_N }, (_, i) => {
-        if (rawTop[i]) return rawTop[i];
-        const pad = paddingPool[i - rawTop.length];
-        return pad
-            ? { service_name: pad.name, appointment_count: 0, total_revenue: 0, pct_of_total: 0 }
-            : { service_name: '–', appointment_count: 0, total_revenue: 0, pct_of_total: 0 };
-    });
-    const isEmpty = rawTop.length === 0 && ownServices.length === 0;
-
-    const maxRevenue = Math.max(...chartData.map(d => Number(d.total_revenue)), 1);
-
-    return (
-        <div className="flex flex-col h-full justify-center gap-3">
-            {chartData.map((s, i) => {
-                const pct = maxRevenue > 0 ? (Number(s.total_revenue) / maxRevenue) * 100 : 0;
-                const color = SEMAFORO[i % SEMAFORO.length];
-                const hasData = Number(s.total_revenue) > 0;
-                return (
-                    <div key={i} className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <span className="w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-bold text-white shadow-sm" style={{ backgroundColor: color }}>{i + 1}</span>
-                                <span className="text-[11px] font-bold text-navy-900 truncate">{s.service_name}</span>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0 ml-2">
-                                <span className="text-[11px] font-bold text-navy-900">{hasData ? formatQ(s.total_revenue) : '–'}</span>
-                                {hasData && <span className="text-[10px] font-bold text-navy-900/30">{s.pct_of_total}%</span>}
-                            </div>
-                        </div>
-                        <div className="w-full h-2 rounded-full bg-navy-900/5 overflow-hidden">
-                            <div
-                                className="h-full rounded-full transition-all duration-700"
-                                style={{ width: hasData ? `${pct}%` : '8%', backgroundColor: color, opacity: hasData ? 1 : 0.2 }}
-                            />
-                        </div>
-                        <span className="text-[9px] font-bold text-navy-900/30">{s.appointment_count} {s.appointment_count === 1 ? 'cita' : 'citas'}</span>
-                    </div>
-                );
-            })}
-        </div>
-    );
-}
-
-// ── 4. Predicción de Agenda ───────────────────────────────
+// ── 3. Predicción de Agenda ───────────────────────────────
 function PredictionRadar({ data, loading, error }) {
     if (loading) return <SectionLoader />;
     if (error) return <SectionError message={error} />;
@@ -308,66 +253,88 @@ function PredictionRadar({ data, loading, error }) {
 }
 
 // ── Export principal ──────────────────────────────────────
+// Layout 3 filas × 2 columnas: (1) KPIs de clientes nuevos/recurrentes +
+// conversión de consultas, (2) LTV + retención, (3) curva de nuevos vs
+// recurrentes + predicción de agenda.
 export function StatsIntelligence({ period = 'month', anchorDate = new Date() }) {
     const { hasFeature } = usePlanLimits();
-    const unlocked = hasFeature('stats_intelligence');
+    const unlocked = hasFeature('business_intelligence');
 
     const { start: startDate, end: endDate } = getStatsDateRange(period, anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate());
     const label = getDisplayRange(period, anchorDate);
-    const { ltv, retention, services, prediction, ownServices } = useStatsIntelligence(unlocked, startDate, endDate);
+    const { ltv, retention, prediction } = useStatsIntelligence(unlocked, startDate, endDate);
+    // Clientes nuevos/recurrentes y conversión salen del mismo RPC que Métricas.
+    const { stats } = useStats(period, anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate());
+
+    const sec = unlocked
+        ? { ltv, retention, prediction }
+        : {
+            ltv: { data: MOCK_LTV, loading: false, error: null },
+            retention: { data: MOCK_RETENTION, loading: false, error: null },
+            prediction: { data: MOCK_PREDICTION, loading: false, error: null },
+        };
+    const clients = unlocked ? stats?.clients : MOCK_CLIENTS;
+    const inquiry = unlocked ? (stats?.inquiry ?? { asked: 0, booked: 0, notBooked: 0 }) : MOCK_INQUIRY;
 
     // Badge para avisos de datos insuficientes
-    const predictionBadge = prediction.data?.some(d => !d.has_sufficient_data) ? (
+    const predictionBadge = sec.prediction.data?.some(d => !d.has_sufficient_data) ? (
         <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50 border border-amber-100 shrink-0">
             <AlertCircle size={10} className="text-amber-600" />
             <span className="text-[8px] font-bold text-amber-600 tracking-tighter">Datos insuficientes</span>
         </div>
     ) : null;
 
-    const GRID = "grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-2 px-1";
-    const CARD_MIN = "min-h-[300px] lg:min-h-0";
+    const clientsLegend = (
+        <div className="flex items-center gap-2.5 text-[9px] font-bold shrink-0">
+            <span className="flex items-center gap-1 text-navy-900/55"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Nuevos</span>
+            <span className="flex items-center gap-1 text-navy-900/55"><span className="w-2 h-2 rounded-full" style={{ background: '#4062C8' }} /> Recurrentes</span>
+        </div>
+    );
+
+    const CARD_MIN = "min-h-[300px]";
+
+    const grid = (
+        <div className="flex flex-col gap-2 px-1 pb-4">
+            {/* Fila 1: clientes del período + feedback de conversión */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                    <KpiCard label="Clientes nuevos" value={clients ? clients.newCount : '…'} icon={<UserPlus size={14} strokeWidth={2.5} />} index={0}
+                        delta={<KpiDelta change={clients?.newChange} />} />
+                    <KpiCard label="Clientes recurrentes" value={clients ? clients.recurringCount : '…'} icon={<Repeat size={14} strokeWidth={2.5} />} index={1}
+                        delta={<KpiDelta change={clients?.recurringChange} />} />
+                </div>
+                <InquiryConversionCard asked={inquiry.asked} booked={inquiry.booked} notBooked={inquiry.notBooked} index={2} />
+            </div>
+
+            {/* Fila 2: LTV + retención */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                <Card title="Valor de vida paciente" subtitle={`LTV · ${label}`} icon={<TrendingUp size={18} />} minH={CARD_MIN}>
+                    <LTVChart data={sec.ltv.data} loading={sec.ltv.loading} error={sec.ltv.error} />
+                </Card>
+                <Card title="Tasa de retención" subtitle={label} icon={<Brain size={18} />} minH={CARD_MIN}>
+                    <RetentionGauge data={sec.retention.data} loading={sec.retention.loading} error={sec.retention.error} />
+                </Card>
+            </div>
+
+            {/* Fila 3: curva de clientes + predicción */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                <Card title="Nuevos vs recurrentes" subtitle="Últimos 6 meses" icon={<Users size={18} />} badge={clientsLegend} minH={CARD_MIN}>
+                    <ClientsTrendChart trend={clients?.trend ?? []} />
+                </Card>
+                <Card title="Predicción de agenda" subtitle={`Patrón · ${label}`} icon={<CalendarDays size={18} />} badge={predictionBadge} minH={CARD_MIN}>
+                    <PredictionRadar data={sec.prediction.data} loading={sec.prediction.loading} error={sec.prediction.error} />
+                </Card>
+            </div>
+        </div>
+    );
 
     if (!unlocked) {
         return (
-            <FeatureLock feature="stats_intelligence" variant="blurred" title="Inteligencia de Negocio" description="Análisis avanzados disponibles en plan Enterprise." requiredPlan="Enterprise">
-                <div className={`${GRID} pb-4`}>
-                    <Card title="Valor de vida paciente" subtitle={`LTV · ${label}`} icon={<TrendingUp size={18} />} minH={CARD_MIN}>
-                        <LTVChart data={MOCK_LTV} loading={false} error={null} />
-                    </Card>
-                    <Card title="Tasa de retención" subtitle={label} icon={<Brain size={18} />} minH={CARD_MIN}>
-                        <RetentionGauge data={MOCK_RETENTION} loading={false} error={null} />
-                    </Card>
-                    <Card title="Análisis de servicios" subtitle={`Ingresos · ${label}`} icon={<Layers size={18} />} minH={CARD_MIN}>
-                        <ServiceTreemap data={MOCK_SERVICES} loading={false} error={null} />
-                    </Card>
-                    <Card title="Predicción de agenda" subtitle={`Patrón · ${label}`} icon={<CalendarDays size={18} />} minH={CARD_MIN}>
-                        <PredictionRadar data={MOCK_PREDICTION} loading={false} error={null} />
-                    </Card>
-                </div>
+            <FeatureLock feature="business_intelligence" variant="blurred" title="Inteligencia de Negocio" description="Análisis avanzados disponibles en plan Enterprise." requiredPlan="Enterprise">
+                {grid}
             </FeatureLock>
         );
     }
 
-    return (
-        <div className={`${GRID} pb-4 lg:pb-2 lg:h-full`}>
-            <Card title="Valor de vida paciente" subtitle={`LTV · ${label}`} icon={<TrendingUp size={18} />} minH={CARD_MIN}>
-                <LTVChart data={ltv.data} loading={ltv.loading} error={ltv.error} />
-            </Card>
-            <Card title="Tasa de retención" subtitle={label} icon={<Brain size={18} />} minH={CARD_MIN}>
-                <RetentionGauge data={retention.data} loading={retention.loading} error={retention.error} />
-            </Card>
-            <Card title="Análisis de servicios" subtitle={`Ingresos · ${label}`} icon={<Layers size={18} />} minH={CARD_MIN}>
-                <ServiceTreemap data={services.data} loading={services.loading} error={services.error} ownServices={ownServices} />
-            </Card>
-            <Card
-                title="Predicción de agenda"
-                subtitle={`Patrón · ${label}`}
-                icon={<CalendarDays size={18} />}
-                badge={predictionBadge}
-                minH={CARD_MIN}
-            >
-                <PredictionRadar data={prediction.data} loading={prediction.loading} error={prediction.error} />
-            </Card>
-        </div>
-    );
+    return grid;
 }

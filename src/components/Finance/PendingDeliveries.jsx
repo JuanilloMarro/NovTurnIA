@@ -37,25 +37,29 @@ export default function PendingDeliveries({ pending, onSelect, selectedId }) {
                     const isSel = selectedId === a.id;
                     return (
                         <button key={a.id} onClick={() => onSelect?.(a)}
-                            className={`group relative overflow-hidden w-full text-left backdrop-blur-2xl rounded-2xl p-3 flex items-center justify-between gap-3 border shadow-md transition-all duration-300 ${isSel ? 'bg-white/70 border-white/80' : 'bg-white/40 border-white/60 hover:bg-white/60'}`}>
+                            className={`group relative overflow-hidden w-full text-left backdrop-blur-2xl rounded-2xl p-4 flex items-center justify-between gap-3 border shadow-md transition-all ${isSel ? 'bg-white/60 border-white/80' : 'bg-white/40 border-white/60 hover:bg-white/60'}`}>
                             <Glow2 />
                             <div className="flex items-center gap-3 relative z-10 min-w-0">
-                                <div className="w-9 h-9 flex items-center justify-center text-[11px] font-bold shrink-0 border rounded-full leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900">
+                                <div className="w-10 h-10 flex items-center justify-center text-[11px] font-bold shrink-0 border rounded-full leading-none bg-gradient-to-b from-white to-gray-100 border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-navy-900">
                                     {initials(a.patient_name)}
                                 </div>
                                 <div className="min-w-0">
-                                    <div className="font-bold text-navy-900 text-[12px] truncate leading-tight">{a.service_name || 'Servicio'}</div>
-                                    <div className="text-[10px] font-semibold text-navy-700/60 flex items-center gap-1 leading-tight mt-0.5 truncate">
+                                    <div className="font-bold text-navy-900 text-sm truncate leading-tight">{a.service_name || 'Servicio'}</div>
+                                    <div className="text-[10px] font-semibold text-navy-700/55 flex items-center gap-1.5 leading-tight mt-1 truncate">
                                         <Clock size={10} className="shrink-0" />
                                         {a.patient_name || 'Cliente'} · {fmtDate(a.date_start)}
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 relative z-10 shrink-0">
-                                <span className="inline-flex items-center gap-1 text-[12px] font-bold text-amber-600 tabular-nums">
+                            <div className="flex items-center gap-2.5 relative z-10 shrink-0">
+                                <span className="inline-flex items-center gap-1 text-[13px] font-bold text-amber-600 tabular-nums">
                                     <Wallet size={12} className="shrink-0" />{money(a.amount)}
                                 </span>
-                                <ChevronRight size={15} className="text-navy-700/30 shrink-0" />
+                                <div className="relative overflow-hidden flex items-center justify-center w-8 h-8 rounded-full border border-white/60 bg-white/40 backdrop-blur-2xl text-navy-700 group-hover:bg-white group-hover:scale-105 transition-all shadow-md">
+                                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                    <div className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                    <ChevronRight size={16} className="relative z-10" />
+                                </div>
                             </div>
                         </button>
                     );

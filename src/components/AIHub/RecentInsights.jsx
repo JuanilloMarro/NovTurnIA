@@ -8,7 +8,7 @@ import { SCOPE_META, timeAgo } from './aiActions';
 // Al tocar un item se abre el detalle de esa acción con su resultado guardado.
 // `bare`: sin tarjeta/glows propios — para cuando vive dentro de otro panel
 // que ya pone el cristal (p. ej. compartiendo tarjeta con el orbe).
-export default function RecentInsights({ insights, loading, onSelect, onReload, bare = false }) {
+export default function RecentInsights({ insights, patientNames = {}, loading, onSelect, onReload, bare = false }) {
     const [filter, setFilter] = useState('');
     const { className: auroraClass, pulse: pulseAurora } = useAuroraPulse();
 
@@ -67,6 +67,9 @@ export default function RecentInsights({ insights, loading, onSelect, onReload, 
                         {filtered.map((item, i) => {
                             const meta = SCOPE_META[item.scope];
                             const Icon = meta?.icon || AIStar;
+                            // Los scopes por cliente nunca deben mostrarse "a secas" —
+                            // sin el nombre, dos análisis distintos son indistinguibles.
+                            const clientName = meta?.needsPatient ? (patientNames[item.ref_id] || 'Cliente') : null;
                             return (
                                 <button
                                     key={item.id}
@@ -81,8 +84,8 @@ export default function RecentInsights({ insights, loading, onSelect, onReload, 
                                         <p className="text-[11.5px] font-bold text-navy-900 leading-snug line-clamp-2">
                                             {item.content?.title || meta?.title || item.scope}
                                         </p>
-                                        <p className="text-[9px] font-bold text-navy-900/35 mt-0.5">
-                                            {meta?.title || item.scope} · {timeAgo(item.generated_at)}
+                                        <p className="text-[9px] font-bold text-navy-900/35 mt-0.5 truncate">
+                                            {meta?.title || item.scope}{clientName && <> · {clientName}</>} · {timeAgo(item.generated_at)}
                                         </p>
                                     </div>
                                 </button>

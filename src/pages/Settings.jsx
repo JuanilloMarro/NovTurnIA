@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { useServices } from '../hooks/useServices';
 import { usePermissions } from '../hooks/usePermissions';
-import { Layers, Plus, Save, ToggleLeft, ToggleRight, ChevronLeft, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { Layers, Plus, Save, Pencil, ToggleLeft, ToggleRight, ChevronLeft, ChevronDown, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import FeatureLock from '../components/FeatureLock';
 import { showServiceNewToast, showServiceEditToast, showServiceDeleteToast, showServiceActivateToast, showServiceDeactivateToast, showErrorToast } from '../store/useToastStore';
 import WheelColumn from '../components/ui/WheelColumn';
+import { getServices, createService, updateService, toggleServiceActive, deleteService } from '../services/supabaseService';
+
+const PAGE_SIZE = 40;
 
 // Wheel picker durations: 15-min steps from 15 min to 4h
 const DURATION_VALUES = Array.from({ length: 16 }, (_, i) => (i + 1) * 15);
@@ -20,8 +22,68 @@ export function formatDuration(minutes) {
 }
 
 export default function Settings() {
-    const { services, loading, create, update, toggle, remove } = useServices();
     const { canCreateServices, canEditServices, canToggleServices, canDeleteServices } = usePermissions();
+
+    // Paginación real (sin números de página) — igual patrón que Finanzas:
+    // primera tanda vía .range(), "Cargar más" concatena la siguiente sin
+    // volver a traer todo lo ya cargado.
+    const [services, setServices] = useState([]);
+    const [servicesCount, setServicesCount] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const hasMoreServices = services.length < servicesCount;
+
+    const loadFirstPage = useCallback(async () => {
+        setLoading(true);
+        try {
+            const { data, count } = await getServices({ page: 0, pageSize: PAGE_SIZE });
+            setServices(data);
+            setServicesCount(count);
+        } catch (err) {
+            if (err.code !== 'PGRST116' && err.code !== '42P01') console.error('[Settings:services]', err.message);
+            setServices([]);
+            setServicesCount(0);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+    useEffect(() => { loadFirstPage(); }, [loadFirstPage]);
+
+    async function loadMoreServices() {
+        if (!hasMoreServices || loadingMore) return;
+        setLoadingMore(true);
+        try {
+            const nextPage = Math.ceil(services.length / PAGE_SIZE);
+            const { data, count } = await getServices({ page: nextPage, pageSize: PAGE_SIZE });
+            setServices(prev => [...prev, ...data]);
+            setServicesCount(count);
+        } catch (err) {
+            console.error('[Settings:loadMoreServices]', err.message);
+        } finally {
+            setLoadingMore(false);
+        }
+    }
+
+    async function create(fields) {
+        const created = await createService(fields);
+        setServices(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, 'es')));
+        setServicesCount(c => c + 1);
+        return created;
+    }
+    async function update(id, fields) {
+        const updated = await updateService(id, fields);
+        setServices(prev => prev.map(s => s.id === id ? updated : s));
+        return updated;
+    }
+    async function toggle(id, active) {
+        await toggleServiceActive(id, active);
+        setServices(prev => prev.map(s => s.id === id ? { ...s, active } : s));
+    }
+    async function remove(id) {
+        await deleteService(id);
+        setServices(prev => prev.filter(s => s.id !== id));
+        setServicesCount(c => Math.max(0, c - 1));
+    }
 
     const [selectedId, setSelectedId] = useState(null); // null | 'new' | number
     // price stored as integer cents internally (e.g. 350 = Q 3.50); null = no price
@@ -357,6 +419,16 @@ export default function Settings() {
                                         </button>
                                     );
                                 })}
+
+                                {hasMoreServices && (
+                                    <button
+                                        onClick={loadMoreServices}
+                                        disabled={loadingMore}
+                                        className="flex items-center justify-center gap-1.5 mx-2 mt-1 mb-2 py-2.5 rounded-2xl bg-white/30 border border-white/50 text-navy-700/70 text-[11px] font-bold hover:bg-white/50 transition-colors disabled:opacity-50"
+                                    >
+                                        <ChevronDown size={13} className={loadingMore ? 'animate-spin' : ''} /> {loadingMore ? 'Cargando…' : 'Cargar más'}
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -375,6 +447,11 @@ export default function Settings() {
                                                 <ChevronLeft size={16} />
                                             </button>
                                             <div className="flex-1 min-w-0">
+                                                {!isNew && selectedService && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 mb-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold uppercase tracking-wider text-amber-700">
+                                                        <Pencil size={9} /> Editando
+                                                    </span>
+                                                )}
                                                 <h2 className="text-lg font-bold text-navy-900 tracking-tight">
                                                     {isNew ? 'Nuevo Servicio' : (selectedService?.name || '—')}
                                                 </h2>
@@ -508,7 +585,10 @@ export default function Settings() {
                                                 >
                                                     <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                                                     <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                                                    <Save size={14} className="relative z-10 shrink-0" />
+                                                    {isNew
+                                                        ? <Save size={14} className="relative z-10 shrink-0" />
+                                                        : <Pencil size={14} className="relative z-10 shrink-0" />
+                                                    }
                                                     <span className="relative z-10 max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap">
                                                         {saving ? 'Guardando...' : isNew ? 'Crear servicio' : 'Guardar cambios'}
                                                     </span>

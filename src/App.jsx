@@ -60,7 +60,7 @@ const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
 
 export default function App() {
     const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus, profile, isPlansOpen, openPlans, closePlans } = useAppStore();
-    const { canViewStats, canManageRoles, canManageServices, canViewFinance } = usePermissions();
+    const { canViewStats, canManageRoles, canManageServices, canViewFinance, canUseAIHub } = usePermissions();
     const { user } = useAuth();
     // Usa el email del usuario de auth — no requiere registro en staff_users
     const isSuperAdmin = SUPER_ADMIN_EMAIL && user?.email === SUPER_ADMIN_EMAIL;
@@ -148,7 +148,7 @@ export default function App() {
                                                     <Route path="/finance" element={!profileReady ? <PageLoader /> : canViewFinance ? <Finance /> : <Navigate to="/" replace />} />
                                                     <Route path="/users" element={!profileReady ? <PageLoader /> : canManageRoles ? <Users /> : <Navigate to="/" replace />} />
                                                     <Route path="/audit-log" element={!profileReady ? <PageLoader /> : canManageRoles ? <AuditLog /> : <Navigate to="/" replace />} />
-                                                    <Route path="/ai" element={!profileReady ? <PageLoader /> : (canManageRoles || canViewStats) ? <AIHub /> : <Navigate to="/" replace />} />
+                                                    <Route path="/ai" element={!profileReady ? <PageLoader /> : canUseAIHub ? <AIHub /> : <Navigate to="/" replace />} />
                                                     <Route path="/business" element={!profileReady ? <PageLoader /> : canManageRoles ? <AIConfig /> : <Navigate to="/" replace />} />
                                                     <Route path="*" element={<Navigate to="/" replace />} />
                                                 </Routes>

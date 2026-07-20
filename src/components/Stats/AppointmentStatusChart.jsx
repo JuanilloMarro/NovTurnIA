@@ -11,25 +11,25 @@ export function AppointmentStatusChart({ data, confRate }) {
     const chartColors = hasData ? PIE_COLORS : ['#E5E7EB'];
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="flex items-start gap-3 mb-6">
-                <div className="w-9 h-9 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
-                    <Activity size={18} />
+        <div className="h-full flex flex-col min-h-0">
+            <div className="flex items-start gap-3 mb-2 shrink-0">
+                <div className="w-8 h-8 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
+                    <Activity size={16} />
                 </div>
-                <div className="min-w-0 pt-[5px]">
+                <div className="min-w-0 pt-[4px]">
                     <h3 className="text-[13px] font-bold text-navy-900 leading-none tracking-tight">Tasa de confirmación</h3>
                     <p className="text-[10px] font-bold text-navy-900/40 mt-0.5">Distribución de estados</p>
                 </div>
             </div>
 
-            <div className="relative flex-1 flex flex-col items-center justify-center min-h-[200px]">
-                <ResponsiveContainer width="100%" height={180}>
+            <div className="relative flex-1 min-h-0 flex flex-col items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
                             data={chartData}
                             cx="50%"  cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
+                            innerRadius="40%"
+                            outerRadius="56%"
                             paddingAngle={hasData ? 3 : 0}
                             dataKey="value"
                             stroke="none"
@@ -47,24 +47,24 @@ export function AppointmentStatusChart({ data, confRate }) {
                     </PieChart>
                 </ResponsiveContainer>
 
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
-                    <span className="text-navy-900/40 text-[9px] font-bold tracking-tight text-center">Confirmación</span>
-                    <span className="text-3xl font-bold text-navy-900 tracking-tight leading-none mt-1">{confRate}%</span>
-                    {!hasData && <span className="text-[9px] text-navy-900/30 font-bold mt-1">Sin turnos este mes</span>}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-navy-900/40 text-[8px] font-bold tracking-tight text-center">Confirmación</span>
+                    <span className="text-xl font-bold text-navy-900 tracking-tight leading-none mt-0.5">{confRate}%</span>
+                    {!hasData && <span className="text-[8px] text-navy-900/30 font-bold mt-1">Sin turnos este mes</span>}
                 </div>
             </div>
 
-            <div className="mt-4 flex flex-col gap-2">
+            <div className="mt-2 flex flex-col shrink-0 gap-1">
                 {data.map((entry, index) => {
                     const total = data.reduce((acc, curr) => acc + curr.value, 0);
                     const percentage = total === 0 ? 0 : Math.round((entry.value / total) * 100);
                     return (
-                        <div key={index} className="flex justify-between items-center py-2.5 px-1 border-b border-white/20 last:border-0">
-                            <div className="flex items-center gap-3">
-                                <span className="w-2 h-2 rounded-full shadow-sm" style={{ backgroundColor: PIE_COLORS[index] }}></span>
-                                <span className="text-navy-900/80 font-bold text-[10px] tracking-tight">{entry.name}</span>
+                        <div key={index} className="flex justify-between items-center py-1.5 px-1 border-b border-white/20 last:border-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-2.5 h-2.5 rounded-full shadow-sm shrink-0" style={{ backgroundColor: PIE_COLORS[index] }}></span>
+                                <span className="text-navy-900/80 font-bold text-[13px] tracking-tight truncate">{entry.name}</span>
                             </div>
-                            <span className="font-bold text-navy-900 text-[11px] tracking-tighter">{percentage}%</span>
+                            <span className="font-bold text-navy-900 text-[14px] tracking-tight tabular-nums shrink-0">{percentage}%</span>
                         </div>
                     );
                 })}

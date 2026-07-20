@@ -67,8 +67,8 @@ function Section({ icon: Icon, title, children }) {
     return (
         <div className="relative z-10">
             <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-full bg-navy-900/5 flex items-center justify-center text-navy-700">
-                    <Icon size={15} />
+                <div className="w-9 h-9 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
+                    <Icon size={18} />
                 </div>
                 <h3 className="text-[12.5px] font-bold text-navy-800 tracking-wide">{title}</h3>
                 <div className="flex-1 h-px bg-navy-900/8" />
@@ -251,9 +251,9 @@ export default function AIConfigPanel({ canEdit = true }) {
 
                         <AIOrb className="absolute inset-x-0 top-[8%] w-full h-[58%] z-0 pointer-events-none [mask-image:linear-gradient(to_bottom,transparent_0%,#000_18%,#000_60%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,#000_18%,#000_60%,transparent_100%)]" />
 
-                        <div className="relative z-10 flex items-center gap-2 text-navy-700/80">
-                            <div className="w-6 h-6 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center">
-                                <Bot size={13} className="text-navy-700/80" />
+                        <div className="relative z-10 flex items-center gap-2.5 text-navy-700/80">
+                            <div className="w-8 h-8 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shrink-0">
+                                <Bot size={14} className="text-navy-700/80" />
                             </div>
                             <span className="text-[11px] font-bold tracking-wide">Asistente IA · Personalidad</span>
                         </div>
@@ -326,80 +326,84 @@ export default function AIConfigPanel({ canEdit = true }) {
 
                 <div className="grid grid-cols-2 gap-5 shrink-0">
 
-                    <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[22px] shadow-md p-5 overflow-hidden">
-                        <CornerGlows />
-                        <Section icon={Building2} title="Identidad" />
-                        <div className="relative z-10 space-y-4">
-                            <Field label="Nombre del negocio">
-                                <input
-                                    type="text"
-                                    maxLength={100}
-                                    value={form.name}
-                                    onChange={e => setField('name', e.target.value)}
-                                    disabled={readOnly}
-                                    placeholder="Ej: Clínica San Rafael"
-                                    className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-[13px] font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 disabled:opacity-60 disabled:cursor-not-allowed"
-                                />
-                            </Field>
-                            <Field label="Correo de notificaciones">
-                                <div className="relative">
-                                    <Mail size={13} className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-700/40 pointer-events-none" />
+                    <div className={`ai-aurora rounded-[22px] ${auroraClass}`}>
+                        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[22px] shadow-md p-5 overflow-hidden">
+                            <CornerGlows />
+                            <Section icon={Building2} title="Identidad" />
+                            <div className="relative z-10 space-y-4">
+                                <Field label="Nombre del negocio">
                                     <input
-                                        type="email"
-                                        value={form.notification_email}
-                                        onChange={e => setField('notification_email', e.target.value)}
+                                        type="text"
+                                        maxLength={100}
+                                        value={form.name}
+                                        onChange={e => setField('name', e.target.value)}
                                         disabled={readOnly}
-                                        placeholder="opcional"
-                                        className="w-full bg-white/40 border border-white/60 rounded-full pl-9 pr-4 py-2.5 text-[13px] font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        placeholder="Ej: Clínica San Rafael"
+                                        className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-[13px] font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 disabled:opacity-60 disabled:cursor-not-allowed"
                                     />
-                                </div>
-                            </Field>
+                                </Field>
+                                <Field label="Correo de notificaciones">
+                                    <div className="relative">
+                                        <Mail size={13} className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-700/40 pointer-events-none" />
+                                        <input
+                                            type="email"
+                                            value={form.notification_email}
+                                            onChange={e => setField('notification_email', e.target.value)}
+                                            disabled={readOnly}
+                                            placeholder="opcional"
+                                            className="w-full bg-white/40 border border-white/60 rounded-full pl-9 pr-4 py-2.5 text-[13px] font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+                                </Field>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[22px] shadow-md p-5 overflow-hidden">
-                        <CornerGlows />
-                        <Section icon={Clock} title="Horario" />
-                        <div className="relative z-10 space-y-4">
-                            <div className="grid grid-cols-2 gap-3">
-                                <Field label="Apertura">
-                                    <HourSelect
-                                        value={form.schedule_start}
-                                        onChange={val => setField('schedule_start', val)}
-                                        options={HOUR_OPTIONS}
-                                        disabled={readOnly}
-                                    />
-                                </Field>
-                                <Field label="Cierre">
-                                    <HourSelect
-                                        value={form.schedule_end}
-                                        onChange={val => setField('schedule_end', val)}
-                                        options={HOUR_OPTIONS.filter(o => o.value > form.schedule_start)}
-                                        disabled={readOnly}
-                                    />
+                    <div className={`ai-aurora rounded-[22px] ${auroraClass}`}>
+                        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[22px] shadow-md p-5 overflow-hidden">
+                            <CornerGlows />
+                            <Section icon={Clock} title="Horario" />
+                            <div className="relative z-10 space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Field label="Apertura">
+                                        <HourSelect
+                                            value={form.schedule_start}
+                                            onChange={val => setField('schedule_start', val)}
+                                            options={HOUR_OPTIONS}
+                                            disabled={readOnly}
+                                        />
+                                    </Field>
+                                    <Field label="Cierre">
+                                        <HourSelect
+                                            value={form.schedule_end}
+                                            onChange={val => setField('schedule_end', val)}
+                                            options={HOUR_OPTIONS.filter(o => o.value > form.schedule_start)}
+                                            disabled={readOnly}
+                                        />
+                                    </Field>
+                                </div>
+                                <Field label="Días de atención">
+                                    <div className="flex flex-wrap gap-2">
+                                        {DAYS.map(day => {
+                                            const active = selectedDays.has(day.key);
+                                            return (
+                                                <button
+                                                    key={day.key}
+                                                    type="button"
+                                                    onClick={() => toggleDay(day.key)}
+                                                    disabled={readOnly}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wide transition-all duration-300 select-none border disabled:cursor-not-allowed ${active
+                                                        ? 'bg-navy-50 text-navy-700 border-navy-100 shadow-[0_2px_8px_rgba(15,32,68,0.18)]'
+                                                        : 'bg-white/50 text-navy-700/60 border-white/60 hover:bg-white/70 hover:text-navy-800'
+                                                        }`}
+                                                >
+                                                    {day.key}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </Field>
                             </div>
-                            <Field label="Días de atención">
-                                <div className="flex flex-wrap gap-2">
-                                    {DAYS.map(day => {
-                                        const active = selectedDays.has(day.key);
-                                        return (
-                                            <button
-                                                key={day.key}
-                                                type="button"
-                                                onClick={() => toggleDay(day.key)}
-                                                disabled={readOnly}
-                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wide transition-all duration-300 select-none border disabled:cursor-not-allowed ${active
-                                                    ? 'bg-navy-50 text-navy-700 border-navy-100 shadow-[0_2px_8px_rgba(15,32,68,0.18)]'
-                                                    : 'bg-white/50 text-navy-700/60 border-white/60 hover:bg-white/70 hover:text-navy-800'
-                                                    }`}
-                                            >
-                                                {day.key}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </Field>
                         </div>
                     </div>
                 </div>

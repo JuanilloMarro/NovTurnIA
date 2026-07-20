@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Users, Percent, Check, X, Pencil, HandCoins } from 'lucide-react';
+import { Users, Percent, HandCoins, UserX } from 'lucide-react';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 import ConfirmDialog from '../ui/ConfirmDialog';
-import { money } from './financeUi';
+import { money, MiniStatCard, AddBtn, ModalShell, FieldLabel, ModalButtons, PercentInput, decimalToTenths, tenthsToDecimal } from './financeUi';
 
 // Producción por profesional — cuánto generó cada miembro del equipo en el
 // período visible y cuánta comisión le corresponde. El % se congela en cada
@@ -14,73 +14,53 @@ function initials(name) {
     return name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-function CommissionEditor({ row, onSave }) {
-    const [editing, setEditing] = useState(false);
-    const [value, setValue] = useState(String(row.commission_pct ?? 0));
+// Modal para editar el % de comisión — el aviso de que se congela en cada
+// cobro vive aquí (antes era un texto suelto al pie del listado).
+function CommissionModal({ row, onClose, onSave }) {
+    const [tenths, setTenths] = useState(decimalToTenths(row.commission_pct ?? 0));
     const [saving, setSaving] = useState(false);
 
-    if (!editing) {
-        return (
-            <button onClick={() => { setValue(String(row.commission_pct ?? 0)); setEditing(true); }}
-                title="Editar % de comisión (aplica a cobros futuros)"
-                className="flex items-center gap-1 px-2 py-1 rounded-full bg-navy-900/5 border border-navy-900/10 text-[10px] font-bold text-navy-800 hover:bg-navy-900/10 transition-all tabular-nums">
-                <Percent size={10} /> {Number(row.commission_pct ?? 0)}% <Pencil size={9} className="text-navy-900/40" />
-            </button>
-        );
-    }
-    return (
-        <span className="flex items-center gap-1">
-            <input type="number" min="0" max="100" step="0.5" value={value} onChange={e => setValue(e.target.value)} autoFocus
-                onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setEditing(false); }}
-                className="w-16 bg-white/60 border border-white/70 rounded-full px-2.5 py-1 text-[11px] font-bold text-navy-900 outline-none focus:ring-1 focus:ring-white tabular-nums" />
-            <button onClick={submit} disabled={saving} className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 hover:bg-emerald-500/20 transition-all">
-                <Check size={11} />
-            </button>
-            <button onClick={() => setEditing(false)} className="w-6 h-6 rounded-full bg-white/50 border border-white/60 flex items-center justify-center text-navy-700/50 hover:text-navy-900 transition-all">
-                <X size={11} />
-            </button>
-        </span>
-    );
-
     async function submit() {
-        const pct = Number(value);
-        if (!(pct >= 0 && pct <= 100)) { showErrorToast('Porcentaje inválido', 'Debe estar entre 0 y 100.'); return; }
+        const pct = tenthsToDecimal(tenths) ?? 0;
         setSaving(true);
         try {
             await onSave(row.staff_id, pct);
             showSuccessToast('Comisión actualizada', `${row.staff_name}: ${pct}% en cobros futuros.`);
-            setEditing(false);
+            onClose();
         } catch (err) {
             showErrorToast('No se pudo guardar', err.message || '');
-        } finally {
             setSaving(false);
         }
     }
+
+    return (
+        <ModalShell title="% de comisión" subtitle={row.staff_name} onClose={onClose}
+            footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Guardar" loading={saving} confirmIcon={Percent} />}>
+            <div>
+                <FieldLabel title="Porcentaje" subtitle="El % se congela en cada cobro (snapshot): cambiarlo aquí solo afecta a los cobros futuros, nunca a la historia ya registrada." />
+                <PercentInput tenths={tenths} onChange={setTenths} autoFocus />
+            </div>
+        </ModalShell>
+    );
 }
 
 export default function ProductionSection({ prod, totalIncome, periodLabel, canEditCommission, canRecordExpense, onPayCommission }) {
     const [paying, setPaying] = useState(null); // row
     const [payBusy, setPayBusy] = useState(false);
+    const [editingCommission, setEditingCommission] = useState(null); // row
 
     const withActivity = prod.rows.filter(r => Number(r.services_count) > 0 || r.active);
     const unassigned = Math.max(0, Number(totalIncome || 0) - prod.assignedRevenue);
 
     return (
         <div className="space-y-3">
-            {/* Totales del período */}
-            <div className="flex items-center gap-3 flex-wrap px-1">
-                <div className="relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl px-4 py-2.5 shadow-md">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-navy-900/40 block leading-none">Comisiones del período</span>
-                    <span className="text-[16px] font-bold text-navy-900 tabular-nums leading-none block mt-1">{money(prod.totalCommission)}</span>
-                </div>
-                <div className="relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl px-4 py-2.5 shadow-md">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-navy-900/40 block leading-none">Atribuido al equipo</span>
-                    <span className="text-[16px] font-bold text-navy-900 tabular-nums leading-none block mt-1">{money(prod.assignedRevenue)}</span>
-                </div>
+            {/* Totales del período — 2 paneles ícono+título+monto, igual que Resumen */}
+            <div className="flex items-center gap-2 flex-wrap px-1">
+                <MiniStatCard icon={HandCoins} label="Comisiones del período" value={money(prod.totalCommission)} />
+                <MiniStatCard icon={Users} label="Atribuido al equipo" value={money(prod.assignedRevenue)} />
                 {unassigned > 0 && (
-                    <span className="text-[10px] font-bold text-navy-900/40">
-                        {money(unassigned)} sin atribuir — elige "Atendido por" al cobrar para verlo aquí
-                    </span>
+                    <MiniStatCard icon={UserX} label="Sin atribuir" value={money(unassigned)}
+                        title='Elige "Atendido por" al cobrar para verlo aquí' />
                 )}
             </div>
 
@@ -93,7 +73,7 @@ export default function ProductionSection({ prod, totalIncome, periodLabel, canE
                     </div>
                     <p className="text-[12px] font-bold text-navy-900/60 mb-1">Sin producción registrada</p>
                     <p className="text-[11px] font-semibold text-navy-700/40 max-w-[340px] mx-auto">
-                        Al cobrar un servicio elige quién lo atendió — aquí verás cuánto generó cada quien y su comisión.
+                        Al cobrar un servicio elige quién lo atendió: aquí verás cuánto generó cada quien y su comisión.
                     </p>
                 </div>
             ) : (
@@ -102,14 +82,14 @@ export default function ProductionSection({ prod, totalIncome, periodLabel, canE
                         <div key={r.staff_id} className="relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl p-4 shadow-md flex items-center justify-between gap-3 flex-wrap">
                             <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                             <div className="relative z-10 flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-full bg-navy-900 flex items-center justify-center text-white font-bold text-[13px] shrink-0 shadow-sm">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-b from-white to-gray-100 border border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] flex items-center justify-center text-navy-900 font-bold text-[13px] shrink-0">
                                     {initials(r.staff_name)}
                                 </div>
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <span className="font-bold text-navy-900 text-sm leading-tight truncate">{r.staff_name}</span>
                                         {!r.active && (
-                                            <span className="px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[8px] font-bold uppercase tracking-widest text-navy-900/40">Inactivo</span>
+                                            <span className="px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[8px] font-bold tracking-widest text-navy-900/40">Inactivo</span>
                                         )}
                                     </div>
                                     <p className="text-[10px] font-semibold text-navy-700/55 mt-0.5">
@@ -118,21 +98,23 @@ export default function ProductionSection({ prod, totalIncome, periodLabel, canE
                                 </div>
                             </div>
                             <div className="relative z-10 flex items-center gap-2.5 shrink-0 flex-wrap">
-                                {canEditCommission ? <CommissionEditor row={r} onSave={prod.saveCommission} /> : (
+                                {canEditCommission ? (
+                                    <button onClick={() => setEditingCommission(r)}
+                                        title="Editar % de comisión (aplica a cobros futuros)"
+                                        className="flex items-center gap-1 px-2 py-1 rounded-full bg-navy-900/5 border border-navy-900/10 text-[10px] font-bold text-navy-800 hover:bg-navy-900/10 transition-all tabular-nums">
+                                        <Percent size={10} /> {Number(r.commission_pct ?? 0)}%
+                                    </button>
+                                ) : (
                                     <span className="px-2 py-1 rounded-full bg-navy-900/5 border border-navy-900/10 text-[10px] font-bold text-navy-800 tabular-nums">
                                         {Number(r.commission_pct ?? 0)}%
                                     </span>
                                 )}
                                 <div className="text-right">
-                                    <span className="text-[9px] font-bold uppercase tracking-widest text-navy-900/40 block leading-none">Comisión</span>
+                                    <span className="text-[9px] font-bold tracking-widest text-navy-900/40 block leading-none">Comisión</span>
                                     <span className="text-[15px] font-bold text-navy-900 tabular-nums leading-none block mt-0.5">{money(r.commission_total)}</span>
                                 </div>
                                 {canRecordExpense && Number(r.commission_total) > 0 && (
-                                    <button onClick={() => setPaying(r)}
-                                        title="Registrar el pago de esta comisión como egreso"
-                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-navy-900 border border-white/10 text-white text-[9.5px] font-bold shadow-card hover:bg-navy-800 transition-all">
-                                        <HandCoins size={11} /> Pagar
-                                    </button>
+                                    <AddBtn icon={HandCoins} label="Pagar" onClick={() => setPaying(r)} />
                                 )}
                             </div>
                         </div>
@@ -140,9 +122,9 @@ export default function ProductionSection({ prod, totalIncome, periodLabel, canE
                 </div>
             )}
 
-            <p className="text-[9.5px] font-bold text-navy-900/35 px-1">
-                El % se congela en cada cobro: cambiarlo solo afecta cobros futuros. La producción usa los ingresos confirmados del período visible.
-            </p>
+            {editingCommission && (
+                <CommissionModal row={editingCommission} onClose={() => setEditingCommission(null)} onSave={prod.saveCommission} />
+            )}
 
             <ConfirmDialog open={!!paying} loading={payBusy}
                 title={paying ? `¿Pagar comisión a ${paying.staff_name}?` : ''}

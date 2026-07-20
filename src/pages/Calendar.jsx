@@ -6,13 +6,14 @@ import CalendarDay from '../components/Calendar/CalendarDay';
 import AppointmentDrawer from '../components/Calendar/AppointmentDrawer';
 import NewAppointmentModal from '../components/Calendar/NewAppointmentModal';
 import KanbanBoard from '../components/Calendar/KanbanBoard';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, Plus, LayoutDashboard, Lock } from 'lucide-react';
+import ScheduleConfigModal from '../components/Calendar/ScheduleConfigModal';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, Plus, LayoutDashboard, Lock, SlidersHorizontal } from 'lucide-react';
 import FeatureLock from '../components/FeatureLock';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 
 export default function Calendar() {
-    const { canCreateAppointments } = usePermissions();
+    const { canCreateAppointments, canManageRoles } = usePermissions();
     const { hasFeature } = usePlanLimits();
     const kanbanUnlocked = hasFeature('kanban');
     const {
@@ -36,6 +37,7 @@ export default function Calendar() {
     const [tab, setTab] = useState('calendar'); // 'calendar' | 'kanban'
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [scheduleConfigOpen, setScheduleConfigOpen] = useState(false);
 
     const handlePrev = () => {
         if (viewMode === 'month') prevMonth();
@@ -69,7 +71,7 @@ export default function Calendar() {
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
-                        <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Turnos</h1>
+                        <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Citas</h1>
                         <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Gestión de citas de la clínica</p>
                     </div>
                 </div>
@@ -135,7 +137,19 @@ export default function Calendar() {
                                 </button>
                             )}
 
-                            {/* 5. Actualizar */}
+                            {/* 5. Configuración de citas (festivos / cupo) */}
+                            {canManageRoles && (
+                                <button onClick={() => setScheduleConfigOpen(true)}
+                                    title="Festivos, horarios especiales y cupo diario"
+                                    className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md active:scale-95 transition-all duration-300 outline-none">
+                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                    <SlidersHorizontal size={14} className="shrink-0 relative z-10" />
+                                    <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap relative z-10">Configurar</span>
+                                </button>
+                            )}
+
+                            {/* 6. Actualizar */}
                             <button onClick={reload} disabled={reloading} className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md active:scale-95 transition-all duration-300 overflow-hidden disabled:opacity-40 outline-none">
                                 <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                                 <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
@@ -222,6 +236,10 @@ export default function Calendar() {
                         reload();
                     }}
                 />
+            )}
+
+            {scheduleConfigOpen && (
+                <ScheduleConfigModal onClose={() => setScheduleConfigOpen(false)} onSaved={reload} />
             )}
         </div>
     );

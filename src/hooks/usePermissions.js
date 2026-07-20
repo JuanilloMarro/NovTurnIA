@@ -71,6 +71,12 @@ export function usePermissions() {
         canManageSupplies:   !!perms.manage_supplies,             // insumos + receta (BOM)
         canVoidFinance:      !!perms.void_finance,                // anular ingresos/egresos
         canManageFinanceCategories: !!perms.manage_finance_categories, // tab Categorías (crear/editar/eliminar)
+        canManageCash:       !!perms.manage_cash,                 // abrir/cerrar caja (submódulo Caja)
+        canPayCommission:    !!perms.pay_commission,              // editar % y pagar comisiones (Producción)
+        canManageFinanceSettings: !!perms.manage_finance_settings, // métodos de pago + meta mensual (Ajustes)
+
+        // ── Centro de IA ─────────────────────────────────────
+        canUseAIHub: !!perms.use_ai_hub,                          // acceso al Centro de IA + generar insights (gasta tokens)
 
         // ── Administración ───────────────────────────────────
         canManageRoles:   !!perms.manage_roles,                   // módulo Usuarios, Actividad, Configuración

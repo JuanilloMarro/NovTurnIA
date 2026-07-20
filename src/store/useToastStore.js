@@ -105,7 +105,6 @@ export const showAptDeleteToast = (message) => toast('error', 'apt_delete', 'Tur
 export const showPatientNewToast = (message) => toast('success', 'patient_new', 'Cliente Registrado', message, 5000);
 export const showPatientEditToast = (message) => toast('warning', 'patient_edit', 'Cliente Actualizado', message);
 export const showPatientDeleteToast = (message) => toast('error', 'patient_delete', 'Cliente Eliminado', message);
-export const showPatientGdprToast = (message) => toast('error', 'patient_gdpr', 'Datos Eliminados (GDPR)', message);
 
 // ── Service ───────────────────────────────────────────────────────────────────
 export const showServiceNewToast = (message) => toast('success', 'service_new', 'Servicio Creado', message);

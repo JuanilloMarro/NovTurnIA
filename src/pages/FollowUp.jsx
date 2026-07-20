@@ -26,7 +26,9 @@ const TYPE_OPTIONS = [
 ];
 
 const DAYS_OPTIONS = [
+    { value: 0,  label: 'Hoy' },
     { value: 7,  label: '7 días' },
+    { value: 15, label: '15 días' },
     { value: 30, label: '30 días' },
     { value: 60, label: '60 días' },
     { value: 90, label: '90 días' },

@@ -1,21 +1,19 @@
 import { useState, useMemo } from 'react';
-import { ChevronRight, ArrowDownRight, Repeat, ChevronDown, Zap } from 'lucide-react';
-import { LedgerSearch, methodLabelFrom } from './financeUi';
+import { ChevronRight, ArrowDownRight, Repeat, ChevronDown, Zap, Plus, DollarSign } from 'lucide-react';
+import { LedgerSearch, AddBtn, MiniStatCard, methodLabelFrom } from './financeUi';
 
 const money = (n) => `Q${Number(n || 0).toFixed(2)}`;
 const CAT_LABEL = { insumo: 'Insumos', renta: 'Renta', salario: 'Salarios', servicios: 'Servicios', marketing: 'Marketing', general: 'General', otro: 'Otro' };
-const PAGE = 30;
 
 function fmtDate(iso) {
     if (!iso) return '';
     return new Date(iso).toLocaleDateString('es-GT', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-// Libro de egresos con búsqueda local y paginación oculta. Los gastos fijos
-// materializados por el cron llegan con template_id → chip "Automático".
-export default function ExpenseSection({ expenses, methods = [], onSelect, selectedId }) {
+// Libro de egresos — paginación real (`hasMore`/`onLoadMore` de useFinance).
+// Los gastos fijos materializados por el cron llegan con template_id → chip "Automático".
+export default function ExpenseSection({ expenses, hasMore, loadingMore, onLoadMore, methods = [], onSelect, selectedId, canRecord, onAdd }) {
     const [query, setQuery] = useState('');
-    const [visible, setVisible] = useState(PAGE);
 
     const filtered = useMemo(() => {
         const t = query.trim().toLowerCase();
@@ -27,22 +25,23 @@ export default function ExpenseSection({ expenses, methods = [], onSelect, selec
         );
     }, [expenses, query, methods]);
 
-    const shown = filtered.slice(0, visible);
-
-    if (expenses.length === 0) return <p className="text-[12px] font-semibold text-navy-700/40 text-center py-12">Sin egresos en este período.</p>;
-
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between gap-2 flex-wrap px-1">
-                <LedgerSearch value={query} onChange={v => { setQuery(v); setVisible(PAGE); }} placeholder="Buscar por descripción, categoría…" />
-                <span className="text-[10px] font-bold text-navy-900/40">{filtered.length} {filtered.length === 1 ? 'movimiento' : 'movimientos'}</span>
+                <MiniStatCard icon={DollarSign} label="Movimientos" value={filtered.length} />
+                <div className="flex items-center gap-2">
+                    <LedgerSearch wide value={query} onChange={setQuery} placeholder="Buscar por descripción, categoría…" />
+                    {canRecord && <AddBtn icon={Plus} label="Registrar egreso" onClick={onAdd} />}
+                </div>
             </div>
 
-            {shown.length === 0 && (
+            {expenses.length === 0 ? (
+                <p className="text-[12px] font-semibold text-navy-700/40 text-center py-12">Sin egresos en este período.</p>
+            ) : filtered.length === 0 && (
                 <p className="text-[12px] font-semibold text-navy-700/40 text-center py-10">Sin coincidencias para tu búsqueda.</p>
             )}
 
-            {shown.map(e => (
+            {filtered.map(e => (
                 <button key={e.id} onClick={() => onSelect?.(e)}
                     className={`group relative overflow-hidden backdrop-blur-2xl rounded-2xl p-4 w-full flex items-center justify-between gap-3 border shadow-md text-left transition-all ${selectedId === e.id ? 'bg-white/60 border-white/80' : 'bg-white/40 border-white/60 hover:bg-white/60'}`}>
                     <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(244,63,94,0.04)' }} />
@@ -56,7 +55,7 @@ export default function ExpenseSection({ expenses, methods = [], onSelect, selec
                                 {e.description}
                                 {e.recurring && <Repeat size={11} className="text-navy-700/40 shrink-0" title="Costo fijo: se repite solo cada mes" />}
                                 {e.template_id && (
-                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-700 text-[8px] font-bold uppercase tracking-wide shrink-0">
+                                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-700 text-[8px] font-bold tracking-wide shrink-0">
                                         <Zap size={8} /> Automático
                                     </span>
                                 )}
@@ -82,10 +81,10 @@ export default function ExpenseSection({ expenses, methods = [], onSelect, selec
                 </button>
             ))}
 
-            {filtered.length > visible && (
-                <button onClick={() => setVisible(v => v + PAGE)}
-                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-white/30 border border-white/50 text-[11px] font-bold text-navy-700/60 hover:bg-white/50 hover:text-navy-900 transition-all">
-                    <ChevronDown size={13} /> Mostrar más ({filtered.length - visible} restantes)
+            {hasMore && (
+                <button onClick={onLoadMore} disabled={loadingMore}
+                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-white/30 border border-white/50 text-[11px] font-bold text-navy-700/60 hover:bg-white/50 hover:text-navy-900 transition-all disabled:opacity-50">
+                    <ChevronDown size={13} /> {loadingMore ? 'Cargando…' : 'Cargar más'}
                 </button>
             )}
         </div>

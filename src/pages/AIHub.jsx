@@ -5,7 +5,7 @@ import AIOrb from '../components/ui/AIOrb';
 import FeatureLock from '../components/FeatureLock';
 import InsightDrawer from '../components/AIHub/InsightDrawer';
 import RecentInsights from '../components/AIHub/RecentInsights';
-import { AI_ACTIONS, SCOPE_META, timeAgo } from '../components/AIHub/aiActions';
+import { AI_ACTIONS, SCOPE_META, usageColor, timeAgo } from '../components/AIHub/aiActions';
 import { useAIInsights } from '../hooks/useAIInsights';
 import { useAIChat } from '../hooks/useAIChat';
 import { useAIUsage } from '../hooks/useAIUsage';
@@ -32,38 +32,40 @@ const MOCK_INSIGHTS = [
     { id: 'm4', scope: 'content_offer', ref_id: null, content: { title: 'Promo sugerida: 2x1 en limpieza para los jueves' }, generated_at: HOURS_AGO(120) },
 ];
 
+// Ícono + título + badge en la MISMA fila (antes el ícono tenía su propia fila
+// arriba del badge, lo que sumaba una fila entera de alto solo para eso).
 function ActionCard({ action, cachedAt, locked, onClick, index }) {
     const Icon = action.icon;
     return (
         <button
             onClick={onClick}
-            className="group relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl shadow-md p-3.5 text-left hover:bg-white/60 hover:-translate-y-0.5 transition-all duration-300 animate-fade-up flex flex-col gap-2"
+            className="group relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl shadow-md p-3 text-left hover:bg-white/60 hover:-translate-y-0.5 transition-all duration-300 animate-fade-up flex items-center gap-2.5"
             style={{ animationDelay: `${index * 0.05}s` }}
         >
             <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
             <div className="absolute -bottom-6 -left-6 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
 
-            <div className="relative z-10 flex items-center justify-between">
-                <div className="w-8 h-8 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shadow-inner">
-                    <Icon size={14} className="text-navy-900" />
-                </div>
-                {locked ? (
-                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[7px] font-bold uppercase tracking-widest text-navy-900/40">
-                        <Lock size={7} strokeWidth={3} /> Enterprise
-                    </span>
-                ) : cachedAt ? (
-                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[7px] font-bold uppercase tracking-widest text-emerald-700/80">
-                        {timeAgo(cachedAt)}
-                    </span>
-                ) : (
-                    <span className="px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[7px] font-bold uppercase tracking-widest text-navy-900/30">
-                        {action.mode}
-                    </span>
-                )}
+            <div className="relative z-10 w-8 h-8 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shadow-inner shrink-0">
+                <Icon size={14} className="text-navy-900" />
             </div>
-            <div className="relative z-10">
-                <p className="text-[12px] font-semibold text-navy-900 tracking-tight leading-none">{action.title}</p>
-                <p className="text-[10px] font-semibold text-navy-700/55 leading-snug mt-1.5 line-clamp-2">{action.desc}</p>
+            <div className="relative z-10 min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                    <p className="text-[12px] font-semibold text-navy-900 tracking-tight leading-tight truncate">{action.title}</p>
+                    {locked ? (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[7px] font-bold uppercase tracking-widest text-navy-900/40 shrink-0">
+                            <Lock size={7} strokeWidth={3} /> Enterprise
+                        </span>
+                    ) : cachedAt ? (
+                        <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[7px] font-bold uppercase tracking-widest text-emerald-700/80 shrink-0">
+                            {timeAgo(cachedAt)}
+                        </span>
+                    ) : (
+                        <span className="px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[7px] font-bold uppercase tracking-widest text-navy-900/30 shrink-0">
+                            {action.mode}
+                        </span>
+                    )}
+                </div>
+                <p className="text-[10px] font-semibold text-navy-700/55 leading-snug mt-1 line-clamp-2">{action.desc}</p>
             </div>
         </button>
     );
@@ -94,7 +96,7 @@ function UsageBar({ usage }) {
             <div className="w-20 h-2 rounded-full bg-navy-900/10 overflow-hidden shrink-0">
                 <div
                     className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%`, background: 'linear-gradient(90deg, rgba(64,98,200,1), rgba(120,110,230,1))' }}
+                    style={{ width: `${pct}%`, background: usageColor(pct) }}
                 />
             </div>
             <span className="text-[9px] font-bold text-navy-900/50 tabular-nums">{pct}%</span>
@@ -230,7 +232,7 @@ function InsightsPanel({ mock, feed, hasFeature, onOpenAction, firstName }) {
                 <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
                 <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
 
-                <div className="relative z-10 flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 flex flex-col items-center justify-center gap-4">
+                <div className="relative z-10 flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 flex flex-col items-center justify-center gap-3">
                     <div className="shrink-0 flex flex-col items-center text-center">
                         <div className="relative w-[440px] max-w-full h-[300px] -mb-2">
                             {mock ? (
@@ -251,7 +253,7 @@ function InsightsPanel({ mock, feed, hasFeature, onOpenAction, firstName }) {
                         </p>
                     </div>
 
-                    <div className="shrink-0 w-full max-w-[720px] mx-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="shrink-0 w-full max-w-[720px] mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {AI_ACTIONS.map((action, i) => (
                             <ActionCard
                                 key={action.scope}
@@ -276,7 +278,7 @@ export default function AIHub() {
     const unlocked = hasFeature('stats_intelligence');
     const mock = !unlocked;
 
-    const { insights, loading, generate, reload } = useAIInsights(unlocked);
+    const { insights, patientNames, loading, generate, reload } = useAIInsights(unlocked);
     const feed = unlocked ? insights : MOCK_INSIGHTS;
 
     const [question, setQuestion] = useState('');
@@ -300,7 +302,12 @@ export default function AIHub() {
     function openFromActivity(item) {
         const meta = SCOPE_META[item.scope];
         if (!meta) return;
-        setDrawer({ action: meta, refId: item.ref_id || null });
+        // Si el scope es por cliente, arrastra el nombre ya resuelto para que
+        // el drawer no muestre "Cliente del análisis" a secas.
+        const initialPatient = meta.needsPatient && item.ref_id
+            ? { id: item.ref_id, display_name: patientNames[item.ref_id] || null }
+            : null;
+        setDrawer({ action: meta, refId: item.ref_id || null, initialPatient });
     }
 
     function openAction(action) {
@@ -323,6 +330,7 @@ export default function AIHub() {
             <div className="flex-[2] min-w-0 min-h-[320px] lg:min-h-0">
                 <RecentInsights
                     insights={feed}
+                    patientNames={mock ? {} : patientNames}
                     loading={mock ? false : loading}
                     onSelect={mock ? () => { } : openFromActivity}
                     onReload={mock ? () => { } : reload}
@@ -378,6 +386,7 @@ export default function AIHub() {
                         <InsightDrawer
                             action={drawer.action}
                             initialRefId={drawer.refId}
+                            initialPatient={drawer.initialPatient}
                             onGenerate={generateTracked}
                             onClose={() => setDrawer(null)}
                         />

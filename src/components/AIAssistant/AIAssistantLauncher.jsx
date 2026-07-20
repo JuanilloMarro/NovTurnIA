@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Send, Lock, ArrowRight } from 'lucide-react';
 import AIStar from '../Icons/AIStar';
-import { AI_ACTIONS, timeAgo } from '../AIHub/aiActions';
+import { AI_ACTIONS, timeAgo, usageColor } from '../AIHub/aiActions';
 import { useAIChat } from '../../hooks/useAIChat';
 import { useAIUsage } from '../../hooks/useAIUsage';
 import { useAIInsights } from '../../hooks/useAIInsights';
@@ -34,7 +34,7 @@ const MODULE_CONTEXT = [
     { match: p => p.startsWith('/stats'), name: 'Estadísticas', scopes: ['kpi_narrative', 'retention'] },
     { match: p => p.startsWith('/offers'), name: 'Ofertas', scopes: ['content_offer', 'kpi_narrative'] },
     { match: p => p.startsWith('/finance'), name: 'Finanzas', scopes: ['finance_narrative', 'kpi_narrative'] },
-    { match: p => p === '/', name: 'Agenda', scopes: ['weekly_digest', 'kpi_narrative'] },
+    { match: p => p === '/', name: 'Agenda', scopes: ['agenda_narrative', 'weekly_digest'] },
 ];
 const DEFAULT_CONTEXT = { name: null, scopes: ['weekly_digest', 'kpi_narrative'] };
 
@@ -58,7 +58,7 @@ function UsageBar({ usage }) {
             <div className="w-14 h-1.5 rounded-full bg-navy-900/10 overflow-hidden shrink-0">
                 <div
                     className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%`, background: 'linear-gradient(90deg, rgba(64,98,200,1), rgba(120,110,230,1))' }}
+                    style={{ width: `${pct}%`, background: usageColor(pct) }}
                 />
             </div>
             <span className="text-[8px] font-bold text-navy-900/50 tabular-nums">{pct}%</span>
@@ -67,48 +67,37 @@ function UsageBar({ usage }) {
 }
 
 // Tarjeta grande de acción contextual (las 1-2 sugeridas para el módulo activo).
+// Incluye la descripción de la acción: sin ella el card queda con un hueco
+// vacío entre el título y la etiqueta de estado (mode/cachedAt).
 function ContextActionCard({ action, cachedAt, locked, onClick }) {
     const Icon = action.icon;
     return (
         <button
             onClick={onClick}
-            className="group relative overflow-hidden flex items-center gap-2.5 bg-white/50 border border-white/60 rounded-2xl px-3 py-2.5 text-left shadow-sm hover:bg-white/70 hover:-translate-y-px transition-all duration-300"
+            className="group relative overflow-hidden flex items-start gap-2.5 bg-white/50 border border-white/60 rounded-2xl px-3 py-2.5 text-left shadow-sm hover:bg-white/70 hover:-translate-y-px transition-all duration-300"
         >
-            <div className="w-8 h-8 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shrink-0 shadow-inner">
+            <div className="w-8 h-8 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shrink-0 shadow-inner mt-0.5">
                 <Icon size={14} className="text-navy-900" />
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-bold text-navy-900 leading-tight truncate">{action.title}</p>
-                {locked ? (
-                    <span className="inline-flex items-center gap-1 mt-0.5 text-[8px] font-bold uppercase tracking-widest text-navy-900/40">
-                        <Lock size={7} strokeWidth={3} /> Enterprise
-                    </span>
-                ) : cachedAt ? (
-                    <span className="inline-block mt-0.5 text-[8px] font-bold uppercase tracking-widest text-emerald-700/80">
-                        {timeAgo(cachedAt)} · verlo es gratis
-                    </span>
-                ) : (
-                    <span className="inline-block mt-0.5 text-[8px] font-bold uppercase tracking-widest text-navy-900/30">
-                        {action.mode}
-                    </span>
-                )}
+                <p className="text-[9.5px] font-semibold text-navy-700/55 leading-snug mt-0.5 line-clamp-2">{action.desc}</p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                    {locked ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[7px] font-bold tracking-widest text-navy-900/40 shrink-0">
+                            <Lock size={7} strokeWidth={3} /> Enterprise
+                        </span>
+                    ) : cachedAt ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[7px] font-bold tracking-widest text-emerald-700/80 shrink-0">
+                            {timeAgo(cachedAt)}
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[7px] font-bold tracking-widest text-navy-900/30 shrink-0">
+                            {action.mode}
+                        </span>
+                    )}
+                </div>
             </div>
-        </button>
-    );
-}
-
-// Píldora chica para el resto de acciones ("Más análisis").
-function MiniActionPill({ action, locked, onClick }) {
-    const Icon = action.icon;
-    return (
-        <button
-            onClick={onClick}
-            title={action.title}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/40 border border-white/60 text-[9.5px] font-bold text-navy-800 hover:bg-white/70 transition-all duration-300 shadow-sm shrink-0"
-        >
-            <Icon size={11} className="text-navy-900 shrink-0" />
-            <span className="truncate max-w-[110px]">{action.title}</span>
-            {locked && <Lock size={8} strokeWidth={3} className="text-navy-900/40 shrink-0" />}
         </button>
     );
 }
@@ -138,7 +127,6 @@ function AssistantPanel({ moduleCtx, hasFeature, onLaunchAction, onOpenHub }) {
     const contextActions = moduleCtx.scopes
         .map(s => AI_ACTIONS.find(a => a.scope === s))
         .filter(Boolean);
-    const restActions = AI_ACTIONS.filter(a => !moduleCtx.scopes.includes(a.scope));
 
     function cachedAt(scope) {
         return insights.find(i => i.scope === scope)?.generated_at || null;
@@ -160,17 +148,24 @@ function AssistantPanel({ moduleCtx, hasFeature, onLaunchAction, onOpenHub }) {
 
     return (
         <div className="relative z-10 flex flex-col min-h-0 max-h-[min(620px,calc(100vh-120px))]">
-            {/* Header */}
-            <div className="shrink-0 flex items-center justify-between px-4 pt-3.5 pb-2.5">
-                <span className="flex items-center gap-1.5 text-[12px] font-bold text-navy-900 tracking-tight">
+            {/* Header — título, acceso a Centro IA en medio, consumo semanal */}
+            <div className="shrink-0 flex items-center justify-between gap-2 px-4 pt-3.5 pb-2.5">
+                <span className="flex items-center gap-1.5 text-[12px] font-bold text-navy-900 tracking-tight shrink-0">
                     <AIStar size={13} /> Asistente IA
                 </span>
+                <button
+                    onClick={onOpenHub}
+                    className="flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold text-navy-900/45 hover:text-navy-900 hover:bg-white/50 transition-all duration-300 shrink-0"
+                >
+                    Centro IA <ArrowRight size={10} />
+                </button>
                 <UsageBar usage={usage} />
             </div>
 
-            {/* Acciones contextuales del módulo activo */}
+            {/* Acciones contextuales del módulo activo — solo las de este
+                módulo; para el resto del análisis está el Centro IA completo. */}
             <div className="shrink-0 px-4">
-                <p className="text-[8.5px] font-bold text-navy-900/40 tracking-widest uppercase mb-1.5">
+                <p className="text-[8.5px] font-bold text-navy-900/40 tracking-widest mb-1.5">
                     {moduleCtx.name ? `Para ${moduleCtx.name}` : 'Sugerido'}
                 </p>
                 <div className={`grid gap-2 ${contextActions.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
@@ -184,27 +179,15 @@ function AssistantPanel({ moduleCtx, hasFeature, onLaunchAction, onOpenHub }) {
                         />
                     ))}
                 </div>
-
-                {restActions.length > 0 && (
-                    <div className="mt-2.5">
-                        <p className="text-[8.5px] font-bold text-navy-900/40 tracking-widest uppercase mb-1.5">Más análisis</p>
-                        <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1 -mx-0.5 px-0.5">
-                            {restActions.map(action => (
-                                <MiniActionPill
-                                    key={action.scope}
-                                    action={action}
-                                    locked={action.feature && !hasFeature(action.feature)}
-                                    onClick={() => handleAction(action)}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
 
-            <div className="shrink-0 h-px bg-navy-900/5 mx-4 my-2.5" />
+            {/* Chat de negocio — mismo tratamiento de "sección propia" que las
+                acciones de arriba (título + separación), para que quede claro
+                dónde termina lo contextual y empieza el chat libre. */}
+            <div className="shrink-0 px-4 mt-2.5">
+                <p className="text-[8.5px] font-bold text-navy-900/40 tracking-widest mb-1.5">Chat de negocio</p>
+            </div>
 
-            {/* Chat de negocio compacto */}
             <div ref={scrollRef} className="flex-1 min-h-[160px] overflow-y-auto custom-scrollbar px-4 space-y-2.5">
                 {messages.length === 0 ? (
                     <div className="h-full min-h-[150px] flex flex-col items-center justify-center text-center px-2">
@@ -225,7 +208,7 @@ function AssistantPanel({ moduleCtx, hasFeature, onLaunchAction, onOpenHub }) {
                                     : 'bg-white/50 border border-white/60 text-navy-900'
                                     }`}>
                                     <p className="whitespace-pre-wrap">{m.text}</p>
-                                    <div className={`text-[7.5px] uppercase font-bold tracking-widest mt-1 flex items-center gap-1 text-navy-900/40 ${isOut ? 'justify-end' : ''}`}>
+                                    <div className={`text-[7.5px] font-bold tracking-widest mt-1 flex items-center gap-1 text-navy-900/40 ${isOut ? 'justify-end' : ''}`}>
                                         {isOut ? <span>Tú</span> : !m.error && <span>IA</span>}
                                         <span>{timeShort(m.created_at)}</span>
                                     </div>
@@ -245,7 +228,7 @@ function AssistantPanel({ moduleCtx, hasFeature, onLaunchAction, onOpenHub }) {
                 )}
             </div>
 
-            <form onSubmit={handleAsk} className="shrink-0 px-4 pt-2.5">
+            <form onSubmit={handleAsk} className="shrink-0 px-4 pt-2.5 pb-3.5">
                 <div className="relative flex items-center gap-2 bg-white/50 border border-white/60 rounded-full pl-3.5 pr-1 py-1 shadow-md focus-within:bg-white/70 focus-within:ring-1 focus-within:ring-white transition-all">
                     <AIStar size={12} className="text-navy-900/50 shrink-0" />
                     <input
@@ -265,14 +248,6 @@ function AssistantPanel({ moduleCtx, hasFeature, onLaunchAction, onOpenHub }) {
                     </button>
                 </div>
             </form>
-
-            {/* Footer → Centro IA */}
-            <button
-                onClick={onOpenHub}
-                className="shrink-0 mx-4 mt-2 mb-3.5 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-[9.5px] font-bold text-navy-900/45 hover:text-navy-900 hover:bg-white/40 transition-all duration-300"
-            >
-                Abrir Centro IA <ArrowRight size={11} />
-            </button>
         </div>
     );
 }
@@ -350,7 +325,7 @@ export default function AIAssistantLauncher() {
                 </div>
 
                 {open && unlocked && (
-                    <div className="fixed md:absolute top-[64px] md:top-14 left-2 right-2 md:left-auto md:right-0 md:w-[420px] bg-white/90 md:bg-white/40 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 animate-fade-up z-[110] overflow-hidden">
+                    <div className="fixed md:absolute top-[64px] md:top-14 left-2 right-2 md:left-auto md:right-0 md:w-[420px] bg-white/90 md:bg-white/40 backdrop-blur-2xl rounded-[24px] shadow-md border border-white/60 animate-fade-up z-[110] overflow-hidden">
                         <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
                         <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
                         <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />

@@ -33,6 +33,8 @@ Claves estructurales (validadas con números en §4-§6):
 | | **Básico Q599** | **Pro Q1,999** ⭐ "Más popular" | **Enterprise Q3,999** |
 |---|---|---|---|
 | Mensajes IA/mes | **500** | 5,000 (10×) | 20,000* |
+| Centro IA (chat+reportes) | — | ✅ | ✅ |
+| Tokens IA/semana (Centro IA) | — (sin acceso) | 750,000 | 2,000,000 |
 | Pacientes | 50 | 150 (3×) | Ilimitados |
 | Staff | 1 | 5 | Ilimitado |
 | Turnos/mes | 100 | 500 (5×) | Ilimitados |
@@ -103,6 +105,8 @@ Notas verificadas: Supabase Pro $25 incluye compute Micro (suficiente hasta 10-3
 | Básico Q599 | $77.80 | ~Q10 | **~98%** | ✅ justo |
 | Pro Q1,999 | $259.60 | ~Q131 (IA + 500 recordatorios) | **~93%** | ✅ |
 | Enterprise Q3,999 | $519.40 | ~Q508 (techo; realista ~Q200) | **~87%** | ✅ |
+
+**Centro IA — techo real implementado (2026-07-18):** límite semanal REAL de tokens aplicado en el backend (RPC `check_ai_budget`, 429 duro si se agota; ver [Automatización Agente IA.md](Automatización%20Agente%20IA.md)). Pro 750,000 tokens/sem (costo techo ~Q15/mes, 0.75% del precio) · Enterprise 2,000,000 tokens/sem (~Q40/mes, 1.0%). El uso típico real es 10-40% de ese techo, así que el margen de la tabla de arriba no se ve afectado en la práctica; el techo solo protege contra abuso.
 
 ## 6. Proyección v3 (fase Comercial, fijos Q431; Crecimiento a partir de 10)
 
@@ -191,8 +195,9 @@ El margen converge a ~88% — estructura de SaaS sano. **El primer cliente ideal
 ### 8.3 Módulo de planes (Admin) — revisado
 
 - ✅ AdminPanel: edita plan, `plan_status`, `limit_overrides`, `ai_paused` vía `admin-update-business` (service_role); muestra % de uso (hoy siempre 0 por H1) y badge de pausa.
-- ⚠️ **Pendiente v3:** la tabla `plans` en producción aún tiene los precios/límites v2 (Básico Q999 · 1,000 msgs). Aplicar la v3 = 1 `UPDATE` ([IA], con tu confirmación).
-- 🟡 Conocido (P2): `AdminOnboarding.jsx` tiene el array de planes **hardcodeado** en vez de leer la tabla `plans` — si aplicas la v3, ese array quedaría desincronizado. Corregirlo junto con el UPDATE.
+- ✅ **v3 aplicada en producción** (2026-07-11, migración `pricing_v3_basic_and_drop_unused_overloads`): Básico Q599/500 msgs · Pro Q1,999/5,000 · Enterprise Q3,999/20,000.
+- ✅ **P2 resuelto (2026-07-18):** `PlansModal.jsx` (pantalla de precios del dashboard) tenía un array de precios y comparativa de features **100% hardcodeado en el front** — mostraba precios v2 obsoletos (Q499/Q999/Q1,999) desconectados de la tabla `plans` real. Reescrito para leer `getPlans()` en vivo: precios, descuento anual y los ~40 renglones de la comparativa que sí tienen respaldo en `plans.features`/límites se resuelven contra la fila real de cada tier (helpers `flag()`/`limit()`/`reasoning()` en el componente). Los renglones sin columna propia (core parejo en todos los tiers, o roadmap Sucursales/Soporte) siguen siendo copy estático — no hay drift posible en lo que sí es dinámico. `AdminOnboarding.jsx` no tenía el mismo problema (solo referencia tiers como string, sin precios).
+- 🟡 **Nuevo — flags divididos (2026-07-18):** al conectar la comparativa a datos reales se detectó que `stats_intelligence` gateaba dos cosas a la vez (Centro IA + las 4 estadísticas avanzadas de BI), heredado de haber desbloqueado Centro IA para Pro en una sesión previa sin separar el flag. Se creó `business_intelligence` (Enterprise-only: LTV, predicción de demanda, retención/churn, rentabilidad por servicio — `StatsIntelligence.jsx`, tab "Inteligencia" de `Stats.jsx`). `stats_intelligence` queda exclusivo para Centro IA (chat + insights, Pro+Ent). Ver [Automatización Agente IA.md](Automatización%20Agente%20IA.md) para el detalle de Centro IA.
 
 ### 8.4 Hallazgos priorizados (resumen ejecutivo de la auditoría)
 

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Tag, Plus, Save, ToggleLeft, ToggleRight, ChevronLeft, Search, Trash2, X, Calendar as CalendarIcon, SlidersHorizontal, Layers } from 'lucide-react';
+import { Tag, Plus, Save, Pencil, ToggleLeft, ToggleRight, ChevronLeft, ChevronDown, Search, Trash2, X, Percent, SlidersHorizontal } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { useOffers, getOfferStatus } from '../hooks/useOffers';
+import { getOfferStatus } from '../hooks/useOffers';
 import { useServices } from '../hooks/useServices';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { usePermissions } from '../hooks/usePermissions';
@@ -10,7 +10,16 @@ import FeatureLock from '../components/FeatureLock';
 import WheelColumn from '../components/ui/WheelColumn';
 import WheelRow from '../components/ui/WheelRow';
 import { MiniCard } from '../components/conversations/ContextSidebar';
+import { getOffers, getOfferById, createOffer, updateOffer, toggleOfferActive, deleteOffer, getBusinessInfo } from '../services/supabaseService';
 import { showOfferNewToast, showOfferEditToast, showOfferDeleteToast, showOfferActivateToast, showOfferDeactivateToast, showErrorToast } from '../store/useToastStore';
+
+const PAGE_SIZE = 40;
+
+// Redondea al incremento de precio configurado por el negocio (Ajustes → Precios).
+function roundToIncrement(value, increment) {
+    if (!increment || increment <= 0) return value;
+    return Math.round(value / increment) * increment;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -68,6 +77,7 @@ const EMPTY_FORM = {
     name: '',
     description: '',
     promoPriceCents: null,
+    discountPct: null, // calculadora, no se persiste — solo alimenta promoPriceCents
     starts_at: toLocalInput(nowForDefault),
     ends_at: toLocalInput(nextMonthForDefault),
     active: true,
@@ -78,8 +88,75 @@ const EMPTY_FORM = {
 export default function Offers() {
     const { hasFeature, isLoading: planLoading } = usePlanLimits();
     const { canCreateOffers, canEditOffers, canToggleOffers, canDeleteOffers } = usePermissions();
-    const { offers, loading, create, update, toggle, remove } = useOffers();
     const { services } = useServices();
+
+    // Paginación real (sin números de página) — igual patrón que Settings/Finanzas:
+    // primera tanda vía .range(), "Cargar más" concatena la siguiente.
+    const [offers, setOffers] = useState([]);
+    const [offersCount, setOffersCount] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const hasMoreOffers = offers.length < offersCount;
+
+    const loadFirstPage = useCallback(async () => {
+        setLoading(true);
+        try {
+            const { data, count } = await getOffers({ page: 0, pageSize: PAGE_SIZE });
+            setOffers(data);
+            setOffersCount(count);
+        } catch (err) {
+            if (err.code !== 'PGRST116' && err.code !== '42P01') console.error('[Offers:load]', err.message);
+            setOffers([]);
+            setOffersCount(0);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+    useEffect(() => { loadFirstPage(); }, [loadFirstPage]);
+
+    async function loadMoreOffers() {
+        if (!hasMoreOffers || loadingMore) return;
+        setLoadingMore(true);
+        try {
+            const nextPage = Math.ceil(offers.length / PAGE_SIZE);
+            const { data, count } = await getOffers({ page: nextPage, pageSize: PAGE_SIZE });
+            setOffers(prev => [...prev, ...data]);
+            setOffersCount(count);
+        } catch (err) {
+            console.error('[Offers:loadMore]', err.message);
+        } finally {
+            setLoadingMore(false);
+        }
+    }
+
+    async function create(fields) {
+        const created = await createOffer(fields);
+        setOffers(prev => [created, ...prev]);
+        setOffersCount(c => c + 1);
+        return created;
+    }
+    async function update(id, fields) {
+        const updated = await updateOffer(id, fields);
+        setOffers(prev => prev.map(o => o.id === id ? updated : o));
+        return updated;
+    }
+    async function toggle(id, active) {
+        await toggleOfferActive(id, active);
+        const now = new Date().toISOString();
+        setOffers(prev => prev.map(o => o.id === id ? { ...o, active, updated_at: now } : o));
+    }
+    async function remove(id) {
+        await deleteOffer(id);
+        setOffers(prev => prev.filter(o => o.id !== id));
+        setOffersCount(c => Math.max(0, c - 1));
+    }
+
+    // Redondeo de precios del negocio (Ajustes → Precios) — alimenta la
+    // calculadora de % de descuento.
+    const [roundingIncrement, setRoundingIncrement] = useState(1);
+    useEffect(() => {
+        getBusinessInfo().then(b => setRoundingIncrement(Number(b?.price_rounding_increment ?? 1))).catch(() => {});
+    }, []);
 
     const [selectedId, setSelectedId] = useState(null); // null | 'new' | uuid
     const [form, setForm] = useState(EMPTY_FORM);
@@ -101,6 +178,7 @@ export default function Offers() {
     );
     const isNew = selectedId === 'new';
     const isFormOpen = isNew || selected !== null;
+    const selectedService = services.find(s => s.id === form.service_id);
 
     const filtered = useMemo(() => {
         const now = new Date();
@@ -124,11 +202,15 @@ export default function Offers() {
 
     function handleSelect(offer) {
         setSelectedId(offer.id);
+        const price = Number(offer.services?.price);
+        const promo = Number(offer.promo_price);
+        const impliedPct = price > 0 ? Math.round((1 - promo / price) * 100) : null;
         setForm({
             service_id: offer.service_id,
             name: offer.name,
             description: offer.description || '',
             promoPriceCents: toCents(offer.promo_price),
+            discountPct: (impliedPct != null && impliedPct > 0 && impliedPct < 100) ? impliedPct : null,
             starts_at: toLocalInput(offer.starts_at),
             ends_at: toLocalInput(offer.ends_at),
             active: offer.active,
@@ -136,17 +218,25 @@ export default function Offers() {
     }
 
     // Deep-link: ?offer=<id> abre directamente esa oferta (desde Conversaciones).
+    // Si no está entre lo ya cargado (paginación real), se busca puntualmente.
     const [searchParams, setSearchParams] = useSearchParams();
     const offerIdFromUrl = searchParams.get('offer');
     useEffect(() => {
-        if (!offerIdFromUrl || offers.length === 0) return;
-        const o = offers.find(x => String(x.id) === String(offerIdFromUrl));
-        if (o) handleSelect(o);
-        const next = new URLSearchParams(searchParams);
-        next.delete('offer');
-        setSearchParams(next, { replace: true });
+        if (!offerIdFromUrl || loading) return;
+        const clearParam = () => {
+            const next = new URLSearchParams(searchParams);
+            next.delete('offer');
+            setSearchParams(next, { replace: true });
+        };
+        const local = offers.find(x => String(x.id) === String(offerIdFromUrl));
+        if (local) { handleSelect(local); clearParam(); return; }
+        getOfferById(offerIdFromUrl).then(o => {
+            if (!o) return;
+            setOffers(prev => prev.some(x => x.id === o.id) ? prev : [o, ...prev]);
+            handleSelect(o);
+        }).catch(() => {}).finally(clearParam);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [offerIdFromUrl, offers]);
+    }, [offerIdFromUrl, loading]);
 
     function handlePriceKey(e) {
         const key = e.key;
@@ -165,6 +255,35 @@ export default function Offers() {
             const next = current * 10 + Number(key);
             // Cap at Q 99999.99 (9999999 cents)
             return { ...f, promoPriceCents: Math.min(next, 9999999) };
+        });
+    }
+
+    // % de descuento — calculadora sobre el precio del servicio elegido; el
+    // precio promocional sigue siendo editable a mano en cualquier momento.
+    function handleDiscountPctChange(pct) {
+        setForm(f => {
+            const next = { ...f, discountPct: pct };
+            const svcPrice = Number(selectedService?.price);
+            if (pct != null && svcPrice > 0) {
+                const rounded = roundToIncrement(svcPrice * (1 - pct / 100), roundingIncrement);
+                next.promoPriceCents = Math.max(0, Math.round(rounded * 100));
+            }
+            return next;
+        });
+    }
+
+    function handleServiceSelect(id) {
+        setForm(f => {
+            const next = { ...f, service_id: id };
+            if (f.discountPct != null) {
+                const svc = services.find(s => s.id === id);
+                const svcPrice = Number(svc?.price);
+                if (svcPrice > 0) {
+                    const rounded = roundToIncrement(svcPrice * (1 - f.discountPct / 100), roundingIncrement);
+                    next.promoPriceCents = Math.max(0, Math.round(rounded * 100));
+                }
+            }
+            return next;
         });
     }
 
@@ -545,6 +664,16 @@ export default function Offers() {
                                 </button>
                             );
                         })}
+
+                        {hasMoreOffers && (
+                            <button
+                                onClick={loadMoreOffers}
+                                disabled={loadingMore}
+                                className="flex items-center justify-center gap-1.5 mx-2 mt-1 mb-2 py-2.5 rounded-2xl bg-white/30 border border-white/50 text-navy-700/70 text-[11px] font-bold hover:bg-white/50 transition-colors disabled:opacity-50"
+                            >
+                                <ChevronDown size={13} className={loadingMore ? 'animate-spin' : ''} /> {loadingMore ? 'Cargando…' : 'Cargar más'}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -563,6 +692,11 @@ export default function Offers() {
                                         <ChevronLeft size={16} />
                                     </button>
                                     <div className="flex-1 min-w-0">
+                                        {!isNew && selected && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 mb-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold uppercase tracking-wider text-amber-700">
+                                                <Pencil size={9} /> Editando
+                                            </span>
+                                        )}
                                         <h2 className="text-lg font-bold text-navy-900 tracking-tight">
                                             {isNew ? 'Nueva Oferta' : (selected?.name || '—')}
                                         </h2>
@@ -588,9 +722,10 @@ export default function Offers() {
                                 </div>
                             </div>
 
-                            {/* Form fields */}
+                            {/* Form fields — 2 columnas donde tiene sentido (Precio+%, Inicio+Fin)
+                                para aprovechar el ancho y evitar scroll con el sidebar activo. */}
                             <div className="flex-1 overflow-y-auto px-8 py-4 custom-scrollbar relative animate-fade-up">
-                                <div className="space-y-6 pb-12 pt-2 w-full">
+                                <div className="space-y-5 pb-8 pt-2 w-full">
 
                                     <div>
                                         <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
@@ -610,24 +745,42 @@ export default function Offers() {
                                                         selectedClass="bg-gradient-to-br from-navy-50/10 via-white/90 to-white/80 border border-navy-500/15 shadow-[0_6px_15px_rgba(29,95,173,0.06)]"
                                                     />
                                                 ) : '—'}
-                                                onSelect={s => setField('service_id', s?.id)}
+                                                onSelect={s => handleServiceSelect(s?.id)}
                                                 itemWidth={170}
-                                                height={118}
+                                                height={100}
                                             />
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
-                                            Nombre de la oferta
-                                        </label>
-                                        <input
-                                            maxLength={120}
-                                            value={form.name}
-                                            onChange={e => setField('name', e.target.value)}
-                                            placeholder="Ej. 20% de descuento en tu primera cita"
-                                            className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40"
-                                        />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
+                                                Nombre de la oferta
+                                            </label>
+                                            <input
+                                                maxLength={120}
+                                                value={form.name}
+                                                onChange={e => setField('name', e.target.value)}
+                                                placeholder="Ej. 20% de descuento en tu primera cita"
+                                                className="w-full bg-white/40 border border-white/60 rounded-full px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
+                                                % de descuento <span className="font-semibold text-navy-700/40 text-[11px]">(calcula el precio)</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number" min="0" max="99" step="1"
+                                                    value={form.discountPct ?? ''}
+                                                    onChange={e => handleDiscountPctChange(e.target.value === '' ? null : Math.max(0, Math.min(99, Number(e.target.value))))}
+                                                    disabled={!(Number(selectedService?.price) > 0)}
+                                                    placeholder={Number(selectedService?.price) > 0 ? '0' : 'Servicio sin precio'}
+                                                    className="w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-9 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 disabled:opacity-50"
+                                                />
+                                                <span className="absolute inset-y-0 right-4 flex items-center text-navy-700/50 font-bold text-sm pointer-events-none">%</span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div>
@@ -636,7 +789,7 @@ export default function Offers() {
                                         </label>
                                         <textarea
                                             maxLength={500}
-                                            rows={3}
+                                            rows={2}
                                             value={form.description}
                                             onChange={e => setField('description', e.target.value)}
                                             placeholder="Ej. Válido para pacientes nuevos que agenden su turno a través de la aplicación en horario matutino..."
@@ -664,11 +817,13 @@ export default function Offers() {
                                             />
                                         </div>
                                         <p className="mt-1.5 text-[10px] font-semibold text-navy-700/40 pl-1">
-                                            Escribe los dígitos · Backspace para borrar
+                                            {Number(selectedService?.price) > 0 && form.promoPriceCents
+                                                ? `≈ ${Math.round((1 - (form.promoPriceCents / 100) / Number(selectedService.price)) * 100)}% de descuento sobre Q${Number(selectedService.price).toFixed(2)}`
+                                                : 'Escribe los dígitos · Backspace para borrar'}
                                         </p>
                                     </div>
 
-                                    <div className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
                                                 Inicio
@@ -781,7 +936,10 @@ export default function Offers() {
                                 >
                                     <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                                     <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                                    <Save size={14} className="shrink-0 relative z-10" />
+                                    {isNew
+                                        ? <Save size={14} className="shrink-0 relative z-10" />
+                                        : <Pencil size={14} className="shrink-0 relative z-10" />
+                                    }
                                     <span className="max-w-0 overflow-hidden group-hover:max-w-[120px] transition-all duration-300 whitespace-nowrap relative z-10">
                                         {saving ? 'Guardando...' : isNew ? 'Crear oferta' : 'Guardar cambios'}
                                     </span>

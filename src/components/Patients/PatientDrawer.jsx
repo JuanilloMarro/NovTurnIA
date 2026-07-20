@@ -2,15 +2,16 @@ import { useState } from 'react';
 import FeatureLock from '../FeatureLock';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, MessageCircle, Pencil, Trash2, Phone, Bot, ShieldOff, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, ChevronLeft, MessageCircle, Pencil, Trash2, Phone, Bot, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatPhone } from '../../utils/format';
-import { deletePatient, gdprDeletePatient, setHumanTakeover } from '../../services/supabaseService';
-import { showPatientDeleteToast, showPatientGdprToast, showBotPauseToast, showBotReactivateToast, showErrorToast } from '../../store/useToastStore';
-import { usePermissions } from '../../hooks/usePermissions';
+import { deletePatient, setHumanTakeover } from '../../services/supabaseService';
+import { showPatientDeleteToast, showBotPauseToast, showBotReactivateToast, showErrorToast } from '../../store/useToastStore';
 import EditPatientModal from './EditPatientModal';
 import AIStar from '../Icons/AIStar';
 import PatientAIBlock from '../AIHub/PatientAIBlock';
 import { useAppStore } from '../../store/useAppStore';
+
+const RECENT_APPTS_LIMIT = 5;
 
 function getInitials(name) {
     if (!name) return '?';
@@ -30,13 +31,11 @@ function formatAptDate(isoString) {
 
 export default function PatientDrawer({ patient, onClose, onRefresh }) {
     const navigate = useNavigate();
-    const { canManageRoles } = usePermissions();
     const [showEdit, setShowEdit] = useState(false);
     const [notesOpen, setNotesOpen] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [showGdprConfirm, setShowGdprConfirm] = useState(false);
-    const [gdprConfirmText, setGdprConfirmText] = useState('');
     const [deleting, setDeleting] = useState(false);
+    const [showAllAppointments, setShowAllAppointments] = useState(false);
     const humanTakeoverMap = useAppStore(s => s.humanTakeoverMap);
     const setPatientTakeover = useAppStore(s => s.setPatientTakeover);
     const botPaused = patient?.id in humanTakeoverMap
@@ -56,22 +55,6 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
             showErrorToast('Error al Eliminar', err.message || 'No se pudo eliminar al paciente.');
         } finally {
             setDeleting(false);
-        }
-    }
-
-    async function handleGdprDelete() {
-        setDeleting(true);
-        try {
-            await gdprDeletePatient(patient.id);
-            showPatientGdprToast(`Todos los datos de ${name} han sido borrados permanentemente.`);
-            useAppStore.getState().invalidatePlanLimitsCache();
-            onClose();
-            onRefresh?.();
-        } catch (err) {
-            showErrorToast('Error al eliminar datos', err.message || 'No se pudieron eliminar los datos.');
-        } finally {
-            setDeleting(false);
-            setShowGdprConfirm(false);
         }
     }
 
@@ -118,7 +101,10 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 px-1 mb-2 mt-4">
+                {/* Centro IA primero — acceso rápido + resumen de estados */}
+                <PatientAIBlock patient={patient} appointments={appointments} />
+
+                <div className="flex items-center gap-3 px-1 mb-2">
                     <h4 className="text-[11px] font-bold text-navy-800 leading-none">
                         Notas / Observaciones
                     </h4>
@@ -150,8 +136,6 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                     </FeatureLock>
                 </div>
 
-                <PatientAIBlock patient={patient} />
-
                 <div className="flex items-center gap-3 px-1 mb-2">
                     <h4 className="text-[11px] font-bold text-navy-800 leading-none">
                         Turnos ({appointments.length})
@@ -160,7 +144,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                 </div>
             </div>
 
-            {/* 2. Área Scrolleable (Solo los items del Turno) */}
+            {/* 2. Área Scrolleable (Solo los items del Turno) — últimos 5, con "ver más" */}
             <div className="relative z-10 flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
                 {appointments.length === 0 ? (
                     <div className="min-h-[82px] flex items-center justify-center">
@@ -168,7 +152,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {appointments.map(apt => (
+                        {(showAllAppointments ? appointments : appointments.slice(0, RECENT_APPTS_LIMIT)).map(apt => (
                             <div key={apt.id} className="flex gap-3 items-center">
                                 <div className={`w-2 h-2 rounded-full shrink-0 ${
                                     apt.status === 'cancelled'
@@ -195,6 +179,14 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                                 </div>
                             </div>
                         ))}
+                        {!showAllAppointments && appointments.length > RECENT_APPTS_LIMIT && (
+                            <button
+                                onClick={() => setShowAllAppointments(true)}
+                                className="w-full text-center text-[10.5px] font-bold text-navy-700/50 hover:text-navy-900 transition-colors py-1"
+                            >
+                                Ver {appointments.length - RECENT_APPTS_LIMIT} más
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -271,20 +263,6 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                         <Trash2 size={14} className="shrink-0 relative z-10" />
                         <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap relative z-10">Eliminar</span>
                     </button>
-
-                    {/* 5. Eliminar datos GDPR — solo admin/manager */}
-                    {canManageRoles && (
-                        <button
-                            onClick={() => { setShowGdprConfirm(true); setGdprConfirmText(''); }}
-                            className="relative overflow-hidden group flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 py-2.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-rose-800 text-[11px] font-bold rounded-full shadow-md hover:bg-rose-700 hover:border-rose-700 hover:text-white transition-all duration-300"
-                            title="Borrado permanente GDPR Art. 17"
-                        >
-                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                            <ShieldOff size={14} className="shrink-0 relative z-10" />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap relative z-10">GDPR</span>
-                        </button>
-                    )}
                 </div>
             </div>
 
@@ -314,52 +292,6 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                 document.body
             )}
 
-
-            {/* GDPR hard-delete confirmation */}
-            {showGdprConfirm && createPortal(
-                <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-                    <div className="w-full max-w-sm bg-white/30 backdrop-blur-2xl border border-rose-200/60 p-6 animate-fade-up shadow-[0_8px_32px_rgba(26,58,107,0.15)] rounded-[32px]">
-                        <div className="flex items-center justify-center mb-3">
-                            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
-                                <ShieldOff size={18} className="text-rose-700" />
-                            </div>
-                        </div>
-                        <p className="text-sm font-bold text-navy-900 text-center mb-1">Borrar datos permanentemente (GDPR)</p>
-                        <p className="text-xs text-navy-700/70 text-center mb-1 px-4">Esta acción es <span className="font-bold text-rose-700">irreversible</span>. Se eliminarán todos los datos de <span className="font-bold text-navy-900">{name}</span>: teléfonos, historial de conversaciones y citas.</p>
-                        <p className="text-[10px] text-navy-700/50 text-center mb-5 px-4">Art. 17 GDPR — Derecho al olvido</p>
-                        
-                        <div className="mb-6 px-2">
-                            <label className="block text-[10px] uppercase font-bold text-navy-700/60 mb-1.5 text-center">
-                                Escribe "confirmar" para proceder:
-                            </label>
-                            <input 
-                                type="text" 
-                                value={gdprConfirmText} 
-                                onChange={e => setGdprConfirmText(e.target.value)}
-                                className="w-full text-center px-4 py-2.5 rounded-xl text-xs font-bold border border-rose-200 bg-white/60 focus:border-rose-400 focus:bg-white focus:outline-none transition-colors shadow-sm text-navy-900"
-                                placeholder="confirmar" 
-                            />
-                        </div>
-
-                        <div className="flex justify-center gap-3">
-                            <button
-                                onClick={() => setShowGdprConfirm(false)}
-                                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm min-w-[100px]"
-                            >
-                                <X size={13} /> Cancelar
-                            </button>
-                            <button
-                                onClick={handleGdprDelete}
-                                disabled={deleting || gdprConfirmText.toLowerCase().trim() !== 'confirmar'}
-                                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-rose-700/80 border border-rose-600 text-white text-[11px] font-bold rounded-full hover:bg-rose-800 transition-colors shadow-sm disabled:opacity-40 disabled:hover:bg-rose-700/80 min-w-[100px]"
-                            >
-                                <ShieldOff size={13} /> {deleting ? 'Eliminando...' : 'Eliminar todo'}
-                            </button>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
 
             {showEdit && (
                 <EditPatientModal

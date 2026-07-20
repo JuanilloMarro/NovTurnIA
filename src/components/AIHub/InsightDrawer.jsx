@@ -82,28 +82,23 @@ export default function InsightDrawer({ action, initialRefId = null, initialPati
                 <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
                 <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
 
-                {/* Header */}
-                <div className="relative z-10 flex items-center gap-2 p-4">
-                    <button onClick={onClose} className="relative overflow-hidden w-7 h-7 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 hover:bg-white/60 shadow-md transition-colors">
+                {/* Header — ícono, título y descripción en una sola fila (antes eran
+                    dos bloques separados que dejaban un hueco vacío arriba del
+                    contenido cuando el análisis era corto). */}
+                <div className="relative z-10 flex items-center gap-3 p-4 pb-3">
+                    <button onClick={onClose} className="relative overflow-hidden w-7 h-7 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 hover:bg-white/60 shadow-md transition-colors shrink-0">
                         <ChevronLeft size={16} className="relative z-10" />
                     </button>
-                    <h3 className="flex-1 font-bold text-navy-900 tracking-tight text-sm text-center">{action.title}</h3>
-                    <div className="w-7 h-7" />
-                </div>
-
-                {/* Descripción de la acción */}
-                <div className="relative z-10 px-6 pb-3">
-                    <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shrink-0 shadow-inner">
-                            <Icon size={20} className="text-navy-900" />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-[11px] font-semibold text-navy-700/60 leading-relaxed">{action.desc}</p>
-                            <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[8px] font-bold uppercase tracking-widest text-navy-900/40">
-                                {action.mode}
-                            </span>
-                        </div>
+                    <div className="w-10 h-10 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shrink-0 shadow-inner">
+                        <Icon size={18} className="text-navy-900" />
                     </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-navy-900 tracking-tight text-[13px] leading-tight truncate">{action.title}</h3>
+                        <p className="text-[10px] font-semibold text-navy-700/50 leading-snug truncate">{action.desc}</p>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[8px] font-bold tracking-widest text-navy-900/40">
+                        {action.mode}
+                    </span>
                 </div>
 
                 {/* Selector de cliente (scopes por paciente) */}

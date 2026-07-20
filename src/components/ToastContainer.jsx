@@ -1,7 +1,7 @@
 import { useToastStore } from '../store/useToastStore';
 import {
     CalendarPlus, CalendarCheck, CalendarClock, CalendarX,
-    UserPlus, UserCheck, UserX, ShieldOff, ShieldCheck, Shield,
+    UserPlus, UserCheck, UserX, ShieldCheck, Shield,
     Layers, ToggleRight, ToggleLeft,
     Bot, Building2, AlertTriangle, AlertCircle, Trash2, CheckCircle2, X, Siren, Tag,
     Home, MessageSquareWarning, PhoneCall,
@@ -19,7 +19,6 @@ const TOAST_ICONS = {
     patient_new: <UserPlus size={18} />,
     patient_edit: <UserCheck size={18} />,
     patient_delete: <UserX size={18} />,
-    patient_gdpr: <ShieldOff size={18} />,
     service_new: <Layers size={18} />,
     service_edit: <Layers size={18} />,
     service_activate: <ToggleRight size={18} />,

@@ -235,9 +235,9 @@ export default function SuppliesSection({ supplies, services, canManage, costFor
                                 <div className="text-sm font-bold text-navy-900 truncate flex items-center gap-1.5">
                                     {s.name}
                                     {negative ? (
-                                        <span className="px-1.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 text-[8px] font-bold uppercase tracking-wide shrink-0" title="Se consumió más de lo comprado — revisa compras o receta">Stock negativo</span>
+                                        <span className="px-1.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 text-[8px] font-bold tracking-wide shrink-0" title="Se consumió más de lo comprado, revisa compras o receta">Stock negativo</span>
                                     ) : low ? (
-                                        <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-[8px] font-bold uppercase tracking-wide shrink-0">Reponer</span>
+                                        <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-[8px] font-bold tracking-wide shrink-0">Reponer</span>
                                     ) : null}
                                 </div>
                                 <div className="text-[11px] font-bold text-navy-700/60 mt-0.5">

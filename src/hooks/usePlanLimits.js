@@ -3,7 +3,9 @@ import { getPlanLimits } from '../services/supabaseService';
 import { useAppStore } from '../store/useAppStore';
 
 // Evalúa el valor JSONB de un flag — admite booleanos y strings ("limited", "full").
-function flagEnabled(value) {
+// Exportado: PlansModal la reutiliza para derivar la comparativa de planes
+// directo de plans.features (misma regla de interpretación en toda la app).
+export function flagEnabled(value) {
     if (value === null || value === undefined) return false;
     if (typeof value === 'boolean') return value;
     if (typeof value === 'string') return value !== '' && value !== 'false' && value !== 'limited';

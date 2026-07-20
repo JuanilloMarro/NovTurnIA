@@ -54,7 +54,7 @@ function NavItem({ to, end, icon: Icon, label, locked, iconSize = 16, labelClass
 }
 
 export default function Sidebar({ onOpenPlans }) {
-    const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations, canViewFollowUp, canViewFinance } = usePermissions();
+    const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations, canViewFollowUp, canViewFinance, canUseAIHub } = usePermissions();
     const { hasFeature } = usePlanLimits();
     const statsUnlocked = hasFeature('dashboard');
     const aiHubUnlocked = hasFeature('stats_intelligence');
@@ -67,6 +67,8 @@ export default function Sidebar({ onOpenPlans }) {
     const [businessName, setBusinessName] = useState('');
     // Aurora del botón de Centro IA: se enciende un ratito al hacer clic y se apaga sola.
     const { className: aiAuroraClass, pulse: pulseAiAurora } = useAuroraPulse();
+    // Mismo efecto para "Configuración IA" — es igual de "IA" que Centro IA.
+    const { className: configAuroraClass, pulse: pulseConfigAurora } = useAuroraPulse();
 
     const businessId = profile?.business_id || '';
 
@@ -110,7 +112,7 @@ export default function Sidebar({ onOpenPlans }) {
                 </div>
 
                 <nav className="flex-1 flex flex-col gap-1.5 mt-2">
-                    <NavItem to="/" end icon={Calendar} label="Turnos" onClick={closeMobile} />
+                    <NavItem to="/" end icon={Calendar} label="Citas" onClick={closeMobile} />
 
                     {canViewFollowUp && (
                         <NavItem to="/followup" icon={History} label="Seguimiento" locked={!followUpUnlocked} onClick={closeMobile} />
@@ -140,7 +142,7 @@ export default function Sidebar({ onOpenPlans }) {
                         <NavItem to="/finance" icon={Wallet} label="Finanzas" locked={!financeUnlocked} onClick={closeMobile} />
                     )}
 
-                    {(canManageRoles || canViewStats) && (
+                    {canUseAIHub && (
                         <NavItem
                             to="/ai"
                             icon={AIStar}
@@ -154,7 +156,14 @@ export default function Sidebar({ onOpenPlans }) {
 
                     {canManageRoles && (
                         <>
-                            <NavItem to="/business" icon={Settings} label="Configuración IA" onClick={closeMobile} />
+                            <NavItem
+                                to="/business"
+                                icon={Settings}
+                                label="Configuración IA"
+                                aurora
+                                auroraClass={configAuroraClass}
+                                onClick={() => { pulseConfigAurora(2400); closeMobile(); }}
+                            />
                             <NavItem to="/audit-log" icon={List} label="Actividad" locked={!auditUnlocked} onClick={closeMobile} />
                             <NavItem to="/users" icon={ShieldCheck} label="Usuarios" onClick={closeMobile} />
                         </>
@@ -170,6 +179,7 @@ export default function Sidebar({ onOpenPlans }) {
 
                 <div className="mt-auto pt-6 px-5 border-t border-white/20">
                     <div className="font-bold text-navy-900/60 truncate tracking-tight text-[12px]">{businessName || 'Cargando...'}</div>
+                    <div className="text-navy-900/30 text-[10px] font-semibold tracking-tight mt-1">© {new Date().getFullYear()} NovTurnIA</div>
                 </div>
             </aside>
         </>

@@ -1,22 +1,234 @@
 import { useState, useRef, useEffect } from 'react';
-import { CreditCard, Star, Bot, Check, X, Users, BarChart2, ShieldCheck, Zap, Calendar, MessageCircle, Settings, List, Layers, ChevronDown, Building2, Wallet, History, Tag } from 'lucide-react';
+import { Star, Bot, Check, X, Users, BarChart2, ShieldCheck, Zap, Calendar, MessageCircle, List, Layers, ChevronDown, Building2, Wallet, History, Tag } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import AIStar from './Icons/AIStar';
-import { getBusinessInfo } from '../services/supabaseService';
+import { getBusinessInfo, getPlans } from '../services/supabaseService';
+import { flagEnabled } from '../hooks/usePlanLimits';
+
+// Precios, límites y la comparativa de features vienen TODOS de la tabla
+// `plans` (getPlans(), pública/RLS `true` para SELECT) — nada hardcodeado.
+// Antes este modal tenía un array de precios fijo en el front (ver doc
+// "Modelo de Negocio.md" §8.3, hallazgo P2) que quedó desfasado de la v3 real
+// en producción. Solo quedan como constantes locales el ícono, el tagline
+// comercial y qué fila NO tiene respaldo en DB (features 100% parejas en
+// todos los planes, o roadmap — "Próximamente").
+
+// Metadata puramente decorativa por tier (no vive en la DB: ícono, copy de
+// venta, cuál plan se marca "Recomendado").
+const PLAN_META = {
+    basic: { title: 'Básico', perfectFor: 'Para emprendedores que buscan automatizar su agenda básica.', icon: <Check size={15} /> },
+    pro: { title: 'Pro', perfectFor: 'Para negocios en crecimiento que necesitan control total.', icon: <Star size={15} />, active: true },
+    enterprise: { title: 'Enterprise', perfectFor: 'Para empresas grandes que escalan su comunicación con IA.', icon: <ShieldCheck size={15} /> },
+};
+const TIER_ORDER = ['basic', 'pro', 'enterprise'];
+
+// Helpers para declarar filas de la comparativa sin repetir la lectura de
+// plans.features — cada fila se evalúa contra el plan real de cada tier.
+const flag = (key) => (p) => flagEnabled(p?.features?.[key]);
+const limit = (key) => (p) => {
+    const v = p?.[key];
+    return v == null ? 'Ilimitado' : v.toLocaleString('es-GT');
+};
+const reasoning = (p) => {
+    const v = p?.features?.ai_reasoning;
+    if (v === 'premium') return 'Premium';
+    if (v === 'advanced') return 'Avanzado';
+    return 'Estándar';
+};
+
+// Resuelve basic/pro/enterprise de una fila: literal (true/false/string) o
+// función(planRow) para lo que sí viene de plans.features / límites reales.
+function resolveRow(row, plansByTier) {
+    const resolve = (val, tier) => (typeof val === 'function' ? val(plansByTier[tier]) : val);
+    return {
+        name: row.name,
+        basic: resolve(row.basic, 'basic'),
+        pro: resolve(row.pro, 'pro'),
+        enterprise: resolve(row.enterprise, 'enterprise'),
+    };
+}
+
+// Especificación de la comparativa por módulo. Filas con flag()/limit()/
+// reasoning() están respaldadas por columnas reales de `plans`; las demás
+// son parejas en todos los tiers (core) o roadmap (Sucursales/Soporte) y no
+// tienen una columna propia todavía.
+const MODULE_SPECS = [
+    {
+        title: 'Turnos', subtitle: 'Gestión de agenda y IA', icon: <Calendar size={20} />,
+        rows: [
+            { name: 'Visualización de Agenda (Día / Semana / Mes)', basic: true, pro: true, enterprise: true },
+            { name: 'Creación Manual de Turnos', basic: true, pro: true, enterprise: true },
+            { name: 'Validación de Ingreso del Paciente', basic: true, pro: true, enterprise: true },
+            { name: 'Toma de Control Humano (Pausa IA desde el Turno)', basic: true, pro: true, enterprise: true },
+            { name: 'Cobro al Atender (Registro de Pago en el Turno)', basic: false, pro: true, enterprise: true },
+            { name: 'Recordatorios Automáticos', basic: flag('reminders'), pro: flag('reminders'), enterprise: flag('reminders') },
+            { name: 'Kanban de estados de turnos', basic: flag('kanban'), pro: flag('kanban'), enterprise: flag('kanban') },
+            { name: 'Límite de Turnos al mes', basic: limit('max_appointments'), pro: limit('max_appointments'), enterprise: limit('max_appointments') },
+        ],
+    },
+    {
+        title: 'Seguimiento', subtitle: 'Recuperación de No-Shows y Cancelaciones', icon: <History size={20} />,
+        rows: [
+            { name: 'Listado de No-Shows y Cancelaciones', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
+            { name: 'Filtros por Tipo (No-Show / Cancelados)', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
+            { name: 'Filtros por Período (7 / 30 / 60 / 90 días)', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
+            { name: 'Reagendar directamente desde Seguimiento', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
+        ],
+    },
+    {
+        title: 'Clientes', subtitle: 'Base de datos y perfiles', icon: <Users size={20} />,
+        rows: [
+            { name: 'Creación Manual de un Cliente', basic: true, pro: true, enterprise: true },
+            { name: 'Historial Completo del Paciente', basic: true, pro: true, enterprise: true },
+            { name: 'Toma de Control Humano (Pausa IA)', basic: true, pro: true, enterprise: true },
+            { name: 'Observaciones / Notas', basic: flag('patient_notes'), pro: flag('patient_notes'), enterprise: flag('patient_notes') },
+            { name: 'Exportación de Información (CSV)', basic: flag('export_patients'), pro: flag('export_patients'), enterprise: flag('export_patients') },
+            { name: 'Límite de Visualización de Clientes', basic: limit('max_patients'), pro: limit('max_patients'), enterprise: limit('max_patients') },
+        ],
+    },
+    {
+        title: 'Conversaciones', subtitle: 'IA y Mensajería', icon: <MessageCircle size={20} />,
+        rows: [
+            { name: 'Bandeja Unificada', basic: true, pro: true, enterprise: true },
+            { name: 'Ofrecimiento de Servicios Activos por IA', basic: flag('service_description'), pro: flag('service_description'), enterprise: flag('service_description') },
+            { name: 'Ofrecimiento de Ofertas Activas por IA', basic: flag('dynamic_pricing'), pro: flag('dynamic_pricing'), enterprise: flag('dynamic_pricing') },
+            { name: 'Límite de Mensajes al mes (usuario + IA)', basic: limit('max_conversations'), pro: limit('max_conversations'), enterprise: limit('max_conversations') },
+        ],
+    },
+    {
+        title: 'Estadísticas', subtitle: 'Reportes y métricas', icon: <BarChart2 size={20} />,
+        rows: [
+            { name: 'Total de Turnos (Completados, Cancelados, No-Shows)', basic: flag('dashboard'), pro: flag('dashboard'), enterprise: flag('dashboard') },
+            { name: 'Total de Clientes Atendidos vs Nuevos', basic: flag('dashboard'), pro: flag('dashboard'), enterprise: flag('dashboard') },
+            { name: 'Volumen de Mensajes (usuario + IA) del período', basic: flag('dashboard'), pro: flag('dashboard'), enterprise: flag('dashboard') },
+            { name: 'Tasa de Confirmación y Cancelaciones', basic: flag('dashboard'), pro: flag('dashboard'), enterprise: flag('dashboard') },
+            { name: 'Histórico Comparativo Mensual por Categoría', basic: flag('dashboard'), pro: flag('dashboard'), enterprise: flag('dashboard') },
+            { name: 'LTV y Valor Promedio por Cliente', basic: flag('business_intelligence'), pro: flag('business_intelligence'), enterprise: flag('business_intelligence') },
+            { name: 'Predicción de Demanda y Ocupación', basic: flag('business_intelligence'), pro: flag('business_intelligence'), enterprise: flag('business_intelligence') },
+            { name: 'Tasa de Retención y Riesgo de Abandono (Churn)', basic: flag('business_intelligence'), pro: flag('business_intelligence'), enterprise: flag('business_intelligence') },
+            { name: 'Rentabilidad Real por Servicio', basic: flag('business_intelligence'), pro: flag('business_intelligence'), enterprise: flag('business_intelligence') },
+            { name: 'Exportación de Reportes Avanzados (CSV / PDF)', basic: flag('export_reports'), pro: flag('export_reports'), enterprise: flag('export_reports') },
+        ],
+    },
+    {
+        title: 'Servicios', subtitle: 'Catálogo y Configuración', icon: <Layers size={20} />,
+        rows: [
+            { name: 'Gestión de Servicios Ilimitados', basic: true, pro: true, enterprise: true },
+            { name: 'Activar / Desactivar Servicios', basic: true, pro: true, enterprise: true },
+            { name: 'Precios y Duraciones Variables', basic: true, pro: true, enterprise: true },
+            { name: 'Descripción Detallada (Contexto para IA)', basic: flag('service_description'), pro: flag('service_description'), enterprise: flag('service_description') },
+        ],
+    },
+    {
+        title: 'Ofertas', subtitle: 'Promociones y Precios Dinámicos', icon: <Tag size={20} />,
+        rows: [
+            { name: 'Creación de Ofertas y Promociones', basic: flag('dynamic_pricing'), pro: flag('dynamic_pricing'), enterprise: flag('dynamic_pricing') },
+            { name: 'Precio Promocional por Servicio', basic: flag('dynamic_pricing'), pro: flag('dynamic_pricing'), enterprise: flag('dynamic_pricing') },
+            { name: 'Vigencia por Fechas (Tiempo Limitado)', basic: flag('dynamic_pricing'), pro: flag('dynamic_pricing'), enterprise: flag('dynamic_pricing') },
+            { name: 'Activar / Desactivar Ofertas', basic: flag('dynamic_pricing'), pro: flag('dynamic_pricing'), enterprise: flag('dynamic_pricing') },
+            { name: 'Ofertas Visibles al Agente IA en Conversaciones', basic: flag('dynamic_pricing'), pro: flag('dynamic_pricing'), enterprise: flag('dynamic_pricing') },
+        ],
+    },
+    {
+        title: 'Finanzas', subtitle: 'Ingresos, Costos y Rentabilidad', icon: <Wallet size={20} />,
+        rows: [
+            { name: 'Gráfica de Ingresos vs Egresos del Período', basic: flag('finance'), pro: flag('finance'), enterprise: flag('finance') },
+            { name: 'Balance Neto y Utilidad del Mes', basic: flag('finance'), pro: flag('finance'), enterprise: flag('finance') },
+            { name: 'Ranking de Servicios por Ingreso Generado', basic: flag('finance'), pro: flag('finance'), enterprise: flag('finance') },
+            { name: 'Registro de Ingresos', basic: flag('finance'), pro: flag('finance'), enterprise: flag('finance') },
+            { name: 'Registro de Egresos', basic: flag('finance'), pro: flag('finance'), enterprise: flag('finance') },
+            { name: 'Validación de Ingresos Pendientes por Confirmar', basic: flag('finance'), pro: flag('finance'), enterprise: flag('finance') },
+            { name: 'Catálogo de Insumos', basic: flag('supplies'), pro: flag('supplies'), enterprise: flag('supplies') },
+            { name: 'Recetas y Costo Real por Servicio', basic: flag('supplies'), pro: flag('supplies'), enterprise: flag('supplies') },
+        ],
+    },
+    {
+        title: 'Actividad', subtitle: 'Registro de Auditoría', icon: <List size={20} />,
+        rows: [
+            { name: 'Registro de Actividad General', basic: flag('audit_log'), pro: flag('audit_log'), enterprise: flag('audit_log') },
+            { name: 'Historial de cambios en Clientes', basic: flag('audit_log'), pro: flag('audit_log'), enterprise: flag('audit_log') },
+            { name: 'Historial de cambios en Turnos', basic: flag('audit_log'), pro: flag('audit_log'), enterprise: flag('audit_log') },
+            { name: 'Auditoría de acciones de Staff', basic: flag('audit_log'), pro: flag('audit_log'), enterprise: flag('audit_log') },
+            { name: 'Exportación CSV', basic: flag('export_reports'), pro: flag('export_reports'), enterprise: flag('export_reports') },
+        ],
+    },
+    {
+        title: 'Usuarios', subtitle: 'Control de Acceso', icon: <ShieldCheck size={20} />,
+        rows: [
+            { name: 'Gestión de Personal', basic: true, pro: true, enterprise: true },
+            { name: 'Roles y Permisos Personalizados', basic: flag('custom_roles'), pro: flag('custom_roles'), enterprise: flag('custom_roles') },
+            { name: 'Límite de Usuarios', basic: limit('max_staff'), pro: limit('max_staff'), enterprise: limit('max_staff') },
+        ],
+    },
+    {
+        title: 'Inteligencia Artificial', subtitle: 'Capacidades y Personalización del Agente', icon: <Bot size={20} />,
+        rows: [
+            { name: 'Agente IA de Agendamiento (WhatsApp)', basic: 'Incluido', pro: 'Incluido', enterprise: 'Incluido' },
+            { name: 'Tipo de Razonamiento IA', basic: reasoning, pro: reasoning, enterprise: reasoning },
+            { name: 'Historial Visual de Clientes con IA Pausada', basic: true, pro: true, enterprise: true },
+            { name: 'Datos Iniciales del Negocio para el Agente', basic: flag('custom_prompt'), pro: flag('custom_prompt'), enterprise: flag('custom_prompt') },
+            { name: 'Memoria Contextual del Agente', basic: flag('ai_memory'), pro: flag('ai_memory'), enterprise: flag('ai_memory') },
+            { name: 'Nombre Personalizado del Asistente', basic: flag('ai_agent_name'), pro: flag('ai_agent_name'), enterprise: flag('ai_agent_name') },
+        ],
+    },
+    {
+        title: (
+            <div className="flex items-center gap-2">
+                Sucursales
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-600">
+                    <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+                    Próximamente
+                </span>
+            </div>
+        ),
+        subtitle: 'Gestión Multi-Sede', icon: <Building2 size={20} />,
+        rows: [
+            { name: 'Gestión de Sucursal Principal', basic: true, pro: true, enterprise: true },
+            { name: 'Configuración de Horarios por Sede', basic: true, pro: true, enterprise: true },
+            { name: 'Múltiples Sucursales', basic: flag('multi_branch'), pro: flag('multi_branch'), enterprise: flag('multi_branch') },
+            { name: 'Panel de Control Multi-Sede', basic: flag('multi_branch'), pro: flag('multi_branch'), enterprise: flag('multi_branch') },
+        ],
+    },
+    {
+        title: (
+            <div className="flex items-center gap-2">
+                Soporte
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold uppercase tracking-widest text-amber-600">
+                    <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+                    Próximamente
+                </span>
+            </div>
+        ),
+        subtitle: 'Atención y Garantía', icon: <ShieldCheck size={20} />,
+        rows: [
+            { name: 'Soporte vía Ticket', basic: true, pro: true, enterprise: true },
+            { name: 'Soporte vía WhatsApp', basic: false, pro: true, enterprise: true },
+            { name: 'Tiempo de Respuesta Garantizado', basic: '48h', pro: '24h', enterprise: '4h' },
+        ],
+    },
+];
 
 export default function PlansModal({ isOpen, onClose }) {
     const detailsRef = useRef(null);
     const [currentPlan, setCurrentPlan] = useState(null);
     const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'annual'
+    const [plansByTier, setPlansByTier] = useState(null);
+    const [loadError, setLoadError] = useState(false);
 
     useEffect(() => {
-        if (isOpen) {
-            getBusinessInfo().then(info => {
-                setCurrentPlan(info?.plan || 'basic');
-            }).catch(() => {
-                setCurrentPlan('basic');
-            });
-        }
+        if (!isOpen) return;
+        getBusinessInfo().then(info => {
+            setCurrentPlan(info?.plan || 'basic');
+        }).catch(() => {
+            setCurrentPlan('basic');
+        });
+
+        getPlans().then(rows => {
+            const byTier = {};
+            for (const row of rows) byTier[row.tier] = row;
+            setPlansByTier(byTier);
+            setLoadError(false);
+        }).catch(() => setLoadError(true));
     }, [isOpen]);
 
     // Early return DESPUÉS de los hooks — Rules of Hooks: conteo estable
@@ -27,33 +239,9 @@ export default function PlansModal({ isOpen, onClose }) {
         detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
-    const plans = [
-        {
-            id: 'basic',
-            title: 'Básico',
-            monthlyPrice: 499,
-            perfectFor: 'Para emprendedores que buscan automatizar su agenda básica.',
-            icon: <Check size={15} />,
-            features: ['IA de razonamiento Estándar', 'Turnos con IA Ilimitados', 'Agenda: Vista Día / Semana / Mes', 'Gestión de Clientes (últimos 10)', '1 Usuario', 'Integración de Módulos a la Medida']
-        },
-        {
-            id: 'pro',
-            title: 'Pro',
-            monthlyPrice: 999,
-            perfectFor: 'Para negocios en crecimiento que necesitan control total.',
-            icon: <Star size={15} />,
-            active: true,
-            features: ['IA Avanzada + Memoria Contextual', 'Módulo de Finanzas (Ingresos, Egresos, Resumen)', 'Seguimiento de No-Shows y Cancelaciones', 'Kanban de estados de turnos', 'Roles y Permisos de Staff', 'Hasta 5 Usuarios']
-        },
-        {
-            id: 'enterprise',
-            title: 'Enterprise',
-            monthlyPrice: 1999,
-            perfectFor: 'Para empresas grandes que escalan su comunicación con IA.',
-            icon: <ShieldCheck size={15} />,
-            features: ['IA de razonamiento Premium', 'Insumos y Recetas (Costo por Servicio)', 'Ofertas y Precios Dinámicos', 'Exportación de Información y Reportes', 'Inteligencia de Negocio (LTV, retención, predicción)', 'Usuarios Ilimitados']
-        }
-    ];
+    const plans = plansByTier
+        ? TIER_ORDER.map(tier => ({ tier, ...PLAN_META[tier], ...plansByTier[tier] }))
+        : [];
 
     return createPortal(
         <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
@@ -113,91 +301,104 @@ export default function PlansModal({ isOpen, onClose }) {
                             >
                                 Anual
                                 <span className="bg-emerald-500 text-[9px] text-white px-2 py-0.5 rounded-full animate-pulse">
-                                    -16% off
+                                    -{plans[0]?.annual_discount ?? 16}% off
                                 </span>
                             </button>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full pb-4">
-                        {plans.map((plan, i) => {
-                            const price = billingCycle === 'monthly'
-                                ? plan.monthlyPrice
-                                : Math.round((plan.monthlyPrice * 10) / 12);
+                    {loadError ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <p className="text-[12px] font-bold text-navy-900/40 max-w-sm">
+                                No se pudieron cargar los planes. Intenta de nuevo en un momento.
+                            </p>
+                        </div>
+                    ) : !plansByTier ? (
+                        <div className="flex items-center justify-center py-16">
+                            <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full pb-4">
+                            {plans.map((plan, i) => {
+                                const discount = plan.annual_discount ?? 16;
+                                const price = billingCycle === 'monthly'
+                                    ? plan.monthly_price
+                                    : Math.round(plan.monthly_price * (1 - discount / 100));
 
-                            return (
-                                <div key={i} className="p-6 rounded-[32px] border border-navy-900 bg-navy-900 text-white shadow-2xl transition-all duration-500 flex flex-col hover:scale-[1.02] relative overflow-hidden group/card">
-                                    {/* Decoración sutil de fondo */}
-                                    <div className="absolute -right-8 -top-8 w-24 h-24 bg-white/5 rounded-full blur-2xl transition-all duration-500 group-hover/card:bg-white/10" />
+                                return (
+                                    <div key={plan.tier} className="p-6 rounded-[32px] border border-navy-900 bg-navy-900 text-white shadow-2xl transition-all duration-500 flex flex-col hover:scale-[1.02] relative overflow-hidden group/card">
+                                        {/* Decoración sutil de fondo */}
+                                        <div className="absolute -right-8 -top-8 w-24 h-24 bg-white/5 rounded-full blur-2xl transition-all duration-500 group-hover/card:bg-white/10" />
 
-                                    <div className="flex items-center justify-between mb-4 relative z-10">
-                                        <div className="p-2 rounded-full bg-white/10 flex items-center justify-center">
-                                            {plan.icon}
-                                        </div>
-                                        {plan.active && (
-                                            <span className="bg-white/10 text-[8px] font-bold px-2 py-0.5 rounded-full border border-white/10">
-                                                Recomendado
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className="min-h-[180px] flex flex-col">
-                                        <h4 className="font-bold text-2xl mb-1 relative z-10">{plan.title}</h4>
-                                        <div className="flex flex-col mb-4 relative z-10">
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-4xl font-bold text-white leading-none">Q {price.toLocaleString()}</span>
-                                                <span className="text-[11px] opacity-60 font-bold">/mes</span>
+                                        <div className="flex items-center justify-between mb-4 relative z-10">
+                                            <div className="p-2 rounded-full bg-white/10 flex items-center justify-center">
+                                                {plan.icon}
                                             </div>
-                                            {billingCycle === 'annual' && (
-                                                <span className="text-[9px] font-bold text-emerald-400 mt-1">
-                                                    Q {(plan.monthlyPrice * 10).toLocaleString()} al año
+                                            {plan.active && (
+                                                <span className="bg-white/10 text-[8px] font-bold px-2 py-0.5 rounded-full border border-white/10">
+                                                    Recomendado
                                                 </span>
                                             )}
                                         </div>
 
-                                        <p className="text-[9.5px] font-bold text-white/50 mb-4 italic leading-relaxed flex-1">
-                                            {plan.perfectFor}
-                                        </p>
-                                    </div>
+                                        <div className="min-h-[180px] flex flex-col">
+                                            <h4 className="font-bold text-2xl mb-1 relative z-10">{plan.title}</h4>
+                                            <div className="flex flex-col mb-4 relative z-10">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-4xl font-bold text-white leading-none">Q {price.toLocaleString('es-GT')}</span>
+                                                    <span className="text-[11px] opacity-60 font-bold">/mes</span>
+                                                </div>
+                                                {billingCycle === 'annual' && (
+                                                    <span className="text-[9px] font-bold text-emerald-400 mt-1">
+                                                        Q {(price * 12).toLocaleString('es-GT')} al año
+                                                    </span>
+                                                )}
+                                            </div>
 
-                                    <div className="pt-4 border-t border-white/10 relative z-10 flex-1 flex flex-col">
-                                        {i > 0 ? (
-                                            <p className="text-[9px] font-bold text-white/40 mb-5">
-                                                Todo lo de {plans[i - 1].title} más:
+                                            <p className="text-[9.5px] font-bold text-white/50 mb-4 italic leading-relaxed flex-1">
+                                                {plan.perfectFor}
                                             </p>
-                                        ) : (
-                                            <p className="text-[9px] font-bold text-transparent mb-5 select-none">
-                                                -
-                                            </p>
-                                        )}
-                                        <ul className="space-y-3 mb-6 flex-1">
-                                            {plan.features.map((feat, j) => (
-                                                <li key={j} className="flex items-center gap-2.5 text-[9.5px] font-bold text-white/90">
-                                                    <Check size={12} className="text-white/60 shrink-0" strokeWidth={3} />
-                                                    {feat}
-                                                </li>
-                                            ))}
-                                        </ul>
+                                        </div>
 
-                                        <button
-                                            disabled={currentPlan === plan.id}
-                                            className={`w-full mt-auto py-3 font-bold text-[10px] rounded-2xl transition-all relative z-10 backdrop-blur-sm shadow-xl ${currentPlan === plan.id
-                                                ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 cursor-default flex items-center justify-center gap-2'
-                                                : 'bg-white/10 border border-white/20 text-white/90 hover:bg-white hover:text-navy-900 active:scale-95'
-                                                }`}
-                                        >
-                                            {currentPlan === plan.id ? (
-                                                <>
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                                    Tu Plan Actual
-                                                </>
-                                            ) : 'Seleccionar Plan'}
-                                        </button>
+                                        <div className="pt-4 border-t border-white/10 relative z-10 flex-1 flex flex-col">
+                                            {i > 0 ? (
+                                                <p className="text-[9px] font-bold text-white/40 mb-5">
+                                                    Todo lo de {plans[i - 1].title} más:
+                                                </p>
+                                            ) : (
+                                                <p className="text-[9px] font-bold text-transparent mb-5 select-none">
+                                                    -
+                                                </p>
+                                            )}
+                                            <ul className="space-y-3 mb-6 flex-1">
+                                                {(FEATURE_HIGHLIGHTS[plan.tier] || []).map((feat, j) => (
+                                                    <li key={j} className="flex items-center gap-2.5 text-[9.5px] font-bold text-white/90">
+                                                        <Check size={12} className="text-white/60 shrink-0" strokeWidth={3} />
+                                                        {feat}
+                                                    </li>
+                                                ))}
+                                            </ul>
+
+                                            <button
+                                                disabled={currentPlan === plan.tier}
+                                                className={`w-full mt-auto py-3 font-bold text-[10px] rounded-2xl transition-all relative z-10 backdrop-blur-sm shadow-xl ${currentPlan === plan.tier
+                                                    ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 cursor-default flex items-center justify-center gap-2'
+                                                    : 'bg-white/10 border border-white/20 text-white/90 hover:bg-white hover:text-navy-900 active:scale-95'
+                                                    }`}
+                                            >
+                                                {currentPlan === plan.tier ? (
+                                                    <>
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                                        Tu Plan Actual
+                                                    </>
+                                                ) : 'Seleccionar Plan'}
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     <div className="flex justify-center mt-2 mb-8">
                         <button
@@ -209,227 +410,42 @@ export default function PlansModal({ isOpen, onClose }) {
                         </button>
                     </div>
 
-                    {/* Secciones por Módulo */}
-                    <div ref={detailsRef} className="w-full mt-12 space-y-16 pb-12">
+                    {/* Secciones por Módulo — cada fila se resuelve contra plans.features/límites reales */}
+                    {plansByTier && (
+                        <div ref={detailsRef} className="w-full mt-12 space-y-16 pb-12">
+                            {MODULE_SPECS.map((mod, i) => (
+                                <ModuleSection
+                                    key={i}
+                                    title={mod.title}
+                                    subtitle={mod.subtitle}
+                                    icon={mod.icon}
+                                    rows={mod.rows.map(row => resolveRow(row, plansByTier))}
+                                />
+                            ))}
 
-                        {/* 1. Módulo de Turnos */}
-                        <ModuleSection
-                            title="Turnos"
-                            subtitle="Gestión de agenda y IA"
-                            icon={<Calendar size={20} />}
-                            rows={[
-                                { name: 'Visualización de Agenda (Día / Semana / Mes)', basic: true, pro: true, enterprise: true },
-                                { name: 'Creación Manual de Turnos', basic: true, pro: true, enterprise: true },
-                                { name: 'Validación de Ingreso del Paciente', basic: true, pro: true, enterprise: true },
-                                { name: 'Toma de Control Humano (Pausa IA desde el Turno)', basic: true, pro: true, enterprise: true },
-                                { name: 'Cobro al Atender (Registro de Pago en el Turno)', basic: false, pro: true, enterprise: true },
-                                { name: 'Recordatorios Automáticos', basic: false, pro: true, enterprise: true },
-                                { name: 'Kanban de estados de turnos', basic: false, pro: true, enterprise: true },
-                                { name: 'Límite de Turnos al mes', basic: '100', pro: '500', enterprise: 'Ilimitado' },
-                            ]}
-                        />
-
-                        {/* 2. Módulo de Seguimiento */}
-                        <ModuleSection
-                            title="Seguimiento"
-                            subtitle="Recuperación de No-Shows y Cancelaciones"
-                            icon={<History size={20} />}
-                            rows={[
-                                { name: 'Listado de No-Shows y Cancelaciones', basic: false, pro: true, enterprise: true },
-                                { name: 'Filtros por Tipo (No-Show / Cancelados)', basic: false, pro: true, enterprise: true },
-                                { name: 'Filtros por Período (7 / 30 / 60 / 90 días)', basic: false, pro: true, enterprise: true },
-                                { name: 'Reagendar directamente desde Seguimiento', basic: false, pro: true, enterprise: true },
-                            ]}
-                        />
-
-                        {/* 3. Módulo de Clientes */}
-                        <ModuleSection
-                            title="Clientes"
-                            subtitle="Base de datos y perfiles"
-                            icon={<Users size={20} />}
-                            rows={[
-                                { name: 'Creación Manual de un Cliente', basic: true, pro: true, enterprise: true },
-                                { name: 'Historial Completo del Paciente', basic: true, pro: true, enterprise: true },
-                                { name: 'Toma de Control Humano (Pausa IA)', basic: true, pro: true, enterprise: true },
-                                { name: 'Observaciones / Notas', basic: false, pro: true, enterprise: true },
-                                { name: 'Exportación de Información (CSV)', basic: false, pro: false, enterprise: true },
-                                { name: 'Límite de Visualización de Clientes', basic: 'Últimos 10', pro: 'Últimos 100', enterprise: 'Ilimitado' },
-                            ]}
-                        />
-
-                        {/* 4. Módulo de Conversaciones */}
-                        <ModuleSection
-                            title="Conversaciones"
-                            subtitle="IA y Mensajería"
-                            icon={<MessageCircle size={20} />}
-                            rows={[
-                                { name: 'Bandeja Unificada', basic: true, pro: true, enterprise: true },
-                                { name: 'Ofrecimiento de Servicios Activos por IA', basic: false, pro: true, enterprise: true },
-                                { name: 'Ofrecimiento de Ofertas Activas por IA', basic: false, pro: false, enterprise: true },
-                                { name: 'Límite de Visualización de Chats', basic: 'Últimos 10', pro: 'Últimos 100', enterprise: 'Ilimitado' },
-                                { name: 'Límite de Mensajes al mes (usuario + IA)', basic: '1,000', pro: '5,000', enterprise: 'Ilimitado' },
-                            ]}
-                        />
-
-                        {/* 5. Módulo de Estadísticas */}
-                        <ModuleSection
-                            title="Estadísticas"
-                            subtitle="Reportes y métricas"
-                            icon={<BarChart2 size={20} />}
-                            rows={[
-                                { name: 'Total de Turnos (Completados, Cancelados, No-Shows)', basic: false, pro: true, enterprise: true },
-                                { name: 'Total de Clientes Atendidos vs Nuevos', basic: false, pro: true, enterprise: true },
-                                { name: 'Volumen de Mensajes (usuario + IA) del período', basic: false, pro: true, enterprise: true },
-                                { name: 'Tasa de Confirmación y Cancelaciones', basic: false, pro: true, enterprise: true },
-                                { name: 'Histórico Comparativo Mensual por Categoría', basic: false, pro: true, enterprise: true },
-                                { name: 'LTV y Valor Promedio por Cliente', basic: false, pro: false, enterprise: true },
-                                { name: 'Predicción de Demanda y Ocupación', basic: false, pro: false, enterprise: true },
-                                { name: 'Tasa de Retención y Riesgo de Abandono (Churn)', basic: false, pro: false, enterprise: true },
-                                { name: 'Rentabilidad Real por Servicio', basic: false, pro: false, enterprise: true },
-                                { name: 'Exportación de Reportes Avanzados (CSV / PDF)', basic: false, pro: false, enterprise: true },
-                            ]}
-                        />
-
-                        {/* 6. Módulo de Servicios */}
-                        <ModuleSection
-                            title="Servicios"
-                            subtitle="Catálogo y Configuración"
-                            icon={<Layers size={20} />}
-                            rows={[
-                                { name: 'Gestión de Servicios Ilimitados', basic: true, pro: true, enterprise: true },
-                                { name: 'Activar / Desactivar Servicios', basic: true, pro: true, enterprise: true },
-                                { name: 'Precios y Duraciones Variables', basic: true, pro: true, enterprise: true },
-                                { name: 'Descripción Detallada (Contexto para IA)', basic: false, pro: true, enterprise: true },
-                            ]}
-                        />
-
-                        {/* 7. Módulo de Ofertas */}
-                        <ModuleSection
-                            title="Ofertas"
-                            subtitle="Promociones y Precios Dinámicos"
-                            icon={<Tag size={20} />}
-                            rows={[
-                                { name: 'Creación de Ofertas y Promociones', basic: false, pro: false, enterprise: true },
-                                { name: 'Precio Promocional por Servicio', basic: false, pro: false, enterprise: true },
-                                { name: 'Vigencia por Fechas (Tiempo Limitado)', basic: false, pro: false, enterprise: true },
-                                { name: 'Activar / Desactivar Ofertas', basic: false, pro: false, enterprise: true },
-                                { name: 'Ofertas Visibles al Agente IA en Conversaciones', basic: false, pro: false, enterprise: true },
-                            ]}
-                        />
-
-                        {/* 9. Módulo de Finanzas */}
-                        <ModuleSection
-                            title="Finanzas"
-                            subtitle="Ingresos, Costos y Rentabilidad"
-                            icon={<Wallet size={20} />}
-                            rows={[
-                                { name: 'Gráfica de Ingresos vs Egresos del Período', basic: false, pro: true, enterprise: true },
-                                { name: 'Balance Neto y Utilidad del Mes', basic: false, pro: true, enterprise: true },
-                                { name: 'Ranking de Servicios por Ingreso Generado', basic: false, pro: true, enterprise: true },
-                                { name: 'Registro de Ingresos', basic: false, pro: true, enterprise: true },
-                                { name: 'Registro de Egresos', basic: false, pro: true, enterprise: true },
-                                { name: 'Validación de Ingresos Pendientes por Confirmar', basic: false, pro: true, enterprise: true },
-                                { name: 'Catálogo de Insumos', basic: false, pro: false, enterprise: true },
-                                { name: 'Recetas y Costo Real por Servicio', basic: false, pro: false, enterprise: true },
-                            ]}
-                        />
-
-                        {/* 10. Módulo de Actividad */}
-                        <ModuleSection
-                            title="Actividad"
-                            subtitle="Registro de Auditoría"
-                            icon={<List size={20} />}
-                            rows={[
-                                { name: 'Registro de Actividad General', basic: false, pro: true, enterprise: true },
-                                { name: 'Historial de cambios en Clientes', basic: false, pro: true, enterprise: true },
-                                { name: 'Historial de cambios en Turnos', basic: false, pro: true, enterprise: true },
-                                { name: 'Auditoría de acciones de Staff', basic: false, pro: true, enterprise: true },
-                                { name: 'Exportación CSV', basic: false, pro: false, enterprise: true },
-                            ]}
-                        />
-
-                        {/* 11. Módulo de Usuarios */}
-                        <ModuleSection
-                            title="Usuarios"
-                            subtitle="Control de Acceso"
-                            icon={<ShieldCheck size={20} />}
-                            rows={[
-                                { name: 'Gestión de Personal', basic: true, pro: true, enterprise: true },
-                                { name: 'Roles y Permisos Personalizados', basic: false, pro: true, enterprise: true },
-                                { name: 'Límite de Usuarios', basic: '1', pro: 'Hasta 5', enterprise: 'Ilimitados' },
-                            ]}
-                        />
-
-                        {/* 12. Módulo de Inteligencia Artificial */}
-                        <ModuleSection
-                            title="Inteligencia Artificial"
-                            subtitle="Capacidades y Personalización del Agente"
-                            icon={<Bot size={20} />}
-                            rows={[
-                                { name: 'Agente IA de Agendamiento (WhatsApp)', basic: 'Incluido', pro: 'Incluido', enterprise: 'Incluido' },
-                                { name: 'Tipo de Razonamiento IA', basic: 'Estándar', pro: 'Avanzado', enterprise: 'Premium' },
-                                { name: 'Historial Visual de Clientes con IA Pausada', basic: true, pro: true, enterprise: true },
-                                { name: 'Datos Iniciales del Negocio para el Agente', basic: false, pro: true, enterprise: true },
-                                { name: 'Memoria Contextual del Agente', basic: false, pro: true, enterprise: true },
-                                { name: 'Nombre Personalizado del Asistente', basic: false, pro: false, enterprise: true },
-                            ]}
-                        />
-
-                        {/* 12. Módulo de Sucursales */}
-                        <ModuleSection
-                            title={
-                                <div className="flex items-center gap-2">
-                                    Sucursales
-                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-600">
-                                        <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
-                                        Próximamente
-                                    </span>
-                                </div>
-                            }
-                            subtitle="Gestión Multi-Sede"
-                            icon={<Building2 size={20} />}
-                            rows={[
-                                { name: 'Gestión de Sucursal Principal', basic: true, pro: true, enterprise: true },
-                                { name: 'Configuración de Horarios por Sede', basic: true, pro: true, enterprise: true },
-                                { name: 'Múltiples Sucursales', basic: false, pro: false, enterprise: true },
-                                { name: 'Panel de Control Multi-Sede', basic: false, pro: false, enterprise: true },
-                            ]}
-                        />
-
-                        {/* 13. Módulo de Soporte */}
-                        <ModuleSection
-                            title={
-                                <div className="flex items-center gap-2">
-                                    Soporte
-                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold uppercase tracking-widest text-amber-600">
-                                        <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
-                                        Próximamente
-                                    </span>
-                                </div>
-                            }
-                            subtitle="Atención y Garantía"
-                            icon={<ShieldCheck size={20} />}
-                            rows={[
-                                { name: 'Soporte vía Ticket', basic: true, pro: true, enterprise: true },
-                                { name: 'Soporte vía WhatsApp', basic: false, pro: true, enterprise: true },
-                                { name: 'Tiempo de Respuesta Garantizado', basic: '48h', pro: '24h', enterprise: '4h' },
-                            ]}
-                        />
-
-                        {/* Pie de Tabla */}
-                        <div className="flex flex-col items-center justify-center pt-8 border-t border-navy-900/5">
-                            <Zap size={24} className="text-navy-900/20 mb-4" />
-                            <p className="text-[12px] font-bold text-navy-900/40 text-center max-w-lg leading-relaxed">
-                                ¿Necesitas algo a medida? Integración de Modulos a la Medida disponible para soluciones NovTurnIA.
-                            </p>
+                            {/* Pie de Tabla */}
+                            <div className="flex flex-col items-center justify-center pt-8 border-t border-navy-900/5">
+                                <Zap size={24} className="text-navy-900/20 mb-4" />
+                                <p className="text-[12px] font-bold text-navy-900/40 text-center max-w-lg leading-relaxed">
+                                    ¿Necesitas algo a medida? Integración de Modulos a la Medida disponible para soluciones NovTurnIA.
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>,
         document.body
     );
 }
+
+// Bullets cortos de venta para las tarjetas de precio — copy de marketing,
+// no 1:1 con plans.features (la comparativa detallada de abajo sí lo es).
+const FEATURE_HIGHLIGHTS = {
+    basic: ['IA de razonamiento Estándar', 'Turnos con IA Ilimitados', 'Agenda: Vista Día / Semana / Mes', 'Gestión de Clientes (últimos 10)', '1 Usuario', 'Integración de Módulos a la Medida'],
+    pro: ['IA Avanzada + Memoria Contextual', 'Módulo de Finanzas (Ingresos, Egresos, Resumen)', 'Seguimiento de No-Shows y Cancelaciones', 'Kanban de estados de turnos', 'Roles y Permisos de Staff', 'Hasta 5 Usuarios'],
+    enterprise: ['IA de razonamiento Premium', 'Insumos y Recetas (Costo por Servicio)', 'Ofertas y Precios Dinámicos', 'Exportación de Información y Reportes', 'Inteligencia de Negocio (LTV, retención, predicción)', 'Usuarios Ilimitados'],
+};
 
 function ModuleSection({ title, subtitle, icon, rows }) {
     return (

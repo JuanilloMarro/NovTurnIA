@@ -121,7 +121,7 @@ export default function PausedAIPanel({ canEdit = true }) {
                         {filtered.map((c, i) => (
                             <div
                                 key={c.id}
-                                className="group flex items-center justify-between gap-2 px-3 py-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/60 shadow-sm transition-all duration-300 animate-fade-up"
+                                className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/60 shadow-sm transition-all duration-300 animate-fade-up"
                                 style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
                             >
                                 <div className="flex items-center gap-3 min-w-0">
@@ -138,28 +138,30 @@ export default function PausedAIPanel({ canEdit = true }) {
                                 <div className="flex items-center gap-1.5 shrink-0">
                                     <button
                                         onClick={() => goWithBid(`/conversations?patient=${c.id}`)}
-                                        title="Abrir chat del cliente"
-                                        className="w-8 h-8 flex items-center justify-center bg-white/40 border border-white/60 text-navy-900 rounded-full shadow-sm hover:bg-white transition-all duration-300 shrink-0"
+                                        className="relative overflow-hidden group/chat flex items-center justify-center gap-0 hover:gap-1.5 h-8 px-2.5 hover:px-3 bg-white/40 border border-white/60 text-navy-900 rounded-full shadow-sm hover:bg-white transition-all duration-300 shrink-0"
                                     >
-                                        <MessageCircle size={13} />
+                                        <MessageCircle size={13} className="shrink-0 relative z-10" />
+                                        <span className="max-w-0 overflow-hidden group-hover/chat:max-w-[40px] transition-all duration-300 whitespace-nowrap text-[10px] font-bold relative z-10">Chat</span>
                                     </button>
                                     <button
                                         onClick={() => goWithBid(`/patients?id=${c.id}`)}
-                                        title="Ver perfil del cliente"
-                                        className="w-8 h-8 flex items-center justify-center bg-white/40 border border-white/60 text-navy-900 rounded-full shadow-sm hover:bg-white transition-all duration-300 shrink-0"
+                                        className="relative overflow-hidden group/perfil flex items-center justify-center gap-0 hover:gap-1.5 h-8 px-2.5 hover:px-3 bg-white/40 border border-white/60 text-navy-900 rounded-full shadow-sm hover:bg-white transition-all duration-300 shrink-0"
                                     >
-                                        <User size={13} />
+                                        <User size={13} className="shrink-0 relative z-10" />
+                                        <span className="max-w-0 overflow-hidden group-hover/perfil:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[10px] font-bold relative z-10">Perfil</span>
                                     </button>
                                     {canEdit && (
                                         <button
                                             onClick={() => handleResume(c.id)}
                                             disabled={resumingId === c.id}
-                                            title="Reanudar IA para este cliente"
-                                            className="w-8 h-8 flex items-center justify-center bg-white/40 border border-white/60 text-emerald-600 rounded-full shadow-sm hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-300 disabled:opacity-50 shrink-0"
+                                            className="relative overflow-hidden group/reanudar flex items-center justify-center gap-0 hover:gap-1.5 h-8 px-2.5 hover:px-3 bg-white/40 border border-white/60 text-emerald-600 rounded-full shadow-sm hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-300 disabled:opacity-50 shrink-0"
                                         >
                                             {resumingId === c.id
                                                 ? <div className="w-3 h-3 border-2 border-emerald-600/30 border-t-emerald-600 rounded-full animate-spin" />
-                                                : <Power size={13} />}
+                                                : <Power size={13} className="shrink-0 relative z-10" />}
+                                            <span className="max-w-0 overflow-hidden group-hover/reanudar:max-w-[70px] transition-all duration-300 whitespace-nowrap text-[10px] font-bold relative z-10">
+                                                {resumingId === c.id ? '' : 'Reanudar'}
+                                            </span>
                                         </button>
                                     )}
                                 </div>

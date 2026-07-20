@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Contact, Tag, Layers, Clock, Plus, Bot, Eye, ChevronUp, ChevronDown, Lock, Unlock } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Contact, Tag, Layers, Clock, Plus, Bot, Eye, ChevronUp, ChevronDown, Lock, Unlock, X } from 'lucide-react';
 import WhatsApp from '../Icons/WhatsApp';
 import AIStar from '../Icons/AIStar';
 import WheelRow from '../ui/WheelRow';
@@ -58,13 +58,42 @@ const APPT_DOT = {
 // Encabezado de panel reutilizable
 function PanelHeader({ icon: Icon, title, count }) {
     return (
-        <div className="relative z-10 flex items-center gap-1.5 mb-1.5 px-1 shrink-0">
-            <Icon size={12} strokeWidth={2.5} className="text-navy-700/70 shrink-0" />
-            <span className="text-[11px] font-bold text-navy-700/60 tracking-wide truncate">{title}</span>
+        <div className="relative z-10 flex items-center gap-2 mb-2 px-1 shrink-0">
+            <Icon size={14} strokeWidth={2.5} className="text-navy-700/70 shrink-0" />
+            <span className="text-[12.5px] font-bold text-navy-800 tracking-wide truncate">{title}</span>
             {count != null && (
                 <span className="ml-auto text-[10px] font-bold text-navy-700/40">{count}</span>
             )}
         </div>
+    );
+}
+
+// Diálogo emergente de detalle (servicio/oferta) — sustituye la navegación a
+// otro módulo para no perder el rastro del cliente ni el chat abierto.
+function DetailDialog({ title, subtitle, rows, onClose }) {
+    return createPortal(
+        <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4" onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} className="w-full max-w-sm bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[28px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] p-6 animate-fade-up">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="min-w-0">
+                        <h3 className="text-base font-bold text-navy-900 truncate">{title}</h3>
+                        {subtitle && <p className="text-[11px] font-semibold text-navy-700/50 mt-0.5 truncate">{subtitle}</p>}
+                    </div>
+                    <button onClick={onClose} className="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 transition-colors">
+                        <X size={14} />
+                    </button>
+                </div>
+                <div className="space-y-2.5">
+                    {rows.map(([k, v]) => (
+                        <div key={k} className="flex items-start justify-between gap-3">
+                            <span className="text-[10.5px] font-bold text-navy-700/50 shrink-0">{k}</span>
+                            <span className="text-[12px] font-bold text-navy-900 text-right">{v}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>,
+        document.body
     );
 }
 
@@ -235,8 +264,7 @@ export function MiniCard({ title, subtitle, badge, badgeClass, isSelected, selec
 function ActiveServicesContent({ onInsert }) {
     const { services } = useServices();
     const [selectedService, setSelectedService] = useState(null);
-    const navigate = useNavigate();
-    const [sp] = useSearchParams();
+    const [showDetail, setShowDetail] = useState(false);
 
     const activeServices = useMemo(
         () => services.filter(s => s.active),
@@ -272,11 +300,7 @@ function ActiveServicesContent({ onInsert }) {
     const actions = (
         <div className="flex items-center justify-center gap-2 mt-1.5 shrink-0">
             <SysButton icon={Plus} label="Insertar servicio" onClick={() => insertService(selectedService)} />
-            <SysButton icon={Eye} label="Ver servicio" onClick={() => {
-                const params = new URLSearchParams(sp);
-                if (selectedService) params.set('service', selectedService.id);
-                navigate(`/settings?${params.toString()}`);
-            }} title="Ver este servicio en su módulo" />
+            <SysButton icon={Eye} label="Ver servicio" onClick={() => setShowDetail(true)} title="Ver detalle del servicio" />
         </div>
     );
 
@@ -309,6 +333,18 @@ function ActiveServicesContent({ onInsert }) {
                     )}
                 </FeatureLock>
             </div>
+            {showDetail && selectedService && (
+                <DetailDialog
+                    title={selectedService.name}
+                    subtitle="Servicio"
+                    rows={[
+                        ['Precio', money(selectedService.price)],
+                        ['Duración', `${selectedService.duration_minutes} min`],
+                        ...(selectedService.description ? [['Descripción', selectedService.description]] : []),
+                    ]}
+                    onClose={() => setShowDetail(false)}
+                />
+            )}
         </div>
     );
 }
@@ -320,8 +356,7 @@ function ActiveOffersContent({ onInsert }) {
     const { hasFeature } = usePlanLimits();
     const offersUnlocked = hasFeature('dynamic_pricing');
     const [selectedOffer, setSelectedOffer] = useState(null);
-    const navigate = useNavigate();
-    const [sp] = useSearchParams();
+    const [showDetail, setShowDetail] = useState(false);
 
     const activeOffers = useMemo(
         () => offers.filter(o => getOfferStatus(o) === 'active'),
@@ -357,11 +392,7 @@ function ActiveOffersContent({ onInsert }) {
     const actions = (
         <div className="flex items-center justify-center gap-2 mt-1.5 shrink-0">
             <SysButton icon={Plus} label="Insertar oferta" onClick={() => insertOffer(selectedOffer)} />
-            <SysButton icon={Eye} label="Ver oferta" onClick={() => {
-                const params = new URLSearchParams(sp);
-                if (selectedOffer) params.set('offer', selectedOffer.id);
-                navigate(`/offers?${params.toString()}`);
-            }} title="Ver esta oferta en su módulo" />
+            <SysButton icon={Eye} label="Ver oferta" onClick={() => setShowDetail(true)} title="Ver detalle de la oferta" />
         </div>
     );
 
@@ -417,6 +448,20 @@ function ActiveOffersContent({ onInsert }) {
                     </FeatureLock>
                 )}
             </div>
+            {showDetail && selectedOffer && (
+                <DetailDialog
+                    title={selectedOffer.name}
+                    subtitle={selectedOffer.services?.name || 'Oferta'}
+                    rows={[
+                        ['Servicio', selectedOffer.services?.name || '—'],
+                        ['Precio promocional', money(selectedOffer.promo_price)],
+                        ['Inicio', fullDate(selectedOffer.starts_at)],
+                        ['Fin', fullDate(selectedOffer.ends_at)],
+                        ...(selectedOffer.description ? [['Descripción', selectedOffer.description]] : []),
+                    ]}
+                    onClose={() => setShowDetail(false)}
+                />
+            )}
         </div>
     );
 }
@@ -427,7 +472,7 @@ function ActiveOffersContent({ onInsert }) {
 // sistema (Centro IA, etc.).
 export function ContextPanels({ patient, windowOpen, hoursLeft, onInsert }) {
     return (
-        <div className={`${PANEL} p-4 flex flex-col gap-4`}>
+        <div className={`${PANEL} h-full p-4 flex flex-col gap-4`}>
             <PanelGlow />
             <PatientInfoContent patient={patient} windowOpen={windowOpen} hoursLeft={hoursLeft} />
             <div className="relative z-10 h-px bg-navy-900/8 shrink-0" />

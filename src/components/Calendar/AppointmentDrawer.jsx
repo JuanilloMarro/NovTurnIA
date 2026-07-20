@@ -50,7 +50,8 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
     useEffect(() => {
         let alive = true;
         setDeliveredIncome(null);
-        if (!appointment?.id || !canConfirmDelivery) return;
+        // Cargar el cobro si puede confirmar entregas O purgar (para el aviso de borrado)
+        if (!appointment?.id || !(canConfirmDelivery || canPurgeAppointments)) return;
         getAppointmentIncome(appointment.id)
             .then(d => { if (alive) setDeliveredIncome(d); })
             .catch(() => { });
@@ -438,9 +439,13 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
             </div>
 
             {/* F-5: confirmación de borrado permanente (No-show / Cancelados) */}
+            {/* Pesada #4: avisa si el turno tiene un cobro registrado — ese ingreso
+                sobrevive (se desvincula), pero el usuario debe saberlo antes de borrar. */}
             <ConfirmDialog open={showPurgeConfirm} danger loading={purging}
                 title="¿Borrar este registro permanentemente?"
-                message="Se elimina de la base de datos y no se puede recuperar."
+                message={deliveredIncome && Number(deliveredIncome.amount) > 0
+                    ? `Este turno tiene un cobro de Q${Number(deliveredIncome.amount).toFixed(2)} registrado. El ingreso NO se borra (queda en Finanzas sin turno asociado), pero el turno se elimina de forma irreversible.`
+                    : 'Se elimina de la base de datos y no se puede recuperar.'}
                 confirmLabel="Sí, borrar" loadingLabel="Borrando..."
                 onConfirm={async () => {
                     setPurging(true);

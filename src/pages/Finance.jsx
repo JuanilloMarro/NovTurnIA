@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, LayoutDashboard, CheckCircle2, ArrowUpRight, ArrowDownRight, Package, Plus, Lock, Settings2, HandCoins, Wallet, Users, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Lock, Download, SlidersHorizontal } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useFinance } from '../hooks/useFinance';
 import { useSupplies } from '../hooks/useSupplies';
@@ -18,11 +18,15 @@ import SuppliesSection from '../components/Finance/SuppliesSection';
 import ReceivablesSection from '../components/Finance/ReceivablesSection';
 import CashSection from '../components/Finance/CashSection';
 import ProductionSection from '../components/Finance/ProductionSection';
-import AjustesSection from '../components/Finance/AjustesSection';
+import AjustesSection, { AJUSTES_SUBTABS } from '../components/Finance/AjustesSection';
+import VouchersSection from '../components/Finance/VouchersSection';
 import RecordIncomeModal from '../components/Finance/RecordIncomeModal';
 import RecordExpenseModal from '../components/Finance/RecordExpenseModal';
 import FinanceDetailDrawer from '../components/Finance/FinanceDetailDrawer';
-import { exportFinanceCsv } from '../components/Finance/financeUi';
+import { exportFinanceCsv, AddBtn } from '../components/Finance/financeUi';
+import { FINANCE_TABS } from '../components/Finance/financeTabs';
+import { getIncomeEntries, getExpenseEntries } from '../services/supabaseService';
+import { showErrorToast } from '../store/useToastStore';
 
 const PERIODS = [
     { key: 'day', label: 'Día' },
@@ -70,18 +74,6 @@ function shiftAnchorBack(period, anchor) {
     return d;
 }
 
-const TAB_DEFS = [
-    { id: 'resumen', label: 'Resumen', icon: LayoutDashboard },
-    { id: 'confirmar', label: 'Por confirmar', icon: CheckCircle2 },
-    { id: 'ingresos', label: 'Ingresos', icon: ArrowUpRight },
-    { id: 'egresos', label: 'Egresos', icon: ArrowDownRight },
-    { id: 'cobrar', label: 'Por cobrar', icon: HandCoins },
-    { id: 'caja', label: 'Caja', icon: Wallet },
-    { id: 'produccion', label: 'Producción', icon: Users },
-    { id: 'insumos', label: 'Inventario', icon: Package },
-    { id: 'ajustes', label: 'Ajustes', icon: Settings2 },
-];
-
 // Datos de muestra para la vista previa del FeatureLock (plan Básico). Alimentan
 // el MISMO componente FinanceSummary del módulo real — KPIs, gráficas (recharts) y
 // desgloses — sin realizar ninguna llamada a la base de datos.
@@ -124,30 +116,20 @@ const MOCK_FIN = {
         })),
 };
 
-function AddBtn({ icon: Icon = Plus, label, onClick }) {
-    return (
-        <button onClick={onClick}
-            className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 rounded-full shadow-md hover:bg-white/60 transition-all duration-300">
-            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-            <Icon size={16} className="shrink-0 relative z-10" />
-            <span className="max-w-0 overflow-hidden group-hover:max-w-[140px] transition-all duration-300 whitespace-nowrap text-[11px] font-bold relative z-10">{label}</span>
-        </button>
-    );
-}
-
 export default function Finance() {
-    const { canConfirmDelivery, canRecordIncome, canRecordExpense, canManageSupplies, canVoidFinance, canManageFinanceCategories, canManageRoles } = usePermissions();
+    const { canConfirmDelivery, canRecordIncome, canRecordExpense, canManageSupplies, canVoidFinance, canManageFinanceCategories, canManageCash, canPayCommission, canManageFinanceSettings, canManageRoles } = usePermissions();
     const [period, setPeriod] = useState('month');
     const [anchorDate, setAnchorDate] = useState(() => new Date());
     const [tab, setTabRaw] = useState('resumen');
+    const [showFilters, setShowFilters] = useState(false);
     const [incomeModal, setIncomeModal] = useState(null); // null | { initial }
     const [expenseModal, setExpenseModal] = useState(null);
     const [selectedEntry, setSelectedEntry] = useState(null); // { entry, type }
     const [selectedPending, setSelectedPending] = useState(null); // fila de "Por confirmar"
     const [categoryKind, setCategoryKind] = useState('income');
+    const [ajustesSub, setAjustesSub] = useState('categorias');
 
-    const setTab = (t) => { setTabRaw(t); setSelectedEntry(null); setSelectedPending(null); };
+    const setTab = (t) => { setTabRaw(t); setSelectedEntry(null); setSelectedPending(null); setShowFilters(false); };
 
     const range = useMemo(() => focusRange(period, anchorDate), [period, anchorDate]);
     const prevRange = useMemo(() => focusRange(period, shiftAnchorBack(period, anchorDate)), [period, anchorDate]);
@@ -176,6 +158,25 @@ export default function Finance() {
         return d;
     });
 
+    // Exportar CSV siempre trae el período COMPLETO desde Supabase — fin.income
+    // ahora solo trae la primera página (paginación real, ver useFinance), así
+    // que el export no puede depender de ese estado parcial.
+    const [csvExporting, setCsvExporting] = useState(false);
+    async function handleExportCsv() {
+        setCsvExporting(true);
+        try {
+            const [incRes, expRes] = await Promise.all([
+                getIncomeEntries({ start: range.start, end: range.end, pageSize: 5000 }),
+                getExpenseEntries({ start: range.start, end: range.end, pageSize: 5000 }),
+            ]);
+            exportFinanceCsv({ income: incRes.data, expenses: expRes.data, methods: fin.methods, label: navLabel });
+        } catch (err) {
+            showErrorToast('No se pudo exportar', err.message || '');
+        } finally {
+            setCsvExporting(false);
+        }
+    }
+
     // "Pagar" en Producción: registra el egreso de la comisión con un clic.
     async function payCommission(row) {
         await fin.addExpense({
@@ -187,49 +188,68 @@ export default function Finance() {
         });
     }
 
+    // Una sola fila, siempre igual: título — [Filtros] [Exportar CSV] [tabs].
+    // Los tabs van al final (nunca cambian de posición); Filtros/Exportar son
+    // los únicos elementos que aparecen/desaparecen según el tab activo, y
+    // viven a la IZQUIERDA de los tabs para no competir con ellos por espacio.
     const header = (
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-            <div>
+            <div className="min-w-0">
                 <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Finanzas</h1>
-                <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Ingresos, costos, cobros, caja y utilidad de tu negocio</p>
+                <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Ingresos, egresos, cobros y caja</p>
             </div>
+
             <div className="flex items-center gap-2 flex-wrap justify-end">
-                {/* Acciones contextuales — a la izquierda de los submódulos */}
-                {tab === 'resumen' && !fin.loading && (
-                    <AddBtn icon={Download} label="Exportar CSV" onClick={() => exportFinanceCsv({ income: fin.income, expenses: fin.expenses, methods: fin.methods, label: navLabel })} />
-                )}
-                {tab === 'ingresos' && canRecordIncome && <AddBtn label="Registrar ingreso" onClick={() => setIncomeModal({ initial: null })} />}
-                {tab === 'egresos' && canRecordExpense && <AddBtn label="Registrar egreso" onClick={() => setExpenseModal({ initial: null })} />}
-
-                {/* Calendario — en Resumen y Producción */}
                 {showCalendar && (
-                    <>
-                        <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
-                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                            {PERIODS.map(p => (
-                                <button key={p.key} onClick={() => handlePeriodChange(p.key)}
-                                    className={`relative z-10 px-4 h-8 rounded-full transition-all ${period === p.key ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>
-                                    {p.label}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-10">
-                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                            <button onClick={handlePrev} className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-navy-900 hover:bg-white/80 shadow-md transition-all hover:scale-[1.05] active:scale-95"><ChevronLeft size={16} /></button>
-                            <div className="relative z-10 h-8 flex items-center justify-center gap-1.5 px-3" style={{ minWidth: 110 }}>
-                                <CalendarDays size={13} className="text-navy-900 shrink-0" />
-                                <span className="text-[11px] font-bold text-navy-900 tracking-tight whitespace-nowrap leading-none capitalize">{navLabel}</span>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowFilters(v => !v)}
+                            className="relative overflow-hidden group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                        >
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[11px] relative z-10">Filtros</span>
+                        </button>
+
+                        {showFilters && (
+                            <div className="overflow-hidden absolute left-0 top-full mt-2 w-64 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-50 p-3 animate-fade-up">
+                                <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -top-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(29,95,173,0.05)' }} />
+                                <div className="absolute -bottom-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
+                                <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="relative z-10">
+                                    <div className="flex items-center justify-between px-1 pb-2 mb-2 border-b border-white/20">
+                                        <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Período</span>
+                                    </div>
+                                    <div className="relative overflow-hidden flex items-center bg-white/40 border border-white/60 rounded-full shadow-sm p-1 text-[11px] font-bold text-navy-900 h-9 mb-2">
+                                        {PERIODS.map(p => (
+                                            <button key={p.key} onClick={() => handlePeriodChange(p.key)}
+                                                className={`flex-1 h-7 rounded-full transition-all ${period === p.key ? 'bg-white/70 shadow-sm border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>
+                                                {p.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex items-center bg-white/40 border border-white/60 rounded-full shadow-sm p-1 h-9">
+                                        <button onClick={handlePrev} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95 shrink-0"><ChevronLeft size={14} /></button>
+                                        <div className="flex-1 h-7 flex items-center justify-center gap-1.5 px-2 min-w-0">
+                                            <CalendarDays size={12} className="text-navy-900 shrink-0" />
+                                            <span className="text-[11px] font-bold text-navy-900 tracking-tight whitespace-nowrap leading-none capitalize truncate">{navLabel}</span>
+                                        </div>
+                                        <button onClick={handleNext} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95 shrink-0"><ChevronRight size={14} /></button>
+                                    </div>
+                                </div>
                             </div>
-                            <button onClick={handleNext} className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-navy-900 hover:bg-white/80 shadow-md transition-all hover:scale-[1.05] active:scale-95"><ChevronRight size={16} /></button>
-                        </div>
-                    </>
+                        )}
+                    </div>
                 )}
 
-                {/* Submódulos — scroll horizontal en pantallas angostas para no recortar tabs */}
+                {tab === 'resumen' && !fin.loading && (
+                    <AddBtn icon={Download} label={csvExporting ? 'Exportando…' : 'Exportar CSV'} onClick={handleExportCsv} />
+                )}
+
                 <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10 max-w-full overflow-x-auto no-scrollbar">
-                    {TAB_DEFS.map(t => {
+                    {FINANCE_TABS.map(t => {
                         const Icon = t.icon;
                         return (
                             <button key={t.id} onClick={() => setTab(t.id)}
@@ -259,16 +279,13 @@ export default function Finance() {
                 <div className="h-full flex flex-col pt-2 px-2">
                     {/* Header mock */}
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-                        <div>
+                        <div className="min-w-0">
                             <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Finanzas</h1>
-                            <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Ingresos, costos, cobros, caja y utilidad de tu negocio</p>
+                            <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Ingresos, egresos, cobros y caja</p>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap justify-end">
-                            <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
-                                <div className="px-4 h-8 rounded-full bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900 flex items-center">Mes</div>
-                            </div>
                             <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold h-10 max-w-full overflow-x-auto no-scrollbar">
-                                {TAB_DEFS.map((t, i) => {
+                                {FINANCE_TABS.map((t, i) => {
                                     const Icon = t.icon;
                                     return (
                                         <div key={t.id} className={`px-3 h-8 rounded-full flex items-center gap-1.5 whitespace-nowrap shrink-0 ${i === 0 ? 'bg-white/60 text-navy-900' : 'text-navy-900/60'}`}>
@@ -277,6 +294,11 @@ export default function Finance() {
                                     );
                                 })}
                             </div>
+                        </div>
+                    </div>
+                    <div className="flex justify-end mb-4">
+                        <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
+                            <div className="px-4 h-8 rounded-full bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900 flex items-center">Mes</div>
                         </div>
                     </div>
                     {/* Resumen real (mismo componente del módulo) alimentado con datos de muestra */}
@@ -291,6 +313,21 @@ export default function Finance() {
     return (
         <div className={`relative h-full flex flex-col pt-2 px-2 transition-all duration-300 ${(selectedEntry || selectedPending) ? 'sm:pr-[388px]' : ''}`}>
             {header}
+            {tab === 'ajustes' && (
+                <div className="shrink-0 flex justify-end mb-3">
+                    <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
+                        {AJUSTES_SUBTABS.map(t => {
+                            const Icon = t.icon;
+                            return (
+                                <button key={t.id} onClick={() => setAjustesSub(t.id)}
+                                    className={`relative z-10 shrink-0 px-3.5 h-8 rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap ${ajustesSub === t.id ? 'bg-white/60 backdrop-blur-sm shadow-md border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>
+                                    <Icon size={12} /> {t.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
             <div className="flex-1 min-h-0 flex flex-col">
                 <FeatureLock feature="finance" variant="screen" title="Finanzas" description="El módulo financiero (ingresos, costos, cobros, caja, comisiones y reportes) está disponible en los planes Pro y Enterprise.">
                     <div className="h-full flex flex-col min-h-0">
@@ -301,21 +338,30 @@ export default function Finance() {
                         ) : tab === 'confirmar' ? (
                             scrollList(<PendingDeliveries pending={fin.pending} onSelect={setSelectedPending} selectedId={selectedPending?.id} />)
                         ) : tab === 'ingresos' ? (
-                            scrollList(<IncomeSection income={fin.income} methods={fin.methods} onSelect={e => setSelectedEntry({ entry: e, type: 'income' })} selectedId={selectedEntry?.type === 'income' ? selectedEntry.entry.id : null} />)
+                            scrollList(<IncomeSection income={fin.income} hasMore={fin.incomeHasMore} loadingMore={fin.loadingMoreIncome} onLoadMore={fin.loadMoreIncome} methods={fin.methods} onSelect={e => setSelectedEntry({ entry: e, type: 'income' })} selectedId={selectedEntry?.type === 'income' ? selectedEntry.entry.id : null} canRecord={canRecordIncome} onAdd={() => setIncomeModal({ initial: null })} />)
                         ) : tab === 'egresos' ? (
-                            scrollList(<ExpenseSection expenses={fin.expenses} methods={fin.methods} onSelect={e => setSelectedEntry({ entry: e, type: 'expense' })} selectedId={selectedEntry?.type === 'expense' ? selectedEntry.entry.id : null} />)
+                            scrollList(<ExpenseSection expenses={fin.expenses} hasMore={fin.expenseHasMore} loadingMore={fin.loadingMoreExpenses} onLoadMore={fin.loadMoreExpenses} methods={fin.methods} onSelect={e => setSelectedEntry({ entry: e, type: 'expense' })} selectedId={selectedEntry?.type === 'expense' ? selectedEntry.entry.id : null} canRecord={canRecordExpense} onAdd={() => setExpenseModal({ initial: null })} />)
                         ) : tab === 'cobrar' ? (
                             scrollList(<ReceivablesSection rec={rec} canRecord={canRecordIncome} canVoid={canVoidFinance} />)
+                        ) : tab === 'vouchers' ? (
+                            <div className="flex-1 min-h-0 overflow-hidden px-2 py-2">
+                                <div className="mx-auto w-full max-w-[860px] h-full">
+                                    <VouchersSection canManage={canRecordIncome} methods={fin.methods} />
+                                </div>
+                            </div>
                         ) : tab === 'caja' ? (
-                            scrollList(<CashSection cash={cash} canManage={canConfirmDelivery} />)
+                            // Caja — 2 paneles (historial / estado actual) lado a lado, como Inventario
+                            <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden custom-scrollbar px-2 py-2">
+                                <CashSection cash={cash} canManage={canManageCash} />
+                            </div>
                         ) : tab === 'produccion' ? (
                             scrollList(
                                 <ProductionSection
                                     prod={prod}
                                     totalIncome={fin.totalIncome}
                                     periodLabel={navLabel}
-                                    canEditCommission={canManageRoles}
-                                    canRecordExpense={canRecordExpense}
+                                    canEditCommission={canPayCommission}
+                                    canRecordExpense={canPayCommission}
                                     onPayCommission={payCommission}
                                 />
                             )
@@ -332,11 +378,15 @@ export default function Finance() {
                             <div className="flex-1 min-h-0 overflow-hidden px-2 py-2">
                                 <div className="mx-auto w-full max-w-[1080px] h-full">
                                     <AjustesSection
-                                        canManage={canManageFinanceCategories}
+                                        canManageCategories={canManageFinanceCategories}
+                                        canManageSettings={canManageFinanceSettings}
                                         categoryKind={categoryKind}
                                         setCategoryKind={setCategoryKind}
-                                        monthlyGoal={fin.monthlyGoal}
-                                        onSaveGoal={fin.saveGoal}
+                                        monthlyGoals={fin.monthlyGoals}
+                                        currentYear={fin.currentYear}
+                                        currentMonth={fin.currentMonth}
+                                        onSaveMonthGoal={fin.saveMonthGoal}
+                                        sub={ajustesSub}
                                     />
                                 </div>
                             </div>

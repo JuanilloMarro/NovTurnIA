@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save } from 'lucide-react';
+import { X, Save, Search } from 'lucide-react';
 import WheelColumn from '../ui/WheelColumn';
 import { getPaymentMethods, getStaffProduction } from '../../services/supabaseService';
 
@@ -86,14 +86,55 @@ export function exportFinanceCsv({ income = [], expenses = [], methods = [], lab
 }
 
 // Buscador compacto para filtrar los libros (Ingresos/Egresos/Por cobrar).
-export function LedgerSearch({ value, onChange, placeholder = 'Buscar…' }) {
+// `wide` amplía el ancho (Ingresos/Egresos venían muy cortos para el texto).
+export function LedgerSearch({ value, onChange, placeholder = 'Buscar…', wide = false }) {
     return (
-        <input
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            placeholder={placeholder}
-            className="w-full sm:w-64 bg-white/40 border border-white/60 rounded-full px-4 py-2 text-[12px] font-semibold outline-none focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/40 shadow-sm text-navy-900"
-        />
+        <div className={`relative w-full ${wide ? 'sm:w-96' : 'sm:w-64'}`}>
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700/40">
+                <Search size={14} strokeWidth={2.5} />
+            </div>
+            <input
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                className="w-full bg-white/40 border border-white/60 rounded-full pl-9 pr-4 py-2 text-[12px] font-semibold outline-none focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/40 shadow-sm text-navy-900"
+            />
+        </div>
+    );
+}
+
+// Panel ícono + título + valor — mismo lenguaje que las tarjetas KPI de
+// Resumen (FinanceSummary.jsx `FinKpi`), en tamaño compacto para vivir en la
+// cabecera de una lista (ej. "Movimientos" en Ingresos/Egresos/Por cobrar).
+export function MiniStatCard({ icon: Icon, label, value, title }) {
+    return (
+        <div title={title} className="relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl px-3.5 py-2 shadow-md flex items-center gap-2.5 shrink-0">
+            <div className="absolute -top-4 -right-4 w-14 h-14 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+            <div className="absolute -bottom-4 -left-4 w-14 h-14 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+            <div className="relative z-10 w-8 h-8 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
+                <Icon size={14} strokeWidth={2.5} />
+            </div>
+            <div className="relative z-10 min-w-0">
+                <div className="text-[8.5px] font-bold tracking-wider text-navy-900/40 leading-none whitespace-nowrap">{label}</div>
+                <div className="text-[14px] font-bold text-navy-900 tabular-nums leading-tight mt-0.5 whitespace-nowrap">{value}</div>
+            </div>
+        </div>
+    );
+}
+
+// Botón de acción con hover-expand — usado en las cabeceras locales de cada
+// submódulo (Resumen/Ingresos/Egresos/Por cobrar), nunca en el header fijo de
+// la página: los botones de acción viven junto al contenido de su submódulo,
+// no arriba en la línea del título (ahí solo van los tabs, siempre estables).
+export function AddBtn({ icon: Icon = Save, label, onClick }) {
+    return (
+        <button onClick={onClick}
+            className="relative overflow-hidden group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 rounded-full shadow-md hover:bg-white/60 transition-all duration-300 shrink-0">
+            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+            <Icon size={15} className="shrink-0 relative z-10" />
+            <span className="max-w-0 overflow-hidden group-hover:max-w-[140px] transition-all duration-300 whitespace-nowrap text-[11px] font-bold relative z-10">{label}</span>
+        </button>
     );
 }
 export const FREQ_OPTIONS = [
@@ -162,6 +203,95 @@ export function AmountInput({ value, onChange, autoFocus }) {
             <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-navy-700/60 font-bold text-sm pointer-events-none">Q</span>
             <input type="number" min="0" step="0.01" inputMode="decimal" value={value} onChange={e => onChange(e.target.value)} autoFocus={autoFocus} placeholder="0.00"
                 className="w-full bg-white/40 border border-white/60 rounded-full pl-9 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm text-navy-900" />
+        </div>
+    );
+}
+
+// ── Monto por unidades (mismo mecanismo que el precio de Servicios/Ofertas,
+// ver Settings.jsx) — cada dígito corre el punto decimal, como una caja
+// registradora. `cents` es un entero (350 = Q3.50) o null; nunca se puede
+// escribir una coma/punto "a mano" ni pegar texto no numérico.
+export function decimalToCents(value) {
+    if (value == null || value === '') return null;
+    return Math.round(Number(value) * 100);
+}
+export function centsToDecimal(cents) {
+    return cents != null ? cents / 100 : null;
+}
+function formatCentsDisplay(cents) {
+    if (cents == null || cents === 0) return '0.00';
+    return (cents / 100).toFixed(2);
+}
+export function CentsAmountInput({ cents, onChange, autoFocus, max = 9999999 }) {
+    function handleKey(e) {
+        if (e.key === 'Backspace') {
+            e.preventDefault();
+            const next = Math.floor((cents ?? 0) / 10);
+            onChange(next === 0 ? null : next);
+            return;
+        }
+        if (!/^\d$/.test(e.key)) return;
+        e.preventDefault();
+        const next = (cents ?? 0) * 10 + Number(e.key);
+        onChange(Math.min(next, max));
+    }
+    return (
+        <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-navy-700/60 font-bold text-sm pointer-events-none select-none">Q</span>
+            <input
+                type="text"
+                inputMode="none"
+                readOnly
+                autoFocus={autoFocus}
+                value={formatCentsDisplay(cents)}
+                onKeyDown={handleKey}
+                placeholder="0.00"
+                className={`w-full bg-white/40 border border-white/60 rounded-full pl-9 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm cursor-text select-none ${cents ? 'text-navy-900' : 'text-navy-700/40'}`}
+            />
+        </div>
+    );
+}
+
+// Mismo mecanismo por dígitos que CentsAmountInput, para porcentajes (0-100.0,
+// 1 decimal). `tenths` es un entero (855 = 85.5%) — usado en la comisión de
+// Producción en vez del input numérico nativo de antes.
+export function decimalToTenths(value) {
+    if (value == null || value === '') return null;
+    return Math.round(Number(value) * 10);
+}
+export function tenthsToDecimal(tenths) {
+    return tenths != null ? tenths / 10 : null;
+}
+function formatTenthsDisplay(tenths) {
+    if (tenths == null || tenths === 0) return '0.0';
+    return (tenths / 10).toFixed(1);
+}
+export function PercentInput({ tenths, onChange, autoFocus, max = 1000 }) {
+    function handleKey(e) {
+        if (e.key === 'Backspace') {
+            e.preventDefault();
+            const next = Math.floor((tenths ?? 0) / 10);
+            onChange(next === 0 ? null : next);
+            return;
+        }
+        if (!/^\d$/.test(e.key)) return;
+        e.preventDefault();
+        const next = (tenths ?? 0) * 10 + Number(e.key);
+        onChange(Math.min(next, max));
+    }
+    return (
+        <div className="relative">
+            <input
+                type="text"
+                inputMode="none"
+                readOnly
+                autoFocus={autoFocus}
+                value={formatTenthsDisplay(tenths)}
+                onKeyDown={handleKey}
+                placeholder="0.0"
+                className={`w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-9 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm cursor-text select-none text-right ${tenths ? 'text-navy-900' : 'text-navy-700/40'}`}
+            />
+            <span className="absolute inset-y-0 right-0 pr-4 flex items-center text-navy-700/60 font-bold text-sm pointer-events-none select-none">%</span>
         </div>
     );
 }

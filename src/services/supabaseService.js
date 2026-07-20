@@ -110,12 +110,23 @@ async function toISO(date, time) {
 
 // ── Services ─────────────────────────────────────────────
 
-export async function getServices() {
-    const { data, error } = await supabase
+// Sin argumentos: array completo (usado por selectores/pickers — Ofertas,
+// Resumen de Finanzas, Vouchers). Con { page, pageSize }: página real vía
+// `.range()` + count, para el listado de gestión (Settings) con "Cargar más".
+export async function getServices({ page, pageSize } = {}) {
+    let q = supabase
         .from('services')
-        .select('*')
+        .select('*', pageSize != null ? { count: 'exact' } : undefined)
         .eq('business_id', getBID())
         .order('name', { ascending: true });
+    if (pageSize != null) {
+        const from = (page || 0) * pageSize;
+        q = q.range(from, from + pageSize - 1);
+        const { data, error, count } = await q;
+        if (error) throw error;
+        return { data: data || [], count: count ?? 0 };
+    }
+    const { data, error } = await q;
     if (error) throw error;
     return data || [];
 }
@@ -248,14 +259,37 @@ export async function deleteFinanceCategory(id) {
 // Tabla offers se enlaza 1:1 con services. La vista services_with_active_offer
 // expone effective_price para front + n8n. RLS scoped por business_id.
 
-export async function getOffers() {
+// Igual que getServices: sin args → array completo; con { page, pageSize } →
+// página real (`.range()` + count) para el listado con "Cargar más".
+export async function getOffers({ page, pageSize } = {}) {
+    let q = supabase
+        .from('offers')
+        .select('*, services(id, name, price)', pageSize != null ? { count: 'exact' } : undefined)
+        .eq('business_id', getBID())
+        .order('starts_at', { ascending: false });
+    if (pageSize != null) {
+        const from = (page || 0) * pageSize;
+        q = q.range(from, from + pageSize - 1);
+        const { data, error, count } = await q;
+        if (error) throw error;
+        return { data: data || [], count: count ?? 0 };
+    }
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+}
+
+// Fallback para el deep-link ?offer=<id>: la oferta puede no estar entre lo
+// ya cargado por la paginación real del listado.
+export async function getOfferById(id) {
     const { data, error } = await supabase
         .from('offers')
         .select('*, services(id, name, price)')
+        .eq('id', id)
         .eq('business_id', getBID())
-        .order('starts_at', { ascending: false });
+        .maybeSingle();
     if (error) throw error;
-    return data || [];
+    return data;
 }
 
 export async function createOffer({ service_id, name, description, promo_price, starts_at, ends_at, active = true }) {
@@ -391,6 +425,9 @@ export async function createAppointment({ patientId, serviceId, date, startTime,
         if (/horario del negocio/i.test(error.message || '')) {
             throw new Error('El turno está fuera del horario del negocio.');
         }
+        // Agenda avanzada: festivo/cerrado o cupo diario alcanzado (validate_appointment v2)
+        if (error.hint === 'SCHEDULE_CLOSED') throw new Error('El negocio está cerrado ese día (festivo o excepción).');
+        if (error.hint === 'SCHEDULE_DAILY_CAP') throw new Error('Se alcanzó el cupo máximo de citas para ese día.');
         // El trigger enforce_appointment_limit rechaza con HINT PLAN_LIMIT_* si el gate
         // de la UI no alcanzó a frenar (p. ej. dos pestañas abiertas).
         if (error.hint?.startsWith('PLAN_LIMIT')) {
@@ -498,16 +535,24 @@ export async function markAsRescheduled(id) {
  * @param {'all'|'no_show'|'cancelled'} opts.type   - filter by status type
  * @param {number}                      opts.days   - look-back window in days (default 30)
  */
-export async function getLostAppointments({ type = 'all', days = 30 } = {}) {
+// Paginación real (.range() + count) — la búsqueda por nombre/teléfono filtra
+// sobre lo ya cargado en el cliente (mismo patrón que Finanzas/Servicios/Ofertas).
+export async function getLostAppointments({ type = 'all', days = 30, page = 0, pageSize = 30 } = {}) {
     const since = new Date();
-    since.setDate(since.getDate() - days);
-    since.setHours(0, 0, 0, 0);
+    if (days === 0) {
+        // "Hoy": desde medianoche del día actual.
+        since.setHours(0, 0, 0, 0);
+    } else {
+        since.setDate(since.getDate() - days);
+        since.setHours(0, 0, 0, 0);
+    }
 
     const statuses = type === 'no_show' ? ['no_show']
         : type === 'cancelled' ? ['cancelled']
             : ['no_show', 'cancelled'];
 
-    const { data, error } = await supabase
+    const from = page * pageSize;
+    const { data, error, count } = await supabase
         .from('appointments')
         .select(`
             id, date_start, date_end, status, patient_id, service_id, is_rescheduled,
@@ -516,15 +561,19 @@ export async function getLostAppointments({ type = 'all', days = 30 } = {}) {
                 patient_phones(phone, is_primary)
             ),
             services(id, name, duration_minutes, price)
-        `)
+        `, { count: 'exact' })
         .eq('business_id', getBID())
         .in('status', statuses)
         .eq('is_rescheduled', false)
         .gte('date_start', since.toISOString())
-        .order('date_start', { ascending: false });
+        .order('date_start', { ascending: false })
+        .range(from, from + pageSize - 1);
 
     if (error) throw error;
-    return (data ?? []).filter(apt => apt.patients && apt.patients.deleted_at === null);
+    return {
+        data: (data ?? []).filter(apt => apt.patients && apt.patients.deleted_at === null),
+        count: count ?? 0,
+    };
 }
 
 // ── Patients ──────────────────────────────────────────────
@@ -831,30 +880,15 @@ export async function clearPatientHistory(patientId) {
 }
 
 /**
- * T-10: GDPR Art. 17 — Borrado permanente e irreversible de todos los datos del paciente.
- * Elimina en orden de dependencia: teléfonos → historial → citas → paciente.
- * Solo debe llamarse desde un flujo con confirmación explícita del administrador.
+ * Elimina UN mensaje individual del historial de conversación (como en el chat
+ * de la IA). Requiere la política history_delete (business + is_business_active).
  */
-export async function gdprDeletePatient(patientId) {
-    const bid = getBID();
-
-    const deletes = [
-        supabase.from('patient_phones').delete().eq('patient_id', patientId).eq('business_id', bid),
-        supabase.from('history').delete().eq('patient_id', patientId).eq('business_id', bid),
-        supabase.from('appointments').delete().eq('patient_id', patientId).eq('business_id', bid),
-    ];
-
-    for (const op of deletes) {
-        const { error } = await op;
-        if (error) throw error;
-    }
-
+export async function deleteHistoryMessage(id) {
     const { error } = await supabase
-        .from('patients')
+        .from('history')
         .delete()
-        .eq('id', patientId)
-        .eq('business_id', bid);
-
+        .eq('id', id)
+        .eq('business_id', getBID());
     if (error) throw error;
 }
 
@@ -917,7 +951,7 @@ export async function getStatsOverview() {
 export async function getBusinessInfo() {
     const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, business_type, notification_email, custom_prompt, feature_flags, plans(id, tier, name, monthly_price, annual_discount, max_patients, max_staff, max_appointments, max_conversations, features)')
+        .select('id, name, plan_status, plan_expires_at, timezone, schedule_start, schedule_end, schedule_days, appointment_duration, max_appointments_per_day, price_rounding_increment, business_type, notification_email, custom_prompt, feature_flags, plans(id, tier, name, monthly_price, annual_discount, max_patients, max_staff, max_conversations, max_appointments, features)')
         .eq('id', getBID())
         .single();
 
@@ -925,6 +959,65 @@ export async function getBusinessInfo() {
     // Compatibilidad: exponer plan como string para código legacy que lea data.plan
     if (data) data.plan = data.plans?.tier || null;
     return data;
+}
+
+// ── Agenda avanzada: excepciones (festivos/horario especial) + cupo diario ──
+// La lógica dura vive en la DB (get_available_slots v2 + validate_appointment v2),
+// aplicando a bot Y dashboard. Estas funciones solo administran la configuración.
+export async function getScheduleExceptions() {
+    const { data, error } = await supabase
+        .from('schedule_exceptions')
+        .select('*')
+        .eq('business_id', getBID())
+        .order('exception_date', { ascending: true });
+    if (error) {
+        if (error.code === 'PGRST116' || error.code === '42P01') return [];
+        throw error;
+    }
+    return data || [];
+}
+
+export async function createScheduleException({ exception_date, is_closed = true, custom_start = null, custom_end = null, note = null }) {
+    const { data, error } = await supabase
+        .from('schedule_exceptions')
+        .insert({ business_id: getBID(), exception_date, is_closed, custom_start, custom_end, note })
+        .select()
+        .single();
+    if (error) {
+        if (error.code === '23505') throw new Error('Ya existe una excepción para esa fecha.');
+        throw error;
+    }
+    return data;
+}
+
+export async function deleteScheduleException(id) {
+    const { error } = await supabase
+        .from('schedule_exceptions')
+        .delete()
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
+}
+
+export async function updateDailyCap(maxPerDay) {
+    // null / '' → sin tope
+    const value = maxPerDay === '' || maxPerDay == null ? null : Number(maxPerDay);
+    const { error } = await supabase
+        .from('businesses')
+        .update({ max_appointments_per_day: value })
+        .eq('id', getBID());
+    if (error) throw error;
+    return value;
+}
+
+// Redondeo de precios (Ofertas: precio calculado por % de descuento).
+export async function updatePriceRounding(increment) {
+    const { error } = await supabase
+        .from('businesses')
+        .update({ price_rounding_increment: increment })
+        .eq('id', getBID());
+    if (error) throw error;
+    return increment;
 }
 
 // ── Plans (catálogo) ─────────────────────────────────────
@@ -1500,6 +1593,23 @@ export async function getLatestAIInsight(scope, refId = null) {
     return rows[0] || null;
 }
 
+// Nombres de pacientes por id (batch) — usado por Actividad reciente para
+// mostrar a QUIÉN pertenece un análisis por cliente (ai_insights.ref_id no
+// trae el nombre, solo el uuid).
+export async function getPatientsByIds(ids) {
+    if (!ids.length) return [];
+    const { data, error } = await supabase
+        .from('patients')
+        .select('id, display_name')
+        .eq('business_id', getBID())
+        .in('id', ids);
+    if (error) {
+        if (AI_TABLE_MISSING.has(error.code)) return [];
+        throw error;
+    }
+    return data || [];
+}
+
 // invoke() esconde el body de una respuesta no-2xx dentro de error.context
 // (un Response). Sin esto, el usuario vería "no disponible" aunque la función
 // haya explicado el motivo real (rate limit, plan, IA inválida...). Además
@@ -1697,19 +1807,25 @@ export async function getServiceCosts() {
 }
 
 // ── Ingresos ─────────────────────────────────────────────
-export async function getIncomeEntries({ start, end, status = 'confirmed', limit = 200 } = {}) {
+// Paginación real (page/pageSize, .range()+count exact — mismo patrón que
+// getPatients/getAuditLog) para que el libro de ingresos no dependa de cargar
+// todo el período de un solo golpe. `page`/`pageSize` opcionales: si no se
+// pasan, se comporta como antes (primera página de `pageSize` filas).
+export async function getIncomeEntries({ start, end, status = 'confirmed', page = 0, pageSize = 200 } = {}) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
     let q = supabase
         .from('income_entries')
-        .select('*, patients(display_name), finance_categories(id, name, color)')
+        .select('*, patients(display_name), finance_categories(id, name, color)', { count: 'exact' })
         .eq('business_id', getBID())
         .order('occurred_at', { ascending: false })
-        .limit(limit);
+        .range(from, to);
     if (status) q = q.eq('status', status);
     if (start) q = q.gte('occurred_at', start);
     if (end) q = q.lt('occurred_at', end);
-    const { data, error } = await q;
+    const { data, error, count } = await q;
     if (error) throw error;
-    return data || [];
+    return { data: data || [], count: count ?? 0 };
 }
 
 // Ingreso manual / ad-hoc (venta sin turno, producto, etc.)
@@ -1804,19 +1920,22 @@ export async function getPendingValidations() {
 }
 
 // ── Egresos / Gastos ─────────────────────────────────────
-export async function getExpenseEntries({ start, end, status = 'confirmed', limit = 200 } = {}) {
+// Misma paginación real que getIncomeEntries — .range()+count exact.
+export async function getExpenseEntries({ start, end, status = 'confirmed', page = 0, pageSize = 200 } = {}) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
     let q = supabase
         .from('expense_entries')
-        .select('*, supplies(name, unit), finance_categories(id, name, color)')
+        .select('*, supplies(name, unit), finance_categories(id, name, color)', { count: 'exact' })
         .eq('business_id', getBID())
         .order('occurred_at', { ascending: false })
-        .limit(limit);
+        .range(from, to);
     if (status) q = q.eq('status', status);
     if (start) q = q.gte('occurred_at', start);
     if (end) q = q.lt('occurred_at', end);
-    const { data, error } = await q;
+    const { data, error, count } = await q;
     if (error) throw error;
-    return data || [];
+    return { data: data || [], count: count ?? 0 };
 }
 
 // category (texto) se conserva por compatibilidad con get_finance_summary/ExpenseSection
@@ -1896,18 +2015,21 @@ export async function getFinanceTrend(granularity = 'month', start, end) {
 // (doc "Finanzas v2 - Evaluacion y Roadmap")
 // ════════════════════════════════════════════════════════════════════════════
 
-// ── Ajustes: meta mensual ────────────────────────────────
-export async function getFinanceSettings() {
+// ── Ajustes: meta mensual (real por mes, finance_monthly_goals) ──────────
+export async function getMonthlyGoals(year) {
     const { data, error } = await supabase
-        .from('finance_settings').select('*').eq('business_id', getBID()).maybeSingle();
+        .from('finance_monthly_goals')
+        .select('*')
+        .eq('business_id', getBID())
+        .eq('year', year);
     if (error) throw error;
-    return data;
+    return data || [];
 }
 
-export async function saveFinanceSettings({ monthly_goal }) {
+export async function saveMonthlyGoal(year, month, amount) {
     const { data, error } = await supabase
-        .from('finance_settings')
-        .upsert({ business_id: getBID(), monthly_goal: monthly_goal ?? 0 }, { onConflict: 'business_id' })
+        .from('finance_monthly_goals')
+        .upsert({ business_id: getBID(), year, month, goal_amount: amount ?? 0 }, { onConflict: 'business_id,year,month' })
         .select()
         .single();
     if (error) throw error;
@@ -1971,8 +2093,11 @@ export async function deletePaymentMethod(id) {
 }
 
 // ── Por cobrar: planes de pago + abonos ──────────────────
-export async function getPaymentPlans(status = null) {
-    const { data, error } = await supabase.rpc('get_payment_plans', { p_status: status });
+// Paginación real (p_limit/p_offset en la RPC) — hasMore se infiere por
+// "vinieron tantas filas como pedí" (mismo criterio que getPatientHistory),
+// la RPC no trae un count total.
+export async function getPaymentPlans(status = null, { page = 0, pageSize = 20 } = {}) {
+    const { data, error } = await supabase.rpc('get_payment_plans', { p_status: status, p_limit: pageSize, p_offset: page * pageSize });
     if (error) throw error;
     return data || [];
 }
@@ -2012,6 +2137,45 @@ export async function cancelPaymentPlan(id, reason = null) {
     return data;
 }
 
+// ── Vouchers de pago (código único compartible) ──────────
+// Los vouchers ligados a un cobro de turno (income_id != null) los crea la DB
+// en submit_income_validation; aquí solo se listan/crean los manuales.
+export async function getVouchers(status = 'pending') {
+    let q = supabase
+        .from('payment_vouchers')
+        .select('*, patients(display_name), payment_plans(description), redeemed_income:income_entries!payment_vouchers_redeemed_income_id_fkey(payment_method, occurred_at)')
+        .eq('business_id', getBID())
+        .order('created_at', { ascending: false })
+        .limit(100);
+    if (status && status !== 'all') q = q.eq('status', status);
+    const { data, error } = await q;
+    if (error) {
+        if (error.code === 'PGRST116' || error.code === '42P01') return [];
+        throw error;
+    }
+    return data || [];
+}
+
+export async function createVoucher({ amount, patient_id = null, plan_id = null, note = null, expires_at = null, service_name = null }) {
+    const { data, error } = await supabase.rpc('create_voucher', {
+        p_amount: amount, p_patient_id: patient_id, p_plan_id: plan_id, p_note: note, p_expires_at: expires_at, p_service_name: service_name,
+    });
+    if (error) throw error;
+    return data; // fila del voucher (incl. code)
+}
+
+// Redime por código: crea el ingreso (abono si liga a plan; 'voucher' si no).
+export async function redeemVoucher(code, paymentMethod = null) {
+    const { data, error } = await supabase.rpc('redeem_voucher', { p_code: code, p_payment_method: paymentMethod });
+    if (error) throw error;
+    return data; // { income, plan_completed }
+}
+
+export async function cancelVoucher(id) {
+    const { error } = await supabase.rpc('cancel_voucher', { p_id: id });
+    if (error) throw error;
+}
+
 // ── Producción y comisiones por profesional ──────────────
 export async function getStaffProduction(start, end) {
     const { data, error } = await supabase.rpc('get_staff_production', { p_start: start, p_end: end });
@@ -2049,8 +2213,8 @@ export async function closeCashSession(countedAmount, notes = null) {
     return data;
 }
 
-export async function getCashSessions(limit = 30) {
-    const { data, error } = await supabase.rpc('get_cash_sessions', { p_limit: limit });
+export async function getCashSessions({ page = 0, pageSize = 20 } = {}) {
+    const { data, error } = await supabase.rpc('get_cash_sessions', { p_limit: pageSize, p_offset: page * pageSize });
     if (error) throw error;
     return data || [];
 }

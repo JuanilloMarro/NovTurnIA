@@ -65,6 +65,9 @@ const OWNER_PERMISSIONS = {
   // Finanzas
   view_finance: true, confirm_delivery: true, record_income: true, record_expense: true,
   manage_supplies: true, void_finance: true, manage_finance_categories: true,
+  manage_cash: true, pay_commission: true, manage_finance_settings: true,
+  // Centro de IA
+  use_ai_hub: true,
   // Administración
   manage_roles: true, delete_users: true, export_reports: true,
 };
@@ -91,6 +94,9 @@ const SECRETARY_PERMISSIONS = {
   // Finanzas
   view_finance: false, confirm_delivery: false, record_income: false, record_expense: false,
   manage_supplies: false, void_finance: false, manage_finance_categories: false,
+  manage_cash: false, pay_commission: false, manage_finance_settings: false,
+  // Centro de IA
+  use_ai_hub: false,
   // Administración
   manage_roles: false, delete_users: false, export_reports: false,
 };

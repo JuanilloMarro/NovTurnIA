@@ -3,7 +3,7 @@ import { Plus, Save } from 'lucide-react';
 import { useFinanceCategories } from '../../hooks/useFinanceCategories';
 import { getSupplies } from '../../services/supabaseService';
 import { showErrorToast } from '../../store/useToastStore';
-import { ModalShell, FieldLabel, TextInput, AmountInput, DateWheels, OptionWheel, NotesField, ModalButtons, FREQ_OPTIONS, useMethodOptions, todayISO, isoToTimestamp, isoToDateInput } from './financeUi';
+import { ModalShell, FieldLabel, TextInput, CentsAmountInput, decimalToCents, centsToDecimal, DateWheels, OptionWheel, NotesField, ModalButtons, FREQ_OPTIONS, useMethodOptions, todayISO, isoToTimestamp, isoToDateInput } from './financeUi';
 
 // initial = entrada a editar (o null para crear). onSubmit(fields) → Promise.
 export default function RecordExpenseModal({ initial = null, onClose, onSubmit }) {
@@ -22,7 +22,7 @@ export default function RecordExpenseModal({ initial = null, onClose, onSubmit }
     }, []);
 
     const [description, setDescription] = useState(initial?.description || '');
-    const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '');
+    const [amountCents, setAmountCents] = useState(decimalToCents(initial?.amount));
     const [categoryId, setCategoryId] = useState(initial?.category_id || null);
     const [date, setDate] = useState(initial?.occurred_at ? isoToDateInput(initial.occurred_at) : todayISO());
     const [method, setMethod] = useState(initial?.payment_method || 'cash');
@@ -45,16 +45,15 @@ export default function RecordExpenseModal({ initial = null, onClose, onSubmit }
     }, [catsLoading, expenseCats.length]);
 
     async function submit() {
-        const amt = Number(amount);
         if (!description.trim()) { showErrorToast('Falta descripción', 'Describe el egreso.'); return; }
-        if (!(amt >= 0)) { showErrorToast('Monto inválido', 'Ingresa un monto válido.'); return; }
+        if (!amountCents || amountCents <= 0) { showErrorToast('Monto inválido', 'Ingresa un monto válido.'); return; }
         setSaving(true);
         try {
             const selectedCat = expenseCats.find(c => c.id === categoryId);
             const isPurchase = supplyId && supplyId !== 'none';
             await onSubmit({
                 description: description.trim(),
-                amount: amt,
+                amount: centsToDecimal(amountCents),
                 category: selectedCat?.name || 'General', // back-compat (texto legacy)
                 category_id: categoryId,
                 payment_method: method,
@@ -85,7 +84,7 @@ export default function RecordExpenseModal({ initial = null, onClose, onSubmit }
             </div>
             <div>
                 <FieldLabel title="Monto" subtitle="Total del gasto." />
-                <AmountInput value={amount} onChange={setAmount} />
+                <CentsAmountInput cents={amountCents} onChange={setAmountCents} />
             </div>
             <div>
                 <FieldLabel title="Categoría" subtitle="Tipo de gasto para los reportes." />
@@ -105,7 +104,7 @@ export default function RecordExpenseModal({ initial = null, onClose, onSubmit }
                 <FieldLabel title="Método de pago" subtitle="¿Cómo se pagó? (el efectivo descuenta de la caja del día)" />
                 <OptionWheel options={methodOptions} value={method} onChange={setMethod} />
             </div>
-            {!editing && supplies.length > 0 && (
+            {supplies.length > 0 && (
                 <div>
                     <FieldLabel title="Compra de insumo" subtitle="Si es una compra, el stock del inventario se suma solo." />
                     <OptionWheel options={supplyOptions} value={supplyId ?? 'none'} onChange={setSupplyId} />

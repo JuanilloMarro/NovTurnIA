@@ -48,7 +48,7 @@ export default function ConfirmDeliveryModal({ serviceName, clientName, defaultA
             </div>
             {staff.length > 0 && (
                 <div>
-                    <FieldLabel title="Atendido por" subtitle="Quién realizó el servicio — alimenta Producción y comisiones." />
+                    <FieldLabel title="Atendido por" subtitle="Quién realizó el servicio, alimenta Producción y comisiones." />
                     <OptionWheel options={staffOptions} value={staffId ?? 'none'} onChange={setStaffId} />
                 </div>
             )}

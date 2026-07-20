@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
-import { Search, MessageCircle, Bot, ShieldAlert, SlidersHorizontal, Send, Clock, PanelRight, MoreVertical, Trash2, X, Eraser } from 'lucide-react';
+import { Search, MessageCircle, Bot, ShieldAlert, SlidersHorizontal, Send, Clock, PanelRight, Trash2, X } from 'lucide-react';
 import AIStar from '../components/Icons/AIStar';
 import { ContextPanels } from '../components/conversations/ContextSidebar';
 import { usePermissions } from '../hooks/usePermissions';
-import { getPatientHistory, setHumanTakeover, getPatientsForConversations, sendHumanMessage, deletePatient, clearPatientHistory } from '../services/supabaseService';
+import { getPatientHistory, setHumanTakeover, getPatientsForConversations, sendHumanMessage, deletePatient, deleteHistoryMessage } from '../services/supabaseService';
 import { showErrorToast } from '../store/useToastStore';
 import { formatPhone } from '../utils/format';
 import { useAppStore } from '../store/useAppStore';
@@ -47,7 +47,7 @@ export default function Conversations() {
     const [sortOrder, setSortOrder] = useState('recent');
     const [showFilter, setShowFilter] = useState(false);
     const filterRef = useRef(null);
-    const { canToggleAi, canDeletePatients, canReplyConversations, canClearConversations, canDeleteConversations } = usePermissions();
+    const { canToggleAi, canDeletePatients, canReplyConversations, canDeleteConversations } = usePermissions();
     const { maxPatients, patientsUsed } = usePlanLimits();
     const humanTakeoverMap = useAppStore(s => s.humanTakeoverMap);
 
@@ -97,11 +97,8 @@ export default function Conversations() {
     const [sending, setSending] = useState(false);
     const [showContext, setShowContext] = useState(true);
     const [mobilePanelsOpen, setMobilePanelsOpen] = useState(false);
-    const [chatMenuOpen, setChatMenuOpen] = useState(false);
-    const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [showDeleteChatConfirm, setShowDeleteChatConfirm] = useState(false);
     const [processingChat, setProcessingChat] = useState(false);
-    const chatMenuRef = useRef(null);
     const textareaRef = useRef(null);
 
     // Auto-expand textarea height as the user types (like WhatsApp)
@@ -118,29 +115,16 @@ export default function Conversations() {
         }
     }, [draft]);
 
-    // Cierra el menú del chat (3 puntos) al hacer click fuera
-    useEffect(() => {
-        if (!chatMenuOpen) return;
-        function onDocClick(e) {
-            if (chatMenuRef.current && !chatMenuRef.current.contains(e.target)) setChatMenuOpen(false);
-        }
-        document.addEventListener('mousedown', onDocClick);
-        return () => document.removeEventListener('mousedown', onDocClick);
-    }, [chatMenuOpen]);
-
-    // Vaciar el chat (borra los mensajes, conserva al cliente)
-    async function handleClearChat() {
-        if (!selectedPatient || processingChat) return;
-        setProcessingChat(true);
+    // Eliminar UN mensaje individual (como en el chat de la IA)
+    async function handleDeleteMessage(id) {
+        if (!id) return;
+        const prev = history;
+        setHistory(h => h.filter(m => m.id !== id)); // optimista
         try {
-            await clearPatientHistory(selectedPatient.id);
-            setHistory([]);
-            setHistoryHasMore(false);
-            setShowClearConfirm(false);
+            await deleteHistoryMessage(id);
         } catch {
-            showErrorToast('No se pudo vaciar', 'Intenta nuevamente en unos segundos.');
-        } finally {
-            setProcessingChat(false);
+            setHistory(prev); // revertir
+            showErrorToast('No se pudo eliminar el mensaje', 'Intenta de nuevo.');
         }
     }
 
@@ -561,44 +545,18 @@ export default function Conversations() {
                                             <PanelRight size={15} strokeWidth={2.5} className="shrink-0 relative z-10" />
                                             <span className="max-w-0 overflow-hidden group-hover/op:max-w-[80px] transition-all duration-300 whitespace-nowrap text-[11px] font-bold relative z-10">Paneles</span>
                                         </button>
-                                        {/* Menú de opciones del chat (vaciar / eliminar) */}
-                                        {(canClearConversations || canDeleteConversations) && (
-                                            <div className="relative" ref={chatMenuRef}>
-                                                <button
-                                                    onClick={() => setChatMenuOpen(v => !v)}
-                                                    className="relative overflow-hidden w-9 h-9 rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-700 flex items-center justify-center shadow-md hover:bg-white/60 transition-colors"
-                                                    title="Opciones del chat"
-                                                    aria-label="Opciones del chat"
-                                                >
-                                                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                                                    <div className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                                                    <MoreVertical size={16} strokeWidth={2.5} className="relative z-10" />
-                                                </button>
-                                                {chatMenuOpen && (
-                                                    <div className="overflow-hidden absolute right-0 top-11 w-44 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[20px] shadow-md z-50 p-1.5 animate-fade-up">
-                                                        <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
-                                                        <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
-                                                        <div className="relative z-10">
-                                                            {canClearConversations && (
-                                                                <button
-                                                                    onClick={() => { setChatMenuOpen(false); setShowClearConfirm(true); }}
-                                                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-bold text-navy-700 hover:bg-navy-50 transition-colors text-left"
-                                                                >
-                                                                    <Eraser size={14} strokeWidth={2.5} className="shrink-0" /> Vaciar chat
-                                                                </button>
-                                                            )}
-                                                            {canDeleteConversations && (
-                                                                <button
-                                                                    onClick={() => { setChatMenuOpen(false); setShowDeleteChatConfirm(true); }}
-                                                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left"
-                                                                >
-                                                                    <Trash2 size={14} strokeWidth={2.5} className="shrink-0" /> Eliminar chat
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
+                                        {/* Eliminar chat — directo, sin menú intermedio */}
+                                        {canDeleteConversations && (
+                                            <button
+                                                onClick={() => setShowDeleteChatConfirm(true)}
+                                                className="relative overflow-hidden w-9 h-9 rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 text-rose-500 flex items-center justify-center shadow-md hover:bg-rose-500 hover:border-rose-500 hover:text-white transition-colors"
+                                                title="Eliminar chat"
+                                                aria-label="Eliminar chat"
+                                            >
+                                                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                                <div className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                                                <Trash2 size={16} strokeWidth={2.5} className="relative z-10" />
+                                            </button>
                                         )}
                                     </div>
                                 </div>
@@ -645,15 +603,29 @@ export default function Conversations() {
                                                 const isBot = msg.role === 'assistant'; // respuesta de la IA
                                                 const isOutgoing = isAgent || isBot;
                                                 return (
-                                                    <div key={item.id} className={`flex w-full ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
+                                                    <div key={item.id} className={`group/msg flex w-full items-center gap-1.5 ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
+                                                        {/* Eliminar mensaje individual (izquierda para salientes) */}
+                                                        {canDeleteConversations && !msg._pending && isOutgoing && (
+                                                            <button onClick={() => handleDeleteMessage(msg.id)} title="Eliminar mensaje"
+                                                                className="opacity-0 group-hover/msg:opacity-100 shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/50 border border-white/60 text-rose-500 hover:bg-rose-500 hover:text-white shadow-sm transition-all">
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        )}
                                                         <div className={`max-w-[75%] relative overflow-hidden px-4 py-2.5 text-[13px] leading-relaxed font-medium backdrop-blur-2xl shadow-md bg-white/40 border border-white/60 text-navy-900 rounded-[20px] ${isOutgoing ? 'rounded-br-[4px]' : 'rounded-bl-[4px]'} ${msg._pending ? 'opacity-60' : ''}`}>
                                                             {/* degradado de panel (mismas esquinas que el resto del sistema) */}
                                                             <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />
                                                             <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(120,110,230,0.05)' }} />
                                                             <div className="relative z-10">
                                                                 <p className="whitespace-pre-wrap">{msg.content}</p>
-                                                                <div className={`text-[9px] uppercase font-bold tracking-widest mt-1.5 flex items-center gap-1 text-navy-900/55 ${isOutgoing ? 'justify-end' : ''}`}>
-                                                                    {isOutgoing && <span>{isAgent ? 'Tú' : 'IA'}</span>}
+                                                                <div className={`text-[9px] uppercase font-bold tracking-widest mt-1.5 flex items-center gap-1.5 text-navy-900/55 ${isOutgoing ? 'justify-end' : ''}`}>
+                                                                    {isOutgoing && (
+                                                                        <span className={`px-1.5 py-[1px] rounded-full tracking-wider ${isAgent
+                                                                            ? 'bg-navy-900/10 text-navy-900/70'
+                                                                            : 'text-white'}`}
+                                                                            style={!isAgent ? { background: 'linear-gradient(90deg, rgba(64,98,200,1), rgba(120,110,230,1))' } : undefined}>
+                                                                            {isAgent ? 'Tú' : 'IA'}
+                                                                        </span>
+                                                                    )}
                                                                     <span>
                                                                         {msg._pending
                                                                             ? 'Enviando…'
@@ -662,6 +634,13 @@ export default function Conversations() {
                                                                 </div>
                                                             </div>
                                                         </div>
+                                                        {/* Eliminar mensaje entrante (a la derecha del cliente) */}
+                                                        {canDeleteConversations && !msg._pending && !isOutgoing && (
+                                                            <button onClick={() => handleDeleteMessage(msg.id)} title="Eliminar mensaje"
+                                                                className="opacity-0 group-hover/msg:opacity-100 shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/50 border border-white/60 text-rose-500 hover:bg-rose-500 hover:text-white shadow-sm transition-all">
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 );
                                             })}
@@ -731,24 +710,7 @@ export default function Conversations() {
                                     </div>
                                 )}
 
-                                {/* Confirmaciones del chat — mismo UI que el borrado de cliente */}
-                                {showClearConfirm && createPortal(
-                                    <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-                                        <div className="w-full max-w-sm bg-white/30 backdrop-blur-xl border border-white/50 p-6 animate-fade-up shadow-[0_8px_32px_rgba(26,58,107,0.15)] rounded-[32px]">
-                                            <p className="text-sm font-bold text-navy-900 text-center mb-1">¿Vaciar el chat?</p>
-                                            <p className="text-xs text-navy-700/70 text-center mb-5 px-4">Esta acción no se puede deshacer. Se borrarán todos los mensajes de <span className="font-bold text-navy-900">{selectedPatient?.display_name || 'este cliente'}</span>, pero el cliente se conserva.</p>
-                                            <div className="flex justify-center gap-3">
-                                                <button onClick={() => setShowClearConfirm(false)} className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm min-w-[100px]">
-                                                    <X size={13} /> Cancelar
-                                                </button>
-                                                <button onClick={handleClearChat} disabled={processingChat} className="flex items-center justify-center gap-2 px-6 py-2.5 bg-rose-500/80 border border-rose-400 text-white text-[11px] font-bold rounded-full hover:bg-rose-600 transition-colors shadow-sm disabled:opacity-50 min-w-[100px]">
-                                                    <Eraser size={13} /> {processingChat ? 'Vaciando...' : 'Sí, vaciar'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>,
-                                    document.body
-                                )}
+                                {/* Confirmación de eliminar chat — mismo UI que el borrado de cliente */}
                                 {showDeleteChatConfirm && createPortal(
                                     <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
                                         <div className="w-full max-w-sm bg-white/30 backdrop-blur-xl border border-white/50 p-6 animate-fade-up shadow-[0_8px_32px_rgba(26,58,107,0.15)] rounded-[32px]">

@@ -76,13 +76,18 @@ export function useStats(period = 'month', year = new Date().getFullYear(), mont
                 'getStatsDashboard'
             );
 
-            const apptStats    = dashboard.appt_stats   || [];
-            const patientStats = dashboard.patient_stats ?? null;
-            const apts         = dashboard.month_appointments || [];
+            const apptStats     = dashboard.appt_stats   || [];
+            const patientStats  = dashboard.patient_stats ?? null;
+            const apts          = dashboard.month_appointments || [];
+            const patientMonthly = dashboard.patient_monthly_stats || [];
+            const inquiry        = dashboard.inquiry_conversion || { asked: 0, booked: 0, not_booked: 0 };
 
             // Variación vs período anterior (solo vista mensual en mes actual)
             let aptsChange;
-            if (period === 'month' && year === new Date().getFullYear() && month === new Date().getMonth()) {
+            let newClientsChange, recurringClientsChange;
+            const isCurrentMonthView = period === 'month' && year === new Date().getFullYear() && month === new Date().getMonth();
+            const pctChange = (now, prev) => (prev > 0 ? (((now - prev) / prev) * 100).toFixed(1) : undefined);
+            if (isCurrentMonthView) {
                 const lastMonthDate  = new Date(year, month - 1, 1);
                 const lastMonthKey   = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
                 const lastMonthRow   = apptStats.find(r => String(r.month || '').startsWith(lastMonthKey));
@@ -91,7 +96,19 @@ export function useStats(period = 'month', year = new Date().getFullYear(), mont
                 aptsChange = lastMonthCount > 0
                     ? (((monthApts - lastMonthCount) / lastMonthCount) * 100).toFixed(1)
                     : undefined;
+
+                const thisMonthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+                const thisRow = patientMonthly.find(r => r.month === thisMonthKey);
+                const prevRow = patientMonthly.find(r => r.month === lastMonthKey);
+                newClientsChange       = pctChange(Number(thisRow?.new_count || 0), Number(prevRow?.new_count || 0));
+                recurringClientsChange = pctChange(Number(thisRow?.recurring_count || 0), Number(prevRow?.recurring_count || 0));
             }
+
+            // Mes en curso (o último con datos) para "nuevos"/"recurrentes" —
+            // fuera de la vista mensual del mes actual no hay comparativo, pero
+            // igual mostramos los totales del período elegido.
+            const currentMonthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+            const currentPatientRow = patientMonthly.find(r => r.month === currentMonthKey) || { new_count: 0, recurring_count: 0 };
 
             const monthApts          = apts.filter(a => a.status === 'scheduled' || a.status === 'confirmed').length;
             const confirmedThisMonth = apts.filter(a => a.confirmed).length;
@@ -127,6 +144,21 @@ export function useStats(period = 'month', year = new Date().getFullYear(), mont
                         { name: 'No se presentaron', value: noShowThisMonth },
                     ],
                 },
+                // Nuevos vs recurrentes — dinámico: el mes en curso trae variación
+                // vs el mes pasado (solo tiene sentido viendo el mes actual).
+                clients: {
+                    newCount:       Number(currentPatientRow.new_count || 0),
+                    recurringCount: Number(currentPatientRow.recurring_count || 0),
+                    newChange:       newClientsChange,
+                    recurringChange: recurringClientsChange,
+                    trend: patientMonthly.slice(-6),
+                },
+                // Preguntaron y no agendaron (feedback de conversión del período elegido).
+                inquiry: {
+                    asked:     Number(inquiry.asked || 0),
+                    booked:    Number(inquiry.booked || 0),
+                    notBooked: Number(inquiry.not_booked || 0),
+                },
             };
 
             if (period === 'month' && year === new Date().getFullYear() && month === new Date().getMonth()) {
@@ -138,6 +170,8 @@ export function useStats(period = 'month', year = new Date().getFullYear(), mont
             setStats({
                 kpi: { monthApts: 0, totalPatients: 0, activePatients: 0, newThisMonth: 0, sentMessages: 0, receivedMessages: 0, confirmedThisMonth: 0, createdByBot: 0, createdByStaff: 0 },
                 donut: { confRate: 0, data: [{ name: 'Confirmados', value: 0 }, { name: 'Pendientes', value: 0 }, { name: 'Cancelados', value: 0 }] },
+                clients: { newCount: 0, recurringCount: 0, newChange: undefined, recurringChange: undefined, trend: [] },
+                inquiry: { asked: 0, booked: 0, notBooked: 0 },
             });
         } finally {
             setLoading(false);

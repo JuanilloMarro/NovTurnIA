@@ -118,9 +118,9 @@ export function MainChart({ period = 'week', selectedYear, selectedMonth, select
 
     return (
         <div className="h-full flex flex-col">
-            <div className="flex items-start gap-3 mb-6">
-                <div className="w-9 h-9 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
-                    <BarChart2 size={18} />
+            <div className="flex items-start gap-3 mb-3">
+                <div className="w-8 h-8 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
+                    <BarChart2 size={16} />
                 </div>
                 <div className="min-w-0 pt-[5px]">
                     <h3 className="text-[13px] font-bold text-navy-900 leading-none tracking-tight">Turnos por período</h3>

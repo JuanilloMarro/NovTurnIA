@@ -199,7 +199,7 @@ export default function Users() {
                                 <div className="space-y-10 pb-12 pt-2">
                                     {[
                                         {
-                                            title: 'Turnos',
+                                            title: 'Citas',
                                             perms: [
                                                 { key: 'create_appointments', label: 'Agregar turno' },
                                                 { key: 'edit_appointments', label: 'Editar turno' },
@@ -268,9 +268,18 @@ export default function Users() {
                                                 { key: 'confirm_delivery', label: 'Confirmar entrega / cobrar' },
                                                 { key: 'record_income', label: 'Registrar ingresos' },
                                                 { key: 'record_expense', label: 'Registrar egresos' },
+                                                { key: 'manage_cash', label: 'Abrir / cerrar caja' },
+                                                { key: 'pay_commission', label: 'Editar % y pagar comisiones' },
                                                 { key: 'manage_supplies', label: 'Gestionar insumos y recetas' },
                                                 { key: 'void_finance', label: 'Anular movimientos' },
-                                                { key: 'manage_finance_categories', label: 'Gestionar categorías de finanzas' },
+                                                { key: 'manage_finance_categories', label: 'Gestionar categorías' },
+                                                { key: 'manage_finance_settings', label: 'Métodos de pago y meta mensual' },
+                                            ]
+                                        },
+                                        {
+                                            title: 'Centro de IA',
+                                            perms: [
+                                                { key: 'use_ai_hub', label: 'Usar Centro de IA (genera insights)' },
                                             ]
                                         },
                                         {
@@ -282,8 +291,27 @@ export default function Users() {
                                             ]
                                         },
                                     ].map(group => (
+                                        (() => {
+                                        // Select-all por módulo: refleja si TODOS los permisos del grupo están activos
+                                        const groupPerms = selectedUser.staff_roles?.permissions || {};
+                                        const allOn = group.perms.every(p => !!groupPerms[p.key]);
+                                        const toggleGroup = () => {
+                                            if (!canEditPermissions) return;
+                                            const next = { ...groupPerms };
+                                            group.perms.forEach(p => { next[p.key] = !allOn; });
+                                            setSelectedUser({ ...selectedUser, staff_roles: { ...selectedUser.staff_roles, permissions: next } });
+                                        };
+                                        return (
                                         <div key={group.title}>
-                                            <h5 className="text-[12px] font-bold text-navy-700 tracking-wide mb-3 border-b border-navy-900/10 pb-1.5">{group.title}</h5>
+                                            <div className="flex items-center justify-between mb-3 border-b border-navy-900/10 pb-1.5">
+                                                <h5 className="text-[12px] font-bold text-navy-700 tracking-wide">{group.title}</h5>
+                                                {canEditPermissions && (
+                                                    <button type="button" onClick={toggleGroup}
+                                                        className="text-[9.5px] font-bold text-navy-700/60 hover:text-navy-900 bg-navy-900/5 border border-navy-900/10 rounded-full px-2 py-0.5 transition-colors">
+                                                        {allOn ? 'Quitar todos' : 'Seleccionar todos'}
+                                                    </button>
+                                                )}
+                                            </div>
                                             <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-y-4 gap-x-4 pt-1">
                                                 {group.perms.map(perm => {
                                                     // El valor del checkbox viene siempre de la DB (permissions JSON).
@@ -334,6 +362,8 @@ export default function Users() {
                                                 })}
                                             </div>
                                         </div>
+                                        );
+                                        })()
                                     ))}
                                 </div>
                                 </FeatureLock>

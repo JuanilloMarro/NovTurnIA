@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Search, User, X, HandCoins, Copy, Check, Ban, MessageCircle, ChevronDown } from 'lucide-react';
+import { Plus, Search, User, X, HandCoins, Check, Ban, MessageCircle, ChevronDown, HeartHandshake, Layers } from 'lucide-react';
 import { searchPatients } from '../../services/supabaseService';
 import { useAppStore } from '../../store/useAppStore';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 import ConfirmDialog from '../ui/ConfirmDialog';
-import { ModalShell, FieldLabel, TextInput, AmountInput, OptionWheel, NotesField, ModalButtons, LedgerSearch, useMethodOptions, money } from './financeUi';
+import { ModalShell, FieldLabel, TextInput, AmountInput, CentsAmountInput, decimalToCents, centsToDecimal, OptionWheel, NotesField, ModalButtons, LedgerSearch, MiniStatCard, useMethodOptions, money } from './financeUi';
 import { formatPhone } from '../../utils/format';
 
 // Por cobrar — planes de pago (tratamientos/paquetes en abonos). El caso
@@ -12,14 +12,40 @@ import { formatPhone } from '../../utils/format';
 // vive en la DB (RPC get_payment_plans); aquí se registra cada abono y se
 // puede copiar un recordatorio de WhatsApp (borrador — NUNCA se envía solo).
 
-const PAGE = 20;
 const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('es-GT', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
+// "Activo" con saldo pendiente se lee como "Pendiente" (amarillo) — el
+// semáforo de la barra de progreso ya comunica qué tan cerca está del cobro.
 const STATUS_META = {
-    active: { label: 'Activo', cls: 'bg-sky-500/10 border-sky-500/20 text-sky-700' },
+    active: { label: 'Pendiente', cls: 'bg-amber-500/10 border-amber-500/20 text-amber-700' },
     completed: { label: 'Completado', cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700' },
     cancelled: { label: 'Cancelado', cls: 'bg-navy-900/5 border-navy-900/10 text-navy-900/40' },
 };
+
+// Semáforo de cobro: rojo <40%, amarillo 40-75%, verde >75%.
+function progressColor(pct) {
+    if (pct < 40) return '#f43f5e';
+    if (pct < 75) return '#f59e0b';
+    return '#10b981';
+}
+
+// Botón de acción icon-only con hover-reveal (mismo lenguaje que AddBtn) —
+// unifica Recordatorio/Abonar/Cancelar, que antes mezclaban estilos.
+function IconAddBtn({ icon: Icon, label, onClick, tone = 'default' }) {
+    const toneCls = tone === 'danger'
+        ? 'text-rose-500 hover:bg-rose-500 hover:border-rose-500 hover:text-white'
+        : tone === 'success'
+            ? 'text-emerald-600 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white'
+            : 'text-navy-900 hover:bg-white/60';
+    return (
+        <button onClick={onClick}
+            className={`relative overflow-hidden group h-8 flex items-center justify-center gap-0 hover:gap-1.5 px-2.5 hover:px-3.5 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-sm transition-all duration-300 shrink-0 ${toneCls}`}
+        >
+            <Icon size={13} className="shrink-0 relative z-10" />
+            <span className="max-w-0 overflow-hidden group-hover:max-w-[100px] transition-all duration-300 whitespace-nowrap text-[10px] font-bold relative z-10">{label}</span>
+        </button>
+    );
+}
 
 // ── Modal: nuevo plan de pago ────────────────────────────
 function NewPlanModal({ onClose, onSubmit }) {
@@ -63,7 +89,7 @@ function NewPlanModal({ onClose, onSubmit }) {
         <ModalShell title="Nuevo plan de pago" subtitle="Tratamiento o paquete que el cliente pagará en abonos." onClose={onClose}
             footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Crear plan" loading={saving} confirmIcon={Plus} />}>
             <div>
-                <FieldLabel title="Cliente" subtitle="Opcional pero recomendado — habilita el recordatorio de WhatsApp." />
+                <FieldLabel title="Cliente" subtitle="Opcional pero recomendado: habilita el recordatorio de WhatsApp." />
                 {patient ? (
                     <div className="flex items-center justify-between gap-2 bg-white/50 border border-white/60 rounded-2xl px-3.5 py-2.5 shadow-sm">
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -124,14 +150,14 @@ function NewPlanModal({ onClose, onSubmit }) {
 // ── Modal: registrar abono ───────────────────────────────
 function PaymentModal({ plan, onClose, onSubmit }) {
     const methodOptions = useMethodOptions();
-    const [amount, setAmount] = useState('');
+    const [amountCents, setAmountCents] = useState(null);
     const [method, setMethod] = useState('cash');
     const [notes, setNotes] = useState('');
     const [saving, setSaving] = useState(false);
 
     async function submit() {
-        const amt = Number(amount);
-        if (!(amt > 0)) { showErrorToast('Monto inválido', 'Ingresa el monto del abono.'); return; }
+        const amt = centsToDecimal(amountCents);
+        if (!amt || amt <= 0) { showErrorToast('Monto inválido', 'Ingresa el monto del abono.'); return; }
         setSaving(true);
         try {
             const r = await onSubmit({ planId: plan.id, amount: amt, paymentMethod: method, notes: notes.trim() || null });
@@ -151,7 +177,7 @@ function PaymentModal({ plan, onClose, onSubmit }) {
             footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Abonar" loading={saving} confirmIcon={HandCoins} />}>
             <div>
                 <FieldLabel title="Monto del abono" subtitle={`Saldo pendiente: ${money(plan.balance)}. El abono cuenta como ingreso de hoy.`} />
-                <AmountInput value={amount} onChange={setAmount} autoFocus />
+                <CentsAmountInput cents={amountCents} onChange={setAmountCents} autoFocus />
             </div>
             <div>
                 <FieldLabel title="Método de pago" subtitle="¿Cómo pagó el cliente?" />
@@ -169,7 +195,10 @@ function ReminderCopyButton({ plan, businessName }) {
     const [copied, setCopied] = useState(false);
     const text = `¡Hola ${plan.patient_name || ''}! 👋 Te saludamos de ${businessName || 'nuestro negocio'}. Te recordamos que tienes un saldo pendiente de ${money(plan.balance)} por ${plan.description}. ¿Cuándo te queda bien pasar a abonar? ¡Gracias! 😊`;
     return (
-        <button
+        <IconAddBtn
+            icon={copied ? Check : MessageCircle}
+            label={copied ? 'Copiado' : 'Recordatorio'}
+            tone={copied ? 'success' : 'default'}
             onClick={(e) => {
                 e.stopPropagation();
                 navigator.clipboard?.writeText(text).then(() => {
@@ -177,19 +206,13 @@ function ReminderCopyButton({ plan, businessName }) {
                     setTimeout(() => setCopied(false), 1800);
                 }).catch(() => {});
             }}
-            title="Copiar recordatorio para WhatsApp (no se envía solo: tú decides)"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/15 text-[9.5px] font-bold text-emerald-700 hover:bg-emerald-500/10 transition-all shrink-0"
-        >
-            {copied ? <Check size={11} /> : <MessageCircle size={11} />}
-            {copied ? 'Copiado' : 'Recordatorio'}
-        </button>
+        />
     );
 }
 
 export default function ReceivablesSection({ rec, canRecord, canVoid }) {
     const businessName = useAppStore(s => s.businessName);
     const [query, setQuery] = useState('');
-    const [visible, setVisible] = useState(PAGE);
     const [newPlan, setNewPlan] = useState(false);
     const [paying, setPaying] = useState(null);   // plan
     const [cancelling, setCancelling] = useState(null); // plan
@@ -199,21 +222,17 @@ export default function ReceivablesSection({ rec, canRecord, canVoid }) {
     const filtered = t
         ? rec.plans.filter(p => (p.patient_name || '').toLowerCase().includes(t) || (p.description || '').toLowerCase().includes(t))
         : rec.plans;
-    const shown = filtered.slice(0, visible);
 
     return (
         <div className="space-y-3">
-            {/* Header: saldo total + acciones */}
+            {/* Header: paneles ícono+monto (mismo lenguaje que Resumen) + acciones */}
             <div className="flex items-center justify-between gap-2 flex-wrap px-1">
-                <div className="flex items-center gap-3">
-                    <div className="relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl px-4 py-2.5 shadow-md">
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-navy-900/40 block leading-none">Por cobrar</span>
-                        <span className="text-[16px] font-bold text-navy-900 tabular-nums leading-none block mt-1">{money(rec.totalBalance)}</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-navy-900/40">{rec.active.length} {rec.active.length === 1 ? 'plan activo' : 'planes activos'}</span>
+                <div className="flex items-center gap-2">
+                    <MiniStatCard icon={HeartHandshake} label="Por cobrar" value={money(rec.totalBalance)} />
+                    <MiniStatCard icon={Layers} label="Planes activos" value={rec.active.length} />
                 </div>
                 <div className="flex items-center gap-2">
-                    <LedgerSearch value={query} onChange={v => { setQuery(v); setVisible(PAGE); }} placeholder="Buscar por cliente o tratamiento…" />
+                    <LedgerSearch value={query} onChange={setQuery} placeholder="Buscar por cliente o tratamiento…" />
                     {canRecord && (
                         <button onClick={() => setNewPlan(true)}
                             className="relative overflow-hidden group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 rounded-full shadow-md hover:bg-white/60 transition-all duration-300">
@@ -231,13 +250,13 @@ export default function ReceivablesSection({ rec, canRecord, canVoid }) {
                     <p className="text-[12px] font-bold text-navy-900/60 mb-1">{rec.plans.length === 0 ? 'Sin planes de pago todavía' : 'Sin coincidencias'}</p>
                     {rec.plans.length === 0 && (
                         <p className="text-[11px] font-semibold text-navy-700/40 max-w-[340px] mx-auto">
-                            Crea un plan cuando un cliente pague un tratamiento o paquete en cuotas — el saldo se controla solo con cada abono.
+                            Crea un plan cuando un cliente pague un tratamiento o paquete en cuotas, el saldo se controla solo con cada abono.
                         </p>
                     )}
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {shown.map(p => {
+                    {filtered.map(p => {
                         const meta = STATUS_META[p.status] || STATUS_META.active;
                         const paidPct = Number(p.total_amount) > 0 ? Math.min(100, Math.round((Number(p.paid_amount) / Number(p.total_amount)) * 100)) : 0;
                         return (
@@ -248,7 +267,7 @@ export default function ReceivablesSection({ rec, canRecord, canVoid }) {
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <span className="font-bold text-navy-900 text-sm leading-tight">{p.description}</span>
-                                            <span className={`px-2 py-0.5 rounded-full border text-[8px] font-bold uppercase tracking-widest ${meta.cls}`}>{meta.label}</span>
+                                            <span className={`px-2 py-0.5 rounded-full border text-[8px] font-bold tracking-widest ${meta.cls}`}>{meta.label}</span>
                                         </div>
                                         <div className="text-[10px] font-semibold text-navy-700/55 flex items-center gap-1.5 mt-1 flex-wrap">
                                             {p.patient_name && <span className="flex items-center gap-1"><User size={10} /> {p.patient_name}</span>}
@@ -258,7 +277,7 @@ export default function ReceivablesSection({ rec, canRecord, canVoid }) {
                                         <div className="flex items-center gap-2.5 mt-2.5">
                                             <div className="flex-1 max-w-[260px] h-2 rounded-full bg-navy-900/10 overflow-hidden">
                                                 <div className="h-full rounded-full transition-all duration-700"
-                                                    style={{ width: `${paidPct}%`, background: p.status === 'completed' ? '#10B981' : 'linear-gradient(90deg, rgba(64,98,200,1), rgba(120,110,230,1))' }} />
+                                                    style={{ width: `${paidPct}%`, background: p.status === 'completed' ? '#10b981' : progressColor(paidPct) }} />
                                             </div>
                                             <span className="text-[10px] font-bold text-navy-900/50 tabular-nums shrink-0">
                                                 {money(p.paid_amount)} de {money(p.total_amount)}
@@ -267,7 +286,7 @@ export default function ReceivablesSection({ rec, canRecord, canVoid }) {
                                     </div>
                                     <div className="flex flex-col items-end gap-2 shrink-0">
                                         <div className="text-right">
-                                            <span className="text-[9px] font-bold uppercase tracking-widest text-navy-900/40 block leading-none">Saldo</span>
+                                            <span className="text-[9px] font-bold tracking-widest text-navy-900/40 block leading-none">Saldo</span>
                                             <span className={`text-[16px] font-bold tabular-nums leading-none block mt-0.5 ${p.status === 'completed' ? 'text-emerald-600' : 'text-navy-900'}`}>
                                                 {money(p.balance)}
                                             </span>
@@ -276,16 +295,10 @@ export default function ReceivablesSection({ rec, canRecord, canVoid }) {
                                             <div className="flex items-center gap-1.5 flex-wrap justify-end">
                                                 {p.patient_phone && <ReminderCopyButton plan={p} businessName={businessName} />}
                                                 {canRecord && (
-                                                    <button onClick={() => setPaying(p)}
-                                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-navy-900 border border-white/10 text-white text-[9.5px] font-bold shadow-card hover:bg-navy-800 transition-all">
-                                                        <HandCoins size={11} /> Abonar
-                                                    </button>
+                                                    <IconAddBtn icon={HandCoins} label="Abonar" tone="success" onClick={() => setPaying(p)} />
                                                 )}
                                                 {canVoid && (
-                                                    <button onClick={() => setCancelling(p)} title="Cancelar plan"
-                                                        className="w-7 h-7 rounded-full bg-white/50 border border-white/60 flex items-center justify-center text-navy-700/50 hover:text-rose-600 hover:border-rose-200 transition-all">
-                                                        <Ban size={12} />
-                                                    </button>
+                                                    <IconAddBtn icon={Ban} label="Cancelar" tone="danger" onClick={() => setCancelling(p)} />
                                                 )}
                                             </div>
                                         )}
@@ -295,10 +308,10 @@ export default function ReceivablesSection({ rec, canRecord, canVoid }) {
                         );
                     })}
 
-                    {filtered.length > visible && (
-                        <button onClick={() => setVisible(v => v + PAGE)}
-                            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-white/30 border border-white/50 text-[11px] font-bold text-navy-700/60 hover:bg-white/50 hover:text-navy-900 transition-all">
-                            <ChevronDown size={13} /> Mostrar más ({filtered.length - visible} restantes)
+                    {rec.hasMore && (
+                        <button onClick={rec.loadMore} disabled={rec.loadingMore}
+                            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-white/30 border border-white/50 text-[11px] font-bold text-navy-700/60 hover:bg-white/50 hover:text-navy-900 transition-all disabled:opacity-50">
+                            <ChevronDown size={13} /> {rec.loadingMore ? 'Cargando…' : 'Cargar más'}
                         </button>
                     )}
                 </div>

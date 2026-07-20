@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { BarChart2, Brain, Lock, CalendarDays, Users, MessageSquare, Send, ChevronLeft, ChevronRight, TrendingUp, Activity } from 'lucide-react';
+import { BarChart2, Brain, Lock, CalendarDays, Users, MessageSquare, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStats } from '../hooks/useStats';
-import KpiCard from '../components/Stats/KpiCard';
+import KpiCard, { KpiDelta } from '../components/Stats/KpiCard';
 import { AppointmentStatusChart } from '../components/Stats/AppointmentStatusChart';
 import { MainChart } from '../components/Stats/MainChart';
 import { StatsIntelligence } from '../components/Stats/StatsIntelligence';
@@ -55,38 +55,44 @@ function getNavLabel(period, date) {
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+// ── Panel de gráfica compacto (mismo lenguaje de cristal que las tarjetas de
+// resumen, pero con menos padding/alto para que quepan 3 en una fila). ──
+function ChartPanel({ children, minH = 260 }) {
+    return (
+        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex flex-col overflow-hidden p-5" style={{ minHeight: minH }}>
+            <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+            <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
+            <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
+            <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
+            <div className="relative z-10 flex flex-col h-full min-h-0">{children}</div>
+        </div>
+    );
+}
+
 // ── Contenido de métricas ────────────────────────────────
+// Versión clásica: fila 1 con los 4 KPIs (alto reducido) y fila 2 con turnos
+// por período + tasa de confirmación a mayor altura. Los KPIs de clientes
+// nuevos/recurrentes y conversión viven ahora en la pestaña Inteligencia.
 function StatsContent({ kpi, donut, period, selectedYear, selectedMonth, selectedDay, chartPreview = null }) {
     const labels = KPI_LABELS[period] ?? KPI_LABELS.month;
     return (
         <div className="h-full flex flex-col w-full overflow-y-auto md:overflow-hidden px-1 md:pb-0 pb-4">
             <div className="md:flex-1 md:overflow-hidden flex flex-col gap-3 md:pb-2 md:pr-0.5">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-1">
-                    <KpiCard label={labels.apts} value={kpi.monthApts} icon={<CalendarDays size={14} strokeWidth={2.5} />} color="navy" index={0} />
-                    <KpiCard label="Clientes totales" value={kpi.totalPatients} icon={<Users size={14} strokeWidth={2.5} />} color="navy" index={1} />
-                    <KpiCard label="Mensajes recibidos" value={kpi.receivedMessages} icon={<MessageSquare size={14} strokeWidth={2.5} />} color="navy" index={2} />
-                    <KpiCard label="Mensajes enviados" value={kpi.sentMessages} icon={<Send size={14} strokeWidth={2.5} />} color="navy" index={3} />
+                    <KpiCard label={labels.apts} value={kpi.monthApts} icon={<CalendarDays size={14} strokeWidth={2.5} />} index={0}
+                        delta={<KpiDelta change={kpi.aptsChange} />} />
+                    <KpiCard label="Clientes totales" value={kpi.totalPatients} icon={<Users size={14} strokeWidth={2.5} />} index={1} />
+                    <KpiCard label="Mensajes recibidos" value={kpi.receivedMessages} icon={<MessageSquare size={14} strokeWidth={2.5} />} index={2} />
+                    <KpiCard label="Mensajes enviados" value={kpi.sentMessages} icon={<Send size={14} strokeWidth={2.5} />} index={3} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:flex-1 md:min-h-0 pb-2 px-1">
-                    <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
-                        <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
-                        <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
-                        <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="relative z-10 flex flex-col h-full">
-                            <MainChart period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDay={selectedDay} previewData={chartPreview} />
-                        </div>
-                    </div>
-                    <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex flex-col overflow-hidden p-6 min-h-[360px] md:min-h-0">
-                        <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
-                        <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
-                        <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="relative z-10 flex flex-col h-full">
-                            <AppointmentStatusChart data={donut.data} confRate={donut.confRate} />
-                        </div>
-                    </div>
+                    <ChartPanel minH={320}>
+                        <MainChart period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDay={selectedDay} previewData={chartPreview} />
+                    </ChartPanel>
+                    <ChartPanel minH={320}>
+                        <AppointmentStatusChart data={donut.data} confRate={donut.confRate} />
+                    </ChartPanel>
                 </div>
             </div>
         </div>
@@ -106,8 +112,8 @@ function StatsLoaded({ period, selectedYear, selectedMonth, selectedDay }) {
                     ))}
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
-                    <div className="animate-shimmer h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md min-h-[300px]" />
-                    <div className="animate-shimmer h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md min-h-[300px]" />
+                    <div className="animate-shimmer h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md min-h-[240px]" />
+                    <div className="animate-shimmer h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md min-h-[240px]" />
                 </div>
             </div>
         );
@@ -131,7 +137,7 @@ export default function Stats() {
     const [activeTab, setActiveTab] = useState('metricas');
     const [period, setPeriod] = useState('month');
     const [anchorDate, setAnchorDate] = useState(() => new Date());
-    const hasIntelligence = hasFeature('stats_intelligence');
+    const hasIntelligence = hasFeature('business_intelligence');
 
     const selectedYear = anchorDate.getFullYear();
     const selectedMonth = anchorDate.getMonth();
@@ -271,7 +277,7 @@ export default function Stats() {
     return (
         <div className="h-full flex flex-col pt-2 px-2 overflow-hidden">
             {header}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar lg:overflow-hidden">
+            <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${activeTab === 'metricas' ? 'lg:overflow-hidden' : ''}`}>
                 {activeTab === 'metricas'
                     ? <StatsLoaded period={period} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDay={anchorDate.getDate()} />
                     : <StatsIntelligence period={period} anchorDate={anchorDate} />

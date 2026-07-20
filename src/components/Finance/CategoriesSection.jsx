@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useFinanceCategories } from '../../hooks/useFinanceCategories';
-import { Tags, Plus, Save, ToggleLeft, ToggleRight, ChevronLeft, Search, Trash2, X } from 'lucide-react';
+import { Tags, Plus, Save, ToggleLeft, ToggleRight, ChevronLeft, ArrowDownRight, ArrowUpRight, Trash2, X } from 'lucide-react';
 import { showCategoryNewToast, showCategoryEditToast, showCategoryDeleteToast, showCategoryActivateToast, showCategoryDeactivateToast, showErrorToast } from '../../store/useToastStore';
 import { TextInput } from './financeUi';
 
@@ -27,7 +27,6 @@ export default function CategoriesSection({ canManage, activeKind, setActiveKind
     const [toggling, setToggling] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [searchStr, setSearchStr] = useState('');
 
     const selectedCategory = selectedId && selectedId !== 'new'
         ? categories.find(c => c.id === selectedId)
@@ -36,9 +35,7 @@ export default function CategoriesSection({ canManage, activeKind, setActiveKind
     const isFormOpen = isNew || selectedId !== null;
 
     const kindCategories = categories.filter(c => c.kind === activeKind);
-    const filteredCategories = kindCategories
-        .filter(c => !searchStr || c.name.toLowerCase().includes(searchStr.toLowerCase()))
-        .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    const filteredCategories = [...kindCategories].sort((a, b) => a.name.localeCompare(b.name, 'es'));
 
     useEffect(() => {
         setSelectedId(null);
@@ -120,21 +117,16 @@ export default function CategoriesSection({ canManage, activeKind, setActiveKind
                     <div className={`${isFormOpen ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] xl:w-[380px] flex-col z-10`}>
                         <div className="p-4 pb-3">
                             <div className="flex items-center gap-2 h-9">
-                                {/* Search bar */}
-                                <div className="relative flex-1 h-full">
-                                    <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                                    <div className="absolute -top-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(29,95,173,0.05)' }} />
-                                    <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                                    <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700">
-                                        <Search size={14} strokeWidth={2.5} />
-                                    </div>
-                                    <input
-                                        className="w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-md"
-                                        placeholder="Buscar categoría..."
-                                        value={searchStr}
-                                        onChange={e => setSearchStr(e.target.value)}
-                                    />
+                                {/* Ingreso / Egreso — categorías siempre pertenecen a uno de los dos */}
+                                <div className="relative flex-1 h-full flex items-center gap-1 bg-white/30 backdrop-blur-2xl border border-white/50 rounded-full p-1 shadow-sm">
+                                    <button type="button" onClick={() => setActiveKind('income')}
+                                        className={`flex-1 h-full flex items-center justify-center gap-1.5 rounded-full text-[11px] font-bold transition-all ${activeKind === 'income' ? 'bg-white/70 border border-white/80 text-navy-900 shadow-sm' : 'text-navy-900/40 hover:text-navy-900/70'}`}>
+                                        <ArrowUpRight size={12} /> Ingreso
+                                    </button>
+                                    <button type="button" onClick={() => setActiveKind('expense')}
+                                        className={`flex-1 h-full flex items-center justify-center gap-1.5 rounded-full text-[11px] font-bold transition-all ${activeKind === 'expense' ? 'bg-white/70 border border-white/80 text-navy-900 shadow-sm' : 'text-navy-900/40 hover:text-navy-900/70'}`}>
+                                        <ArrowDownRight size={12} /> Egreso
+                                    </button>
                                 </div>
 
                                 {/* New Button */}
@@ -155,7 +147,7 @@ export default function CategoriesSection({ canManage, activeKind, setActiveKind
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pr-3 pt-0 flex flex-col gap-1">
                             {filteredCategories.length === 0 && (
                                 <div className="px-4 py-8 text-center text-navy-900/40 text-xs font-bold">
-                                    {kindCategories.length === 0 ? 'Sin categorías, crea la primera con +' : 'No se encontraron categorías'}
+                                    Sin categorías, crea la primera con +
                                 </div>
                             )}
 
@@ -231,7 +223,7 @@ export default function CategoriesSection({ canManage, activeKind, setActiveKind
                                         {!isNew && selectedCategory && (
                                             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/40 border border-white/60 shadow-sm">
                                                 <div className={`w-1.5 h-1.5 rounded-full ${selectedCategory.active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'}`} />
-                                                <span className="text-[10px] font-bold text-navy-900/60 uppercase tracking-wider">
+                                                <span className="text-[10px] font-bold text-navy-900/60 tracking-wider">
                                                     {selectedCategory.active ? 'Activa' : 'Inactiva'}
                                                 </span>
                                             </div>

@@ -41,6 +41,8 @@
 | `message_buffer` | 80 kB | 0 | ✅ | 3 | Debounce del bot; cron limpia cada minuto |
 | `services` / `supplies` / `service_supplies` / `offers` | 48-24 kB | 0 | ✅ | 4 c/u | ⚠️ negocio de prueba sin services (bloquea test E2E del bot) |
 | `usage_counters` | 16 kB | **0** | ✅ | 1 | 🔴 vacía — H1 metering |
+| `schedule_exceptions` 🆕 | — | 0 | ✅ | 4 | Festivos/horarios especiales por fecha (agenda avanzada 2026-07-18) |
+| `payment_vouchers` 🆕 | — | 0 | ✅ | 4 | Vouchers de pago con código único (2026-07-18); redención → income_entry |
 | `payments` | 24 kB | 0 | ✅ | **0** | Deny-all deliberado (solo service_role) |
 | `api_rate_limits` | 40 kB | 1 | ✅ | **0** | Deny-all deliberado (solo service_role) |
 | `app_super_admins` | 32 kB | 1 | ✅ | **0** | Deny-all deliberado (fuente de verdad del super-admin) |

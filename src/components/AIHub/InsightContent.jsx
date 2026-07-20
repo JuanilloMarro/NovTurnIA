@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check, MessageCircle, TrendingUp, AlertTriangle, PartyPopper, Target, Sparkles } from 'lucide-react';
+import { Copy, Check, MessageCircle, TrendingUp, AlertTriangle, PartyPopper, Target, Sparkles, Clock } from 'lucide-react';
 
 // Renderiza el `content` jsonb de ai_insights con el schema exacto de cada
 // scope (doc "Automatización Agente IA" · Parte B §B.2 — responseSchema de
@@ -27,7 +27,7 @@ function CopyButton({ text }) {
 }
 
 function Label({ children }) {
-    return <p className="text-[9px] font-bold text-navy-900/40 tracking-widest uppercase mb-1.5">{children}</p>;
+    return <p className="text-[9px] font-bold text-navy-900/40 tracking-widest mb-1.5">{children}</p>;
 }
 
 function Body({ children }) {
@@ -39,7 +39,7 @@ function WhatsappDraft({ text }) {
     return (
         <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-2xl p-3.5">
             <div className="flex items-center justify-between gap-2 mb-2">
-                <p className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-700/70 tracking-widest uppercase">
+                <p className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-700/70 tracking-widest">
                     <MessageCircle size={11} /> Borrador de WhatsApp
                 </p>
                 <CopyButton text={text} />
@@ -64,14 +64,14 @@ function PatientSummary({ content }) {
     return (
         <div className="space-y-4">
             {meta && (
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${meta.cls}`}>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[9px] font-bold tracking-widest ${meta.cls}`}>
                     {meta.label}
                 </span>
             )}
             {resumen && <Body>{resumen}</Body>}
             {siguiente_accion && (
                 <div className="bg-navy-900/3 border border-navy-900/5 rounded-2xl px-3.5 py-3">
-                    <p className="flex items-center gap-1.5 text-[9px] font-bold text-navy-900/40 tracking-widest uppercase mb-1.5">
+                    <p className="flex items-center gap-1.5 text-[9px] font-bold text-navy-900/40 tracking-widest mb-1.5">
                         <Target size={11} /> Siguiente acción
                     </p>
                     <p className="text-[11.5px] font-bold text-navy-900 leading-relaxed">{siguiente_accion}</p>
@@ -104,7 +104,7 @@ function Retention({ content }) {
                         <TrendingUp size={16} className="text-navy-900" />
                     </div>
                     <div>
-                        <p className="text-[9px] font-bold text-navy-900/40 tracking-widest uppercase leading-none">Tasa de retención</p>
+                        <p className="text-[9px] font-bold text-navy-900/40 tracking-widest leading-none">Tasa de retención</p>
                         <p className="text-[18px] font-bold text-navy-900 tracking-tight leading-none mt-1">{tasa_retencion}%</p>
                     </div>
                 </div>
@@ -181,7 +181,7 @@ function WeeklyDigest({ content }) {
     return (
         <div className="space-y-4">
             {semana && (
-                <span className="inline-block px-2.5 py-1 rounded-full bg-navy-900/5 border border-navy-900/10 text-[9px] font-bold uppercase tracking-widest text-navy-900/40">
+                <span className="inline-block px-2.5 py-1 rounded-full bg-navy-900/5 border border-navy-900/10 text-[9px] font-bold tracking-widest text-navy-900/40">
                     {semana}
                 </span>
             )}
@@ -200,7 +200,7 @@ function WeeklyDigest({ content }) {
             )}
             {foco_siguiente_semana && (
                 <div className="bg-navy-900/3 border border-navy-900/5 rounded-2xl px-3.5 py-3">
-                    <p className="flex items-center gap-1.5 text-[9px] font-bold text-navy-900/40 tracking-widest uppercase mb-1.5">
+                    <p className="flex items-center gap-1.5 text-[9px] font-bold text-navy-900/40 tracking-widest mb-1.5">
                         <Target size={11} /> Foco de la próxima semana
                     </p>
                     <p className="text-[11.5px] font-bold text-navy-900 leading-relaxed">{foco_siguiente_semana}</p>
@@ -227,7 +227,7 @@ function ContentOffer({ content }) {
                                 </span>
                             )}
                             {p.dias && (
-                                <span className="px-2 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[9px] font-bold text-navy-900/50">
+                                <span className="px-2 py-0.5 rounded-full bg-navy-900/5 border border-navy-900/10 text-[9px] font-bold text-navy-900/55 tracking-wider">
                                     {p.dias}
                                 </span>
                             )}
@@ -308,12 +308,42 @@ function FinanceNarrative({ content }) {
     return (
         <div className="space-y-4">
             {meta && (
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${meta.cls}`}>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[9px] font-bold tracking-widest ${meta.cls}`}>
                     {meta.label}
                 </span>
             )}
             {titular && <h4 className="text-[14px] font-bold text-navy-900 tracking-tight leading-snug">{titular}</h4>}
             {analisis && <Body>{analisis}</Body>}
+            {Array.isArray(recomendaciones) && recomendaciones.length > 0 && (
+                <div>
+                    <Label>Recomendaciones</Label>
+                    <ul className="space-y-2">
+                        {recomendaciones.map((r, i) => (
+                            <li key={i} className="flex items-start gap-2.5 bg-navy-900/3 border border-navy-900/5 rounded-2xl px-3.5 py-2.5">
+                                <span className="w-4 h-4 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-[8px] font-bold text-navy-800 shrink-0 mt-0.5">{i + 1}</span>
+                                <p className="text-[11.5px] font-bold text-navy-900 leading-relaxed">{r}</p>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── 8) agenda_narrative: { titular, analisis, huecos:[], recomendaciones:[] } ──
+function AgendaNarrative({ content }) {
+    const { titular, analisis, huecos, recomendaciones } = content;
+    return (
+        <div className="space-y-4">
+            {titular && <h4 className="text-[14px] font-bold text-navy-900 tracking-tight leading-snug">{titular}</h4>}
+            {analisis && <Body>{analisis}</Body>}
+            {Array.isArray(huecos) && huecos.length > 0 && (
+                <div>
+                    <Label>Huecos en la agenda</Label>
+                    <BadgeList items={huecos} icon={Clock} cls="bg-blue-500/5 border-blue-500/15 text-blue-800" />
+                </div>
+            )}
             {Array.isArray(recomendaciones) && recomendaciones.length > 0 && (
                 <div>
                     <Label>Recomendaciones</Label>
@@ -377,6 +407,7 @@ const SCOPE_RENDERERS = {
     weekly_digest: WeeklyDigest,
     content_offer: ContentOffer,
     finance_narrative: FinanceNarrative,
+    agenda_narrative: AgendaNarrative,
 };
 
 // Claves que identifican cada schema — si el content no trae ninguna de las
@@ -390,6 +421,7 @@ const SCOPE_KEYS = {
     weekly_digest: ['semana', 'resumen', 'wins', 'alertas', 'foco_siguiente_semana'],
     content_offer: ['promos'],
     finance_narrative: ['titular', 'salud', 'analisis', 'recomendaciones'],
+    agenda_narrative: ['titular', 'analisis', 'huecos', 'recomendaciones'],
 };
 
 export default function InsightContent({ scope, content }) {

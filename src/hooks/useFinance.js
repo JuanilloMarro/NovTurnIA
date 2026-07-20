@@ -5,8 +5,8 @@ import {
     getExpenseEntries,
     getPendingValidations,
     getFinanceProjection,
-    getFinanceSettings,
-    saveFinanceSettings,
+    getMonthlyGoals,
+    saveMonthlyGoal,
     getPaymentMethods,
     recordIncome as recordIncomeAPI,
     recordExpense as recordExpenseAPI,
@@ -25,6 +25,7 @@ export function monthRange(d = new Date()) {
 }
 
 const IGNORABLE = ['42P01', 'PGRST116', '42883'];
+const LIST_PAGE_SIZE = 30;
 
 // Resumen + libros + por confirmar + (v2) comparativa vs período anterior,
 // proyección de cierre, meta mensual y métodos de pago del negocio.
@@ -40,49 +41,83 @@ export function useFinance(range, prevRange = null) {
     const [summary, setSummary] = useState(null);
     const [prevSummary, setPrevSummary] = useState(null);
     const [projection, setProjection] = useState(null);
-    const [settings, setSettings] = useState(null);
+    const [monthlyGoals, setMonthlyGoals] = useState([]); // filas del año en curso (finance_monthly_goals)
     const [methods, setMethods] = useState([]);
     const [income, setIncome] = useState([]);
+    const [incomeHasMore, setIncomeHasMore] = useState(false);
+    const [loadingMoreIncome, setLoadingMoreIncome] = useState(false);
     const [expenses, setExpenses] = useState([]);
+    const [expenseHasMore, setExpenseHasMore] = useState(false);
+    const [loadingMoreExpenses, setLoadingMoreExpenses] = useState(false);
     const [pending, setPending] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const load = useCallback(async () => {
         if (!start || !end) return;
         setLoading(true);
-        try {
-            const [sum, prev, inc, exp, pend, proj, sett, meth] = await Promise.all([
-                getFinanceSummary(start, end, granularity),
-                prevStart ? getFinanceSummary(prevStart, prevEnd, granularity).catch(() => null) : Promise.resolve(null),
-                getIncomeEntries({ start, end }),
-                getExpenseEntries({ start, end }),
-                getPendingValidations(),
-                getFinanceProjection().catch(() => null),
-                getFinanceSettings().catch(() => null),
-                getPaymentMethods().catch(() => []),
-            ]);
-            setSummary(sum);
-            setPrevSummary(prev);
-            setIncome(inc);
-            setExpenses(exp);
-            setPending(pend);
-            setProjection(proj);
-            setSettings(sett);
-            setMethods(meth);
-        } catch (err) {
-            if (!IGNORABLE.includes(err.code)) console.error('[useFinance]', err.message);
-            setSummary(null);
-            setPrevSummary(null);
-            setIncome([]);
-            setExpenses([]);
-            setPending([]);
-            setProjection(null);
-        } finally {
-            setLoading(false);
-        }
+        // Cada lectura se aísla: si una falla (p. ej. el RPC del resumen), las
+        // demás igual se muestran. Antes un solo fallo vaciaba TODO el módulo y
+        // parecía que nada se había guardado (bug 2026-07-18).
+        const safe = (p, fallback, tag) => p.catch(err => {
+            if (!IGNORABLE.includes(err.code)) console.error(`[useFinance:${tag}]`, err.message);
+            return fallback;
+        });
+        const [sum, prev, incRes, expRes, pend, proj, goals, meth] = await Promise.all([
+            safe(getFinanceSummary(start, end, granularity), null, 'summary'),
+            prevStart ? safe(getFinanceSummary(prevStart, prevEnd, granularity), null, 'prev') : Promise.resolve(null),
+            safe(getIncomeEntries({ start, end, page: 0, pageSize: LIST_PAGE_SIZE }), { data: [], count: 0 }, 'income'),
+            safe(getExpenseEntries({ start, end, page: 0, pageSize: LIST_PAGE_SIZE }), { data: [], count: 0 }, 'expenses'),
+            safe(getPendingValidations(), [], 'pending'),
+            safe(getFinanceProjection(), null, 'projection'),
+            safe(getMonthlyGoals(new Date().getFullYear()), [], 'goals'),
+            safe(getPaymentMethods(), [], 'methods'),
+        ]);
+        setSummary(sum);
+        setPrevSummary(prev);
+        setIncome(incRes.data);
+        setIncomeHasMore(incRes.data.length < incRes.count);
+        setExpenses(expRes.data);
+        setExpenseHasMore(expRes.data.length < expRes.count);
+        setPending(pend);
+        setProjection(proj);
+        setMonthlyGoals(goals);
+        setMethods(meth);
+        setLoading(false);
     }, [start, end, granularity, prevStart, prevEnd]);
 
     useEffect(() => { load(); }, [load]);
+
+    // "Cargar más" ingresos/egresos — agrega la siguiente página sin re-pedir
+    // todo el período. Paginación real (no el `slice` client-side de antes).
+    const loadMoreIncome = useCallback(async () => {
+        if (!incomeHasMore || loadingMoreIncome || !start || !end) return;
+        setLoadingMoreIncome(true);
+        try {
+            const nextPage = Math.ceil(income.length / LIST_PAGE_SIZE);
+            const res = await getIncomeEntries({ start, end, page: nextPage, pageSize: LIST_PAGE_SIZE });
+            setIncome(prev => [...prev, ...res.data]);
+            setIncomeHasMore(income.length + res.data.length < res.count);
+        } catch (err) {
+            console.error('[useFinance:loadMoreIncome]', err.message);
+        } finally {
+            setLoadingMoreIncome(false);
+        }
+    }, [incomeHasMore, loadingMoreIncome, start, end, income.length]);
+
+    const loadMoreExpenses = useCallback(async () => {
+        if (!expenseHasMore || loadingMoreExpenses || !start || !end) return;
+        setLoadingMoreExpenses(true);
+        try {
+            const nextPage = Math.ceil(expenses.length / LIST_PAGE_SIZE);
+            const res = await getExpenseEntries({ start, end, page: nextPage, pageSize: LIST_PAGE_SIZE });
+            setExpenses(prev => [...prev, ...res.data]);
+            setExpenseHasMore(expenses.length + res.data.length < res.count);
+        } catch (err) {
+            console.error('[useFinance:loadMoreExpenses]', err.message);
+        } finally {
+            setLoadingMoreExpenses(false);
+        }
+    }, [expenseHasMore, loadingMoreExpenses, start, end, expenses.length]);
 
     // Acciones — recargan el estado para mantener KPIs y listas coherentes.
     // confirmValidation: pending -> confirmed (el dueño valida que el dinero entró).
@@ -93,9 +128,11 @@ export function useFinance(range, prevRange = null) {
     async function updateExpenseEntry(id, fields) { const r = await updateExpenseAPI(id, fields); await load(); return r; }
     async function voidIncomeEntry(id, reason) { await voidIncomeAPI(id, reason); await load(); }
     async function voidExpenseEntry(id, reason) { await voidExpenseAPI(id, reason); await load(); }
-    async function saveGoal(monthlyGoal) {
-        const r = await saveFinanceSettings({ monthly_goal: monthlyGoal });
-        setSettings(r);
+    // Meta mensual REAL por mes — guarda el mes indicado (Ajustes solo permite
+    // editar el mes en curso) y actualiza el array local sin recargar todo.
+    async function saveMonthGoal(year, month, amount) {
+        const r = await saveMonthlyGoal(year, month, amount);
+        setMonthlyGoals(prev => [...prev.filter(g => !(g.year === year && g.month === month)), r]);
         return r;
     }
 
@@ -112,12 +149,20 @@ export function useFinance(range, prevRange = null) {
     const prevExpenses = prevSummary ? Number(prevSummary.total_expenses || 0) : null;
     const prevNet = prevSummary ? Number(prevSummary.total_income || 0) - Number(prevSummary.total_expenses || 0) : null;
 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const currentGoalRow = monthlyGoals.find(g => g.year === currentYear && g.month === currentMonth);
+
     return {
-        summary, prevSummary, projection, settings, methods,
-        income, expenses, pending, loading,
+        summary, prevSummary, projection, methods,
+        income, incomeHasMore, loadingMoreIncome, loadMoreIncome,
+        expenses, expenseHasMore, loadingMoreExpenses, loadMoreExpenses,
+        pending, loading,
         totalIncome, totalExpenses, totalCost, totalFees, netProfit, marginPct,
         prevIncome, prevExpenses, prevNet,
-        monthlyGoal: Number(settings?.monthly_goal || 0),
-        reload: load, confirmValidation, addIncome, addExpense, updateIncomeEntry, updateExpenseEntry, voidIncomeEntry, voidExpenseEntry, saveGoal,
+        monthlyGoal: Number(currentGoalRow?.goal_amount || 0),
+        monthlyGoals, currentYear, currentMonth,
+        reload: load, confirmValidation, addIncome, addExpense, updateIncomeEntry, updateExpenseEntry, voidIncomeEntry, voidExpenseEntry, saveMonthGoal,
     };
 }
