@@ -32,6 +32,9 @@ export function usePermissions() {
         // ── Seguimiento ──────────────────────────────────────
         canViewFollowUp: !!perms.view_followup,                   // tab Seguimiento
 
+        // ── Pipeline CRM ─────────────────────────────────────
+        canViewPipeline: !!perms.view_pipeline,                   // módulo Pipeline (tablero de oportunidades)
+
         // ── Pacientes ────────────────────────────────────────
         canViewPatients:   !!perms.view_patients,                 // acceso al módulo
         canCreatePatients: !!perms.create_patients,               // botón Agregar Paciente

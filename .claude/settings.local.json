@@ -52,7 +52,11 @@
       "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' -X POST https://kwpaaqdkklwwfslhkqpb.supabase.co/functions/v1/ai-chat -H 'Content-Type: application/json' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3cGFhcWRra2x3d2ZzbGhrcXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMjQ4NTcsImV4cCI6MjA4OTcwMDg1N30.kFj6mkOspwYB8bxn6NxAcRhdHt2IAq5g-LAoabX2mUk' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3cGFhcWRra2x3d2ZzbGhrcXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMjQ4NTcsImV4cCI6MjA4OTcwMDg1N30.kFj6mkOspwYB8bxn6NxAcRhdHt2IAq5g-LAoabX2mUk' -d '{\"message\":\"hola\"}')",
       "mcp__f3c71feb-d9d2-49b4-80ae-986f994028b6__get_logs",
       "Bash(git show *)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(mv mutate.mjs build-payload.mjs)",
+      "Bash(node build-payload.mjs)",
+      "Bash(MSYS_NO_PATHCONV=1 node scripts/n8n-api.mjs PUT \"/workflows/1npQWgfgBBIwVuxX\" \"C:\\\\Users\\\\JUANDI~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Juan-Diego-OneDrive-Documentos-Antigravity-Projects-NovTurnAI-NovTurnIA\\\\d8fd2711-071e-45c4-b3f7-5d972c04624f\\\\scratchpad\\\\wf-put.json\")",
+      "Bash(grep -v \"^.*//\")"
     ]
   },
   "enableAllProjectMcpServers": true,

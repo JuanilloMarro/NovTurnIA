@@ -2225,3 +2225,52 @@ export async function getFinanceProjection() {
     if (error) throw error;
     return data;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PIPELINE CRM — tablero de oportunidades (deals) por etapa
+// ════════════════════════════════════════════════════════════════════════════
+// La unidad es la OPORTUNIDAD ligada a un turno, no el cliente: un cliente
+// recurrente genera un deal nuevo por ciclo. Las etapas 3-5 las mantiene un
+// trigger sobre `appointments`, así que el tablero sigue siendo correcto aunque
+// el bot esté caído; solo dejan de encenderse las banderas de las etapas 1-2.
+// Mismo degradado que el Centro de IA: si la migración 024 aún no corrió, la
+// lectura devuelve vacío en vez de tumbar la página.
+
+export async function getPipelineBoard({ days = 90 } = {}) {
+    const { data, error } = await retryRead(
+        () => supabase.rpc('get_pipeline_board', { p_business_id: getBID(), p_days: days }),
+        'pipelineBoard',
+    );
+    if (error) {
+        if (AI_TABLE_MISSING.has(error.code)) return [];
+        throw error;
+    }
+    return data || [];
+}
+
+export async function getPipelineMetrics() {
+    const { data, error } = await supabase.rpc('get_pipeline_metrics', { p_business_id: getBID() });
+    if (error) {
+        if (AI_TABLE_MISSING.has(error.code)) return {};
+        throw error;
+    }
+    return data || {};
+}
+
+// Pasos HUMANOS del pipeline (llamadas de recuperación, recordatorio, encuesta,
+// solicitud de reseña) — hoy sin ningún motor automático en n8n, así que se
+// marcan a mano desde el dashboard. Los pasos de IA (offered_services,
+// offered_promo, queried_slots, confirmed_by_user, nps_score) NO tienen
+// wrapper aquí: son exclusivos de `pipeline_touch`/service_role (el contrato
+// de n8n), con ownership-check distinto (ese RPC no valida el caller).
+export async function setPipelineStepDone(dealId, step, done) {
+    const { data, error } = await supabase.rpc('set_pipeline_step', { p_deal_id: dealId, p_step: step, p_done: done });
+    if (error) throw error;
+    return data;
+}
+
+// NOTA: el RPC `set_pipeline_stage` existe en la DB (mover a discovery /
+// negotiation / lost) pero hoy NINGUNA pantalla lo llama: al fusionar
+// Descubrimiento+Negociación en una sola columna, el único arrastre que queda
+// abre el modal de agendar. Se dejó sin wrapper para no cargar código muerto;
+// re-exponerlo son 5 líneas cuando se agregue la acción "descartar".

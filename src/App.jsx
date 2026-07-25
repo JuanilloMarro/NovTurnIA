@@ -14,6 +14,7 @@ import ToastContainer from './components/ToastContainer';
 // T-22: Lazy loading de rutas — los bundles de cada página se cargan solo al navegar.
 const Calendar = lazy(() => import('./pages/Calendar'));
 const FollowUp = lazy(() => import('./pages/FollowUp'));
+const Pipeline = lazy(() => import('./pages/Pipeline'));
 const Patients = lazy(() => import('./pages/Patients'));
 const Conversations = lazy(() => import('./pages/Conversations'));
 const PatientHistory = lazy(() => import('./pages/PatientHistory'));
@@ -60,7 +61,7 @@ const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
 
 export default function App() {
     const { setAuth, setLoading, clearAuth, setBusinessStatus, businessStatus, profile, isPlansOpen, openPlans, closePlans } = useAppStore();
-    const { canViewStats, canManageRoles, canManageServices, canViewFinance, canUseAIHub } = usePermissions();
+    const { canViewStats, canManageRoles, canManageServices, canViewFinance, canUseAIHub, canViewPipeline } = usePermissions();
     const { user } = useAuth();
     // Usa el email del usuario de auth — no requiere registro en staff_users
     const isSuperAdmin = SUPER_ADMIN_EMAIL && user?.email === SUPER_ADMIN_EMAIL;
@@ -139,6 +140,7 @@ export default function App() {
                                                 <Routes>
                                                     <Route path="/" element={<Calendar />} />
                                                     <Route path="/followup" element={!profileReady ? <PageLoader /> : <FollowUp />} />
+                                                    <Route path="/pipeline" element={!profileReady ? <PageLoader /> : canViewPipeline ? <Pipeline /> : <Navigate to="/" replace />} />
                                                     <Route path="/patients" element={<Patients />} />
                                                     <Route path="/conversations" element={<Conversations />} />
                                                     <Route path="/patients/:id/history" element={<PatientHistory />} />

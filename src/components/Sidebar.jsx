@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock, Tag, History, Wallet } from 'lucide-react';
+import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock, Tag, History, Wallet, Repeat } from 'lucide-react';
 import AIStar from './Icons/AIStar';
 import { useAuroraPulse } from '../hooks/useAuroraPulse';
 import { usePermissions } from '../hooks/usePermissions';
@@ -54,13 +54,14 @@ function NavItem({ to, end, icon: Icon, label, locked, iconSize = 16, labelClass
 }
 
 export default function Sidebar({ onOpenPlans }) {
-    const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations, canViewFollowUp, canViewFinance, canUseAIHub } = usePermissions();
+    const { canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations, canViewFollowUp, canViewFinance, canUseAIHub, canViewPipeline } = usePermissions();
     const { hasFeature } = usePlanLimits();
     const statsUnlocked = hasFeature('dashboard');
     const aiHubUnlocked = hasFeature('stats_intelligence');
     const auditUnlocked = hasFeature('audit_log');
     const offersUnlocked = hasFeature('dynamic_pricing');
     const followUpUnlocked = hasFeature('followup');
+    const pipelineUnlocked = hasFeature('pipeline');
     const financeUnlocked = hasFeature('finance');
     const { profile } = useAuth();
     const { isSidebarOpen, toggleSidebar } = useAppStore();
@@ -116,6 +117,10 @@ export default function Sidebar({ onOpenPlans }) {
 
                     {canViewFollowUp && (
                         <NavItem to="/followup" icon={History} label="Seguimiento" locked={!followUpUnlocked} onClick={closeMobile} />
+                    )}
+
+                    {canViewPipeline && (
+                        <NavItem to="/pipeline" icon={Repeat} label="Pipeline" locked={!pipelineUnlocked} onClick={closeMobile} />
                     )}
 
                     {canViewPatients && (

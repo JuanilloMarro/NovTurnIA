@@ -607,8 +607,8 @@ export default function Conversations() {
                                                         {/* Eliminar mensaje individual (izquierda para salientes) */}
                                                         {canDeleteConversations && !msg._pending && isOutgoing && (
                                                             <button onClick={() => handleDeleteMessage(msg.id)} title="Eliminar mensaje"
-                                                                className="opacity-0 group-hover/msg:opacity-100 shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-all">
-                                                                <X size={12} />
+                                                                className="opacity-0 group-hover/msg:opacity-100 transition-opacity w-5 h-5 rounded-full bg-white/60 border border-white/70 flex items-center justify-center text-navy-700/50 hover:text-rose-600 hover:border-rose-200 shrink-0">
+                                                                <X size={10} />
                                                             </button>
                                                         )}
                                                         <div className={`max-w-[75%] relative overflow-hidden px-4 py-2.5 text-[13px] leading-relaxed font-medium backdrop-blur-2xl shadow-md bg-white/40 border border-white/60 text-navy-900 rounded-[20px] ${isOutgoing ? 'rounded-br-[4px]' : 'rounded-bl-[4px]'} ${msg._pending ? 'opacity-60' : ''}`}>
@@ -635,8 +635,8 @@ export default function Conversations() {
                                                         {/* Eliminar mensaje entrante (a la derecha del cliente) */}
                                                         {canDeleteConversations && !msg._pending && !isOutgoing && (
                                                             <button onClick={() => handleDeleteMessage(msg.id)} title="Eliminar mensaje"
-                                                                className="opacity-0 group-hover/msg:opacity-100 shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-all">
-                                                                <X size={12} />
+                                                                className="opacity-0 group-hover/msg:opacity-100 transition-opacity w-5 h-5 rounded-full bg-white/60 border border-white/70 flex items-center justify-center text-navy-700/50 hover:text-rose-600 hover:border-rose-200 shrink-0">
+                                                                <X size={10} />
                                                             </button>
                                                         )}
                                                     </div>

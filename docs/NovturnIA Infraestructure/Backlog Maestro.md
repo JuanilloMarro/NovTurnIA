@@ -107,6 +107,21 @@ Cada ítem tiene: `[ ]` estado, **responsable**, **impacto** (🔴 alto / 🟠 m
 - **Pendiente explícito, no atacado esta sesión** (requiere tocar muchos módulos o es visual grande): auditoría profunda de "todas las acciones disponibles por módulo" en RBAC (Usuarios), modo oscuro, auditoría de consistencia visual (botones/paneles/degradados) en todos los módulos. Texto "Prueba Enterprise"/botón azul en la sesión de usuario mencionados en `improvements.md` **no se encontraron** en el código actual — probablemente ya resueltos en una iteración anterior o referidos a una pantalla distinta (revisar con el usuario si persiste).
 - **`docs/audit_performance/history improvements.md` absorbido (mismo lote):** era el spec histórico previo a `improvements.md`. Sus secciones marcadas **✅ por el propio doc** (Módulo de Finanzas, Módulo de Centro de IA, Módulo de Configuración IA, base de Módulo de Estadísticas — filtros de resumen/producción reubicados, submódulos ingresos/egresos/por-cobrar/caja/producción/ajustes con paginación y estilo unificado, fichas IA con icono gris-con-borde, badges de conversación WhatsApp) quedaron completadas en sesiones previas a esta (ver `finance-module.md`/`ai-center-insights.md` en memoria). Sus dos secciones **sin marcar** — "Gráficas NovTurnIA" (collage de Finanzas + reorganización de Estadísticas) y "vouchers cambios" (restyle + fusión con cobro) — son exactamente lo que quedó documentado arriba en este mismo LOTE 4. El ítem suelto de "Módulo de usuarios" (select-all + auditoría profunda de acciones) es el mismo que el punto de RBAC ya listado en §4 (P2) — no se duplica.
 
+### LOTE 5 (2026-07-24) — Módulo Pipeline CRM (tablero tipo Pipedrive)
+- [x] **[IA] 🔴 Pipeline CRM: DB + dashboard completos — APLICADO EN PROD 2026-07-25** — absorbe `docs/audit_performance/Pipeline CRM.md`. **Decisión de eje:** la unidad es la **oportunidad (deal) ligada a un turno**, no el cliente — un cliente recurrente genera un deal nuevo por ciclo, así el tablero sigue el estado de cada turno sin que alguien con miles de citas colapse en una tarjeta. Migración **`024_pipeline_crm.sql`**: tablas `pipeline_deals` (7 banderas booleanas + `recovery_step`/`nps_score`, índice único parcial que garantiza **un solo deal abierto por cliente** — es lo que hace no-ambiguo el contrato de n8n) y `pipeline_events` (append-only, sin UPDATE/DELETE para authenticated); RPCs `pipeline_touch` (service_role, el contrato de n8n), `get_pipeline_board` / `get_pipeline_metrics` / `set_pipeline_stage` (con **ownership-check**, sin repetir el hueco de `get_stats_dashboard`); `pipeline_recompute_stage` + trigger sobre `appointments`; cron `pipeline-maintenance`; backfill de 90 días. Escrita defensiva (resuelve `handle_audit_log` vs `trigger_audit_log` y la ausencia de `is_business_active` en runtime) e idempotente.
+  - **Bug real encontrado y corregido durante el deploy:** `CREATE POLICY ... WITH CHECK %s` / `USING %s` sin paréntesis envolventes → `syntax error at or near "AND"` en las políticas de doble condición (`biz AND is_business_active()`). Postgres exige el paréntesis literal alrededor de toda la expresión, no solo el que ya traía cada sub-expresión. Aplicó en transacción → rollback automático, cero estado a medias.
+  - **Segundo hallazgo (post-deploy, via advisor):** `REVOKE ALL ... FROM PUBLIC` no bastó — el proyecto tiene `ALTER DEFAULT PRIVILEGES` que da EXECUTE **directo** (no vía PUBLIC) a `anon`/`authenticated`/`service_role` en toda función nueva de `postgres` en `public`. Mismo hueco documentado en Aud.#1 (anon 24→3). Fix: `REVOKE ALL ... FROM PUBLIC, anon, authenticated, service_role` explícito antes de cada `GRANT` — migración `pipeline_crm_least_privilege` aplicada y sincronizada de vuelta al archivo versionado. Verificado con `get_advisors`: 0 ERROR, solo 3 WARN esperados (`get_pipeline_board`/`get_pipeline_metrics`/`set_pipeline_stage` SÍ deben ser callable por `authenticated`, igual que `get_stats_dashboard`).
+  - **Verificado con probes de rollback** (transacción + `ROLLBACK`, cero huella permanente): `pipeline_touch` reusa el deal abierto sin duplicar en la segunda llamada ✓, rechaza bandera desconocida con el mensaje esperado ✓, marcar un turno `no_show` mueve el deal a `recovery` **solo por el trigger**, sin llamar `pipeline_touch` ✓ (esto valida la resiliencia central del diseño: el tablero sigue vivo aunque n8n esté caído). `get_pipeline_board`/`get_pipeline_metrics` devuelven exactamente la forma que esperan `usePipeline.js`/`DealCard.jsx`, probado contra datos reales (Cristian Siguenza → `recovery`, `human_takeover:true`; Juan Diego → `scheduled`). Backfill sembró 2 deals reales (dataset de prueba: 3 pacientes, 9 turnos) — 0 en negocios/pacientes que no calificaban, sin falsos positivos.
+  - Las 2 empresas de prueba están en pro/enterprise con `plans.features.pipeline = true` y los 4 `staff_roles` existentes recibieron `view_pipeline: true` por el backfill de la migración → el módulo debe verse en vivo (no bloqueado) al recargar sesión.
+- [x] **[IA] 🟠 Front del tablero** — módulo nuevo `/pipeline` (no tab de Seguimiento: el pipeline es centrado en el cliente, Seguimiento y Citas siguen turnos). `Pipeline.jsx` + `PipelineBoard.jsx` (5 columnas, drag HTML5 nativo reusando el patrón exacto de `KanbanBoard.jsx` — no hay librería de DnD instalada) + `DealCard.jsx` (banderas, temperatura, última acción de la IA, acciones rápidas). Hook `usePipeline.js` + `useRealtimePipeline` (2 líneas: el hook genérico ya soportaba cualquier tabla con `business_id`).
+- [x] **[IA] 🟡 RBAC + gating** — permiso nuevo **único** `view_pipeline` en los 5 toques (usePermissions · grupo "Pipeline" en Users.jsx · ruta en App.jsx · NavItem en Sidebar.jsx · OWNER/SECRETARY en `onboard-tenant`); las acciones de la tarjeta **reusan** permisos existentes (`create_appointments`, `toggle_ai`, `view_conversations`) en vez de inventar llaves. Feature flag `pipeline` (Pro+) en `plans.features`, `FEATURE_DEFS` del AdminPanel y comparativa de `PlansModal`.
+- **Decisiones de diseño que vale la pena recordar:**
+  - **Las etapas se derivan de la realidad**, no de transiciones permitidas → los saltos de etapa (consulta → cita confirmada directo) y la re-entrada al pipeline salen gratis, sin lógica especial.
+  - **Arrastrar dispara la acción real**: soltar en "Cita programada" abre el modal de agendar y es el trigger quien mueve la tarjeta cuando el turno existe. Solo las 2 etapas blandas (Descubrimiento/Negociación) aceptan movimiento manual. El tablero nunca miente.
+  - **NO se enganchó trigger de `audit_log`** en `pipeline_deals` (desviación deliberada del patrón de `finance_categories`): cada mensaje del bot dispara un UPDATE, así que auditarla generaría una fila de audit por mensaje de WhatsApp. `pipeline_events` ya es el log inmutable de esta entidad.
+  - El preview bloqueado (`FeatureLock variant="blurred"`) alimenta el **mismo** `PipelineBoard` con datos de muestra, en vez de duplicar el markup como hace `FollowUp.jsx` (cuyo mock de ~140 líneas se desincroniza cada vez que cambia el módulo real).
+- [x] Verificación: `npm run build` limpio (6.6s), chunk `Pipeline` de 20.2 kB + migración aplicada y probada en producción (probes de rollback arriba). **Pendiente real:** clic-a-clic autenticado en el navegador (no se pudo probar sin credenciales) y redeploy de `onboard-tenant` (ver §5).
+
 ### Fixes n8n en vivo (2026-07-10) — aplicados por API contra el workflow activo `NovTurnAI`
 - [x] **[IA] 🔴 Rate-limit del bot reparado** — nodo `DB - Request API Limit` usaba la key `anon` (revocada) → 401 en cada mensaje. Cambiada a service_role vía PUT a la API de n8n; verificado con diff (solo ese nodo cambió de 143).
 - [x] **[IA] 🔴 Gate "¿Teléfono Negocio Existe?" reconectado** — corría DESPUÉS de `Plan - Obtener` (no protegía nada): un `phone_number_id` no registrado tronaba con `invalid input syntax for type uuid: "undefined"` (ejecuciones #368/#369). Ahora: `Negocio - Obtener → ¿Existe? → Plan - Obtener`. Verificado con diff (solo 3 conexiones cambiaron, 0 nodos).
@@ -116,6 +131,27 @@ Cada ítem tiene: `[ ]` estado, **responsable**, **impacto** (🔴 alto / 🟠 m
 ---
 
 ## 2. 🔴 PENDIENTES P0 — hacer primero (bloquean producción / cobro)
+
+> ### ⏸️ LOTE n8n AUDITADO Y EN PAUSA (2026-07-24)
+> Se auditó el workflow activo `NovTurnAI` (id `1npQWgfgBBIwVuxX`, 143 nodos) contra todo lo implementado en dashboard + DB. **Los 12 cambios están construidos y validados** (0 conexiones rotas, 143→145 nodos) pero **NO aplicados**: el túnel de Cloudflare se cayó antes del PUT y el usuario decidió priorizar el Pipeline CRM. Para retomar hace falta levantar el túnel y pasar la URL nueva (el API key ya está en `.env` como `N8N_API_KEY`, y `scripts/n8n-api.mjs` es el helper).
+>
+> **Hallazgos que cierra ese lote** (todos siguen ABIERTOS hoy):
+> 1. `record_usage` **nunca se llama** → `usage_counters` vacío, panel de consumo en 0, corte automático muerto. Fix: 3 nodos nuevos tras cada respuesta (tokens estimados por chars/4 — el nodo Agent de n8n no expone el conteo real de Gemini).
+> 2. El bot **ignora `ai_paused`** → el kill-switch del AdminPanel y el corte por consumo no apagan nada.
+> 3. Gate de conversaciones cuenta **todas** las filas de `history` del mes (≈2× por contar user+assistant, y arrastra el payload completo en cada mensaje) → debe leer 1 fila de `usage_counters`, que es justo lo que muestra el dashboard. Además `<=` deja pasar 1 mensaje de más.
+> 4. Gate de turnos cuenta por `created_at`; el trigger de la DB y el dashboard cuentan por **mes de `date_start` excluyendo cancelados** (H3). Ambos gates **ignoran `limit_overrides`**.
+> 5. `Modelo - Embedding Pro` con `maxOutputTokens: 10` → **todo mensaje del tier Pro degrada a handoff** (el JSON del classifier necesita ~30).
+> 6. `Modelo - Pro`/`Enterprise` y 2 classifiers **sin `modelName`** → dependen del default de n8n en vez de la escalera vendida (Basic=flash-lite, Pro/Ent=flash).
+> 7. `Historial - Obtener` con `limit 10` sin order → trae los 10 más **VIEJOS** de la ventana de 3h. Fix: subir a 100 (el Sort+Limit que ya existe deja los 10 recientes).
+> 8. Los 18 nodos WhatsApp **sin `onError`** → si Meta rechaza, no se guarda historial ni se activa el handoff (visto en ejec. #370).
+> 9. `Historial - Urgencia`/`Queja` guardan textos con "dental"/"doctor"/"clínica" en un producto multi-rubro, distintos a lo realmente enviado.
+> 10. `Tool - Perfil Paciente Enterprise` (`get_patient_profile`, en DB desde 2026-07-06) sigue **sin cablear**.
+> 11. Falta regla de `SCHEDULE_CLOSED`/`SCHEDULE_DAILY_CAP` en los 3 prompts (festivos y cupo diario ya los respetan los tools vía `get_available_slots` v2 ✓).
+>
+> **Verificados SIN problema:** handoff bidireccional (el envío humano va por la Edge `wa-human-reply`, ya no por n8n) ✓ · rate-limit 20/h reparado ✓ · teléfonos sin "+" ✓ · buffer 3s/11s ✓ · gate de teléfono no registrado ✓ · ofertas solo Enterprise ✓.
+>
+> **Riesgo anotado:** fijar `gemini-2.5-flash` en Pro/Ent activa *thinking* por defecto y esos tokens se facturan como salida; el nodo de n8n no expone `thinkingBudget`. Si el costo sube, revertir a flash-lite.
+
 
 - [x] **[IA] 🔴 Fix rate-limit en n8n** — ✅ HECHO 2026-07-10 por API (ver §1 "Fixes n8n en vivo"). *(doc 05 §1)*
 - [ ] **[TÚ] 🔴 Credencial de WhatsApp en n8n no cubre el número sandbox** — los nodos `WA - Respuesta *` firman con la credencial fija "WhatsApp account" (`4OfxV7OuSSMmbwnp`), compartida por los 3 planes; Meta rechaza el envío desde el número de pruebas (`GraphMethodException 100/33`, ejecución #370). Además `businesses.whatsapp_token` **no se usa al enviar** (solo la credencial de n8n) → funciona en Modelo B (todos los números bajo tu WABA), pero hay que renovar/alinear el token de esa credencial en n8n → Settings → Credentials para probar con el sandbox, o probar con un número real del WABA.
@@ -164,6 +200,34 @@ Cada ítem tiene: `[ ]` estado, **responsable**, **impacto** (🔴 alto / 🟠 m
 - [ ] **[IA/TÚ] 🟡 Auditoría de consistencia visual** — repasar todos los módulos para que botones/paneles/degradados/sombreados sigan exactamente el mismo lenguaje (glass + glows + hover). Cambio ancho, hacerlo en una sesión dedicada. *(`improvements.md`)*
 
 ## 5. 🔮 FUTURAS — roadmap de producto (planificación, no urgente)
+
+### Pipeline CRM — fase n8n (backend YA listo, solo falta cablear el bot)
+> El módulo se construyó el **2026-07-24** (ver §1 "LOTE 5"). El dashboard funciona **sin n8n**: las etapas 3-4-5 las mantiene un trigger sobre `appointments`, así que el tablero es correcto aunque el bot esté caído. Lo único que falta son las banderas de las etapas 1-2, que hoy se aproximan con una heurística de profundidad de conversación.
+>
+> **El backend está diseñado para que cada nodo sea una sola llamada con un solo parámetro:**
+> ```
+> POST https://kwpaaqdkklwwfslhkqpb.supabase.co/rest/v1/rpc/pipeline_touch
+> headers: service_role (idénticos a los demás nodos HTTP del workflow)
+> { "p_business_id": "{{ $('Negocio - Obtener').first().json.id }}",
+>   "p_patient_id":  "{{ $if($('Paciente - Obtener Datos').isExecuted, $('Paciente - Obtener Datos').first().json.id, $('Paciente - Crear').first().json.id) }}",
+>   "p_flag": "offered_promo",
+>   "p_summary": "Le ofreció Limpieza Dental 2x1" }
+> ```
+> `pipeline_touch` busca-o-crea el deal abierto del paciente, prende la bandera, guarda el micro-texto que se ve en la tarjeta, registra el evento y recalcula la etapa. Es idempotente.
+
+- [ ] **[MIXTO] 🟠 Nodos `pipeline_touch` en el workflow** — uno por punto de decisión, todos con `onError: continueRegularOutput` para que nunca bloqueen la conversación:
+  | Después de… | `p_flag` |
+  |---|---|
+  | `Tool - Obtener Servicios` | `offered_services` |
+  | `Tool - Ofertas Activas Enterprise` | `offered_promo` |
+  | `Tool - Slots Disponibles` | `slot_offered` (prende `queried_slots` + timestamp) |
+  | recordatorio pre-cita (cuando exista el motor) | `reminder_sent` |
+  | respuesta de confirmación del cliente | `confirmed_by_user` |
+  | cada paso de la secuencia de recuperación | `recovery_step` (autoincrementa 1→3) |
+  | encuesta post-atención / NPS | `survey_sent` · `nps_score` (con `p_value` 1-5) |
+- [ ] **[IA] 🟡 Reemplazar la heurística de Descubrimiento vs Negociación** — hoy el backfill separa las dos primeras etapas por nº de mensajes (≥6 = negociación). En cuanto lleguen los `queried_slots` reales, borrar esa aproximación del backfill.
+- [x] **[IA] 🟡 Aplicar la migración `024_pipeline_crm.sql`** — ✅ 2026-07-25, MCP de Supabase autorizado. 2 bugs encontrados y corregidos en el propio deploy (detalle arriba en LOTE 5). Advisor 0 ERROR.
+- [ ] **[TÚ] 🟡 Redeploy de `onboard-tenant`** — ya tiene `view_pipeline` en OWNER/SECRETARY en el código (`supabase/functions/onboard-tenant/index.ts`), falta desplegarla para que los tenants **nuevos** lo reciban. (Los negocios existentes ya lo tienen — lo cubrió el backfill de la migración, verificado: 4/4 `staff_roles`.)
 
 ### Módulo IA del sistema (Enterprise, pull + cache-first) — *doc 05 §3*
 - [ ] `ai_insights` (tabla base) + gate Enterprise.

@@ -50,6 +50,8 @@ const OWNER_PERMISSIONS = {
   delete_appointments: true, purge_appointments: true,
   // Seguimiento
   view_followup: true,
+  // Pipeline CRM
+  view_pipeline: true,
   // Pacientes
   view_patients: true, create_patients: true, edit_patients: true,
   delete_patients: true, export_patients: true,
@@ -79,6 +81,8 @@ const SECRETARY_PERMISSIONS = {
   delete_appointments: false, purge_appointments: false,
   // Seguimiento
   view_followup: true,
+  // Pipeline CRM
+  view_pipeline: true,
   // Pacientes
   view_patients: true, create_patients: true, edit_patients: true,
   delete_patients: false, export_patients: false,

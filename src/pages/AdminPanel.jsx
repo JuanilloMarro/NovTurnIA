@@ -37,6 +37,7 @@ const FEATURE_DEFS = [
     { key: 'dashboard',        label: 'Estadísticas' },
     { key: 'followup',         label: 'Seguimiento' },
     { key: 'kanban',           label: 'Tablero Kanban' },
+    { key: 'pipeline',         label: 'Pipeline CRM' },
     { key: 'audit_log',        label: 'Actividad' },
     { key: 'finance',          label: 'Finanzas' },
     { key: 'supplies',         label: 'Insumos (BOM)' },

@@ -218,6 +218,12 @@ export default function Users() {
                                             ]
                                         },
                                         {
+                                            title: 'Pipeline',
+                                            perms: [
+                                                { key: 'view_pipeline', label: 'Ver pipeline de clientes' },
+                                            ]
+                                        },
+                                        {
                                             title: 'Clientes',
                                             perms: [
                                                 { key: 'view_patients', label: 'Ver clientes' },

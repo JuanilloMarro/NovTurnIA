@@ -73,6 +73,8 @@ const MODULE_SPECS = [
             { name: 'Filtros por Tipo (No-Show / Cancelados)', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
             { name: 'Filtros por Período (7 / 30 / 60 / 90 días)', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
             { name: 'Reagendar directamente desde Seguimiento', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
+            { name: 'Pipeline CRM: tablero de 5 etapas en vivo', basic: flag('pipeline'), pro: flag('pipeline'), enterprise: flag('pipeline') },
+            { name: 'Trazabilidad de lo que hizo la IA con cada cliente', basic: flag('pipeline'), pro: flag('pipeline'), enterprise: flag('pipeline') },
         ],
     },
     {

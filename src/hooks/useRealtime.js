@@ -45,6 +45,12 @@ function useRealtimeTable(table, channelPrefix, onUpdate) {
 export const useRealtimeAppointments = (onUpdate) =>
     useRealtimeTable('appointments', 'calendar-sync', onUpdate);
 
+// El bot mueve las tarjetas del pipeline por su cuenta (pipeline_touch) — sin
+// realtime el tablero se vería congelado, que es justo lo contrario de lo que
+// vende el módulo ("ver a la IA trabajando en vivo").
+export const useRealtimePipeline = (onUpdate) =>
+    useRealtimeTable('pipeline_deals', 'pipeline-sync', onUpdate);
+
 export const useRealtimePatients = (onUpdate) =>
     useRealtimeTable('patients', 'patients-sync', (payload) => {
         // M-010: cuando llegan altas/bajas externas (ej. agente n8n), el cache
