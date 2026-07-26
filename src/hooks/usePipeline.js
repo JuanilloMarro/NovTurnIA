@@ -20,29 +20,34 @@ export function relativeTime(iso) {
 // de hover EXACTAMENTE cuándo hizo cada cosa la IA, sin gastar una columna por
 // paso. `stages` mapea a los valores que ya guarda la DB.
 //
-// Cada paso trae `source`:
-//   'ai'    → lo hace el bot DENTRO de la conversación de WhatsApp ya viva hoy
-//             (ofrecer servicios/promo, consultar horarios, leer la
-//             confirmación o el puntaje que responde el cliente). Se sella
-//             por `pipeline_touch` (service_role) — SIN checkbox, es lectura.
-//   'human' → requiere que el STAFF salga a contactar por su cuenta (llamar,
-//             escribir) y HOY no existe ningún motor automático en n8n para
-//             eso (el propio Backlog Maestro tiene abierto el P0 "el motor de
-//             recordatorios se vende pero no existe"). Lleva checkbox
-//             circular, escrito por `set_pipeline_step` (authenticated, con
-//             ownership-check). `stepId` es el nombre que espera ese RPC.
-//   'auto'  → se deriva solo de datos reales (existe un turno o no) — ni la
-//             IA ni el staff "marcan" esto, así que no lleva ni checkbox ni
-//             atribución.
+// Cada paso trae `source` (quién lo hace NORMALMENTE — pura información,
+// pinta el ícono de robot en el popover) y opcionalmente `stepId`:
+//   'ai'    → normalmente lo hace el bot DENTRO de la conversación de
+//             WhatsApp (ofrecer servicios/promo, consultar horarios, leer
+//             la confirmación del cliente). Se sella por `pipeline_touch`
+//             (service_role).
+//   'human' → normalmente requiere que el STAFF salga a contactar por su
+//             cuenta (llamar, escribir) — hoy no existe ningún motor
+//             automático en n8n para eso.
+//   'auto'  → se deriva solo de datos reales (existe un turno o no) — nadie
+//             lo "marca", así que NUNCA lleva `stepId`.
+// `stepId` (si existe) es el nombre que espera `set_pipeline_step` y hace
+// que el paso lleve checkbox circular: la secretaria puede marcarlo a mano
+// —además de que el bot lo siga pudiendo tocar por su cuenta cuando exista
+// ese camino— para los casos donde ella toma el rumbo del cliente en
+// persona (llama, ofrece la promo, confirma por teléfono) y el paso no debe
+// quedar huérfano en el tablero solo porque no pasó por WhatsApp.
+// Únicos SIN `stepId` a propósito: `__scheduled` (falsearlo rompe "la etapa
+// refleja la realidad") y `nps_score` (es un puntaje 1-5, no un boolean).
 export const PIPELINE_COLUMNS = [
     {
         id: 'booking',
         title: 'Agendación',
         stages: ['discovery', 'negotiation'],
         steps: [
-            { key: 'offered_services', label: 'Servicios ofrecidos', icon: ListChecks, atKey: 'offered_services_at', source: 'ai' },
-            { key: 'offered_promo', label: 'Promoción ofrecida', icon: Tag, atKey: 'offered_promo_at', source: 'ai' },
-            { key: 'queried_slots', label: 'Horarios consultados', icon: Clock, atKey: 'slot_offered_at', source: 'ai' },
+            { key: 'offered_services', label: 'Servicios ofrecidos', icon: ListChecks, atKey: 'offered_services_at', source: 'ai', stepId: 'offered_services' },
+            { key: 'offered_promo', label: 'Promoción ofrecida', icon: Tag, atKey: 'offered_promo_at', source: 'ai', stepId: 'offered_promo' },
+            { key: 'queried_slots', label: 'Horarios consultados', icon: Clock, atKey: 'slot_offered_at', source: 'ai', stepId: 'queried_slots' },
             { key: '__scheduled', label: 'Turno agendado', icon: CalendarCheck, source: 'auto' },
         ],
     },
@@ -53,7 +58,7 @@ export const PIPELINE_COLUMNS = [
         steps: [
             { key: '__scheduled', label: 'Turno agendado', icon: CalendarCheck, source: 'auto' },
             { key: 'reminder_sent', label: 'Recordatorio enviado', icon: Bell, atKey: 'reminder_sent_at', source: 'human', stepId: 'reminder_sent' },
-            { key: 'confirmed_by_user', label: 'Confirmado por el cliente', icon: CheckCircle2, atKey: 'confirmed_at', source: 'ai' },
+            { key: 'confirmed_by_user', label: 'Confirmado por el cliente', icon: CheckCircle2, atKey: 'confirmed_at', source: 'ai', stepId: 'confirmed_by_user' },
         ],
     },
     {
@@ -67,8 +72,14 @@ export const PIPELINE_COLUMNS = [
         ],
     },
     {
+        // El id interno se queda 'loyalty' (así vive en la DB — stage,
+        // triggers, RPCs); solo cambia el título visible. Fidelización mide
+        // al CLIENTE en el tiempo (concepto distinto), mientras que Agendación
+        // → Cita programada → Recuperación son pasos/estados de UN turno.
+        // Feedback encaja con lo que esta columna YA hacía de verdad: recoger
+        // encuesta/NPS/reseña después de que el turno se cumplió.
         id: 'loyalty',
-        title: 'Fidelización',
+        title: 'Feedback',
         stages: ['loyalty'],
         steps: [
             { key: 'survey_sent', label: 'Encuesta enviada', icon: ClipboardList, atKey: 'survey_sent_at', source: 'human', stepId: 'survey_sent' },
@@ -81,11 +92,14 @@ export const PIPELINE_COLUMNS = [
 // Salud del trato — es lo que pinta la barra de color de la ficha. Responde a
 // "¿la IA va bien, se detuvo, se cayó, o lo logró?". Se deriva de datos que ya
 // existen; no requiere columna nueva en la DB.
+// badgeBg/badgeBorder/badgeText: para el badge explícito de la ficha (un
+// punto solo no dice qué significa el color); dot/glow siguen usándose en el
+// dropdown de filtros de Pipeline.jsx.
 export const HEALTH = {
-    won: { label: 'Logrado', dot: 'bg-emerald-500', glow: 'rgba(16,185,129,0.4)', bar: 'bg-emerald-500' },
-    on_track: { label: 'En curso', dot: 'bg-navy-500', glow: 'rgba(29,95,173,0.4)', bar: 'bg-navy-500' },
-    stalled: { label: 'Detenido', dot: 'bg-amber-500', glow: 'rgba(245,158,11,0.4)', bar: 'bg-amber-500' },
-    dropped: { label: 'Se cayó', dot: 'bg-rose-500', glow: 'rgba(244,63,94,0.4)', bar: 'bg-rose-500' },
+    won: { label: 'Logrado', dot: 'bg-emerald-500', glow: 'rgba(16,185,129,0.4)', bar: 'bg-emerald-500', badgeBg: 'bg-emerald-50', badgeBorder: 'border-emerald-100', badgeText: 'text-emerald-700' },
+    on_track: { label: 'En curso', dot: 'bg-navy-500', glow: 'rgba(29,95,173,0.4)', bar: 'bg-navy-500', badgeBg: 'bg-navy-50', badgeBorder: 'border-navy-100', badgeText: 'text-navy-700' },
+    stalled: { label: 'Detenido', dot: 'bg-amber-500', glow: 'rgba(245,158,11,0.4)', bar: 'bg-amber-500', badgeBg: 'bg-amber-50', badgeBorder: 'border-amber-100', badgeText: 'text-amber-700' },
+    dropped: { label: 'Se cayó', dot: 'bg-rose-500', glow: 'rgba(244,63,94,0.4)', bar: 'bg-rose-500', badgeBg: 'bg-rose-50', badgeBorder: 'border-rose-100', badgeText: 'text-rose-700' },
 };
 
 export function dealHealth(d) {

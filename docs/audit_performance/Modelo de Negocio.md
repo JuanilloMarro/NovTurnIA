@@ -19,7 +19,7 @@ Claves estructurales (validadas con números en §4-§6):
 1. **Los fijos NO escalan por cliente.** El costo marginal de un cliente es su IA (~Q10-500 en el techo absurdo) + WhatsApp (~Q0-50). Margen incremental **87-98%**.
 2. **La tarifa plana con corte automático es la arquitectura correcta** — el costo real de tokens es tan bajo que trasladarlo al cliente mataría la venta sin proteger nada relevante.
 3. **El cuello de botella no son los costos: es la adquisición** — y ahí ataca la v3 (entrada Q599 + pitch de planilla, §2).
-4. ⚠️ **Deuda comercial previa a vender** (auditoría §8): el corte por consumo NO opera hoy (H1/H2) y los recordatorios de Pro/Ent no existen en el workflow (H6). Se venden límites y features que el sistema aún no aplica.
+4. ✅ **Deuda comercial de corte por consumo — cerrada 2026-07-25** (auditoría §8): H1/H2 quedaron resueltos en n8n. Sigue abierto H6 (recordatorios/auto_confirm de Pro/Ent sin motor) — ver [Backlog Maestro - Pendientes.md](Backlog%20Maestro%20-%20Pendientes.md).
 
 ---
 
@@ -157,6 +157,7 @@ El margen converge a ~88% — estructura de SaaS sano. **El primer cliente ideal
 ## 8. ★ AUDITORÍA DE CUMPLIMIENTO DE LÍMITES Y PLANES (2026-07-10, verificada en vivo)
 
 > **Método:** definiciones reales de triggers/funciones/políticas leídas de `pg_catalog` por MCP; tabla `plans` y `usage_counters` en producción; grep exhaustivo del frontend (`usePlanLimits`, `FeatureLock`, `hasFeature` — 27 archivos); workflow n8n **activo** bajado por API (129 nodos funcionales). Cada celda refleja lo que el sistema HACE hoy.
+> **Nota 2026-07-25:** esta sección es auditoría (qué hace el sistema hoy), no una lista de tareas — las acciones para cerrar lo que sigue abierto viven en [Backlog Maestro - Pendientes.md](Backlog%20Maestro%20-%20Pendientes.md).
 
 ### 8.1 Matriz límite × capa
 
@@ -165,8 +166,8 @@ El margen converge a ~88% — estructura de SaaS sano. **El primer cliente ideal
 | **Pacientes** 50/150/∞ | ✅ Trigger a INSERT/restore (`deleted_at IS NULL`, respeta `limit_overrides` vía `get_effective_limit`); bot exento (`auth.uid() IS NULL`) — decisión de producto | ✅ `canAddPatient`: banner + botón deshabilitado; visibilidad recortada a los N más recientes (`get_visible_patient_ids`) | ✅ Exento POR DISEÑO: crea el #51+; el negocio solo VE 50 |
 | **Staff** 1/5/∞ | ✅ Trigger (cuenta `active=true`, respeta overrides) | ⚠️ **H4**: `Users.jsx` muestra `staffUsed/maxStaff` pero NO deshabilita el botón de crear (el error del trigger llega crudo) | N/A |
 | **Turnos/mes** 100/500/∞ | ✅ Trigger por mes de `date_start` del turno nuevo, excluye cancelados, respeta overrides | ✅ `canAddAppointment` + banner (menor: cuenta el mes actual → bloquea de más al agendar el mes siguiente) | ⚠️ **H3**: gate propio por `created_at` ≠ `date_start` |
-| **Mensajes IA/mes** 500/5,000/20,000 | 🔴 **H1**: `record_usage` existe y pausa bien + cron `reset-usage-ai-pause` mensual… pero **NADIE la llama**: `usage_counters` = 0 filas en producción | 🔴 `conversations_used` lee `usage_counters` → tenant y admin ven siempre **0**; extra: `Conversations.jsx:365` compara la variable equivocada (`patientsUsed > maxConversations`) **(H8)** | ⚠️ **H3**: gate propio cuenta `history` user+assistant (≈2× → límite real ≈ mitad) y NO respeta `limit_overrides` |
-| **`ai_paused` (kill-switch)** | ✅ Columna + `record_usage` la activa + `reactivate_bot` | ✅ AdminPanel: badge + toggle + % de uso | 🔴 **H2**: el workflow NO chequea `ai_paused` en ningún nodo (0 menciones) → ni el corte automático ni el toggle del super-admin apagan al bot |
+| **Mensajes IA/mes** 500/5,000/20,000 | ✅ **H1 resuelto 2026-07-25**: `record_usage` cableado en n8n (3 nodos `Uso - Registrar {plan}`) — `usage_counters` ya recibe datos reales | ✅ `conversations_used` ahora refleja consumo real; **H8 resuelto** (comparación corregida a `maxPatients`) | ✅ **H3 resuelto 2026-07-25**: gate ahora lee `usage_counters` (sin doble-conteo) y respeta `limit_overrides` |
+| **`ai_paused` (kill-switch)** | ✅ Columna + `record_usage` la activa + `reactivate_bot` | ✅ AdminPanel: badge + toggle + % de uso | ✅ **H2 resuelto 2026-07-25**: el gate `¿Plan Activo?` ahora exige `ai_paused !== true` — el corte automático y el toggle del super-admin sí apagan al bot |
 | **Suspensión/dunning 7/30** | ✅ Cron `run-dunning` diario + `is_business_active()` en políticas de ESCRITURA de 10 tablas (incluye `finance_categories`) + `record_payment` | ✅ `AccountStatusModal` (suspended aviso / cancelled bloqueo duro) | ✅ `¿Plan Activo?` (active|trial + active + `plan_expires_at` vigente) |
 | ↳ nota dunning | 🟡 **H5**: los negocios actuales tienen `plan_expires_at = NULL` (nunca vencen) → dunning inoperante hasta setear fecha en alta/cobro; falta botón "Marcar pagado" en AdminPanel | | |
 | **Rate limit** | ✅ `check_rate_limit` + cron de limpieza | N/A | ✅ 20 msg/h por usuario+negocio (bloquea del 21º) |
@@ -201,20 +202,18 @@ El margen converge a ~88% — estructura de SaaS sano. **El primer cliente ideal
 
 ### 8.4 Hallazgos priorizados (resumen ejecutivo de la auditoría)
 
-| # | Sev | Hallazgo | Dónde se arregla |
+| # | Sev | Hallazgo | Estado |
 |---|---|---|---|
-| H1 | 🔴 | Metering muerto: nadie llama `record_usage` → panel en 0, corte por consumo imposible. **El límite de 500 msgs que sostiene la v3 hoy no se aplica de verdad** | n8n: 1 nodo HTTP tras cada `Historial - Respuesta *` |
-| H2 | 🔴 | El bot ignora `ai_paused` (ni corte automático ni kill-switch manual lo detienen) | n8n: condición extra en `¿Plan Activo?` (dato ya cargado, 0 requests) |
-| H6 | 🔴 | `reminders`/`auto_confirm` se venden sin motor (sin `scheduleTrigger`) | portar del workflow viejo o quitar los flags hasta implementarlos |
-| H3 | 🟠 | Gates del bot miden distinto que la DB (turnos por `created_at`; conversaciones 2×; sin overrides) | n8n |
-| H4 | ✅ | **Resuelto 2026-07-11** (y re-auditado: no existía botón de crear en la UI — el hueco real era que `manage-staff` corre con service_role, exento del trigger, y no chequeaba `max_staff`). Fix: check de límite en la Edge (**v8**) + contador `X/Y usuarios del plan` en Users.jsx | — |
-| H5 | 🟢 | **Casi resuelto 2026-07-11**: botón "Marcar pagado" en AdminPanel (edge v9 → `record_payment`) + trial 14d con vencimiento (onboard-tenant v13). [TÚ] queda 1 clic: marcar pagado al negocio real | — |
-| H7 | 🟡 | `custom_prompt` inyectado a todos los planes en el bot | n8n (condición por tier) o aceptar |
-| H8 | ✅ | **Resuelto 2026-07-11**: la comparación correcta era contra `maxPatients` (el límite que recorta los chats visibles) | — |
+| H1 | ✅ | Metering muerto: nadie llamaba `record_usage` → panel en 0, corte por consumo imposible | **Resuelto 2026-07-25** en n8n (ver [Bot n8n - Puesta al Dia](Bot%20n8n%20-%20Puesta%20al%20Dia.md)) |
+| H2 | ✅ | El bot ignoraba `ai_paused` (ni corte automático ni kill-switch manual lo detenían) | **Resuelto 2026-07-25** |
+| H3 | ✅ | Gates del bot medían distinto que la DB (turnos por `created_at`; conversaciones 2×; sin overrides) | **Resuelto 2026-07-25** |
+| H4 | ✅ | No existía botón de crear en la UI — el hueco real era que `manage-staff` (service_role, exento del trigger) no chequeaba `max_staff` | **Resuelto 2026-07-11** (Edge v8 + contador `X/Y` en Users.jsx) |
+| H8 | ✅ | Comparación incorrecta en Conversaciones (`patientsUsed` vs `maxConversations`) | **Resuelto 2026-07-11** |
+| H5 | 🟢 | `plan_expires_at` NULL en los negocios reales → dunning sin arrancar | Herramientas listas (botón "Marcar pagado" + trial con vencimiento) — falta la acción manual, ver [Pendientes](Backlog%20Maestro%20-%20Pendientes.md) |
+| H6 | 🔴 | `reminders`/`auto_confirm` se venden sin motor (sin `scheduleTrigger`) | Abierto — ver [Pendientes](Backlog%20Maestro%20-%20Pendientes.md) |
+| H7 | 🟡 | `custom_prompt` inyectado a todos los planes en el bot | Abierto — ver [Pendientes](Backlog%20Maestro%20-%20Pendientes.md) |
 
-**Lo que SÍ está sólido:** límites duros de pacientes/staff/turnos en dashboard con 3 capas coherentes (trigger + visibilidad + UX), `limit_overrides` respetado en DB y front, suspensión con dientes (RLS 10 tablas + modal + gate del bot), retención por plan, gating de features del front completo, y el submódulo de Categorías correctamente encuadrado en Pro/Enterprise vía `finance`.
-
-**Orden recomendado de cierre:** H1+H2 (misma sesión de n8n, [IA] puede por API) → H6 (decisión de producto) → H5 (habilita el cobro real) → H3/H4 → H7/H8.
+**Lo que SÍ está sólido:** límites duros de pacientes/staff/turnos en dashboard con 3 capas coherentes (trigger + visibilidad + UX), `limit_overrides` respetado en DB, front y (desde 2026-07-25) bot, suspensión con dientes (RLS 10 tablas + modal + gate del bot), retención por plan, gating de features del front completo, y el submódulo de Categorías correctamente encuadrado en Pro/Enterprise vía `finance`. De los 8 hallazgos originales, solo **H5 (parcial), H6 y H7** siguen abiertos — el detalle de cómo cerrarlos vive en [Backlog Maestro - Pendientes.md](Backlog%20Maestro%20-%20Pendientes.md), no en este documento.
 
 ---
 

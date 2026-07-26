@@ -127,6 +127,15 @@ Con manejo correcto hoy: classifiers (retry+error branch), agentes (retry+error 
 
 ## A.5 Checklist de fixes en n8n (orden recomendado)
 
+> ### ✅ ACTUALIZACIÓN 2026-07-25 — casi todo este checklist quedó APLICADO
+> Workflow 143 → **151 nodos** por PUT a la API. Plan completo y evidencia en **[Bot n8n - Puesta al Dia.md](Bot%20n8n%20-%20Puesta%20al%20Dia.md)**.
+>
+> **Cerrados:** #4 (`Embedding Pro` 10→150 — **tier Pro revivido**) · #5 (`Historial - Obtener` limit 10→100) · #6 (`record_usage` cableado en los 3 planes + el bot ya respeta `ai_paused`) · #7 (textos de `history` corregidos) · #8 (18/19 nodos WA con `onError`) · #9 (6 modelos con `modelName` explícito) · #10 (`Conversaciones - Contar` lee `usage_counters`, no cuenta filas de `history`) · #11 (conteo de turnos por `date_start`, alineado con el trigger) · #12 (ambos gates honran `limit_overrides`).
+>
+> **También cableado:** `get_patient_profile` (§C.2, ya no está pendiente) · `pipeline_touch` · tools de métodos de pago · reglas de `SCHEDULE_CLOSED`/`SCHEDULE_DAILY_CAP`.
+>
+> **Siguen abiertos:** #3 (credencial WhatsApp — **es tuyo**, bloquea la prueba end-to-end) · #13, #14, #16, #17 (menores/de diseño).
+
 1. ✏️ **[TÚ] #3** Token permanente de System User en la credencial WhatsApp *(bloquea toda prueba end-to-end)*.
 2. ✏️ **#4** `Modelo - Embedding Pro` → `maxOutputTokens: 100` *(desbloquea el tier Pro)*.
 3. ✏️ **#5** `Historial - Obtener` → order `created_at desc`.

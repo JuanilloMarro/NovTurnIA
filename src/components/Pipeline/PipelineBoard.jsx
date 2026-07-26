@@ -1,37 +1,39 @@
 import { useState } from 'react';
-import { CalendarPlus, MessageCircle, UserX, Repeat } from 'lucide-react';
+import { CalendarPlus, MessageCircle, UserX, MessageSquareHeart } from 'lucide-react';
 import { PIPELINE_COLUMNS, HEALTH, dealHealth } from '../../hooks/usePipeline';
 import { showErrorToast } from '../../store/useToastStore';
 import DealCard from './DealCard';
 
+// Ícono tintado por columna; el contador vuelve al pill blanco neutro con su
+// puntito característico (estilo original, el usuario lo prefiere así).
 const COL_THEMES = {
     booking: {
         icon: MessageCircle,
-        iconBg: 'bg-amber-500/10',
-        iconBorder: 'border-amber-500/20',
-        iconText: 'text-amber-600',
+        bg: 'bg-amber-500/10',
+        border: 'border-amber-500/20',
+        text: 'text-amber-600',
         dot: 'bg-amber-500',
     },
     appointment: {
         icon: CalendarPlus,
-        iconBg: 'bg-emerald-500/10',
-        iconBorder: 'border-emerald-500/20',
-        iconText: 'text-emerald-600',
+        bg: 'bg-emerald-500/10',
+        border: 'border-emerald-500/20',
+        text: 'text-emerald-600',
         dot: 'bg-emerald-500',
     },
     recovery: {
         icon: UserX,
-        iconBg: 'bg-rose-500/10',
-        iconBorder: 'border-rose-500/20',
-        iconText: 'text-rose-600',
+        bg: 'bg-rose-500/10',
+        border: 'border-rose-500/20',
+        text: 'text-rose-600',
         dot: 'bg-rose-500',
     },
     loyalty: {
-        icon: Repeat,
-        iconBg: 'bg-navy-500/10',
-        iconBorder: 'border-navy-500/20',
-        iconText: 'text-navy-500',
-        dot: 'bg-navy-500',
+        icon: MessageSquareHeart,
+        bg: 'bg-sky-500/10',
+        border: 'border-sky-500/20',
+        text: 'text-sky-600',
+        dot: 'bg-sky-500',
     },
 };
 
@@ -42,7 +44,8 @@ const COL_THEMES = {
 const DROP_TARGET = 'appointment';
 
 export default function PipelineBoard({
-    byColumn, loading, onDealClick, onSchedule, canMove = true, canEditSteps = false, onToggleStep,
+    byColumn, loading, onSchedule, canMove = true, canEditSteps = false, onToggleStep,
+    canViewConversations = false, canViewPatients = false,
 }) {
     const [draggingFrom, setDraggingFrom] = useState(null);
 
@@ -115,7 +118,7 @@ export default function PipelineBoard({
                         <div className="relative z-10 px-4 pt-4 pb-3 border-b border-white/40">
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${theme.iconBg} border ${theme.iconBorder} ${theme.iconText}`}>
+                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${theme.bg} border ${theme.border} ${theme.text}`}>
                                         <Icon size={13} strokeWidth={2.5} />
                                     </div>
                                     <h3 className="font-bold text-navy-900 text-[12px] tracking-tight truncate">{col.title}</h3>
@@ -145,9 +148,10 @@ export default function PipelineBoard({
                                         draggable={canMove && col.id !== DROP_TARGET && col.id !== 'loyalty'}
                                         onDragStart={handleDragStart}
                                         onDragEnd={handleDragEnd}
-                                        onClick={onDealClick}
                                         canEditSteps={canEditSteps}
                                         onToggleStep={onToggleStep}
+                                        canViewConversations={canViewConversations}
+                                        canViewPatients={canViewPatients}
                                     />
                                 ))
                             )}

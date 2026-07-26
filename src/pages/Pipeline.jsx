@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { RefreshCw, SlidersHorizontal, Search, Lock, Bot, Repeat, Hand, Timer } from 'lucide-react';
 import { usePipeline, PIPELINE_COLUMNS, HEALTH, dealHealth, columnOfStage } from '../hooks/usePipeline';
 import { usePermissions } from '../hooks/usePermissions';
@@ -57,8 +56,7 @@ function Kpi({ icon: Icon, label, value, suffix }) {
 }
 
 export default function Pipeline() {
-    const navigate = useNavigate();
-    const { canViewPipeline, canCreateAppointments } = usePermissions();
+    const { canViewPipeline, canCreateAppointments, canViewConversations, canViewPatients } = usePermissions();
     const { hasFeature } = usePlanLimits();
     const unlocked = hasFeature('pipeline');
 
@@ -231,7 +229,8 @@ export default function Pipeline() {
                     canMove={canCreateAppointments}
                     canEditSteps={canCreateAppointments}
                     onToggleStep={handleToggleStep}
-                    onDealClick={(deal) => navigate(`/patients?id=${deal.patient_id}`)}
+                    canViewConversations={canViewConversations}
+                    canViewPatients={canViewPatients}
                     onSchedule={canCreateAppointments ? (deal) => setScheduleTarget(deal) : undefined}
                 />
             ) : (

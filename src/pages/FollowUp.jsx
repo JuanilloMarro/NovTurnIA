@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePlanLimits } from '../hooks/usePlanLimits';
+import { getAppointmentById } from '../services/supabaseService';
 import FollowUpList from '../components/Calendar/FollowUpList';
 import AppointmentDrawer from '../components/Calendar/AppointmentDrawer';
 import FeatureLock from '../components/FeatureLock';
@@ -46,6 +48,20 @@ export default function FollowUp() {
     const [showFollowUpFilters, setShowFollowUpFilters] = useState(false);
     const [followUpReloadKey, setFollowUpReloadKey] = useState(0);
     const [followUpLoading, setFollowUpLoading] = useState(false);
+
+    // Deep-link ?apt=<id> — lo usa Pipeline → Recuperación para abrir
+    // directamente el turno de seguimiento (no siempre está en la página
+    // actual de la lista, así que se busca aparte en vez de filtrar en memoria).
+    const [searchParams, setSearchParams] = useSearchParams();
+    const aptIdFromUrl = searchParams.get('apt');
+    useEffect(() => {
+        if (!aptIdFromUrl) return;
+        getAppointmentById(aptIdFromUrl)
+            .then(apt => { if (apt) setSelectedAppointment(apt); })
+            .catch(() => {})
+            .finally(() => setSearchParams({}, { replace: true }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [aptIdFromUrl]);
 
     const hasActiveFilters = followUpType !== 'all' || followUpDays !== 30;
 

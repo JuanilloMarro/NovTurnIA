@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
-import { Check, Bot } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Check, Bot, MessageCircle, User, CalendarCheck } from 'lucide-react';
 
 // Portal en document.body — necesario porque el trigger vive dentro de una
 // columna con overflow-y-auto: un popover posicionado en CSS normal se
@@ -8,9 +9,25 @@ import { Check, Bot } from 'lucide-react';
 //
 // El ícono de la izquierda es SIEMPRE de solo lectura (cambia de estilo solo
 // cuando el paso se completa, sea de IA o humano). El checkbox va aparte, a la
-// derecha, chico y discreto — solo en los pasos humanos, porque hoy NINGÚN
-// motor de n8n hace esas llamadas/recordatorios: los marca el staff.
-export default function DealStepsPopover({ anchorRect, title, steps, dealId, canEdit, onToggleStep, onMouseEnter, onMouseLeave }) {
+// derecha, chico y discreto — aparece en TODO paso con `stepId` (o sea, todo
+// menos "Turno agendado" y "Encuesta respondida"): la secretaria puede marcar
+// a mano incluso pasos que normalmente hace la IA, para cuando ella misma
+// toma el rumbo del cliente (llama, ofrece la promo, confirma por teléfono)
+// y ese contacto no pasó por WhatsApp.
+//
+// Footer de 3 accesos directos (Chat/Perfil/Turno): antes la ficha entera
+// navegaba al perfil con un click, pero eso significaba que un mal tecleo o
+// clic accidental te sacaba del Pipeline sin querer. Ahora la ficha no
+// navega a ningún lado — estos 3 botones explícitos son la ÚNICA forma de
+// salir del módulo desde aquí. "Turno" reusa el deep-link de Seguimiento
+// (`getAppointmentById`, sin filtrar por estado) porque hoy es el único que
+// sabe abrir el detalle de un turno específico por id — sirve igual para un
+// turno programado que para uno de recuperación.
+export default function DealStepsPopover({
+    anchorRect, title, steps, dealId, canEdit, onToggleStep, onMouseEnter, onMouseLeave,
+    patientId, appointmentId, canViewConversations = false, canViewPatients = false,
+}) {
+    const navigate = useNavigate();
     if (!anchorRect) return null;
 
     const width = 250;
@@ -19,7 +36,8 @@ export default function DealStepsPopover({ anchorRect, title, steps, dealId, can
     const left = overflowsRight
         ? Math.max(8, anchorRect.left - width - gap)
         : anchorRect.right + gap;
-    const maxTop = window.innerHeight - 8 - (32 + steps.length * 40);
+    const hasFooter = (canViewConversations || canViewPatients || appointmentId);
+    const maxTop = window.innerHeight - 8 - (32 + steps.length * 40 + (hasFooter ? 44 : 0));
     const top = Math.min(Math.max(8, anchorRect.top - 8), Math.max(8, maxTop));
 
     return createPortal(
@@ -28,8 +46,9 @@ export default function DealStepsPopover({ anchorRect, title, steps, dealId, can
             onMouseLeave={onMouseLeave}
             // React hace burbujear los eventos de un portal por el árbol de
             // REACT (donde este popover SÍ es hijo de la ficha), no por el DOM
-            // real (donde vive suelto en <body>) — sin este corte, clickear el
-            // checkbox también dispara el onClick de la tarjeta (abre el perfil).
+            // real (donde vive suelto en <body>) — este corte evita que un
+            // clic aquí dentro arrastre cualquier handler futuro de la ficha
+            // (drag/drop, etc.), aunque hoy la ficha ya no tiene onClick propio.
             onClick={(e) => e.stopPropagation()}
             style={{ position: 'fixed', top, left, width }}
             className="z-[300] bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md p-2 animate-fade-up"
@@ -38,7 +57,7 @@ export default function DealStepsPopover({ anchorRect, title, steps, dealId, can
             <div className="space-y-0.5">
                 {steps.map((s) => {
                     const Icon = s.icon;
-                    const isHuman = s.source === 'human';
+                    const isCheckable = !!s.stepId;
                     return (
                         <div key={s.key} className="flex items-center gap-2.5 px-2 py-1.5 rounded-2xl">
                             {/* Ícono — siempre de solo lectura, cambia de estilo al completarse */}
@@ -58,13 +77,13 @@ export default function DealStepsPopover({ anchorRect, title, steps, dealId, can
                                     )}
                                 </div>
                                 <p className="text-[9px] font-semibold text-navy-700/40 truncate">
-                                    {s.done ? (s.meta || 'Hecho') : (isHuman ? 'Marcar cuando se haga' : 'Pendiente')}
+                                    {s.done ? (s.meta || 'Hecho') : (isCheckable ? 'Marcar cuando se haga' : 'Pendiente')}
                                 </p>
                             </div>
 
-                            {/* Checkbox — solo pasos humanos, a la derecha, chico y discreto
+                            {/* Checkbox — todo paso marcable, a la derecha, chico y discreto
                                 (no compite visualmente con el ícono de la izquierda) */}
-                            {isHuman && (
+                            {isCheckable && (
                                 <label className={`shrink-0 flex items-center ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`} title={s.done ? 'Marcado' : 'Marcar como hecho'}>
                                     <input
                                         type="checkbox"
@@ -82,6 +101,41 @@ export default function DealStepsPopover({ anchorRect, title, steps, dealId, can
                     );
                 })}
             </div>
+
+            {hasFooter && (
+                <div className="flex items-center justify-center gap-1.5 px-1 pt-2 mt-1 border-t border-white/40">
+                    {canViewConversations && (
+                        <button
+                            onClick={() => navigate(`/conversations?patient=${patientId}`)}
+                            className="relative overflow-hidden group/btn flex items-center justify-center gap-0 hover:gap-1 px-2 hover:px-2.5 py-1.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[10px] font-bold rounded-full shadow-sm hover:bg-white/70 transition-all duration-300"
+                        >
+                            <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full blur-xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.06)' }} />
+                            <MessageCircle size={12} strokeWidth={2.5} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover/btn:max-w-[40px] transition-all duration-300 whitespace-nowrap relative z-10">Chat</span>
+                        </button>
+                    )}
+                    {canViewPatients && (
+                        <button
+                            onClick={() => navigate(`/patients?id=${patientId}`)}
+                            className="relative overflow-hidden group/btn flex items-center justify-center gap-0 hover:gap-1 px-2 hover:px-2.5 py-1.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[10px] font-bold rounded-full shadow-sm hover:bg-white/70 transition-all duration-300"
+                        >
+                            <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full blur-xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.06)' }} />
+                            <User size={12} strokeWidth={2.5} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover/btn:max-w-[45px] transition-all duration-300 whitespace-nowrap relative z-10">Perfil</span>
+                        </button>
+                    )}
+                    {appointmentId && (
+                        <button
+                            onClick={() => navigate(`/followup?apt=${appointmentId}`)}
+                            className="relative overflow-hidden group/btn flex items-center justify-center gap-0 hover:gap-1 px-2 hover:px-2.5 py-1.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[10px] font-bold rounded-full shadow-sm hover:bg-white/70 transition-all duration-300"
+                        >
+                            <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full blur-xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.06)' }} />
+                            <CalendarCheck size={12} strokeWidth={2.5} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover/btn:max-w-[40px] transition-all duration-300 whitespace-nowrap relative z-10">Turno</span>
+                        </button>
+                    )}
+                </div>
+            )}
         </div>,
         document.body,
     );

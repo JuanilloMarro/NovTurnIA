@@ -1,9 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { Ticket, Plus, Copy, Check, Trash2, MessageCircle, HandCoins, X, Search, Clock3, CheckCircle2, FileDown, CalendarDays, User } from 'lucide-react';
-import { getVouchers, createVoucher, redeemVoucher, cancelVoucher, searchPatients, getServices, getBusinessInfo } from '../../services/supabaseService';
+import { useNavigate } from 'react-router-dom';
+import { Ticket, Plus, Copy, Check, Trash2, MessageCircle, X, Search, Clock3, CheckCircle2, FileDown, CalendarDays } from 'lucide-react';
+import { getVouchers, createVoucher, cancelVoucher, searchPatients, getServices, getBusinessInfo } from '../../services/supabaseService';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import { ModalShell, FieldLabel, TextInput, OptionWheel, CentsAmountInput, decimalToCents, centsToDecimal, ModalButtons } from './financeUi';
+import { formatPhone } from '../../utils/format';
+
+function getInitials(name) {
+    if (!name) return '?';
+    return name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
 
 const money = (n) => `Q${Number(n || 0).toFixed(2)}`;
 const METHOD_LABEL = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', other: 'Otro' };
@@ -80,9 +87,11 @@ function exportVoucherPDF(v, methods, businessName) {
 }
 
 // Vouchers de pago: código único compartible al paciente. Los genera el staff a
-// mano o el propio cobro de turnos (fusión: nace pendiente y se completa al
-// confirmar el pago). Redimirlo confirma el cobro ligado o crea el ingreso.
+// mano o el propio cobro de turnos (fusión: nace pendiente en "Por confirmar").
+// El cobro de un voucher ligado a un turno se confirma únicamente en Por
+// confirmar — aquí ya no hay botón/ventana para cobrarlo directo.
 export default function VouchersSection({ canManage, methods = [] }) {
+    const navigate = useNavigate();
     const [filter, setFilter] = useState('pending');
     const [list, setList] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -90,7 +99,6 @@ export default function VouchersSection({ canManage, methods = [] }) {
     const [copied, setCopied] = useState(null);
     const [showCreate, setShowCreate] = useState(false);
     const [pendingCancel, setPendingCancel] = useState(null);
-    const [redeeming, setRedeeming] = useState(null); // voucher a redimir
     const [businessName, setBusinessName] = useState('');
 
     const load = useCallback(async () => {
@@ -117,9 +125,13 @@ export default function VouchersSection({ canManage, methods = [] }) {
         setCopied(code);
         setTimeout(() => setCopied(null), 1500);
     }
-    function shareWhatsApp(v) {
-        const msg = `Hola! Tu código de pago en ${businessName || 'el negocio'} es *${v.code}* por ${money(v.amount)}. Preséntalo para completar tu pago. 😊`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+    // Chat del cliente dentro del dashboard (Conversaciones) — ya no WhatsApp
+    // externo, conserva el ?bid= de la URL como el resto de accesos directos.
+    function goToChat(v) {
+        if (!v.patient_id) return;
+        const bid = new URLSearchParams(window.location.search).get('bid');
+        const path = `/conversations?patient=${v.patient_id}`;
+        navigate(bid ? `${path}&bid=${bid}` : path);
     }
 
     return (
@@ -211,17 +223,13 @@ export default function VouchersSection({ canManage, methods = [] }) {
                                     <>
                                         <ActionBtn icon={copied === v.code ? Check : Copy} label={copied === v.code ? 'Copiado' : 'Copiar'} onClick={() => copyCode(v.code)}
                                             accent={copied === v.code ? 'text-emerald-600' : 'text-navy-700 hover:bg-white/80'} />
-                                        <ActionBtn icon={MessageCircle} label="WhatsApp" onClick={() => shareWhatsApp(v)}
-                                            accent="text-emerald-600 hover:bg-emerald-500 hover:text-white hover:border-emerald-500" />
-                                        {canManage && (
-                                            <>
-                                                <ActionBtn icon={HandCoins} label="Cobrar" onClick={() => setRedeeming(v)}
-                                                    accent="text-emerald-700 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500 hover:text-white hover:border-emerald-500" />
-                                                {!isFusion && (
-                                                    <ActionBtn icon={Trash2} label="Cancelar" onClick={() => setPendingCancel(v)}
-                                                        accent="text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500" />
-                                                )}
-                                            </>
+                                        {v.patient_id && (
+                                            <ActionBtn icon={MessageCircle} label="Chat" onClick={() => goToChat(v)}
+                                                accent="text-emerald-600 hover:bg-emerald-500 hover:text-white hover:border-emerald-500" />
+                                        )}
+                                        {canManage && !isFusion && (
+                                            <ActionBtn icon={Trash2} label="Cancelar" onClick={() => setPendingCancel(v)}
+                                                accent="text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500" />
                                         )}
                                     </>
                                 )}
@@ -236,7 +244,6 @@ export default function VouchersSection({ canManage, methods = [] }) {
             </div>
 
             {showCreate && <CreateVoucherModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); load(); }} />}
-            {redeeming && <RedeemModal voucher={redeeming} methods={methods} onClose={() => setRedeeming(null)} onDone={() => { setRedeeming(null); load(); }} />}
             <ConfirmDialog open={!!pendingCancel} danger
                 title="¿Cancelar este voucher?"
                 message={pendingCancel ? `El código ${pendingCancel.code} (${money(pendingCancel.amount)}) dejará de ser válido.` : ''}
@@ -251,44 +258,100 @@ export default function VouchersSection({ canManage, methods = [] }) {
     );
 }
 
+// Ficha del cliente en el buscador — mismo avatar+nombre+teléfono que el
+// selector de "Nuevo turno" (NewAppointmentModal), para que se vea igual.
+function PatientSearchField({ patient, onPick, onClear }) {
+    const [q, setQ] = useState('');
+    const [opts, setOpts] = useState([]);
+
+    useEffect(() => {
+        if (patient) return;
+        const term = q.trim();
+        if (term.length < 2) { setOpts([]); return; }
+        const t = setTimeout(() => searchPatients(term, 6).then(setOpts).catch(() => setOpts([])), 250);
+        return () => clearTimeout(t);
+    }, [q, patient]);
+
+    if (patient) {
+        return (
+            <div className="flex items-center justify-between bg-white/50 border border-white/60 py-1.5 px-2.5 rounded-full shadow-sm">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-navy-900 flex items-center justify-center text-white text-xs font-bold shadow-md border border-white/20 shrink-0">
+                        {getInitials(patient.display_name)}
+                    </div>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-bold text-navy-900 text-sm leading-none truncate">{patient.display_name || 'Sin nombre'}</span>
+                        {patient.phone && <span className="text-xs font-medium text-navy-700/70 leading-none shrink-0">{formatPhone(patient.phone)}</span>}
+                    </div>
+                </div>
+                <button type="button" onClick={onClear} className="text-navy-700 hover:text-navy-900 hover:bg-white/40 rounded-full p-1 transition-colors shrink-0">
+                    <X size={14} />
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-navy-800">
+                <Search size={16} />
+            </div>
+            <input
+                className="w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/50 shadow-sm text-navy-900"
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="Buscar por nombre o teléfono del cliente..."
+            />
+            {opts.length > 0 && (
+                <div className="absolute z-[200] mt-1.5 w-full bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-card overflow-hidden">
+                    {opts.map(p => (
+                        <button key={p.id} type="button"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/50 transition-colors border-b border-white/40 last:border-0"
+                            onClick={() => { onPick(p); setQ(''); setOpts([]); }}
+                        >
+                            <div className="w-8 h-8 rounded-full bg-navy-900 flex items-center justify-center text-white text-xs font-bold border border-white/30 shadow-sm shrink-0">
+                                {getInitials(p.display_name)}
+                            </div>
+                            <div className="text-left min-w-0">
+                                <div className="font-bold text-navy-900 text-sm leading-tight truncate">{p.display_name || '—'}</div>
+                                {p.phone && <div className="text-xs text-navy-700/70 font-medium">{formatPhone(p.phone)}</div>}
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function CreateVoucherModal({ onClose, onCreated }) {
-    const [amount, setAmount] = useState('');
+    const [amountCents, setAmountCents] = useState(null);
     const [note, setNote] = useState('');
     const [busy, setBusy] = useState(false);
     const [services, setServices] = useState([]);
-    const [serviceName, setServiceName] = useState('');
-    const [patientQ, setPatientQ] = useState('');
-    const [patientOpts, setPatientOpts] = useState([]);
-    const [patient, setPatient] = useState(null); // { id, display_name }
-    const inputCls = 'w-full bg-white/60 border border-white/80 rounded-full px-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/80 focus:ring-1 focus:ring-white transition-all text-navy-900';
+    const [serviceId, setServiceId] = useState('none');
+    const [patient, setPatient] = useState(null); // { id, display_name, phone }
 
     useEffect(() => { getServices().then(s => setServices(s || [])).catch(() => {}); }, []);
 
-    // Typeahead de pacientes (mismo RPC search_patients que el alta de turnos)
-    useEffect(() => {
-        if (patient) return;
-        const q = patientQ.trim();
-        if (q.length < 2) { setPatientOpts([]); return; }
-        const t = setTimeout(() => searchPatients(q, 6).then(setPatientOpts).catch(() => setPatientOpts([])), 300);
-        return () => clearTimeout(t);
-    }, [patientQ, patient]);
+    const serviceOptions = [{ id: 'none', label: 'Sin servicio' }, ...services.map(s => ({ id: s.id, label: s.name }))];
 
-    function pickService(name) {
-        setServiceName(name);
-        const svc = services.find(s => s.name === name);
-        if (svc && (!amount || Number(amount) === 0) && Number(svc.price) > 0) setAmount(String(svc.price));
+    function pickService(id) {
+        setServiceId(id);
+        const svc = services.find(s => s.id === id);
+        if (svc && !amountCents && Number(svc.price) > 0) setAmountCents(decimalToCents(svc.price));
     }
 
     async function submit() {
-        const amt = Number(amount);
-        if (!amt || amt <= 0) { showErrorToast('Monto inválido', 'Ingresa un monto mayor a 0.'); return; }
+        if (!amountCents || amountCents <= 0) { showErrorToast('Monto inválido', 'Ingresa un monto mayor a 0.'); return; }
         setBusy(true);
         try {
+            const svc = services.find(s => s.id === serviceId);
             const v = await createVoucher({
-                amount: amt,
+                amount: centsToDecimal(amountCents),
                 note: note.trim() || null,
                 patient_id: patient?.id || null,
-                service_name: serviceName || null,
+                service_name: svc?.name || null,
             });
             showSuccessToast('Voucher creado', `Código ${v.code} por ${money(v.amount)}.`);
             onCreated();
@@ -296,110 +359,29 @@ function CreateVoucherModal({ onClose, onCreated }) {
         finally { setBusy(false); }
     }
 
-    return createPortalDialog(
-        <>
-            <div className="flex items-start justify-between px-6 pt-6 pb-2">
-                <h2 className="text-lg font-bold text-navy-900">Nuevo voucher</h2>
-                <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm"><X size={16} /></button>
+    return (
+        <ModalShell
+            title="Nuevo voucher"
+            subtitle="Código de pago compartible con el cliente."
+            onClose={onClose}
+            footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Crear voucher" loading={busy} confirmIcon={Plus} />}
+        >
+            <div>
+                <FieldLabel title="Cliente" subtitle="Opcional: liga el voucher a un cliente del sistema." />
+                <PatientSearchField patient={patient} onPick={setPatient} onClear={() => setPatient(null)} />
             </div>
-            <div className="px-6 py-4 space-y-4">
-                <div>
-                    <label className="text-[11px] font-bold text-navy-800 tracking-wide block mb-1.5">Cliente (opcional)</label>
-                    {patient ? (
-                        <div className="flex items-center justify-between gap-2 bg-white/60 border border-white/80 rounded-full px-4 py-2.5">
-                            <span className="flex items-center gap-2 text-sm font-semibold text-navy-900 min-w-0">
-                                <User size={13} className="shrink-0 text-navy-900/40" />
-                                <span className="truncate">{patient.display_name}</span>
-                            </span>
-                            <button onClick={() => { setPatient(null); setPatientQ(''); }} className="w-5 h-5 flex items-center justify-center rounded-full bg-navy-900/5 border border-navy-900/10 text-navy-700 hover:bg-navy-900/10 shrink-0"><X size={11} /></button>
-                        </div>
-                    ) : (
-                        <div className="relative">
-                            <input value={patientQ} onChange={e => setPatientQ(e.target.value)} placeholder="Buscar por nombre o teléfono…" className={inputCls} />
-                            {patientOpts.length > 0 && (
-                                <div className="absolute left-0 right-0 top-full mt-1 bg-white/90 backdrop-blur-2xl border border-white rounded-2xl shadow-lg overflow-hidden z-20">
-                                    {patientOpts.map(p => (
-                                        <button key={p.id} onClick={() => { setPatient(p); setPatientOpts([]); }}
-                                            className="w-full text-left px-4 py-2 text-[12px] font-semibold text-navy-900 hover:bg-navy-900/5 transition-colors">
-                                            {p.display_name}{p.phone ? <span className="text-navy-900/35 font-medium"> · {p.phone}</span> : null}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-                <div>
-                    <label className="text-[11px] font-bold text-navy-800 tracking-wide block mb-1.5">Servicio (opcional)</label>
-                    <select value={serviceName} onChange={e => pickService(e.target.value)} className={inputCls}>
-                        <option value="">Sin servicio</option>
-                        {services.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className="text-[11px] font-bold text-navy-800 tracking-wide block mb-1.5">Monto (Q)</label>
-                    <input type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className={inputCls} />
-                </div>
-                <div>
-                    <label className="text-[11px] font-bold text-navy-800 tracking-wide block mb-1.5">Concepto (opcional)</label>
-                    <input value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="Ej. Anticipo consulta" className={inputCls} />
-                </div>
+            <div>
+                <FieldLabel title="Servicio" subtitle="Opcional: precarga el monto del servicio elegido." />
+                <OptionWheel options={serviceOptions} value={serviceId} onChange={pickService} />
             </div>
-            <div className="flex items-center justify-center gap-3 px-6 pb-6 pt-1">
-                <button onClick={onClose} className="flex items-center gap-2 px-5 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 shadow-sm"><X size={13} /> Cancelar</button>
-                <button onClick={submit} disabled={busy} className="flex items-center gap-2 px-5 py-2.5 bg-navy-900 text-white text-[11px] font-bold rounded-full hover:bg-navy-800 disabled:opacity-50"><Plus size={13} /> {busy ? 'Creando…' : 'Crear voucher'}</button>
+            <div>
+                <FieldLabel title="Monto" subtitle="Total que el cliente debe pagar con este voucher." />
+                <CentsAmountInput cents={amountCents} onChange={setAmountCents} autoFocus />
             </div>
-        </>
-    );
-}
-
-function RedeemModal({ voucher, methods, onClose, onDone }) {
-    const [method, setMethod] = useState(methods.find(m => m.is_cash)?.code || methods[0]?.code || '');
-    const [busy, setBusy] = useState(false);
-    const isFusion = !!voucher.income_id;
-
-    async function submit() {
-        setBusy(true);
-        try {
-            const res = await redeemVoucher(voucher.code, method || null);
-            showSuccessToast('Voucher cobrado', `${money(res.income?.amount)} ${isFusion ? 'confirmado' : 'registrado'} en Ingresos${res.plan_completed ? ' · plan completado' : ''}.`);
-            onDone();
-        } catch (err) { showErrorToast('No se pudo cobrar', err.message || ''); setBusy(false); }
-    }
-
-    return createPortalDialog(
-        <>
-            <div className="flex items-start justify-between px-6 pt-6 pb-2">
-                <div>
-                    <h2 className="text-lg font-bold text-navy-900">Cobrar voucher</h2>
-                    <p className="text-[11px] font-semibold text-navy-700/50 mt-1 font-mono tracking-widest">{voucher.code} · {money(voucher.amount)}</p>
-                    {isFusion && <p className="text-[10px] font-semibold text-navy-700/40 mt-1">Confirma el cobro del turno ligado — sin doble registro.</p>}
-                </div>
-                <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm"><X size={16} /></button>
+            <div>
+                <FieldLabel title="Concepto" subtitle="Opcional: detalle corto del cobro." />
+                <TextInput value={note} onChange={setNote} maxLength={80} placeholder="Ej. Anticipo consulta" />
             </div>
-            <div className="px-6 py-4">
-                <label className="text-[11px] font-bold text-navy-800 tracking-wide block mb-1.5">Método de pago</label>
-                <select value={method} onChange={e => setMethod(e.target.value)} className="w-full bg-white/60 border border-white/80 rounded-full px-4 py-2.5 text-sm font-semibold outline-none focus:border-white text-navy-900">
-                    {methods.length === 0 && <option value="">Efectivo</option>}
-                    {methods.map(m => <option key={m.code} value={m.code}>{m.label}</option>)}
-                </select>
-            </div>
-            <div className="flex items-center justify-center gap-3 px-6 pb-6 pt-1">
-                <button onClick={onClose} className="flex items-center gap-2 px-5 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 shadow-sm"><X size={13} /> Cancelar</button>
-                <button onClick={submit} disabled={busy} className="flex items-center gap-2 px-5 py-2.5 bg-navy-900 text-white text-[11px] font-bold rounded-full hover:bg-navy-800 disabled:opacity-50"><HandCoins size={13} /> {busy ? 'Cobrando…' : 'Confirmar cobro'}</button>
-            </div>
-        </>
-    );
-}
-
-// pequeño helper de modal glass (evita repetir el shell en los dos modales)
-function createPortalDialog(children) {
-    return createPortal(
-        <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) { /* cierre lo maneja cada botón */ } }}>
-            <div onClick={e => e.stopPropagation()} className="bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-sm overflow-hidden animate-fade-up">
-                {children}
-            </div>
-        </div>,
-        document.body
+        </ModalShell>
     );
 }

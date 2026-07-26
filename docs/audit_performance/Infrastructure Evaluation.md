@@ -1,5 +1,7 @@
 # NovTurnAI — Evaluación de Estado
 
+> ⚠️ **Documento histórico (2026-06-30), superado.** Casi todos los "Pendientes" de este doc (Sentry, sourcemaps, F-1…F-8, T-03 Stripe sigue abierto, dark mode, ESLint, etc.) ya fueron re-auditados contra el código/DB real. Ver el estado verdadero y actualizado en **[Backlog Maestro - Completadas.md](../NovturnIA%20Infraestructure/Backlog%20Maestro%20-%20Completadas.md)** y **[Backlog Maestro - Pendientes.md](../NovturnIA%20Infraestructure/Backlog%20Maestro%20-%20Pendientes.md)** (2026-07-25). Se conserva por su valor de snapshot histórico, no como lista de tareas vigente.
+>
 > Versión: 1.4 · Fecha: 2026-06-30
 > Escala 0–10 · 🔴 Bloqueante · 🟠 Importante · 🟡 Deseable · ✅ Resuelto
 > **v1.4:** auditoría de los módulos nuevos (Finanzas, búsqueda de pacientes, RBAC granular). Ver [§1.10 Auditoría de módulos nuevos](#110-auditoría-de-módulos-nuevos-2026-06-30).

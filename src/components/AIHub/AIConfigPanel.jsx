@@ -327,7 +327,7 @@ export default function AIConfigPanel({ canEdit = true }) {
                 <div className="grid grid-cols-2 gap-5 shrink-0">
 
                     <div className={`ai-aurora rounded-[22px] ${auroraClass}`}>
-                        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[22px] shadow-md p-5 overflow-hidden">
+                        <div className="relative h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[22px] shadow-md p-5 overflow-hidden">
                             <CornerGlows />
                             <Section icon={Building2} title="Identidad" />
                             <div className="relative z-10 space-y-4">
@@ -360,7 +360,7 @@ export default function AIConfigPanel({ canEdit = true }) {
                     </div>
 
                     <div className={`ai-aurora rounded-[22px] ${auroraClass}`}>
-                        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[22px] shadow-md p-5 overflow-hidden">
+                        <div className="relative h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[22px] shadow-md p-5 overflow-hidden">
                             <CornerGlows />
                             <Section icon={Clock} title="Horario" />
                             <div className="relative z-10 space-y-4">

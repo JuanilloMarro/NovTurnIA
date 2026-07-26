@@ -5,3 +5,7 @@ dist
 .env
 .env.local
 .env.*.local
+
+# Snapshots del workflow de n8n: traen la key service_role de Supabase
+# hardcodeada en ~22 nodos. Sirven para diffear en local, NUNCA para commitear.
+n8n/*.json

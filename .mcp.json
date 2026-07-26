@@ -5,11 +5,10 @@
       "url": "https://mcp.supabase.com/mcp?project_ref=kwpaaqdkklwwfslhkqpb"
     },
     "n8n": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["scripts/n8n-mcp-server.mjs"],
-      "env": {
-        "N8N_WEBHOOK_URL": "https://evident-cart-eligibility-tattoo.trycloudflare.com/webhook/fa17c924-44f6-405b-a5eb-550627bffdad/webhook"
+      "type": "http",
+      "url": "https://poison-loud-snow-tomato.trycloudflare.com/mcp-server/http",
+      "headers": {
+        "Authorization": "Bearer ${N8N_MCP_TOKEN}"
       }
     }
   }

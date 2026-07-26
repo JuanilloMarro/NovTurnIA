@@ -576,6 +576,28 @@ export async function getLostAppointments({ type = 'all', days = 30, page = 0, p
     };
 }
 
+// Deep-link a un turno puntual (usado por Pipeline → Recuperación: la ficha
+// no siempre trae el turno cargado en la página actual de Seguimiento).
+// Mismo select que getLostAppointments, para que el objeto encaje sin cambios
+// en AppointmentDrawer/FollowUpList.
+export async function getAppointmentById(id) {
+    const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+            id, date_start, date_end, status, patient_id, service_id, is_rescheduled,
+            patients(
+                id, display_name, human_takeover, deleted_at,
+                patient_phones(phone, is_primary)
+            ),
+            services(id, name, duration_minutes, price)
+        `)
+        .eq('id', id)
+        .eq('business_id', getBID())
+        .maybeSingle();
+    if (error) throw error;
+    return data;
+}
+
 // ── Patients ──────────────────────────────────────────────
 export async function getPatients(search = '', { page = 0, pageSize = 50 } = {}) {
     const from = page * pageSize;
@@ -2162,13 +2184,6 @@ export async function createVoucher({ amount, patient_id = null, plan_id = null,
     });
     if (error) throw error;
     return data; // fila del voucher (incl. code)
-}
-
-// Redime por código: crea el ingreso (abono si liga a plan; 'voucher' si no).
-export async function redeemVoucher(code, paymentMethod = null) {
-    const { data, error } = await supabase.rpc('redeem_voucher', { p_code: code, p_payment_method: paymentMethod });
-    if (error) throw error;
-    return data; // { income, plan_completed }
 }
 
 export async function cancelVoucher(id) {
