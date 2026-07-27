@@ -138,101 +138,105 @@ export default function Pipeline() {
 
     const activeFilters = health !== 'all' || days !== 90;
 
-    return (
-        <div className="h-full flex flex-col w-full pt-2 px-4 relative">
-            {/* Una sola línea, 3 secciones: título (izq, ancho fijo) · paneles de
-                información (medio, se reparten el ancho sobrante) · buscador +
-                botones (der, ancho fijo) — así los paneles dejan de apretujarse
-                junto al título y aprovechan el espacio hacia la derecha. */}
-            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 mb-3">
-                <div className="shrink-0">
-                    <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Pipeline</h1>
-                    <p className="text-xs text-navy-700/60 font-semibold tracking-wide whitespace-nowrap">
-                        Cómo la IA mueve a tus clientes, en vivo
-                    </p>
-                </div>
+    // Fila de KPIs + buscador/filtros — vive DENTRO del candado cuando el plan
+    // no incluye Pipeline (antes solo la tabla quedaba bloqueada y el resto del
+    // módulo —KPIs reales, buscador, filtros— quedaba libre y funcional).
+    const controlsRow = (
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 mb-3">
+            <div className="flex items-stretch gap-2 flex-1 w-full lg:w-auto min-w-0 flex-wrap">
+                <Kpi icon={Bot} label="Agendadas por IA" value={metrics.ai_booked} />
+                <Kpi icon={Repeat} label="Recuperados" value={metrics.recovered} />
+                <Kpi icon={Hand} label="Requieren humano" value={metrics.needs_human} />
+                <Kpi icon={Timer} label="Respuesta prom." value={metrics.avg_response_seconds} suffix="s" />
+            </div>
 
-                <div className="flex items-stretch gap-2 flex-1 w-full lg:w-auto min-w-0 flex-wrap">
-                    <Kpi icon={Bot} label="Agendadas por IA" value={metrics.ai_booked} />
-                    <Kpi icon={Repeat} label="Recuperados" value={metrics.recovered} />
-                    <Kpi icon={Hand} label="Requieren humano" value={metrics.needs_human} />
-                    <Kpi icon={Timer} label="Respuesta prom." value={metrics.avg_response_seconds} suffix="s" />
-                </div>
-
-                <div className="flex items-center gap-2 sm:gap-3 h-10 flex-wrap shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 h-10 flex-wrap shrink-0">
                 <div className="relative w-full sm:w-56 h-10">
-                        <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700 z-10">
-                            <Search size={14} strokeWidth={2.5} />
-                        </div>
-                        <input
-                            className="relative w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-md"
-                            placeholder="Buscar cliente…"
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                        />
+                    <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                    <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700 z-10">
+                        <Search size={14} strokeWidth={2.5} />
                     </div>
+                    <input
+                        className="relative w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-md"
+                        placeholder="Buscar cliente…"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
 
+                <button
+                    onClick={reload}
+                    className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                >
+                    <RefreshCw size={14} strokeWidth={2.5} className={loading ? 'animate-spin' : ''} />
+                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
+                </button>
+
+                <div className="relative">
                     <button
-                        onClick={reload}
-                        className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                        onClick={() => setShowFilters(v => !v)}
+                        className={`relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 backdrop-blur-2xl border text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none ${activeFilters ? 'bg-white/70 border-white' : 'bg-white/40 border-white/60'}`}
                     >
-                        <RefreshCw size={14} strokeWidth={2.5} className={loading ? 'animate-spin' : ''} />
-                        <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
+                        <SlidersHorizontal size={14} strokeWidth={2.5} />
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">Filtros</span>
                     </button>
 
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowFilters(v => !v)}
-                            className={`relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 backdrop-blur-2xl border text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none ${activeFilters ? 'bg-white/70 border-white' : 'bg-white/40 border-white/60'}`}
-                        >
-                            <SlidersHorizontal size={14} strokeWidth={2.5} />
-                            <span className="max-w-0 overflow-hidden group-hover:max-w-[70px] transition-all duration-300 whitespace-nowrap">Filtros</span>
-                        </button>
-
-                        {showFilters && (
-                            <div className="absolute right-0 top-full mt-2 w-52 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-50 p-2 animate-fade-up">
-                                <p className="text-[10px] font-bold text-navy-700/50 px-3 pt-1 pb-1.5">Estado de la IA</p>
-                                {HEALTH_OPTIONS.map(o => (
-                                    <button
-                                        key={o.id}
-                                        onClick={() => setHealth(o.id)}
-                                        className={`w-full flex items-center gap-2 text-left px-3 py-2 rounded-2xl text-[11px] font-bold border transition-all ${health === o.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
-                                    >
-                                        {o.id !== 'all' && (
-                                            <span className={`w-1.5 h-1.5 rounded-full ${HEALTH[o.id].dot}`} style={{ boxShadow: `0 0 6px ${HEALTH[o.id].glow}` }} />
-                                        )}
-                                        {o.label}
-                                    </button>
-                                ))}
-                                <p className="text-[10px] font-bold text-navy-700/50 px-3 pt-2 pb-1.5">Período</p>
-                                {DAYS_OPTIONS.map(o => (
-                                    <button
-                                        key={o.id}
-                                        onClick={() => setDays(o.id)}
-                                        className={`w-full text-left px-3 py-2 rounded-2xl text-[11px] font-bold border transition-all ${days === o.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
-                                    >
-                                        {o.label}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {showFilters && (
+                        <div className="absolute right-0 top-full mt-2 w-52 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-50 p-2 animate-fade-up">
+                            <p className="text-[10px] font-bold text-navy-700/50 px-3 pt-1 pb-1.5">Estado de la IA</p>
+                            {HEALTH_OPTIONS.map(o => (
+                                <button
+                                    key={o.id}
+                                    onClick={() => setHealth(o.id)}
+                                    className={`w-full flex items-center gap-2 text-left px-3 py-2 rounded-2xl text-[11px] font-bold border transition-all ${health === o.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
+                                >
+                                    {o.id !== 'all' && (
+                                        <span className={`w-1.5 h-1.5 rounded-full ${HEALTH[o.id].dot}`} style={{ boxShadow: `0 0 6px ${HEALTH[o.id].glow}` }} />
+                                    )}
+                                    {o.label}
+                                </button>
+                            ))}
+                            <p className="text-[10px] font-bold text-navy-700/50 px-3 pt-2 pb-1.5">Período</p>
+                            {DAYS_OPTIONS.map(o => (
+                                <button
+                                    key={o.id}
+                                    onClick={() => setDays(o.id)}
+                                    className={`w-full text-left px-3 py-2 rounded-2xl text-[11px] font-bold border transition-all ${days === o.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
+                                >
+                                    {o.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="h-full flex flex-col w-full pt-2 px-4 relative">
+            <div className="shrink-0 mb-1">
+                <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Pipeline</h1>
+                <p className="text-xs text-navy-700/60 font-semibold tracking-wide whitespace-nowrap">
+                    Cómo la IA mueve a tus clientes, en vivo
+                </p>
             </div>
 
             {unlocked ? (
-                <PipelineBoard
-                    byColumn={filtered}
-                    loading={loading}
-                    canMove={canCreateAppointments}
-                    canEditSteps={canCreateAppointments}
-                    onToggleStep={handleToggleStep}
-                    canViewConversations={canViewConversations}
-                    canViewPatients={canViewPatients}
-                    onSchedule={canCreateAppointments ? (deal) => setScheduleTarget(deal) : undefined}
-                />
+                <>
+                    {controlsRow}
+                    <PipelineBoard
+                        byColumn={filtered}
+                        loading={loading}
+                        canMove={canCreateAppointments}
+                        canEditSteps={canCreateAppointments}
+                        onToggleStep={handleToggleStep}
+                        canViewConversations={canViewConversations}
+                        canViewPatients={canViewPatients}
+                        onSchedule={canCreateAppointments ? (deal) => setScheduleTarget(deal) : undefined}
+                    />
+                </>
             ) : (
                 <FeatureLock
                     feature="pipeline"
@@ -241,7 +245,10 @@ export default function Pipeline() {
                     title="Pipeline de clientes"
                     description="Mira en tiempo real cómo el agente de IA mueve a cada cliente: qué le ofreció, en qué paso se quedó y quién necesita que intervengas."
                 >
-                    <PipelineBoard byColumn={mockByColumn} loading={false} canMove={false} />
+                    <div className="h-full flex flex-col mt-2">
+                        {controlsRow}
+                        <PipelineBoard byColumn={mockByColumn} loading={false} canMove={false} />
+                    </div>
                 </FeatureLock>
             )}
 

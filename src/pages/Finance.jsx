@@ -84,11 +84,21 @@ const MOCK_FIN = {
     totalFees: 0,
     netProfit: 3610,
     marginPct: 74.4,
-    prevIncome: null,
-    prevExpenses: null,
-    prevNet: null,
-    monthlyGoal: 0,
-    projection: null,
+    prevIncome: 4120,
+    prevExpenses: 1380,
+    prevNet: 2740,
+    // Meta y proyección con datos reales de ejemplo — antes iban en 0/null y,
+    // como isCurrentMonth tampoco se pasaba, esas 2 tarjetas nunca aparecían
+    // en el preview (el módulo real casi siempre las muestra).
+    monthlyGoal: 6000,
+    projection: {
+        projected_income: 5320,
+        monthly_goal: 6000,
+        future_appointments: 9,
+        expected_future_income: 470,
+        attendance_rate: 0.92,
+        projected_net: 3980,
+    },
     summary: {
         income_by_method: [
             { method: 'cash', total: 2600, n: 18 },
@@ -303,7 +313,7 @@ export default function Finance() {
                     </div>
                     {/* Resumen real (mismo componente del módulo) alimentado con datos de muestra */}
                     <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 py-2">
-                        <FinanceSummary fin={MOCK_FIN} period="month" year={anchorDate.getFullYear()} month={anchorDate.getMonth()} day={anchorDate.getDate()} />
+                        <FinanceSummary fin={MOCK_FIN} period="month" year={anchorDate.getFullYear()} month={anchorDate.getMonth()} day={anchorDate.getDate()} isCurrentMonth />
                     </div>
                 </div>
             </FeatureLock>

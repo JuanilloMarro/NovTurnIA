@@ -10,7 +10,7 @@ import WheelColumn from '../ui/WheelColumn';
 // por fecha y cupo diario de citas. Estas reglas las aplica la DB tanto al bot
 // (get_available_slots) como al dashboard (trigger validate_appointment).
 
-const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MONTHS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const MONTHS_NUM = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
 const _cy = new Date().getFullYear();
 const YEARS = Array.from({ length: 5 }, (_, i) => String(_cy + i));
@@ -29,9 +29,9 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
     const _initM = String(_now.getMonth() + 1).padStart(2, '0');
     const _initY = String(_now.getFullYear());
 
-    const [dayVal,   setDayVal]   = useState(_initD);
+    const [dayVal, setDayVal] = useState(_initD);
     const [monthVal, setMonthVal] = useState(_initM);
-    const [yearVal,  setYearVal]  = useState(_initY);
+    const [yearVal, setYearVal] = useState(_initY);
     const [date, setDate] = useState(() => `${_initY}-${_initM}-${_initD}`);
 
     const [closed, setClosed] = useState(true);
@@ -239,7 +239,7 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
 
                     {/* ── Columna derecha: listado de excepciones registradas ── */}
                     <div className="flex flex-col md:min-h-0 bg-white/30 border border-white/50 rounded-2xl overflow-hidden">
-                        <p className="text-[11px] font-bold text-navy-700/50 uppercase tracking-widest px-4 pt-3.5 pb-2.5 shrink-0 border-b border-white/40">
+                        <p className="text-[11px] font-bold text-navy-700/50 px-4 pt-3.5 pb-2.5 shrink-0 border-b border-white/40">
                             Excepciones registradas ({exceptions.length})
                         </p>
                         <div className="md:flex-1 md:overflow-y-auto custom-scrollbar p-3 space-y-2">

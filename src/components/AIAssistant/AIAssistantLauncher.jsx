@@ -242,9 +242,12 @@ function AssistantPanel({ moduleCtx, hasFeature, onLaunchAction, onOpenHub }) {
                         type="submit"
                         disabled={sending || usage.blocked || !question.trim()}
                         title={usage.blocked ? 'Límite semanal de IA alcanzado' : 'Enviar pregunta'}
-                        className="w-7 h-7 rounded-full bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card hover:bg-navy-800 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                        className="group/send relative overflow-hidden shrink-0 flex items-center justify-center gap-0 hover:gap-1 px-2 hover:px-3 h-7 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 rounded-full shadow-md hover:bg-white/60 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                        <Send size={12} />
+                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                        <Send size={12} strokeWidth={2.5} className="shrink-0 relative z-10" />
+                        <span className="max-w-0 overflow-hidden group-hover/send:max-w-[60px] transition-all duration-300 whitespace-nowrap text-[10px] font-bold relative z-10">Enviar</span>
                     </button>
                 </div>
             </form>

@@ -713,9 +713,12 @@ export default function Offers() {
                                 </div>
                             </div>
 
-                            {/* Form fields — 2 columnas donde tiene sentido (Precio+%, Inicio+Fin)
-                                para aprovechar el ancho y evitar scroll con el sidebar activo. */}
-                            <div className="flex-1 overflow-y-auto px-8 py-4 custom-scrollbar relative animate-fade-up">
+                            {/* Form fields — 2/3 columnas donde tiene sentido (Nombre+%+Precio,
+                                Inicio+Fin) para aprovechar el ancho. Padding responsivo (no un
+                                px-8 fijo): con el sidebar de 272px + la lista de 360px activos a
+                                la vez en el rango md, un padding fijo ancho apretaba la fila de
+                                3 columnas y forzaba scroll vertical que no hacía falta. */}
+                            <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 py-4 custom-scrollbar relative animate-fade-up">
                                 <div className="space-y-5 pb-8 pt-2 w-full">
 
                                     <div>
@@ -743,8 +746,8 @@ export default function Offers() {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="md:col-span-2">
                                             <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
                                                 Nombre de la oferta
                                             </label>
@@ -758,7 +761,7 @@ export default function Offers() {
                                         </div>
                                         <div>
                                             <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
-                                                % de descuento <span className="font-semibold text-navy-700/40 text-[11px]">(calcula el precio)</span>
+                                                % de descuento
                                             </label>
                                             <div className="relative">
                                                 <input
@@ -772,7 +775,32 @@ export default function Offers() {
                                                 <span className="absolute inset-y-0 right-4 flex items-center text-navy-700/50 font-bold text-sm pointer-events-none">%</span>
                                             </div>
                                         </div>
+                                        <div>
+                                            <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
+                                                Precio promocional
+                                            </label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700/60 font-bold text-sm select-none">
+                                                    Q
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    inputMode="none"
+                                                    readOnly
+                                                    value={formatPriceDisplay(form.promoPriceCents)}
+                                                    onKeyDown={handlePriceKey}
+                                                    placeholder="0.00"
+                                                    className={`w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-navy-300/60 focus:bg-white/70 focus:ring-2 focus:ring-navy-200/30 transition-all shadow-sm cursor-text select-none ${form.promoPriceCents ? 'text-navy-900' : 'text-navy-700/40'
+                                                        }`}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
+                                    <p className="text-[10px] font-semibold text-navy-700/40 pl-1 -mt-3">
+                                        {Number(selectedService?.price) > 0 && form.promoPriceCents
+                                            ? `≈ ${Math.round((1 - (form.promoPriceCents / 100) / Number(selectedService.price)) * 100)}% de descuento sobre Q${Number(selectedService.price).toFixed(2)} · el % de descuento calcula el precio`
+                                            : 'Escribe los dígitos del precio · Backspace para borrar · el % de descuento calcula el precio'}
+                                    </p>
 
                                     <div>
                                         <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
@@ -786,32 +814,6 @@ export default function Offers() {
                                             placeholder="Ej. Válido para pacientes nuevos que agenden su turno a través de la aplicación en horario matutino..."
                                             className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 resize-none custom-scrollbar"
                                         />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[12px] font-bold text-navy-800 leading-none mb-3">
-                                            Precio promocional
-                                        </label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700/60 font-bold text-sm select-none">
-                                                Q
-                                            </div>
-                                            <input
-                                                type="text"
-                                                inputMode="none"
-                                                readOnly
-                                                value={formatPriceDisplay(form.promoPriceCents)}
-                                                onKeyDown={handlePriceKey}
-                                                placeholder="0.00"
-                                                className={`w-full bg-white/40 border border-white/60 rounded-full pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-navy-300/60 focus:bg-white/70 focus:ring-2 focus:ring-navy-200/30 transition-all shadow-sm cursor-text select-none ${form.promoPriceCents ? 'text-navy-900' : 'text-navy-700/40'
-                                                    }`}
-                                            />
-                                        </div>
-                                        <p className="mt-1.5 text-[10px] font-semibold text-navy-700/40 pl-1">
-                                            {Number(selectedService?.price) > 0 && form.promoPriceCents
-                                                ? `≈ ${Math.round((1 - (form.promoPriceCents / 100) / Number(selectedService.price)) * 100)}% de descuento sobre Q${Number(selectedService.price).toFixed(2)}`
-                                                : 'Escribe los dígitos · Backspace para borrar'}
-                                        </p>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -207,9 +207,12 @@ function ChatPanel({ mock, question, setQuestion, messages, asking, usage, onRem
                             type="submit"
                             disabled={mock || asking || usage.blocked || !question.trim()}
                             title={usage.blocked ? 'Límite semanal de IA alcanzado' : 'Enviar pregunta'}
-                            className="w-8 h-8 rounded-full bg-navy-900 border border-white/10 flex items-center justify-center text-white shadow-card hover:bg-navy-800 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                            className="group/send relative overflow-hidden shrink-0 flex items-center justify-center gap-0 hover:gap-1.5 h-8 px-2.5 hover:px-3.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 rounded-full shadow-md hover:bg-white/60 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            <Send size={13} />
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                            <Send size={13} strokeWidth={2.5} className="shrink-0 relative z-10" />
+                            <span className="max-w-0 overflow-hidden group-hover/send:max-w-[60px] transition-all duration-300 whitespace-nowrap text-[11px] font-bold relative z-10">Enviar</span>
                         </button>
                     </div>
                 </form>
@@ -235,15 +238,10 @@ function InsightsPanel({ mock, feed, hasFeature, onOpenAction, firstName }) {
                 <div className="relative z-10 flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 flex flex-col items-center justify-center gap-3">
                     <div className="shrink-0 flex flex-col items-center text-center">
                         <div className="relative w-[440px] max-w-full h-[300px] -mb-2">
-                            {mock ? (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-20 h-20 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center">
-                                        <AIStar size={30} className="text-navy-900/50" />
-                                    </div>
-                                </div>
-                            ) : (
-                                <AIOrb className="absolute inset-0 w-full h-full pointer-events-none [mask-image:radial-gradient(ellipse_at_center,#000_55%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_at_center,#000_55%,transparent_100%)]" />
-                            )}
+                            {/* El orbe real también en el preview bloqueado — antes se
+                                mostraba un ícono genérico y el candado no se sentía como
+                                "el módulo real detrás de un cristal". */}
+                            <AIOrb className="absolute inset-0 w-full h-full pointer-events-none [mask-image:radial-gradient(ellipse_at_center,#000_55%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_at_center,#000_55%,transparent_100%)]" />
                         </div>
                         <h2 className="text-lg sm:text-xl font-bold text-navy-900 tracking-tight leading-none">
                             {firstName ? `Hola, ${firstName}` : 'Hola'}

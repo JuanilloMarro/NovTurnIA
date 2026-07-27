@@ -77,7 +77,7 @@ export default function RecentInsights({ insights, patientNames = {}, loading, o
                                     className="w-full flex items-start gap-3 px-3 py-2.5 rounded-2xl text-left border border-transparent hover:bg-white/50 hover:border-white/60 hover:shadow-sm transition-all duration-300 animate-fade-up"
                                     style={{ animationDelay: `${Math.min(i, 10) * 0.03}s` }}
                                 >
-                                    <div className="w-8 h-8 rounded-xl bg-white/60 border border-white/70 flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                                    <div className="w-8 h-8 rounded-xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shrink-0 shadow-inner mt-0.5">
                                         <Icon size={14} className="text-navy-900" />
                                     </div>
                                     <div className="flex-1 min-w-0">
