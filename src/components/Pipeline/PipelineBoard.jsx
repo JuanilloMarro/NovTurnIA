@@ -45,6 +45,7 @@ const DROP_TARGET = 'appointment';
 
 export default function PipelineBoard({
     byColumn, loading, onSchedule, canMove = true, canEditSteps = false, onToggleStep,
+    canToggleAi = false, onToggleTakeover,
     canViewConversations = false, canViewPatients = false,
 }) {
     const [draggingFrom, setDraggingFrom] = useState(null);
@@ -133,7 +134,7 @@ export default function PipelineBoard({
                         <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar p-2.5 space-y-2">
                             {loading ? (
                                 Array.from({ length: 4 }).map((_, i) => (
-                                    <div key={i} className="animate-shimmer h-[62px] rounded-2xl w-full" />
+                                    <div key={i} className="animate-shimmer h-[82px] rounded-2xl w-full" />
                                 ))
                             ) : cards.length === 0 ? (
                                 <div className="h-16 border-2 border-dashed border-white/60 rounded-2xl flex items-center justify-center text-navy-900/25 text-[10px] font-bold text-center px-3">
@@ -150,6 +151,8 @@ export default function PipelineBoard({
                                         onDragEnd={handleDragEnd}
                                         canEditSteps={canEditSteps}
                                         onToggleStep={onToggleStep}
+                                        canToggleAi={canToggleAi}
+                                        onToggleTakeover={onToggleTakeover}
                                         canViewConversations={canViewConversations}
                                         canViewPatients={canViewPatients}
                                     />

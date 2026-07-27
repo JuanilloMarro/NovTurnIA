@@ -1,6 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
-import { Check, Bot, MessageCircle, User, CalendarCheck } from 'lucide-react';
+import { Check, Bot } from 'lucide-react';
 
 // Portal en document.body — necesario porque el trigger vive dentro de una
 // columna con overflow-y-auto: un popover posicionado en CSS normal se
@@ -15,19 +14,10 @@ import { Check, Bot, MessageCircle, User, CalendarCheck } from 'lucide-react';
 // toma el rumbo del cliente (llama, ofrece la promo, confirma por teléfono)
 // y ese contacto no pasó por WhatsApp.
 //
-// Footer de 3 accesos directos (Chat/Perfil/Turno): antes la ficha entera
-// navegaba al perfil con un click, pero eso significaba que un mal tecleo o
-// clic accidental te sacaba del Pipeline sin querer. Ahora la ficha no
-// navega a ningún lado — estos 3 botones explícitos son la ÚNICA forma de
-// salir del módulo desde aquí. "Turno" reusa el deep-link de Seguimiento
-// (`getAppointmentById`, sin filtrar por estado) porque hoy es el único que
-// sabe abrir el detalle de un turno específico por id — sirve igual para un
-// turno programado que para uno de recuperación.
-export default function DealStepsPopover({
-    anchorRect, title, steps, dealId, canEdit, onToggleStep, onMouseEnter, onMouseLeave,
-    patientId, appointmentId, canViewConversations = false, canViewPatients = false,
-}) {
-    const navigate = useNavigate();
+// Ya NO trae accesos directos (Chat/Perfil/Turno) — viven en DealActionsMenu,
+// detrás de los 3 puntos de la ficha. Este popover es puramente de detalle de
+// pasos: qué se hizo y cuándo.
+export default function DealStepsPopover({ anchorRect, title, steps, dealId, canEdit, onToggleStep, onMouseEnter, onMouseLeave }) {
     if (!anchorRect) return null;
 
     const width = 250;
@@ -36,8 +26,7 @@ export default function DealStepsPopover({
     const left = overflowsRight
         ? Math.max(8, anchorRect.left - width - gap)
         : anchorRect.right + gap;
-    const hasFooter = (canViewConversations || canViewPatients || appointmentId);
-    const maxTop = window.innerHeight - 8 - (32 + steps.length * 40 + (hasFooter ? 44 : 0));
+    const maxTop = window.innerHeight - 8 - (32 + steps.length * 40);
     const top = Math.min(Math.max(8, anchorRect.top - 8), Math.max(8, maxTop));
 
     return createPortal(
@@ -101,41 +90,6 @@ export default function DealStepsPopover({
                     );
                 })}
             </div>
-
-            {hasFooter && (
-                <div className="flex items-center justify-center gap-1.5 px-1 pt-2 mt-1 border-t border-white/40">
-                    {canViewConversations && (
-                        <button
-                            onClick={() => navigate(`/conversations?patient=${patientId}`)}
-                            className="relative overflow-hidden group/btn flex items-center justify-center gap-0 hover:gap-1 px-2 hover:px-2.5 py-1.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[10px] font-bold rounded-full shadow-sm hover:bg-white/70 transition-all duration-300"
-                        >
-                            <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full blur-xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.06)' }} />
-                            <MessageCircle size={12} strokeWidth={2.5} className="shrink-0 relative z-10" />
-                            <span className="max-w-0 overflow-hidden group-hover/btn:max-w-[40px] transition-all duration-300 whitespace-nowrap relative z-10">Chat</span>
-                        </button>
-                    )}
-                    {canViewPatients && (
-                        <button
-                            onClick={() => navigate(`/patients?id=${patientId}`)}
-                            className="relative overflow-hidden group/btn flex items-center justify-center gap-0 hover:gap-1 px-2 hover:px-2.5 py-1.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[10px] font-bold rounded-full shadow-sm hover:bg-white/70 transition-all duration-300"
-                        >
-                            <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full blur-xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.06)' }} />
-                            <User size={12} strokeWidth={2.5} className="shrink-0 relative z-10" />
-                            <span className="max-w-0 overflow-hidden group-hover/btn:max-w-[45px] transition-all duration-300 whitespace-nowrap relative z-10">Perfil</span>
-                        </button>
-                    )}
-                    {appointmentId && (
-                        <button
-                            onClick={() => navigate(`/followup?apt=${appointmentId}`)}
-                            className="relative overflow-hidden group/btn flex items-center justify-center gap-0 hover:gap-1 px-2 hover:px-2.5 py-1.5 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[10px] font-bold rounded-full shadow-sm hover:bg-white/70 transition-all duration-300"
-                        >
-                            <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full blur-xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.06)' }} />
-                            <CalendarCheck size={12} strokeWidth={2.5} className="shrink-0 relative z-10" />
-                            <span className="max-w-0 overflow-hidden group-hover/btn:max-w-[40px] transition-all duration-300 whitespace-nowrap relative z-10">Turno</span>
-                        </button>
-                    )}
-                </div>
-            )}
         </div>,
         document.body,
     );

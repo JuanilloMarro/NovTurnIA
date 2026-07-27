@@ -32,6 +32,18 @@ const MOCK_INSIGHTS = [
     { id: 'm4', scope: 'content_offer', ref_id: null, content: { title: 'Promo sugerida: 2x1 en limpieza para los jueves' }, generated_at: HOURS_AGO(120) },
 ];
 
+// Hilo ficticio para el Chat de negocio detrás del candado — antes quedaba
+// vacío (useAIChat con enabled=false nunca carga nada), lo que no se sentía
+// como "el módulo real".
+const MOCK_CHAT_MESSAGES = [
+    { id: 'c1', role: 'user', text: '¿Cuál fue mi mejor día este mes?', created_at: HOURS_AGO(5) },
+    { id: 'c2', role: 'assistant', text: 'El martes 14 tuviste 9 turnos y Q1,240 en ingresos — tu mejor día del mes.', created_at: HOURS_AGO(5) },
+    { id: 'c3', role: 'user', text: '¿Qué servicio deja más margen?', created_at: HOURS_AGO(3) },
+    { id: 'c4', role: 'assistant', text: 'Corte Clásico: Q1,450 en ingresos con solo Q220 de costo, tu mejor margen.', created_at: HOURS_AGO(3) },
+];
+
+const MOCK_USAGE = { pct: 58, usedTokens: 435_000, limitTokens: 750_000, blocked: false };
+
 // Ícono + título + badge en la MISMA fila (antes el ícono tenía su propia fila
 // arriba del badge, lo que sumaba una fila entera de alto solo para eso).
 function ActionCard({ action, cachedAt, locked, onClick, index }) {
@@ -109,7 +121,9 @@ function UsageBar({ usage }) {
 // lado de quien habla).
 function ChatPanel({ mock, question, setQuestion, messages, asking, usage, onRemove, onSubmit }) {
     const { className: auroraClass, pulse: pulseAurora } = useAuroraPulse();
-    useEffect(() => { if (!mock) pulseAurora(4200); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // El pulso corre también en el preview bloqueado — antes solo se encendía
+    // si !mock y el candado se veía "apagado" comparado con el módulo real.
+    useEffect(() => { pulseAurora(4200); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // scrollIntoView arrastra CUALQUIER ancestro con scroll (bug ya visto en
     // Conversaciones) — se hace scroll manual del contenedor de mensajes.
@@ -131,7 +145,7 @@ function ChatPanel({ mock, question, setQuestion, messages, asking, usage, onRem
                     <span className="flex items-center gap-1.5 text-[11px] font-bold text-navy-900 tracking-tight">
                         <AIStar size={12} /> Chat de negocio
                     </span>
-                    {!mock && <UsageBar usage={usage} />}
+                    <UsageBar usage={mock ? MOCK_USAGE : usage} />
                 </div>
 
                 <div ref={scrollRef} className="relative z-10 flex-1 min-h-0 overflow-y-auto custom-scrollbar px-5 space-y-3">
@@ -225,7 +239,7 @@ function ChatPanel({ mock, question, setQuestion, messages, asking, usage, onRem
 // Todo el contenido (orbe + fichas) centrado horizontal Y verticalmente.
 function InsightsPanel({ mock, feed, hasFeature, onOpenAction, firstName }) {
     const { className: auroraClass, pulse: pulseAurora } = useAuroraPulse();
-    useEffect(() => { if (!mock) pulseAurora(4200); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { pulseAurora(4200); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <div className={`ai-aurora rounded-[24px] flex-[5] min-w-0 flex min-h-0 ${auroraClass}`}>
@@ -339,7 +353,7 @@ export default function AIHub() {
                 mock={mock}
                 question={question}
                 setQuestion={setQuestion}
-                messages={messages}
+                messages={mock ? MOCK_CHAT_MESSAGES : messages}
                 asking={asking}
                 usage={usage}
                 onRemove={remove}

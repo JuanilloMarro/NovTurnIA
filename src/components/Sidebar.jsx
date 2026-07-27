@@ -116,11 +116,11 @@ export default function Sidebar({ onOpenPlans }) {
                     <NavItem to="/" end icon={Calendar} label="Citas" onClick={closeMobile} />
 
                     {canViewFollowUp && (
-                        <NavItem to="/followup" icon={History} label="Seguimiento" locked={!followUpUnlocked} onClick={closeMobile} />
+                        <NavItem to="/followup" icon={History} label="Re-agendación" locked={!followUpUnlocked} onClick={closeMobile} />
                     )}
 
                     {canViewPipeline && (
-                        <NavItem to="/pipeline" icon={Repeat} label="Pipeline" locked={!pipelineUnlocked} onClick={closeMobile} />
+                        <NavItem to="/pipeline" icon={Repeat} label="Seguimiento" locked={!pipelineUnlocked} onClick={closeMobile} />
                     )}
 
                     {canViewPatients && (
@@ -152,7 +152,7 @@ export default function Sidebar({ onOpenPlans }) {
                             to="/ai"
                             icon={AIStar}
                             label="Centro IA"
-                            locked={!canManageRoles && !aiHubUnlocked}
+                            locked={!aiHubUnlocked}
                             aurora
                             auroraClass={aiAuroraClass}
                             onClick={() => { pulseAiAurora(2400); closeMobile(); }}

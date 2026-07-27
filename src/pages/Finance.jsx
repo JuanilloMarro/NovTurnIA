@@ -285,6 +285,7 @@ export default function Finance() {
                 title="Finanzas"
                 description="El módulo financiero (ingresos, costos, cobros, caja, comisiones y reportes) está disponible en los planes Pro y Enterprise."
                 requiredPlan="Pro"
+                align="top"
             >
                 <div className="h-full flex flex-col pt-2 px-2">
                     {/* Header mock */}

@@ -22,6 +22,11 @@ export default function FeatureLock({
     description,
     requiredPlan = 'Pro',
     compact = false,
+    // 'center' (default) | 'top' — variant="blurred" con contenido muy alto
+    // (ej. Finanzas, muchas gráficas apiladas) deja el candado pegado arriba
+    // en vez de centrado, para no tapar el tramo con más gráficas y darles
+    // más protagonismo detrás del cristal.
+    align = 'center',
 }) {
     const { hasFeature, isLoading } = usePlanLimits();
     const openPlans = useAppStore(s => s.openPlans);
@@ -92,7 +97,7 @@ export default function FeatureLock({
                 >
                     {children}
                 </div>
-                <div className="absolute inset-0 bg-white/10 flex flex-col items-center justify-center px-6">
+                <div className={`absolute inset-0 bg-white/10 flex flex-col items-center px-6 ${align === 'top' ? 'justify-start pt-8 sm:pt-14' : 'justify-center'}`}>
                     <LockCard />
                 </div>
             </div>

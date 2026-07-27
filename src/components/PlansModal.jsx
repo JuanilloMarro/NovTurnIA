@@ -67,13 +67,13 @@ const MODULE_SPECS = [
         ],
     },
     {
-        title: 'Seguimiento', subtitle: 'Recuperación de No-Shows y Cancelaciones', icon: <History size={20} />,
+        title: 'Re-agendación', subtitle: 'Recuperación de No-Shows y Cancelaciones', icon: <History size={20} />,
         rows: [
             { name: 'Listado de No-Shows y Cancelaciones', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
             { name: 'Filtros por Tipo (No-Show / Cancelados)', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
             { name: 'Filtros por Período (7 / 30 / 60 / 90 días)', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
-            { name: 'Reagendar directamente desde Seguimiento', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
-            { name: 'Pipeline CRM: tablero de 5 etapas en vivo', basic: flag('pipeline'), pro: flag('pipeline'), enterprise: flag('pipeline') },
+            { name: 'Reagendar directamente desde Re-agendación', basic: flag('followup'), pro: flag('followup'), enterprise: flag('followup') },
+            { name: 'Seguimiento: tablero de 5 etapas en vivo', basic: flag('pipeline'), pro: flag('pipeline'), enterprise: flag('pipeline') },
             { name: 'Trazabilidad de lo que hizo la IA con cada cliente', basic: flag('pipeline'), pro: flag('pipeline'), enterprise: flag('pipeline') },
         ],
     },
@@ -445,7 +445,7 @@ export default function PlansModal({ isOpen, onClose }) {
 // no 1:1 con plans.features (la comparativa detallada de abajo sí lo es).
 const FEATURE_HIGHLIGHTS = {
     basic: ['IA de razonamiento Estándar', 'Turnos con IA Ilimitados', 'Agenda: Vista Día / Semana / Mes', 'Gestión de Clientes (últimos 10)', '1 Usuario', 'Integración de Módulos a la Medida'],
-    pro: ['IA Avanzada + Memoria Contextual', 'Módulo de Finanzas (Ingresos, Egresos, Resumen)', 'Seguimiento de No-Shows y Cancelaciones', 'Kanban de estados de turnos', 'Roles y Permisos de Staff', 'Hasta 5 Usuarios'],
+    pro: ['IA Avanzada + Memoria Contextual', 'Módulo de Finanzas (Ingresos, Egresos, Resumen)', 'Re-agendación de No-Shows y Cancelaciones', 'Kanban de estados de turnos', 'Roles y Permisos de Staff', 'Hasta 5 Usuarios'],
     enterprise: ['IA de razonamiento Premium', 'Insumos y Recetas (Costo por Servicio)', 'Ofertas y Precios Dinámicos', 'Exportación de Información y Reportes', 'Inteligencia de Negocio (LTV, retención, predicción)', 'Usuarios Ilimitados'],
 };
 

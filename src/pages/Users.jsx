@@ -212,15 +212,15 @@ export default function Users() {
                                             ]
                                         },
                                         {
-                                            title: 'Seguimiento',
+                                            title: 'Re-agendación',
                                             perms: [
-                                                { key: 'view_followup', label: 'Ver seguimiento' },
+                                                { key: 'view_followup', label: 'Ver re-agendación' },
                                             ]
                                         },
                                         {
-                                            title: 'Pipeline',
+                                            title: 'Seguimiento',
                                             perms: [
-                                                { key: 'view_pipeline', label: 'Ver pipeline de clientes' },
+                                                { key: 'view_pipeline', label: 'Ver seguimiento de clientes' },
                                             ]
                                         },
                                         {

@@ -213,7 +213,7 @@ export default function PatientHistory() {
             <FeatureLock
                 feature="followup"
                 variant="blurred"
-                title="Seguimientos de Clientes"
+                title="Re-agendación de Clientes"
                 description="El historial conversacional completo de cada cliente está disponible en Pro y Enterprise. Sube de plan para ver cada interacción con TurnIA Bot."
                 requiredPlan="Pro"
             >

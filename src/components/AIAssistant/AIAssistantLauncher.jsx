@@ -29,7 +29,7 @@ const InsightDrawer = lazy(() => import('../AIHub/InsightDrawer'));
 // "Más análisis" para que la IA completa esté disponible desde cualquier lado.
 const MODULE_CONTEXT = [
     { match: p => p.startsWith('/patients'), name: 'Clientes', scopes: ['patient_summary', 'patient_strategy'] },
-    { match: p => p.startsWith('/followup'), name: 'Seguimiento', scopes: ['retention', 'patient_strategy'] },
+    { match: p => p.startsWith('/followup'), name: 'Re-agendación', scopes: ['retention', 'patient_strategy'] },
     { match: p => p.startsWith('/conversations'), name: 'Conversaciones', scopes: ['patient_summary', 'patient_strategy'] },
     { match: p => p.startsWith('/stats'), name: 'Estadísticas', scopes: ['kpi_narrative', 'retention'] },
     { match: p => p.startsWith('/offers'), name: 'Ofertas', scopes: ['content_offer', 'kpi_narrative'] },

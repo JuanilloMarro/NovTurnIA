@@ -3,8 +3,9 @@ import { RefreshCw, SlidersHorizontal, Search, Lock, Bot, Repeat, Hand, Timer } 
 import { usePipeline, PIPELINE_COLUMNS, HEALTH, dealHealth, columnOfStage } from '../hooks/usePipeline';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePlanLimits } from '../hooks/usePlanLimits';
-import { setPipelineStepDone } from '../services/supabaseService';
+import { setPipelineStepDone, setHumanTakeover } from '../services/supabaseService';
 import { showErrorToast } from '../store/useToastStore';
+import { useAppStore } from '../store/useAppStore';
 import PipelineBoard from '../components/Pipeline/PipelineBoard';
 import NewAppointmentModal from '../components/Calendar/NewAppointmentModal';
 import FeatureLock from '../components/FeatureLock';
@@ -36,27 +37,30 @@ const MOCK_DEALS = [
     { deal_id: 'm5', display_name: 'Jorge Ramírez', phone: '50241110022', stage: 'loyalty', temperature: 'warm', survey_sent: true, appointment_id: 'a4', service_name: 'Extracción', date_start: new Date(Date.now() - 5 * 864e5).toISOString(), last_activity_at: new Date(Date.now() - 2 * 864e5).toISOString() },
 ];
 
-// Todas las tarjetas del mismo ancho (flex-1) entre sí, para que como grupo
-// ocupen el espacio disponible EN MEDIO del título y el buscador — antes
-// quedaban pegadas al título y desperdiciaban el ancho hacia la derecha.
-// Altura h-10 para calzar en la misma línea que el resto del header.
-function Kpi({ icon: Icon, label, value, suffix }) {
+// Solo ícono + contador — la etiqueta completa (qué significa la métrica)
+// vive en el `title` (tooltip nativo, mismo patrón que el resto de la app).
+// Ancho natural (no flex-1): al no llevar texto visible el panel ya no
+// necesita espacio propio, así caben junto al título y al buscador en la
+// misma fila sin robarle alto al tablero de abajo.
+function Kpi({ icon: Icon, label, hint, value, suffix }) {
     return (
-        <div className="flex-1 min-w-[120px] h-10 flex items-center gap-2 px-3 rounded-2xl bg-white/40 backdrop-blur-2xl border border-white/60 shadow-md">
+        <div
+            title={`${label} — ${hint}`}
+            className="shrink-0 h-10 flex items-center gap-2 pl-2 pr-3 rounded-2xl bg-white/40 backdrop-blur-2xl border border-white/60 shadow-md"
+        >
             <div className="w-7 h-7 rounded-full bg-navy-900/5 border border-navy-900/10 flex items-center justify-center text-navy-900 shrink-0">
-                <Icon size={13} strokeWidth={2.5} />
+                <Icon size={14} strokeWidth={2.5} />
             </div>
-            <div className="min-w-0 leading-none">
-                <span className="text-[13px] font-bold text-navy-900 tabular-nums">{value ?? '—'}</span>
-                <span className="text-[9px] font-bold text-navy-700/50">{suffix}</span>
-                <p className="text-[8.5px] font-bold text-navy-700/50 truncate mt-0.5">{label}</p>
+            <div className="flex items-baseline gap-1">
+                <span className="text-sm font-bold text-navy-900 tabular-nums">{value ?? '—'}</span>
+                {suffix && <span className="text-[9px] font-bold text-navy-700/50">{suffix}</span>}
             </div>
         </div>
     );
 }
 
 export default function Pipeline() {
-    const { canViewPipeline, canCreateAppointments, canViewConversations, canViewPatients } = usePermissions();
+    const { canViewPipeline, canCreateAppointments, canViewConversations, canViewPatients, canToggleAi } = usePermissions();
     const { hasFeature } = usePlanLimits();
     const unlocked = hasFeature('pipeline');
 
@@ -90,6 +94,26 @@ export default function Pipeline() {
             await setPipelineStepDone(dealId, stepId, done);
         } catch (err) {
             showErrorToast('No se pudo actualizar el paso', err.message);
+            if (prevSnapshot) setDeals(prevSnapshot);
+        }
+    };
+
+    // Tomar/soltar control humano — mismo campo human_takeover que usan
+    // Conversaciones y el drawer de Turnos, así que se sincroniza vía el
+    // mapa global del store para que esos módulos reflejen el cambio al
+    // instante sin esperar realtime.
+    const handleToggleTakeover = async (deal) => {
+        const next = !deal.human_takeover;
+        let prevSnapshot;
+        setDeals(current => {
+            prevSnapshot = current;
+            return current.map(d => d.deal_id === deal.deal_id ? { ...d, human_takeover: next } : d);
+        });
+        try {
+            await setHumanTakeover(deal.patient_id, next);
+            useAppStore.getState().setPatientTakeover(deal.patient_id, next);
+        } catch (err) {
+            showErrorToast(next ? 'No se pudo tomar control' : 'No se pudo reactivar la IA', err.message);
             if (prevSnapshot) setDeals(prevSnapshot);
         }
     };
@@ -128,7 +152,7 @@ export default function Pipeline() {
                         </div>
                         <h2 className="text-base font-bold text-navy-900 mb-1">Acceso restringido</h2>
                         <p className="text-xs text-navy-700/60 font-semibold">
-                            No tienes permiso para ver el Pipeline. Pídele a un administrador que te habilite el módulo.
+                            No tienes permiso para ver el Seguimiento. Pídele a un administrador que te habilite el módulo.
                         </p>
                     </div>
                 </div>
@@ -138,16 +162,26 @@ export default function Pipeline() {
 
     const activeFilters = health !== 'all' || days !== 90;
 
-    // Fila de KPIs + buscador/filtros — vive DENTRO del candado cuando el plan
-    // no incluye Pipeline (antes solo la tabla quedaba bloqueada y el resto del
-    // módulo —KPIs reales, buscador, filtros— quedaba libre y funcional).
+    // Título + KPIs + buscador/filtros en UNA sola fila (antes eran dos: título
+    // arriba, controles abajo) — con los paneles reducidos a ícono+contador ya
+    // caben los tres grupos juntos y se libera una fila entera de alto para el
+    // tablero. Vive DENTRO del candado cuando el plan no incluye Pipeline (antes
+    // solo la tabla quedaba bloqueada y el resto del módulo —KPIs reales,
+    // buscador, filtros— quedaba libre y funcional).
     const controlsRow = (
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 mb-3">
-            <div className="flex items-stretch gap-2 flex-1 w-full lg:w-auto min-w-0 flex-wrap">
-                <Kpi icon={Bot} label="Agendadas por IA" value={metrics.ai_booked} />
-                <Kpi icon={Repeat} label="Recuperados" value={metrics.recovered} />
-                <Kpi icon={Hand} label="Requieren humano" value={metrics.needs_human} />
-                <Kpi icon={Timer} label="Respuesta prom." value={metrics.avg_response_seconds} suffix="s" />
+            <div className="shrink-0">
+                <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Seguimiento</h1>
+                <p className="text-xs text-navy-700/60 font-semibold tracking-wide whitespace-nowrap">
+                    Cómo la IA mueve a tus clientes, en vivo
+                </p>
+            </div>
+
+            <div className="flex-1 w-full lg:w-auto flex items-center justify-start lg:justify-center flex-wrap gap-2">
+                <Kpi icon={Bot} label="Agendadas IA" hint="Turnos agendados automáticamente por la IA, sin intervención humana" value={metrics.ai_booked} />
+                <Kpi icon={Repeat} label="Recuperados" hint="Clientes que volvieron a agendar después de un no-show o una cancelación" value={metrics.recovered} />
+                <Kpi icon={Hand} label="Requieren asistencia" hint="Clientes que necesitan que un miembro del staff intervenga" value={metrics.needs_human} />
+                <Kpi icon={Timer} label="Respuesta prom." hint="Tiempo promedio de respuesta de la IA a los mensajes de los clientes" value={metrics.avg_response_seconds} suffix="s" />
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3 h-10 flex-wrap shrink-0">
@@ -216,13 +250,6 @@ export default function Pipeline() {
 
     return (
         <div className="h-full flex flex-col w-full pt-2 px-4 relative">
-            <div className="shrink-0 mb-1">
-                <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Pipeline</h1>
-                <p className="text-xs text-navy-700/60 font-semibold tracking-wide whitespace-nowrap">
-                    Cómo la IA mueve a tus clientes, en vivo
-                </p>
-            </div>
-
             {unlocked ? (
                 <>
                     {controlsRow}
@@ -232,6 +259,8 @@ export default function Pipeline() {
                         canMove={canCreateAppointments}
                         canEditSteps={canCreateAppointments}
                         onToggleStep={handleToggleStep}
+                        canToggleAi={canToggleAi}
+                        onToggleTakeover={handleToggleTakeover}
                         canViewConversations={canViewConversations}
                         canViewPatients={canViewPatients}
                         onSchedule={canCreateAppointments ? (deal) => setScheduleTarget(deal) : undefined}
@@ -242,10 +271,10 @@ export default function Pipeline() {
                     feature="pipeline"
                     variant="blurred"
                     requiredPlan="Pro"
-                    title="Pipeline de clientes"
+                    title="Seguimiento de clientes"
                     description="Mira en tiempo real cómo el agente de IA mueve a cada cliente: qué le ofreció, en qué paso se quedó y quién necesita que intervengas."
                 >
-                    <div className="h-full flex flex-col mt-2">
+                    <div className="h-full flex flex-col">
                         {controlsRow}
                         <PipelineBoard byColumn={mockByColumn} loading={false} canMove={false} />
                     </div>

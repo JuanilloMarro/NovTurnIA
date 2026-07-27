@@ -74,7 +74,7 @@ export default function FollowUp() {
                     </div>
                     <h3 className="text-xl font-bold text-navy-900 mb-2">Acceso Restringido</h3>
                     <p className="text-sm text-navy-700/60 leading-relaxed font-semibold">
-                        No tienes permisos para acceder al seguimiento de pacientes.
+                        No tienes permisos para acceder a la re-agendación de pacientes.
                     </p>
                 </div>
             </div>
@@ -86,7 +86,7 @@ export default function FollowUp() {
             <FeatureLock
                 feature="followup"
                 variant="blurred"
-                title="Seguimiento de Clientes"
+                title="Re-agendación de Clientes"
                 description="Recuperá clientes con no-show o cancelaciones y reagendalos desde un solo panel. Disponible en Pro y Enterprise."
                 requiredPlan="Pro"
             >
@@ -97,7 +97,7 @@ export default function FollowUp() {
                 <div className="h-full flex flex-col px-2 sm:pl-0 sm:pr-[396px]">
                     <div className="flex items-center justify-between gap-3 mb-4 px-2">
                         <div>
-                            <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Seguimiento</h1>
+                            <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Re-agendación</h1>
                             <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Recuperación de pacientes y re-agendamiento</p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -229,7 +229,7 @@ export default function FollowUp() {
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>
-                        <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Seguimiento</h1>
+                        <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Re-agendación</h1>
                         <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Recuperación de pacientes y re-agendamiento</p>
                     </div>
                 </div>

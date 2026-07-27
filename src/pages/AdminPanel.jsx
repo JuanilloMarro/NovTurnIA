@@ -35,9 +35,9 @@ const STATUSES = ['active', 'trial', 'suspended', 'cancelled'];
 // Módulos toggleables por cliente (sobre-escriben plan.features vía businesses.feature_flags)
 const FEATURE_DEFS = [
     { key: 'dashboard',        label: 'Estadísticas' },
-    { key: 'followup',         label: 'Seguimiento' },
+    { key: 'followup',         label: 'Re-agendación' },
     { key: 'kanban',           label: 'Tablero Kanban' },
-    { key: 'pipeline',         label: 'Pipeline CRM' },
+    { key: 'pipeline',         label: 'Seguimiento' },
     { key: 'audit_log',        label: 'Actividad' },
     { key: 'finance',          label: 'Finanzas' },
     { key: 'supplies',         label: 'Insumos (BOM)' },
