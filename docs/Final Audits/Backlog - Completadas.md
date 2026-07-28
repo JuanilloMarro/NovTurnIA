@@ -123,3 +123,29 @@ Workflow activo `NovTurnAI`: **143 → 151 nodos**, aplicado por API con probes 
 - [x] **Modelo de negocio recalculado con el cobro por mensaje** — costo unitario Q0.135, cupos derivados de `pacientes × 15`, márgenes al 25% de techo de costo, escalera coherente y descuento anual de Básico retirado por dar utilidad negativa.
 - [x] **Escalación de privilegios en `staff_users` descubierta y probada** — el backlog anterior la clasificaba como "defensa en profundidad, no explotable hoy". Se demostró lo contrario con transacciones reales y rollback.
 - [x] **Diagnóstico erróneo corregido** — se había concluido que `get_stats_dashboard` no devolvía `patient_monthly_stats` ni `inquiry_conversion`, leyendo un archivo del repo 100 migraciones desactualizado. En producción **sí las devuelve**, con datos reales. La migración escrita para "arreglarlo" fue eliminada antes de aplicarse: habría sobrescrito la función buena.
+
+---
+
+## 12. Sesión de flota de agentes — 2026-07-27
+
+> Ejecutada con Fable como orquestador y agentes especializados. Cada ítem revisado en diff por el orquestador antes de integrar. Detalle vivo en [Backlog - Pendientes.md](Backlog%20-%20Pendientes.md).
+
+**Seguridad y aislamiento**
+- [x] **A1 (mitad DB) · RPC `bot_cancel_appointment`** — migración `20260728010000`, aplicada a producción. Valida que el turno pertenezca al negocio **y** al paciente antes de cancelar; `service_role`-only, `search_path` fijo. Probe cross-tenant: `PROTEGIDO`, con rollback verificado. ⚠️ El agujero **sigue abierto** hasta recablear los 3 nodos de n8n (ver Pendientes).
+- [x] **Tests de regresión SEC-1/SEC-2** — 3 probes transaccionales reejecutables en `supabase/tests/regression/`, corridos contra producción con `RAISE EXCEPTION` de cierre: los 3 dan `PROTEGIDO`.
+- [x] **Detector de asimetría de verbos** — `supabase/tests/security/verb_asymmetry_detector.sql`: consulta general sobre `pg_policies` que caza la clase de falla de SEC-1 (gate en un verbo, ausente en su hermano). **Resultado clave: `staff_users`/`staff_roles` ya NO aparecen** — la clase no se repite en ninguna otra tabla. Los 2 residuos quedaron clasificados (uno es el caso testigo de INF-12; el otro derivó en DEC-1).
+
+**Edge Functions** *(código listo; ⚠️ NO protege producción hasta el redeploy — ver Pendientes)*
+- [x] **SEC-3 · `check_ai_budget` falla CERRADO** — el `error` del RPC ya no se descarta; si el presupuesto no se puede verificar devuelve 503 `ai_budget_check_failed` en vez de gastar igual. Fuente única en `_shared/aiBudget.ts`.
+- [x] **SEC-4 · Tokens de intentos fallidos** — `GeminiError` transporta los tokens acumulados y ambos handlers los descuentan vía `record_ai_usage` en la ruta de error (Google ya los cobró).
+- [x] **EDGE-1/EDGE-2 · `_shared/fetchUpstream.ts`** — timeout duro por intento (`AbortSignal`) + presupuesto total de pared, y reintento **solo** en transitorios (429/5xx/red) con full jitter, respetando `Retry-After`. Aplicado a Meta Graph (10s, 3 intentos) y Gemini (20s, 2). 13 tests Deno.
+- [x] **EDGE-9 (nuevo, descubierto en sesión) · `manage-staff` devolvía 403 a TODOS** — gateaba con `permissions?.manage_users`, llave que **no existe en ningún rol**; la real es `manage_roles`. Nadie podía crear/borrar/cambiar rol de staff desde el dashboard. Verificado contra la v9 desplegada y las 4 filas reales de `staff_roles`.
+
+**Modelo de negocio**
+- [x] **B1/B2/B7 · Medición de salientes** — migración `20260728020000`, aplicada a producción. `usage_counters` gana `messages_in`/`messages_out` (aditivo, `messages` retenida); `record_usage` recibe `p_direction` (default `'out'`, compatible con las llamadas de 4 args de n8n); `get_plan_limits` expone `messages_out`, `max_messages_out` y `messages_out_effective`. **El corte de cupo ahora lee solo salientes.** Verificado por el orquestador: la llamada de 4 args resuelve, PostgREST recargado.
+- [x] **F1/F2/F3 · Tope del lado del dashboard** — barra de consumo de salientes (cupo/consumido/reinicio), aviso al ≥80% y bloqueo del composer de Conversaciones al agotarse el cupo. Los 3 estados verificados con Playwright. No se acopla al `UsageBar` de tokens del Centro IA: bolsas separadas.
+
+**QA y frontend**
+- [x] **Harness E2E — Fase A (base de T29/COD-7)** — Playwright con 6 viewports, fixture de auth exportable (owner/secretary), seed idempotente vía los RPCs del dashboard, scripts npm y job de CI. 12 tests en verde con storageState real.
+- [x] **Tenant semilla `NovTurnIA QA`** — `business_id 0dcfe80e-331b-4a8d-9889-5b66732250cc`, creado por MCP replicando `onboard-tenant` (business + 2 roles con los permisos exactos + owner y secretary en `auth.users`). Poblado con 6 pacientes, 6 turnos en todos los estados, servicios, finanzas y 6 deals. ⚠️ Lección: al crear usuarios de Auth por SQL, los tokens de texto deben ir `''` y no `NULL`, o GoTrue rompe el login con 500 pese a un bcrypt válido.
+- [x] **Responsive Fase 1 (T1–T5)** — shell móvil: `100dvh`, marco disuelto bajo `sm`, safe areas con `env()`, inputs a 16px y orbes ocultos. El render a 1280px no cambia.

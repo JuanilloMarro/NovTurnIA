@@ -7,6 +7,27 @@
 
 ---
 
+## ⚠️ Estado al cierre de la sesión de flota (2026-07-27)
+
+**Bloqueantes que requieren tu mano — nada avanza sin esto:**
+
+| # | Qué | Por qué está trabado |
+|---|---|---|
+| 1 | **Redeploy de 4 Edge Functions**: `manage-staff`, `ai-chat`, `ai-insights`, `wa-human-reply` | El código de SEC-3, SEC-4, EDGE-1, EDGE-2 y **EDGE-9** está en el repo y verificado con tests, pero **producción sigue corriendo la versión vieja**. En particular EDGE-9: hoy nadie puede gestionar staff desde el dashboard |
+| 2 | **PUT del workflow de n8n** (A1 recableado + A3 + A9) | Preparado y verificado (10 nodos, 16 cambios, `payload.json` + `pre.json` de rollback listos). **Bloqueado por el gate de permisos del harness** sobre la escritura a producción: requiere que el humano autorice el comando o lo ejecute él |
+| 3 | **INF-1 · paridad de migraciones** | Sigue siendo la única red de seguridad en free tier. Las 3 migraciones nuevas de esta sesión SÍ están versionadas; el resto del delta (127 vs ~29) sigue abierto. Necesita el CLI de Supabase |
+| 4 | **OPS-1 · credencial de WhatsApp sandbox** | Impide la prueba end-to-end del bot tras cualquier PUT |
+
+**Interrumpido por límite de gasto de la cuenta** (los agentes murieron a mitad de trabajo; nada quedó a medias en producción):
+
+- **DEC-1 + INF-2 + INF-13** — el agente alcanzó a dejar un veredicto útil sobre INF-2 antes de morir: revocar de `anon` solo `get_cash_sessions`, `get_payment_plans` y `user_has_permission`; **dejar** `get_user_business_id`, `has_feature` e `is_business_active`, que están embebidas en políticas `TO public` y revocarlas podría romper caminos anon. Ninguna migración fue aplicada.
+- **EDGE-3/4/5/6** — no alcanzó a escribir código.
+- **Responsive T1–T5** — rescatado e integrado por el orquestador (commit `8f935ff`); solo quedó sin correr su spec de Playwright.
+
+**Nota sobre el tenant de QA:** `NovTurnIA QA` (`0dcfe80e-…`) quedó con plan **Enterprise** y `plan_status='active'` (lo subí para poder recorrer los módulos premium). Si querés que expire solo, volvelo a `basic`/`trial`.
+
+---
+
 ## P0 — Vulnerabilidades probadas y fugas de costo
 
 - [x] ~~**[IA] SEC-1 · Escalación de privilegios en `staff_users`**~~ — **CERRADO** (migración `sec1_sec2_staff_users_privilege_escalation_guard`). Los 4 verbos de `staff_users` y `staff_roles` exigen `manage_roles`; el INSERT además valida que `role_id` pertenezca al mismo negocio. Verificado antes de aplicar que la UI usa la Edge Function `manage-staff` con `service_role` (salta RLS), así que el endurecimiento no afecta la aplicación.
@@ -16,7 +37,7 @@
 - [ ] **[IA] INF-1 · Reproducibilidad: 127 migraciones en producción contra 27 en el repositorio** — el modelo comercial, Finanzas v2, vouchers, agenda avanzada, Centro IA y los triggers de límite no existen en el código. Un restore desde repositorio produce un sistema distinto. *(Infraestructura §2 I1)*
 - [ ] **[TÚ] OPS-1 · Credencial de WhatsApp no cubre el número sandbox** — los nodos `WA - Respuesta *` firman con una credencial que Meta rechaza (`GraphMethodException 100/33`). Bloquea la prueba end-to-end de todo lo aplicado en n8n.
 - [ ] **[TÚ] OPS-2 · Activar protección de contraseñas filtradas (HIBP)** — ⛔ **Bloqueado por plan** (verificado en Studio 2026-07-27): "Prevent use of leaked passwords" exige plan **Pro** y **Custom SMTP** configurado. Se desbloquea si el proyecto sube a Pro (el SMTP puede salir de PROD-11/Resend). Mitigación disponible en free, misma pantalla: subir la longitud mínima de contraseña y exigir clases de caracteres.
-- [ ] **[IA] A1 · Cancelación de turnos sin aislamiento de tenant** — los 3 nodos `Tool - Cancelar Cita` hacen `PATCH /rest/v1/appointments?id=eq.{{ $fromAI('appointment_id') }}` con `service_role` (salta la RLS) y **sin filtro de `business_id`**; el UUID lo decide el LLM. Los otros 17 tools sí acotan: es la única excepción. RPC `bot_cancel_appointment` lista en *(Automatización IA §4.1)*. **Avance 2026-07-27:** la RPC ya está creada y aplicada en producción (migración `20260728010000_a1_bot_cancel_appointment`, probe cross-tenant PROTEGIDO con rollback verificado). ⚠️ El agujero sigue abierto hasta recablear los 3 nodos a `POST /rest/v1/rpc/bot_cancel_appointment` — bloqueado por el túnel de Cloudflare.
+- [ ] **[IA] A1 · Cancelación de turnos sin aislamiento de tenant** — los 3 nodos `Tool - Cancelar Cita` hacen `PATCH /rest/v1/appointments?id=eq.{{ $fromAI('appointment_id') }}` con `service_role` (salta la RLS) y **sin filtro de `business_id`**; el UUID lo decide el LLM. Los otros 17 tools sí acotan: es la única excepción. RPC `bot_cancel_appointment` lista en *(Automatización IA §4.1)*. **Avance 2026-07-27:** la RPC ya está creada y aplicada en producción (migración `20260728010000_a1_bot_cancel_appointment`, probe cross-tenant PROTEGIDO con rollback verificado). El recableado de los 3 nodos está **preparado y verificado** (túnel arriba, `payload.json` + `transform.mjs` determinista + `pre.json` de rollback en el scratchpad; 10 nodos, 16 cambios, workflow sin mutar). ⛔ **Bloqueado por el gate de permisos del harness sobre el PUT a producción** — requiere que el humano autorice el comando por el sistema de permisos, o lo aplique él. Verificación post-PUT por logs de ejecución (OPS-1 impide el mensaje de prueba por sandbox).
 - [ ] **[TÚ] A2 · `service_role` en texto plano en 20 nodos** — las claves viajan en `jsonHeaders` dentro del JSON del workflow, no en el almacén de credenciales de n8n. Cualquiera con acceso al editor o a la API obtiene una llave que ignora toda la RLS. Migrar a credencial *Header Auth* **y rotar la clave** después.
 - [ ] **[MIXTO] EDGE-9 · `manage-staff` devuelve 403 a TODOS los usuarios en producción** — descubierto por QA 2026-07-27 y verificado contra la v9 desplegada + las 4 filas reales de `staff_roles`: el gate chequea `permissions?.manage_users`, llave que **no existe en ningún rol** (la real es `manage_roles`, usada por `usePermissions.js`, `Users.jsx`, `onboard-tenant` y las políticas de SEC-1). Efecto: nadie puede crear/borrar/cambiar rol de staff desde el dashboard. **Avance:** fix de una línea aplicado en el repo (`manage-staff/index.ts`); falta redeploy (humano). Nota: esto implica que el check de `max_staff` de F-1 (Completadas §4) nunca se ejerció de verdad en producción — re-verificarlo tras el deploy.
 
@@ -43,9 +64,9 @@ Bloques 1 a 3 son obligatorios para que la escalera de precios se cumpla. *(Mode
 - [ ] **[TÚ] N3 · El gate del bot debe leer el cupo de salientes.**
 
 **Bloque 3 — cerrar el tope del lado del dashboard**
-- [ ] **[IA] F1 · Bloquear el composer de Conversaciones al agotarse el cupo** — verificado: `wa-human-reply` no registra consumo ni consulta el límite. Cada respuesta del staff cuesta Q0.104, no descuenta cupo y no aparece en el contador.
-- [ ] **[IA] F2 · Barra de consumo de mensajes salientes** con cupo, consumido y fecha de reinicio.
-- [ ] **[IA] F3 · Aviso al 80% del cupo** con opción de comprar paquete.
+- [x] ~~**[IA] F1 · Bloquear el composer de Conversaciones al agotarse el cupo**~~ — **CERRADO 2026-07-27** (commit `2685fbc`). Composer (textarea + botón Enviar) deshabilitado cuando `messages_out_effective <= 0`, con guarda de defensa en profundidad en `handleSend`. Verificado con Playwright (`OUTBOUND_STATE=blocked`). ⚠️ Riesgo residual: el bloqueo es del lado del dashboard; `wa-human-reply` todavía **no registra el consumo del staff ni consulta el límite** — pendiente en A5/Bloque 1 (recableado n8n).
+- [x] ~~**[IA] F2 · Barra de consumo de mensajes salientes**~~ — **CERRADO 2026-07-27**. `OutboundUsageBar` con cupo (`max_messages_out`), consumido (`messages_out`) y fecha de reinicio (1º del mes siguiente). Lee B7, no se acopla al UsageBar de tokens de IA. Verificado (lee 90 salientes, no 290 in+out).
+- [x] ~~**[IA] F3 · Aviso al 80% del cupo**~~ — **CERRADO 2026-07-27**. Banner al ≥80% con CTA "Comprar paquete". ⚠️ El CTA queda deshabilitado ("Pronto") hasta que exista `businesses.extra_messages` (B4).
 
 **Bloque 4 — cobranza**
 - [ ] **[IA] B5 · `plan_expires_at` en el alta de pago** — `onboard-tenant/index.ts:197` lo crea `NULL` para toda alta que no sea trial, y el cron vence por fecha. Verificado: los 2 negocios de producción tienen NULL y nunca han entrado al ciclo. Se resuelve junto con RES-2.
@@ -99,12 +120,13 @@ Bloques 1 a 3 son obligatorios para que la escalera de precios se cumpla. *(Mode
 
 *(Frontend §4 — 30 tareas T1–T30, resumidas aquí por fase)*
 
-**Fase 1 — shell (4 archivos, cierra 4 hallazgos)**
-- [ ] **[IA] T1 · `h-[100dvh]` en lugar de `h-screen`** — `100vh` incluye la barra del navegador móvil: el borde inferior queda cortado sin scroll posible. 10 usos, cero `dvh`.
-- [ ] **[IA] T2 · Disolver el marco en móvil** — `p-0 sm:p-4 lg:p-6`, esquinas y borde solo desde `sm`.
-- [ ] **[IA] T3 · Safe areas** — `viewport-fit=cover` está activo y **no se usa `env(safe-area-inset-*)` en ningún lado**: contenido bajo la muesca y la barra de gestos.
-- [ ] **[IA] T4 · Inputs a 16px en móvil** — verificado en vivo: los campos están a 13px sin `maximum-scale`, así que Safari iOS hace zoom al enfocar y descuadra el layout.
-- [ ] **[IA] T5 · Ocultar los orbes decorativos bajo `sm`** — 500px que desbordan el viewport.
+**Fase 1 — shell (4 archivos, cierra 4 hallazgos)** — ✅ **CERRADA 2026-07-27** (commit `8f935ff`)
+- [x] ~~**[IA] T1 · `h-[100dvh]` en lugar de `h-screen`**~~ — **CERRADO**. 0 usos de `h-screen` restantes en `src/`.
+- [x] ~~**[IA] T2 · Disolver el marco en móvil**~~ — **CERRADO**. `rounded-none sm:rounded-[24px] lg:rounded-[32px]`; borde y sombra solo desde `sm`.
+- [x] ~~**[IA] T3 · Safe areas**~~ — **CERRADO**. Clases `.safe-area-shell` / `.safe-area-card` / `.safe-area-card-lg` en `index.css` con `env(safe-area-inset-*)` y `max()` contra el gutter de diseño (así el render a 1280px queda idéntico).
+- [x] ~~**[IA] T4 · Inputs a 16px en móvil**~~ — **CERRADO**. `text-[16px] sm:text-[13px]` en los campos de Login y AdminPanel.
+- [x] ~~**[IA] T5 · Ocultar los orbes decorativos bajo `sm`**~~ — **CERRADO**. `hidden sm:block` en los orbes de 500/400px.
+> Verificación: `npm run build` limpio. ⚠️ Queda pendiente correr `tests/e2e/responsive-fase1-shell.spec.js` (el spec quedó escrito; el agente murió por límite de gasto antes de ejecutarlo y capturar screenshots).
 
 **Fase 2 — navegación (2 archivos)**
 - [ ] **[IA] T6 · Superficie propia del sidebar en móvil** — el `<aside>` es `bg-transparent`: en móvil se desliza sobre el contenido sin fondo propio.
