@@ -5,7 +5,18 @@ dist
 .env
 .env.local
 .env.*.local
+.env.test
 
 # Snapshots del workflow de n8n: traen la key service_role de Supabase
 # hardcodeada en ~22 nodos. Sirven para diffear en local, NUNCA para commitear.
 n8n/*.json
+
+# Playwright (harness E2E — QA fase A)
+# playwright/.auth/ guarda storageState con tokens de sesión reales: nunca al repo.
+/playwright/.auth/
+/playwright-report/
+/test-results/
+/blob-report/
+
+# Worktrees temporales de los agentes de la flota (no son código del proyecto).
+.claude/worktrees/
