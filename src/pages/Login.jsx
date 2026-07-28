@@ -31,11 +31,12 @@ export default function Login() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-navy-100/50">
+        <div className="min-h-[100dvh] flex items-center justify-center safe-area-card relative overflow-hidden font-sans selection:bg-navy-100/50">
             {/* Elementos ambientales del sistema */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] rounded-full bg-navy-100/10 blur-[120px] pointer-events-none animate-pulse-slow" />
-            <div className="lg-orb w-[500px] h-[500px] top-[-10%] left-[-10%] animate-float opacity-80" />
-            <div className="lg-orb w-[400px] h-[400px] bottom-[-5%] right-[-5%] animate-float-delayed opacity-80" />
+            {/* T5: orbes de 500/400px ocultos bajo `sm` — solo pintan, no aportan en móvil (R19) */}
+            <div className="lg-orb hidden sm:block w-[500px] h-[500px] top-[-10%] left-[-10%] animate-float opacity-80" />
+            <div className="lg-orb hidden sm:block w-[400px] h-[400px] bottom-[-5%] right-[-5%] animate-float-delayed opacity-80" />
 
             <div className="relative z-10 w-full max-w-md mb-6 animate-fade-up">
                 {/* Branding */}
@@ -90,7 +91,7 @@ export default function Login() {
                                         onChange={e => setEmail(e.target.value)}
                                         required
                                         placeholder="usuario@novturnia.com"
-                                        className="w-full bg-white/40 border border-white/60 rounded-[20px] pl-12 pr-6 py-4 text-[13px] outline-none placeholder:text-gray-400 font-semibold text-navy-900 focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm relative z-0"
+                                        className="w-full bg-white/40 border border-white/60 rounded-[20px] pl-12 pr-6 py-4 text-[16px] sm:text-[13px] outline-none placeholder:text-gray-400 font-semibold text-navy-900 focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm relative z-0"
                                     />
                                     <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-gray-500/80 group-focus-within/input:text-navy-900 transition-colors duration-500 z-10">
                                         <Mail size={15} strokeWidth={2.5} />
@@ -111,7 +112,7 @@ export default function Login() {
                                         onChange={e => setPassword(e.target.value)}
                                         required
                                         placeholder="••••••••"
-                                        className="w-full bg-white/40 border border-white/60 rounded-[20px] pl-12 pr-12 py-4 text-[13px] outline-none placeholder:text-gray-400 font-semibold text-navy-900 focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm relative z-0 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
+                                        className="w-full bg-white/40 border border-white/60 rounded-[20px] pl-12 pr-12 py-4 text-[16px] sm:text-[13px] outline-none placeholder:text-gray-400 font-semibold text-navy-900 focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm relative z-0 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                                     />
                                     <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-gray-500/80 group-focus-within/input:text-navy-900 transition-colors duration-500 z-10">
                                         <Lock size={15} strokeWidth={2.5} />

@@ -387,3 +387,61 @@ body::before {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ── T2/T3 (Responsive — Fase 1 shell) ──────────────────────────────────
+   El marco de vidrio del shell (App.jsx, AdminPanel.jsx) usaba `p-2 sm:p-4
+   lg:p-6` fijo: en móvil esos 8px son puramente decorativos (R18) y, con
+   `viewport-fit=cover` activo en el meta viewport, no había ningún
+   `env(safe-area-inset-*)` que compensara la muesca o la barra de gestos
+   (R8). Una sola clase resuelve ambos: en móvil el padding ES el safe area
+   (0 en dispositivos sin muesca); desde `sm`/`lg` se usa `max()` contra el
+   gutter de diseño, así que en un navegador sin safe-area-inset (todo
+   desktop, y el propio Chromium headless de los tests) el resultado es
+   IDÉNTICO en px a `sm:p-4 lg:p-6` — 1280px no cambia.
+   No usar `p-[...]` de Tailwind por lado: son 4 lados × 3 breakpoints y
+   Tailwind no permite un valor de fallback distinto por breakpoint sin
+   volverse ilegible en el JSX. */
+.safe-area-shell {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+@media (min-width: 640px) {
+  .safe-area-shell {
+    padding-top: max(env(safe-area-inset-top, 0px), 1rem);
+    padding-right: max(env(safe-area-inset-right, 0px), 1rem);
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
+    padding-left: max(env(safe-area-inset-left, 0px), 1rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .safe-area-shell {
+    padding-top: max(env(safe-area-inset-top, 0px), 1.5rem);
+    padding-right: max(env(safe-area-inset-right, 0px), 1.5rem);
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 1.5rem);
+    padding-left: max(env(safe-area-inset-left, 0px), 1.5rem);
+  }
+}
+
+/* Variante para pantallas de tarjeta centrada (Login, ErrorBoundary): no
+   disuelven marco (T2 no aplica — la tarjeta es contenido, no el "marco"
+   decorativo de R18), pero sí necesitan el safe area de R8/T3. Mantienen su
+   padding de diseño (1rem) vía `max()`, igual que arriba, así que en un
+   navegador sin inset el resultado es igual al `p-4` que reemplazan. */
+.safe-area-card {
+  padding-top: max(env(safe-area-inset-top, 0px), 1rem);
+  padding-right: max(env(safe-area-inset-right, 0px), 1rem);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
+  padding-left: max(env(safe-area-inset-left, 0px), 1rem);
+}
+
+/* Misma idea, gutter de 1.5rem (reemplaza `p-6`) — usada por ErrorBoundary. */
+.safe-area-card-lg {
+  padding-top: max(env(safe-area-inset-top, 0px), 1.5rem);
+  padding-right: max(env(safe-area-inset-right, 0px), 1.5rem);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 1.5rem);
+  padding-left: max(env(safe-area-inset-left, 0px), 1.5rem);
+}

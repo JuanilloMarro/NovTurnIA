@@ -43,7 +43,7 @@ function ProtectedRoute({ children }) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#F4F5F9] flex items-center justify-center">
+            <div className="min-h-[100dvh] bg-[#F4F5F9] flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
             </div>
         );
@@ -91,7 +91,7 @@ export default function App() {
                     <Route path="/admin" element={
                         <ProtectedRoute>
                             <Suspense fallback={
-                                <div className="min-h-screen bg-[#F4F5F9] flex items-center justify-center">
+                                <div className="min-h-[100dvh] bg-[#F4F5F9] flex items-center justify-center">
                                     <div className="w-10 h-10 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
                                 </div>
                             }>
@@ -106,14 +106,14 @@ export default function App() {
                     <Route path="/admin/new-tenant" element={
                         <ProtectedRoute>
                             <Suspense fallback={
-                                <div className="min-h-screen bg-[#F4F5F9] flex items-center justify-center">
+                                <div className="min-h-[100dvh] bg-[#F4F5F9] flex items-center justify-center">
                                     <div className="w-10 h-10 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
                                 </div>
                             }>
                                 {isSuperAdmin
                                     ? (
-                                        <div className="h-screen w-screen relative overflow-hidden bg-transparent p-2 sm:p-4 lg:p-6 flex items-center justify-center">
-                                            <div className="w-full max-w-3xl h-full rounded-[24px] sm:rounded-[32px] bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex flex-col p-6">
+                                        <div className="h-[100dvh] w-screen relative overflow-hidden bg-transparent safe-area-shell flex items-center justify-center">
+                                            <div className="w-full max-w-3xl h-full rounded-none sm:rounded-[24px] lg:rounded-[32px] bg-white/40 backdrop-blur-xl sm:border sm:border-white/60 shadow-none sm:shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex flex-col p-6">
                                                 <AdminOnboarding />
                                             </div>
                                         </div>
@@ -126,9 +126,9 @@ export default function App() {
                     <Route path="/*" element={
                         <ProtectedRoute>
                             {isSuperAdmin ? <Navigate to="/admin" replace /> : (
-                            <div className="h-screen w-screen relative overflow-hidden bg-transparent p-2 sm:p-4 lg:p-6 flex items-center justify-center">
+                            <div className="h-[100dvh] w-screen relative overflow-hidden bg-transparent safe-area-shell flex items-center justify-center">
                                 {/* Macro Módulo Unificado - Sensación Voladora y de Cristal */}
-                                <div className="w-full max-w-[1920px] h-full rounded-[24px] sm:rounded-[32px] bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex">
+                                <div className="w-full max-w-[1920px] h-full rounded-none sm:rounded-[24px] lg:rounded-[32px] bg-white/40 backdrop-blur-xl sm:border sm:border-white/60 shadow-none sm:shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex">
                                     <Sidebar onOpenPlans={openPlans} />
                                     {/* ml-0 en mobile (sidebar oculto), md:ml-[272px] en desktop */}
                                     <div className="flex-1 ml-0 md:ml-[272px] flex flex-col relative w-full h-full min-w-0">

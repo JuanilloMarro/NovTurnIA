@@ -20,7 +20,7 @@ export default class ErrorBoundary extends Component {
         if (!this.state.hasError) return this.props.children;
 
         return (
-            <div className="min-h-screen bg-[#F4F5F9] flex items-center justify-center p-6">
+            <div className="min-h-[100dvh] bg-[#F4F5F9] flex items-center justify-center safe-area-card-lg">
                 <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-[28px] shadow-lg p-10 max-w-md w-full text-center">
                     <div className="w-14 h-14 rounded-full bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-5">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">

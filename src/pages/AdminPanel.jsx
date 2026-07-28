@@ -317,8 +317,8 @@ export default function AdminPanel() {
     const maxConv = selected?.limit_overrides?.max_conversations ?? selected?.plans?.max_conversations ?? null;
 
     return (
-        <div className="h-screen w-screen relative overflow-hidden bg-transparent p-2 sm:p-4 lg:p-6 flex items-center justify-center">
-            <div className="w-full max-w-[1920px] h-full rounded-[24px] sm:rounded-[32px] bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex flex-col">
+        <div className="h-[100dvh] w-screen relative overflow-hidden bg-transparent safe-area-shell flex items-center justify-center">
+            <div className="w-full max-w-[1920px] h-full rounded-none sm:rounded-[24px] lg:rounded-[32px] bg-white/40 backdrop-blur-xl sm:border sm:border-white/60 shadow-none sm:shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex flex-col">
 
             {/* Topbar */}
             <div className="flex-shrink-0 px-5 py-3 border-b border-white/40 flex items-center justify-between bg-white/20">
@@ -507,34 +507,34 @@ export default function AdminPanel() {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div className="sm:col-span-2">
                                                 <label className={labelCls}>Nombre</label>
-                                                <input value={form.name} onChange={e => setField('name', e.target.value)} className="glass-input w-full text-[13px]" />
+                                                <input value={form.name} onChange={e => setField('name', e.target.value)} className="glass-input w-full text-[16px] sm:text-[13px]" />
                                             </div>
                                             <div>
                                                 <label className={labelCls}>Tipo de negocio</label>
-                                                <input value={form.business_type} onChange={e => setField('business_type', e.target.value)} className="glass-input w-full text-[13px]" />
+                                                <input value={form.business_type} onChange={e => setField('business_type', e.target.value)} className="glass-input w-full text-[16px] sm:text-[13px]" />
                                             </div>
                                             <div>
                                                 <label className={labelCls}>Zona horaria</label>
-                                                <select value={form.timezone} onChange={e => setField('timezone', e.target.value)} className="glass-input w-full text-[13px]">
+                                                <select value={form.timezone} onChange={e => setField('timezone', e.target.value)} className="glass-input w-full text-[16px] sm:text-[13px]">
                                                     {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
                                                 </select>
                                             </div>
                                             <div>
                                                 <label className={labelCls}>Plan</label>
-                                                <select value={form.plan_id} onChange={e => setField('plan_id', e.target.value)} className="glass-input w-full text-[13px]">
+                                                <select value={form.plan_id} onChange={e => setField('plan_id', e.target.value)} className="glass-input w-full text-[16px] sm:text-[13px]">
                                                     <option value="">— Sin plan —</option>
                                                     {plans.map(p => <option key={p.id} value={p.id}>{p.name} ({p.tier}) · ${p.monthly_price}/mes</option>)}
                                                 </select>
                                             </div>
                                             <div>
                                                 <label className={labelCls}>Estado</label>
-                                                <select value={form.plan_status} onChange={e => setField('plan_status', e.target.value)} className="glass-input w-full text-[13px]">
+                                                <select value={form.plan_status} onChange={e => setField('plan_status', e.target.value)} className="glass-input w-full text-[16px] sm:text-[13px]">
                                                     {STATUSES.map(s => <option key={s} value={s}>{STATUS_META[s]?.label ?? s}</option>)}
                                                 </select>
                                             </div>
                                             <div className="sm:col-span-2">
                                                 <label className={labelCls}>Email de notificaciones</label>
-                                                <input value={form.notification_email} onChange={e => setField('notification_email', e.target.value)} type="email" className="glass-input w-full text-[13px]" />
+                                                <input value={form.notification_email} onChange={e => setField('notification_email', e.target.value)} type="email" className="glass-input w-full text-[16px] sm:text-[13px]" />
                                             </div>
                                         </div>
                                     </div>
@@ -567,7 +567,7 @@ export default function AdminPanel() {
                                                         value={form.limit_overrides?.[l.key] ?? ''}
                                                         onChange={e => setLimit(l.key, e.target.value)}
                                                         placeholder={String(selected.plans?.[l.key] ?? '∞')}
-                                                        className="glass-input w-32 text-[13px] text-right" />
+                                                        className="glass-input w-32 text-[16px] sm:text-[13px] text-right" />
                                                 </div>
                                             ))}
                                         </div>
@@ -583,19 +583,19 @@ export default function AdminPanel() {
                                         <div className="grid grid-cols-3 gap-3">
                                             <div>
                                                 <label className={labelCls}>Apertura</label>
-                                                <select value={form.schedule_start} onChange={e => setField('schedule_start', Number(e.target.value))} className="glass-input w-full text-[13px]">
+                                                <select value={form.schedule_start} onChange={e => setField('schedule_start', Number(e.target.value))} className="glass-input w-full text-[16px] sm:text-[13px]">
                                                     {HOURS.map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
                                                 </select>
                                             </div>
                                             <div>
                                                 <label className={labelCls}>Cierre</label>
-                                                <select value={form.schedule_end} onChange={e => setField('schedule_end', Number(e.target.value))} className="glass-input w-full text-[13px]">
+                                                <select value={form.schedule_end} onChange={e => setField('schedule_end', Number(e.target.value))} className="glass-input w-full text-[16px] sm:text-[13px]">
                                                     {HOURS.filter(h => h > form.schedule_start).map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
                                                 </select>
                                             </div>
                                             <div>
                                                 <label className={labelCls}>Duración turno</label>
-                                                <input type="number" min="5" step="5" value={form.appointment_duration} onChange={e => setField('appointment_duration', e.target.value)} className="glass-input w-full text-[13px]" />
+                                                <input type="number" min="5" step="5" value={form.appointment_duration} onChange={e => setField('appointment_duration', e.target.value)} className="glass-input w-full text-[16px] sm:text-[13px]" />
                                             </div>
                                         </div>
                                         <div>
@@ -615,7 +615,7 @@ export default function AdminPanel() {
                                         <div className="flex items-center gap-2"><Bot size={14} className="text-navy-700/50" /><p className="text-[11px] font-bold text-navy-700/50 uppercase tracking-widest">Contexto / Prompt de la IA</p></div>
                                         <textarea rows={5} value={form.custom_prompt} onChange={e => setField('custom_prompt', e.target.value)}
                                             placeholder="Personalidad e instrucciones del asistente…"
-                                            className="glass-input w-full text-[13px] resize-none custom-scrollbar" />
+                                            className="glass-input w-full text-[16px] sm:text-[13px] resize-none custom-scrollbar" />
                                     </div>
                                     <div className="lg:col-span-2 bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl p-5 space-y-4">
                                         <div className="flex items-center gap-2"><MessageSquare size={14} className="text-navy-700/50" /><p className="text-[11px] font-bold text-navy-700/50 uppercase tracking-widest">WhatsApp / Automatización (n8n)</p></div>
@@ -626,7 +626,7 @@ export default function AdminPanel() {
                                                     <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-900/30" />
                                                     <input value={form.phone_number_id} onChange={e => setField('phone_number_id', e.target.value)}
                                                         placeholder="Ej. 109876543210987"
-                                                        className="glass-input w-full text-[13px] font-mono pl-9" />
+                                                        className="glass-input w-full text-[16px] sm:text-[13px] font-mono pl-9" />
                                                 </div>
                                             </div>
                                             <div>
@@ -635,7 +635,7 @@ export default function AdminPanel() {
                                                     <KeyRound size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-900/30" />
                                                     <input type={showToken ? 'text' : 'password'} value={form.whatsapp_token} onChange={e => setField('whatsapp_token', e.target.value)}
                                                         placeholder="EAAG..."
-                                                        className="glass-input w-full text-[13px] font-mono pl-9 pr-9" />
+                                                        className="glass-input w-full text-[16px] sm:text-[13px] font-mono pl-9 pr-9" />
                                                     <button type="button" onClick={() => setShowToken(s => !s)}
                                                         className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-900/30 hover:text-navy-900/60">
                                                         {showToken ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -680,7 +680,7 @@ export default function AdminPanel() {
                                                 <p className="text-[12px] font-bold text-navy-900">Estado de la cuenta</p>
                                                 <p className="text-[11px] text-navy-700/40 font-medium">Suspender bloquea el acceso del cliente.</p>
                                             </div>
-                                            <select value={form.plan_status} onChange={e => setField('plan_status', e.target.value)} className="glass-input w-40 text-[13px]">
+                                            <select value={form.plan_status} onChange={e => setField('plan_status', e.target.value)} className="glass-input w-40 text-[16px] sm:text-[13px]">
                                                 {STATUSES.map(s => <option key={s} value={s}>{STATUS_META[s]?.label ?? s}</option>)}
                                             </select>
                                         </div>
