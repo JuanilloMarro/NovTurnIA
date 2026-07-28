@@ -126,7 +126,11 @@ Bloques 1 a 3 son obligatorios para que la escalera de precios se cumpla. *(Mode
 - [x] ~~**[IA] T3 · Safe areas**~~ — **CERRADO**. Clases `.safe-area-shell` / `.safe-area-card` / `.safe-area-card-lg` en `index.css` con `env(safe-area-inset-*)` y `max()` contra el gutter de diseño (así el render a 1280px queda idéntico).
 - [x] ~~**[IA] T4 · Inputs a 16px en móvil**~~ — **CERRADO**. `text-[16px] sm:text-[13px]` en los campos de Login y AdminPanel.
 - [x] ~~**[IA] T5 · Ocultar los orbes decorativos bajo `sm`**~~ — **CERRADO**. `hidden sm:block` en los orbes de 500/400px.
-> Verificación: `npm run build` limpio. ⚠️ Queda pendiente correr `tests/e2e/responsive-fase1-shell.spec.js` (el spec quedó escrito; el agente murió por límite de gasto antes de ejecutarlo y capturar screenshots).
+> **Verificado en navegador real** (dev server, 2026-07-27), midiendo estilos computados en los dos extremos:
+> · **375px** → input `16px`, orbes `display:none`, shell `812px` (= `100dvh`), sin scroll horizontal.
+> · **1280px** → input `13px`, orbes `block`, shell `800px`. **El escritorio no cambió**, que era la restricción dura.
+> ⚠️ Queda escrito sin correr `tests/e2e/responsive-fase1-shell.spec.js` (el agente murió por límite de gasto antes de ejecutarlo y capturar los screenshots por viewport).
+> 🐛 Nota de método: durante esta verificación el HMR de Vite sirvió CSS obsoleto y llevó a diagnosticar una regresión de tipografía que **no existía**. Si vas a medir estilos computados tras editar clases de Tailwind, **recargá la página** antes de creerle al número.
 
 **Fase 2 — navegación (2 archivos)**
 - [ ] **[IA] T6 · Superficie propia del sidebar en móvil** — el `<aside>` es `bg-transparent`: en móvil se desliza sobre el contenido sin fondo propio.
@@ -182,10 +186,10 @@ Bloques 1 a 3 son obligatorios para que la escalera de precios se cumpla. *(Mode
 
 ## P6 — Calidad de código
 
-- [ ] **[IA] COD-1 · `cache: 'no-store'` global** — `src/config/supabase.js:14` lo aplica a *todas* las peticiones, anulando el HTTP cache incluso en lecturas idempotentes. Mover a un wrapper opt-in.
+- [ ] **[IA] COD-1 · `cache: 'no-store'` global** — `src/config/supabase.js:14` lo aplica a *todas* las peticiones, anulando el HTTP cache incluso en lecturas idempotentes. Mover a un wrapper opt-in. **Revisado 2026-07-27 y NO aplicado, a propósito**: invertir el default (cacheable por defecto, `no-store` opt-in) introduce riesgo real de lecturas rancias sobre datos clínicos, porque PostgREST no emite `Cache-Control` y el navegador cachea por heurística — que es justo el motivo por el que se agregó. Sobre `POST/PATCH/DELETE` la bandera no hace nada, así que el único efecto es en GET. Cerrarlo bien exige decidir caso por caso qué lecturas toleran staleness y medir el beneficio; es un trade-off de producto, no un bug. Queda abierto con este análisis.
 - [ ] **[IA] COD-2 · Sin ESLint configurado** — no existe `.eslintrc*` ni `eslint.config.*`.
 - [ ] **[IA] COD-3 · 20 archivos con `console.log/error/warn` sin guard `import.meta.env.DEV`** — llegan a producción.
-- [ ] **[IA] COD-4 · `RealtimeStatusBanner.jsx` sin montar** — el componente y el estado existen, nunca se importa. Una desconexión de Realtime es invisible para el usuario.
+- [x] ~~**[IA] COD-4 · `RealtimeStatusBanner.jsx` sin montar**~~ — **CERRADO 2026-07-27** (commit `74d2b66`). ⚠️ El diagnóstico se quedaba corto: además de no montarse, **`setRealtimeStatus` no se llamaba en ningún lado** — `useRealtime.js` tenía T-11 parado a propósito porque `CLOSED` se dispara tanto en una caída real como al desmontar por navegación (falsos positivos). Resuelto separando los estados inequívocos (`CHANNEL_ERROR`/`TIMED_OUT` → caída) del ambiguo (`CLOSED` solo cuenta si el cierre no lo provocamos nosotros, vía `tearingDownRef`), y volviendo a `connected` al desmontar para que el banner no quede pegado.
 - [x] ~~**[IA] COD-5 · Gate `manage_roles` en INSERT/DELETE de `staff_roles`**~~ — **CERRADO** junto con SEC-1: `staff_roles_insert` y `staff_roles_delete` declaradas explícitas con el gate, en vez de depender de la ausencia de política.
 - [ ] **[IA] COD-6 · Auditoría profunda de permisos por módulo** — verificar que todas las acciones tengan permiso en `usePermissions`/`Users.jsx`/DB, no solo las 6 cerradas en la Pesada #3.
 - [ ] **[TÚ] COD-7 · Testear el sistema de punta a punta** — QA formal con click-through autenticado. **Avance 2026-07-27:** harness Fase A listo (Playwright 6 viewports, fixture de auth exportable en `tests/fixtures/auth.js`, seed idempotente en `scripts/seed-test-tenant.mjs`, login-smoke 6/6 en verde). ⏸️ Bloqueado en: crear el negocio semilla vía `/admin/new-tenant` (super-admin, humano) y completar `SEED_*` en `.env.test`.
