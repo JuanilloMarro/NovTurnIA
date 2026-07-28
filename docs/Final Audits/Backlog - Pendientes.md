@@ -26,6 +26,23 @@
 
 **Nota sobre el tenant de QA:** `NovTurnIA QA` (`0dcfe80e-…`) quedó con plan **Enterprise** y `plan_status='active'` (lo subí para poder recorrer los módulos premium). Si querés que expire solo, volvelo a `basic`/`trial`.
 
+### Confiabilidad de estas auditorías — barrido de verificación (2026-07-27)
+
+Al trabajar los ítems a fondo aparecieron **2 diagnósticos equivocados** (INF-13 subestimado, COD-4 con la causa mal identificada), así que se verificaron contra producción los ítems abiertos de mayor riesgo. Resultado:
+
+| Afirmación del backlog | Medición real | Veredicto |
+|---|---|---|
+| B3: cupos en 500/5,000/20,000 y 50/150/∞ | idénticos | ✅ correcto |
+| INF-12: solo 2 políticas gatean por `has_feature` | 2 (de 116, no 107) | ✅ correcto |
+| B5: los 2 negocios tienen `plan_expires_at` NULL | 1 de 2 | ⚠️ corregido arriba |
+| COD-3: 20 archivos con `console.*` | **30** | ❌ corregido arriba |
+| T21: 160 `title=` nativos | 162 | ~ deriva menor |
+| T11: 361 usos de `z-10` | 359 | ~ deriva menor |
+
+**Lectura:** los diagnósticos *estructurales* (qué está mal y por qué) aguantaron; lo que envejece son los *conteos*. Tratá los números como orden de magnitud y re-medí antes de estimar esfuerzo.
+
+**La causa de fondo es INF-1.** Mientras el repositorio esté ~100 migraciones detrás de producción, cualquier hallazgo derivado de leer archivos del repo puede describir un sistema que ya no existe — ya pasó una vez (ver Completadas §11, el falso diagnóstico de `get_stats_dashboard`). Cerrar INF-1 es lo que vuelve confiable el método, no solo la reproducibilidad.
+
 ---
 
 ## P0 — Vulnerabilidades probadas y fugas de costo
@@ -69,7 +86,7 @@ Bloques 1 a 3 son obligatorios para que la escalera de precios se cumpla. *(Mode
 - [x] ~~**[IA] F3 · Aviso al 80% del cupo**~~ — **CERRADO 2026-07-27**. Banner al ≥80% con CTA "Comprar paquete". ⚠️ El CTA queda deshabilitado ("Pronto") hasta que exista `businesses.extra_messages` (B4).
 
 **Bloque 4 — cobranza**
-- [ ] **[IA] B5 · `plan_expires_at` en el alta de pago** — `onboard-tenant/index.ts:197` lo crea `NULL` para toda alta que no sea trial, y el cron vence por fecha. Verificado: los 2 negocios de producción tienen NULL y nunca han entrado al ciclo. Se resuelve junto con RES-2.
+- [ ] **[IA] B5 · `plan_expires_at` en el alta de pago** — `onboard-tenant/index.ts:197` lo crea `NULL` para toda alta que no sea trial, y el cron vence por fecha. Se resuelve junto con RES-2. ⚠️ **Dato actualizado 2026-07-27**: ya no son "los 2 negocios con NULL". Hoy hay 3 negocios; *Clínica Doc* sigue en `NULL` (nunca entró al ciclo de cobranza) y *x* ya tiene fecha de vencimiento. El de QA (`NovTurnIA QA`) está en NULL a propósito, no cuenta.
 - [ ] **[TÚ] B5b · Marcar pagado a los 2 negocios existentes** — 1 clic por negocio en AdminPanel.
 
 **Bloque 5 — que la oferta se pueda vender**
@@ -188,7 +205,7 @@ Bloques 1 a 3 son obligatorios para que la escalera de precios se cumpla. *(Mode
 
 - [ ] **[IA] COD-1 · `cache: 'no-store'` global** — `src/config/supabase.js:14` lo aplica a *todas* las peticiones, anulando el HTTP cache incluso en lecturas idempotentes. Mover a un wrapper opt-in. **Revisado 2026-07-27 y NO aplicado, a propósito**: invertir el default (cacheable por defecto, `no-store` opt-in) introduce riesgo real de lecturas rancias sobre datos clínicos, porque PostgREST no emite `Cache-Control` y el navegador cachea por heurística — que es justo el motivo por el que se agregó. Sobre `POST/PATCH/DELETE` la bandera no hace nada, así que el único efecto es en GET. Cerrarlo bien exige decidir caso por caso qué lecturas toleran staleness y medir el beneficio; es un trade-off de producto, no un bug. Queda abierto con este análisis.
 - [ ] **[IA] COD-2 · Sin ESLint configurado** — no existe `.eslintrc*` ni `eslint.config.*`.
-- [ ] **[IA] COD-3 · 20 archivos con `console.log/error/warn` sin guard `import.meta.env.DEV`** — llegan a producción.
+- [ ] **[IA] COD-3 · Archivos con `console.log/error/warn` sin guard `import.meta.env.DEV`** — llegan a producción. ⚠️ **Cifra corregida 2026-07-27**: el backlog decía 20; la cuenta real hoy es **30 archivos** (solo 1 usa el guard). El número original quedó viejo.
 - [x] ~~**[IA] COD-4 · `RealtimeStatusBanner.jsx` sin montar**~~ — **CERRADO 2026-07-27** (commit `74d2b66`). ⚠️ El diagnóstico se quedaba corto: además de no montarse, **`setRealtimeStatus` no se llamaba en ningún lado** — `useRealtime.js` tenía T-11 parado a propósito porque `CLOSED` se dispara tanto en una caída real como al desmontar por navegación (falsos positivos). Resuelto separando los estados inequívocos (`CHANNEL_ERROR`/`TIMED_OUT` → caída) del ambiguo (`CLOSED` solo cuenta si el cierre no lo provocamos nosotros, vía `tearingDownRef`), y volviendo a `connected` al desmontar para que el banner no quede pegado.
 - [x] ~~**[IA] COD-5 · Gate `manage_roles` en INSERT/DELETE de `staff_roles`**~~ — **CERRADO** junto con SEC-1: `staff_roles_insert` y `staff_roles_delete` declaradas explícitas con el gate, en vez de depender de la ausencia de política.
 - [ ] **[IA] COD-6 · Auditoría profunda de permisos por módulo** — verificar que todas las acciones tengan permiso en `usePermissions`/`Users.jsx`/DB, no solo las 6 cerradas en la Pesada #3.
