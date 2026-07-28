@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { usePermissions } from './hooks/usePermissions';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
+import RealtimeStatusBanner from './components/RealtimeStatusBanner';
 import AccountStatusModal from './components/AccountStatusModal';
 import PlansModal from './components/PlansModal';
 import CommandPalette from './components/CommandPalette';
@@ -133,6 +134,10 @@ export default function App() {
                                     {/* ml-0 en mobile (sidebar oculto), md:ml-[272px] en desktop */}
                                     <div className="flex-1 ml-0 md:ml-[272px] flex flex-col relative w-full h-full min-w-0">
                                         <Topbar />
+                                        {/* COD-4: el banner existía y nunca se montaba, así que una caída
+                                            de Realtime era invisible para el usuario. Solo se pinta cuando
+                                            realtimeStatus === 'disconnected' (con debounce en useRealtime). */}
+                                        <RealtimeStatusBanner />
                                         <main className="flex-1 px-2 sm:px-4 lg:px-6 pb-4 w-full min-h-0 flex flex-col overflow-hidden">
                                             {/* key={location.pathname} fuerza remount limpio en cada navegación,
                                         garantizando que useEffect de cada módulo re-ejecute y cargue datos frescos */}
