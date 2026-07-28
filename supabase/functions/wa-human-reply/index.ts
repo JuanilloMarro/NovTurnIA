@@ -15,6 +15,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
 import { supabaseAdmin } from '../_shared/auth.ts';
+import { fetchUpstream } from '../_shared/fetchUpstream.ts';
 
 // Versión de la Graph API de Meta. Override opcional vía secret WHATSAPP_API_VERSION.
 const GRAPH_API_VERSION = Deno.env.get('WHATSAPP_API_VERSION') || 'v21.0';
@@ -118,7 +119,13 @@ serve(async (req) => {
     }
 
     // ── Envío por la Cloud API de Meta ───────────────────────────────────────
-    const graphRes = await fetch(
+    // fetchUpstream (EDGE-1/EDGE-2): timeout duro de 10s por intento + hasta 3
+    // intentos con full jitter ante 5xx/429/red. Antes, un 503 transitorio de
+    // Meta perdía el mensaje del staff definitivamente; un upstream colgado
+    // retenía la invocación hasta el límite de pared y agotaba la concurrencia.
+    // Un timeout/red persistente lanza UpstreamError → lo toma el catch de abajo
+    // y devuelve 500 (igual que antes, pero recién tras agotar los reintentos).
+    const graphRes = await fetchUpstream(
       `https://graph.facebook.com/${GRAPH_API_VERSION}/${business.phone_number_id}/messages`,
       {
         method: 'POST',
@@ -133,6 +140,9 @@ serve(async (req) => {
           type: 'text',
           text: { preview_url: false, body },
         }),
+        timeoutMs: 10_000,
+        tries: 3,
+        label: 'meta-graph',
       },
     );
 

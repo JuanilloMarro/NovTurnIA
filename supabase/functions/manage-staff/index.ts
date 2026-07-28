@@ -46,9 +46,13 @@ serve(async (req) => {
       );
     }
 
-    // ── Check manage_users permission ─────────────────────────────────────────
+    // ── Check manage_roles permission ─────────────────────────────────────────
+    // `manage_roles` es la llave real en staff_roles.permissions (43 llaves,
+    // misma que usan usePermissions.js, Users.jsx, onboard-tenant y las políticas
+    // RLS de SEC-1). La llave `manage_users` que se chequeaba antes NO existe en
+    // ningún rol: el gate devolvía 403 a todos los usuarios, dueños incluidos.
     const permissions = (caller.staff_roles as any)?.permissions ?? {};
-    if (!permissions?.manage_users) {
+    if (!permissions?.manage_roles) {
       return new Response(
         JSON.stringify({ error: 'No tiene permisos para gestionar usuarios.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

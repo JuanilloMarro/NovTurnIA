@@ -11,7 +11,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
 import { supabaseAdmin } from '../_shared/auth.ts';
-import { callGeminiJSON, costMicroUsd } from '../_shared/gemini.ts';
+import { callGeminiJSON, costMicroUsd, GeminiError } from '../_shared/gemini.ts';
+import { checkAiBudget, recordAiUsage } from '../_shared/aiBudget.ts';
 
 const VALID_SCOPES = ['patient_summary', 'patient_strategy', 'retention', 'kpi_narrative', 'weekly_digest', 'content_offer', 'finance_narrative', 'agenda_narrative'];
 const NEEDS_PATIENT = new Set(['patient_summary', 'patient_strategy']);
@@ -319,17 +320,13 @@ serve(async (req) => {
 
     // Presupuesto semanal de tokens del plan — después del cache (leer cache es
     // gratis y no se bloquea) y ANTES de gastar en Gemini. Vive en la DB.
-    const { data: budget } = await supabaseAdmin.rpc('check_ai_budget', { p_business_id: caller.business_id });
-    if (budget && budget.allowed === false) {
-      return json({
-        error: 'Alcanzaste tu límite semanal de IA del plan. Se reinicia el lunes.',
-        code: 'ai_limit_reached',
-        resets_at: budget.resets_at ?? null,
-      }, 429);
-    }
+    // SEC-3: falla CERRADO — si el chequeo no se puede verificar, 503 mapeable
+    // en vez de gastar igual.
+    const { model, maxOutputTokens } = MODEL_CONFIG[scope];
+    const gate = await checkAiBudget(supabaseAdmin, caller.business_id);
+    if (!gate.ok) return json(gate.body, gate.status);
 
     const context = await buildContext(scope, caller.business_id, refId);
-    const { model, maxOutputTokens } = MODEL_CONFIG[scope];
     const prompt = buildPrompt(scope, context);
 
     // Si Gemini no devuelve el JSON del schema (tras el reintento interno del
@@ -339,7 +336,17 @@ serve(async (req) => {
       generated = await callGeminiJSON(model, prompt, SCHEMAS[scope], maxOutputTokens);
     } catch (aiErr) {
       console.error('ai-insights gemini error:', aiErr);
-      return json({ error: 'La IA no devolvió un análisis válido. Volvé a intentarlo en un momento.' }, 502);
+      // SEC-4: los intentos fallidos igual consumieron tokens que Google cobró.
+      // Descontarlos del presupuesto antes de devolver el error.
+      if (aiErr instanceof GeminiError) {
+        await recordAiUsage(supabaseAdmin, {
+          businessId: caller.business_id,
+          tokensIn: aiErr.tokensIn,
+          tokensOut: aiErr.tokensOut,
+          costMicroUsd: costMicroUsd(model, aiErr.tokensIn, aiErr.tokensOut),
+        });
+      }
+      return json({ error: 'La IA no devolvió un análisis válido. Volvé a intentarlo en un momento.', code: 'ai_generation_failed' }, 502);
     }
     const { content, tokensIn, tokensOut } = generated;
 
@@ -361,12 +368,11 @@ serve(async (req) => {
 
     // Contador semanal del Centro IA (tokens + costo real). Ya NO se toca
     // usage_counters: ese contador mensual es exclusivo del bot de WhatsApp.
-    await supabaseAdmin.rpc('record_ai_usage', {
-      p_business_id: caller.business_id,
-      p_tokens_in: tokensIn,
-      p_tokens_out: tokensOut,
-      p_cost_microusd: costMicroUsd(model, tokensIn, tokensOut),
-      p_requests: 1,
+    await recordAiUsage(supabaseAdmin, {
+      businessId: caller.business_id,
+      tokensIn,
+      tokensOut,
+      costMicroUsd: costMicroUsd(model, tokensIn, tokensOut),
     });
 
     return json({ data: inserted });
