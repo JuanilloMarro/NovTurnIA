@@ -36,12 +36,31 @@ const SAFE_DEFAULTS = {
     maxAppointments: null,
     conversationsUsed: 0,
     maxConversations: null,
+    // Cupo de mensajes SALIENTES (bolsa mensual del bot + dashboard — separada
+    // de la bolsa de tokens semanales del Centro IA). Durante la carga NO se
+    // bloquea el composer: el backend es la fuente de verdad del corte, y un
+    // fallo transitorio del RPC no debe dejar sin responder a un cliente que paga.
+    messagesOut: 0,
+    maxMessagesOut: null,
+    messagesOutEffective: null,
+    extraMessages: 0,
+    messagesOutBlocked: false,
+    messagesOutPct: 0,
+    messagesResetsAt: null,
     aiPaused: false,
     plan: null,
     planStatus: 'active',
     features: {},
     hasFeature: () => false,
 };
+
+// Primer día del mes siguiente en hora local — el período de usage_counters es
+// mensual (date_trunc('month')), así que el cupo de salientes se reinicia el 1º
+// del mes que viene. No depende del RPC; es puro calendario.
+function firstOfNextMonth() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 1, 1);
+}
 
 export function usePlanLimits() {
     const cache = useAppStore(s => s._planLimitsCache);
@@ -83,6 +102,25 @@ export function usePlanLimits() {
     const conversationsUsed = limits.conversations_used ?? 0;
     const aiPaused = limits.ai_paused ?? false;
 
+    // ── Cupo de mensajes SALIENTES (B7 · fuente: get_plan_limits) ──────────────
+    // messages_out           → consumido este mes (solo salientes; B1 ya separa
+    //                          entrantes de salientes en usage_counters)
+    // max_messages_out       → cupo del plan + paquetes extra (plan + extra_messages)
+    // messages_out_effective → greatest(cupo − consumido, 0), piso 0
+    const messagesOut = limits.messages_out ?? 0;
+    const maxMessagesOut = limits.max_messages_out ?? null;
+    const messagesOutEffective = limits.messages_out_effective ?? null;
+    const extraMessages = limits.extra_messages ?? 0;
+    // Bloquea SOLO cuando el plan realmente tiene tope y el efectivo llegó a 0.
+    // Sin tope (null) nunca bloquea. El corte real vive en el backend/n8n; esto
+    // es la capa UX que deshabilita el composer antes de intentar el envío.
+    const messagesOutBlocked = maxMessagesOut != null
+        && messagesOutEffective != null
+        && messagesOutEffective <= 0;
+    const messagesOutPct = maxMessagesOut > 0
+        ? Math.min(100, Math.round((messagesOut / maxMessagesOut) * 100))
+        : (messagesOutBlocked ? 100 : 0);
+
     const features = limits.features || {};
 
     // Límites REALES (2026-07-05): null = ilimitado. La fuente de verdad son
@@ -101,6 +139,14 @@ export function usePlanLimits() {
         maxAppointments,
         maxConversations,
         conversationsUsed,
+        // Cupo de mensajes salientes (F1/F2/F3)
+        messagesOut,
+        maxMessagesOut,
+        messagesOutEffective,
+        extraMessages,
+        messagesOutBlocked,
+        messagesOutPct,
+        messagesResetsAt: maxMessagesOut == null ? null : firstOfNextMonth(),
         aiPaused,
         staffUsed,
         maxStaff,

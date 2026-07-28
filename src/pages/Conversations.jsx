@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, MessageCircle, Bot, ShieldAlert, SlidersHorizontal, Send, Clock, PanelRight, Trash2, X } from 'lucide-react';
 import AIStar from '../components/Icons/AIStar';
 import { ContextPanels } from '../components/conversations/ContextSidebar';
+import { OutboundUsageBar, OutboundQuotaNotice } from '../components/conversations/OutboundUsage';
 import { usePermissions } from '../hooks/usePermissions';
 import { getPatientHistory, setHumanTakeover, getPatientsForConversations, sendHumanMessage, deletePatient, deleteHistoryMessage } from '../services/supabaseService';
 import { showErrorToast } from '../store/useToastStore';
@@ -48,7 +49,9 @@ export default function Conversations() {
     const [showFilter, setShowFilter] = useState(false);
     const filterRef = useRef(null);
     const { canToggleAi, canDeletePatients, canReplyConversations, canDeleteConversations } = usePermissions();
-    const { maxPatients, patientsUsed } = usePlanLimits();
+    // Cupo de mensajes salientes (F1/F2/F3) — bolsa mensual, fuente get_plan_limits.
+    const planLimits = usePlanLimits();
+    const { maxPatients, patientsUsed, messagesOutBlocked, messagesResetsAt } = planLimits;
     const humanTakeoverMap = useAppStore(s => s.humanTakeoverMap);
 
     // Cierra el dropdown al hacer click fuera
@@ -232,8 +235,9 @@ export default function Conversations() {
 
     async function handleSend() {
         const text = draft.trim();
-        // canReplyConversations y windowOpen son la defensa real; el composer ya está oculto/deshabilitado
-        if (!text || sending || !selectedPatient || !canReplyConversations || !windowOpen) return;
+        // canReplyConversations, windowOpen y el cupo de salientes son la defensa
+        // real; el composer ya está oculto/deshabilitado, esto es defensa en profundidad.
+        if (!text || sending || !selectedPatient || !canReplyConversations || !windowOpen || messagesOutBlocked) return;
 
         setSending(true);
         const tempId = `temp-${Date.now()}`;
@@ -354,7 +358,12 @@ export default function Conversations() {
                         </p>
                     </div>
                 </div>
+                {/* F2 · Consumo de mensajes salientes del mes (cupo, consumido, reinicio) */}
+                <OutboundUsageBar usage={planLimits} />
             </div>
+
+            {/* F3 · Aviso al ≥80% del cupo con CTA de comprar paquete (deshabilitado — B4) */}
+            <OutboundQuotaNotice usage={planLimits} />
 
             <div className="flex-1 flex gap-4 min-h-0 mb-4 lg:mb-6">
                 <div className="relative flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex overflow-hidden animate-fade-up">
@@ -683,13 +692,16 @@ export default function Conversations() {
                                                         }
                                                     }}
                                                     rows={1}
-                                                    placeholder={windowOpen ? 'Escribe un mensaje…' : 'La ventana de 24h está cerrada'}
-                                                    disabled={sending || !windowOpen}
+                                                    placeholder={messagesOutBlocked
+                                                        ? 'Cupo de mensajes del mes agotado'
+                                                        : (windowOpen ? 'Escribe un mensaje…' : 'La ventana de 24h está cerrada')}
+                                                    disabled={sending || !windowOpen || messagesOutBlocked}
                                                     className="flex-1 resize-none max-h-32 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-3xl px-4 py-2.5 text-[13px] font-medium text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-colors placeholder-navy-900/50 shadow-md disabled:opacity-50 disabled:cursor-not-allowed custom-scrollbar"
                                                 />
                                                 <button
                                                     onClick={handleSend}
-                                                    disabled={sending || !draft.trim() || !windowOpen}
+                                                    disabled={sending || !draft.trim() || !windowOpen || messagesOutBlocked}
+                                                    title={messagesOutBlocked ? 'Se agotó el cupo de mensajes de este mes' : 'Enviar mensaje'}
                                                     className="group/send relative overflow-hidden shrink-0 flex items-center justify-center gap-0 hover:gap-1.5 h-10 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 rounded-full shadow-md hover:bg-white/60 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
                                                     aria-label="Enviar mensaje"
                                                 >
@@ -700,7 +712,12 @@ export default function Conversations() {
                                                 </button>
                                             </>)}
                                         </div>
-                                        {windowOpen && selectedPatientEffective && !selectedPatientEffective.human_takeover && (
+                                        {messagesOutBlocked ? (
+                                            <p className="text-[10px] font-semibold text-rose-500/80 text-center mt-1.5">
+                                                Se agotó el cupo de mensajes de este mes
+                                                {messagesResetsAt ? ` · se reinicia el ${new Date(messagesResetsAt).toLocaleDateString('es-GT', { day: 'numeric', month: 'long' })}` : ''}.
+                                            </p>
+                                        ) : windowOpen && selectedPatientEffective && !selectedPatientEffective.human_takeover && (
                                             <p className="text-[10px] font-semibold text-navy-700/40 text-center mt-1.5">
                                                 Al enviar, se pausará la IA para este cliente.
                                             </p>
