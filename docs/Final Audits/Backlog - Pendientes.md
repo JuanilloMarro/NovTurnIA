@@ -13,7 +13,7 @@
 
 | # | Qué | Por qué está trabado |
 |---|---|---|
-| 1 | **Redeploy de 4 Edge Functions**: `manage-staff`, `ai-chat`, `ai-insights`, `wa-human-reply` | El código de SEC-3, SEC-4, EDGE-1, EDGE-2 y **EDGE-9** está en el repo y verificado con tests, pero **producción sigue corriendo la versión vieja**. En particular EDGE-9: hoy nadie puede gestionar staff desde el dashboard |
+| 1 | ~~Redeploy de 4 Edge Functions~~ | ✅ **HECHO 2026-07-27.** Desplegadas: `manage-staff` v10 (EDGE-9), `wa-human-reply` v5 (EDGE-1/2), `ai-chat` v6 y `ai-insights` v7 (SEC-3/SEC-4 + EDGE-1/2). Sin errores de arranque en logs. ⚠️ **Falta el smoke test humano**: no se pudo invocar ninguna con credenciales reales (el gate de permisos bloquea las llamadas autenticadas), así que confirmá a mano que Usuarios, Conversaciones y Centro IA responden. Si algo falla, el rollback es redesplegar la versión anterior |
 | 2 | **PUT del workflow de n8n** (A1 recableado + A3 + A9) | Preparado y verificado (10 nodos, 16 cambios, `payload.json` + `pre.json` de rollback listos). **Bloqueado por el gate de permisos del harness** sobre la escritura a producción: requiere que el humano autorice el comando o lo ejecute él |
 | 3 | **INF-1 · paridad de migraciones** | Sigue siendo la única red de seguridad en free tier. Las 3 migraciones nuevas de esta sesión SÍ están versionadas; el resto del delta (127 vs ~29) sigue abierto. Necesita el CLI de Supabase |
 | 4 | **OPS-1 · credencial de WhatsApp sandbox** | Impide la prueba end-to-end del bot tras cualquier PUT |
