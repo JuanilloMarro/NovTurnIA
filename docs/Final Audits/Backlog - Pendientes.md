@@ -90,7 +90,7 @@ Y los conteos envejecen en ambas direcciones: COD-3 decía 20 archivos y son **3
 **Bloque 5 — que la oferta se pueda vender**
 - [ ] **[IA] F4 · `PlansModal`: agregar el módulo Centro IA** — verificado: no aparece **ninguna** fila sobre Centro IA, chat, reportes ni límite de tokens. Es el diferenciador que justifica el salto Básico→Pro y hoy es **invisible al vender**.
 - [ ] **[IA] F5 · `PlansModal`: fila de mensajes adicionales** con su precio.
-- [ ] **[IA] F6 · AdminPanel: agregar `stats_intelligence` y `business_intelligence` a `FEATURE_DEFS`** — hoy solo cubre 9 de ~17 flags; no se puede dar una prueba de Centro IA sin tocar la base a mano.
+- [x] ~~**[IA] F6 · AdminPanel: `FEATURE_DEFS` completo**~~ — **CERRADO 2026-07-31**, ver Completadas §15.
 - [ ] **[IA] F7 · AdminPanel: consumo de salientes + carga de paquetes.**
 
 ---

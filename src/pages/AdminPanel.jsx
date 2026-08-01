@@ -33,16 +33,45 @@ const TIMEZONES = [
 const STATUSES = ['active', 'trial', 'suspended', 'cancelled'];
 
 // Módulos toggleables por cliente (sobre-escriben plan.features vía businesses.feature_flags)
+// F6 · Las 25 llaves reales de `plans.features`. Antes había 9 y las 16 que
+// faltaban solo se podían activar tocando la base a mano — entre ellas
+// `stats_intelligence` y `business_intelligence`, o sea que no se podía dar una
+// prueba de Centro IA desde el panel.
+//
+// `sinMotor` marca las que hoy están en el catálogo pero no tienen backend que
+// las cumpla (verificado en las auditorías de n8n y de producto). El toggle se
+// deja igual —el flag existe y el frontend lo lee— pero avisa, para no prometer
+// en una demo algo que todavía no corre.
 const FEATURE_DEFS = [
-    { key: 'dashboard',        label: 'Estadísticas' },
-    { key: 'followup',         label: 'Re-agendación' },
-    { key: 'kanban',           label: 'Tablero Kanban' },
-    { key: 'pipeline',         label: 'Seguimiento' },
-    { key: 'audit_log',        label: 'Actividad' },
-    { key: 'finance',          label: 'Finanzas' },
-    { key: 'supplies',         label: 'Insumos (BOM)' },
-    { key: 'dynamic_pricing',  label: 'Ofertas' },
-    { key: 'custom_prompt',    label: 'Contexto IA / Prompt' },
+    // Módulos del dashboard
+    { key: 'dashboard',             label: 'Estadísticas' },
+    { key: 'followup',              label: 'Re-agendación' },
+    { key: 'kanban',                label: 'Tablero Kanban' },
+    { key: 'pipeline',              label: 'Seguimiento' },
+    { key: 'audit_log',             label: 'Actividad' },
+    { key: 'finance',               label: 'Finanzas' },
+    { key: 'supplies',              label: 'Insumos (BOM)' },
+    { key: 'dynamic_pricing',       label: 'Ofertas' },
+    // Centro IA
+    { key: 'stats_intelligence',    label: 'Centro IA' },
+    { key: 'business_intelligence', label: 'Inteligencia de negocio' },
+    { key: 'content_gen',           label: 'Generación de contenido' },
+    { key: 'ai_reasoning',          label: 'Razonamiento IA',        nota: 'Pro y Enterprise usan hoy el mismo modelo' },
+    { key: 'ai_memory',             label: 'Memoria del bot' },
+    { key: 'ai_agent_name',         label: 'Nombre del agente' },
+    { key: 'custom_prompt',         label: 'Contexto IA / Prompt' },
+    // Bot y mensajería
+    { key: 'reminders',             label: 'Recordatorios',          sinMotor: true },
+    { key: 'auto_confirm',          label: 'Confirmación automática', sinMotor: true },
+    { key: 'notification_email',    label: 'Avisos por correo',      sinMotor: true },
+    { key: 'gmail_integration',     label: 'Integración Gmail',      sinMotor: true },
+    // Datos y operación
+    { key: 'patient_notes',         label: 'Notas de cliente' },
+    { key: 'service_description',   label: 'Descripción de servicios' },
+    { key: 'export_patients',       label: 'Exportar clientes' },
+    { key: 'export_reports',        label: 'Exportar reportes' },
+    { key: 'custom_roles',          label: 'Roles personalizados' },
+    { key: 'multi_branch',          label: 'Multi-sucursal',         sinMotor: true },
 ];
 
 const LIMIT_DEFS = [
@@ -547,10 +576,17 @@ export default function AdminPanel() {
                                     <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl p-5">
                                         <div className="flex items-center gap-2 mb-4"><Layers size={14} className="text-navy-700/50" /><p className="text-[11px] font-bold text-navy-700/50 uppercase tracking-widest">Módulos activos</p></div>
                                         <p className="text-[11px] text-navy-700/40 font-medium mb-3">Sobre-escribe lo que trae el plan, por cliente.</p>
-                                        <div className="space-y-1">
+                                        <div className="space-y-1 max-h-[420px] overflow-y-auto pr-1">
                                             {FEATURE_DEFS.map(f => (
-                                                <div key={f.key} className="flex items-center justify-between py-2 border-b border-white/40 last:border-0">
-                                                    <span className="text-[12px] font-bold text-navy-900">{f.label}</span>
+                                                <div key={f.key} className="flex items-center justify-between gap-3 py-2 border-b border-white/40 last:border-0">
+                                                    <div className="min-w-0">
+                                                        <span className="text-[12px] font-bold text-navy-900">{f.label}</span>
+                                                        {(f.sinMotor || f.nota) && (
+                                                            <span className="block text-[10px] font-bold text-amber-600/80 leading-tight mt-0.5">
+                                                                {f.sinMotor ? 'Sin motor todavía — no prometer en demo' : f.nota}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <Toggle checked={featureValue(f.key)} onChange={() => toggleFeature(f.key)} />
                                                 </div>
                                             ))}
