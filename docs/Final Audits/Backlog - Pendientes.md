@@ -26,6 +26,27 @@
 
 **Nota sobre el tenant de QA:** `NovTurnIA QA` (`0dcfe80e-…`) quedó con plan **Enterprise** y `plan_status='active'` (lo subí para poder recorrer los módulos premium). Si querés que expire solo, volvelo a `basic`/`trial`.
 
+### Auditoría de las 10 corridas de agentes (2026-07-30)
+
+Revisión ítem por ítem de lo que la flota dijo haber hecho, verificado contra producción.
+
+| Corrida del agente | Veredicto | Detalle |
+|---|---|---|
+| A1 · migración `bot_cancel_appointment` | ✅ **completo y correcto** | RPC aplicada y probada. El recableado de los 3 nodos es de n8n, no de esta corrida |
+| SEC-3/SEC-4 · fugas de costo IA | ✅ **completo** | Lógica verificada en el código desplegado. ⚠️ Yo introduje una regresión de textos al desplegar; corregida (ver abajo) |
+| qa-e2e · Fase A harness | ⚠️ **completo pero sin ejecutar desde entonces** | Playwright, fixture, seed y tenant semilla existen y funcionaron. Los tests no se han vuelto a correr |
+| EDGE-1/EDGE-2 · timeouts y reintentos | ✅ **completo** | `fetchUpstream.ts` en las 3 funciones que llaman a terceros |
+| Costos Bloque 1 · medir salientes | ✅ **completo** | B1/B2/B7 aplicados y verificados contra producción |
+| n8n · A1+A3+A9 preparar diff | ⏸️ **preparado, sin aplicar** | Diff verificado con rollback listo. **Bloqueado: no hay túnel** |
+| Costos F1–F3 · tope dashboard | ✅ **completo** | Verificado con Playwright en los 3 estados |
+| Responsive T1–T5 | ⚠️ **código completo, verificación parcial** | El agente murió; rescaté su trabajo y lo verifiqué en navegador a 375 y 1280 px. Su spec `responsive-fase1-shell.spec.js` sigue **sin ejecutarse** |
+| EDGE-3/4/5/6 | ⚠️ **el agente no escribió nada** | EDGE-5 y EDGE-6 los cerré a mano el 2026-07-30. **EDGE-3 y EDGE-4 siguen abiertos** |
+| DEC-1 + INF-2 + INF-13 | ⚠️ **el agente murió; lo hice a mano** | Los 3 cerrados y verificados. Su análisis parcial de INF-2 se rescató y resultó correcto |
+
+**Regresiones detectadas y corregidas** (todas causadas al desplegar, no por los agentes):
+- Textos de usuario sin tildes en `ai-chat` y `wa-human-reply` ("Metodo no permitido", "La ventana de 24h cerro"). Corregido en `ai-chat` v7 y `wa-human-reply` v7. Se verificó que **no rompían lógica**: el frontend discrimina por `code`, no por texto.
+- `_shared/auth.ts` desplegado sin las utilidades JWT (`createToken`/`verifyToken`/`getStaffSession`). No es un fallo: ninguna de las funciones desplegadas las importa. Queda anotado como divergencia deliberada entre el bundle y el repo.
+
 ### Confiabilidad de estas auditorías — barrido de verificación (2026-07-27)
 
 Al trabajar los ítems a fondo aparecieron **2 diagnósticos equivocados** (INF-13 subestimado, COD-4 con la causa mal identificada), así que se verificaron contra producción los ítems abiertos de mayor riesgo. Resultado:
@@ -126,8 +147,8 @@ Bloques 1 a 3 son obligatorios para que la escalera de precios se cumpla. *(Mode
 - [ ] **[IA] EDGE-2 · Cero reintentos hacia terceros** — un 503 transitorio de Meta pierde el mensaje del staff definitivamente. El bucle de `callGeminiJSON` reintenta solo por JSON que no calza el schema, nunca por fallo HTTP. **Avance 2026-07-27:** reintento con full jitter solo en transitorios (429/5xx/red), respeta `Retry-After`, en el mismo `fetchUpstream`. Ortogonal al reintento por schema de SEC-4. Mismo deploy pendiente que EDGE-1.
 - [ ] **[IA] EDGE-3 · Sin idempotencia en el envío de WhatsApp** — un reintento del cliente tras un corte de red duplica el mensaje al paciente. Blueprint de deduplicación por contenido en ventana de 60s.
 - [ ] **[IA] EDGE-4 · `Access-Control-Allow-Origin: *` en las 8 funciones**, incluidas `admin-update-business` y `export-tenant-data`. Con `verify_jwt` no es bypass, pero un comodín sobre un endpoint que exporta datos completos de un tenant no pasa revisión.
-- [ ] **[IA] EDGE-5 · Variables de entorno sin validación de arranque** — 21 `Deno.env.get`, solo 1 valida ausencia. Si falta `SUPABASE_SERVICE_ROLE_KEY` tras un redeploy, la función devuelve 401 opacos en runtime en vez de fallar al desplegar. Blueprint `requireEnv` listo.
-- [ ] **[IA] EDGE-6 · `wa-human-reply` devuelve el error crudo de Meta al navegador** (`meta: errBody?.error`) — expone identificadores internos y trazas del proveedor.
+- [x] ~~**[IA] EDGE-5 · Variables de entorno sin validación de arranque**~~ — **CERRADO 2026-07-30**. `_shared/requireEnv.ts` valida al cargar el módulo; `auth.ts` pasó de `Deno.env.get(...)!` (aserción de TypeScript, **sin efecto en runtime**) a `requireEnv(...)`. Desplegado en `wa-human-reply` v7. ⚠️ Falta propagarlo a las otras funciones en su próximo deploy.
+- [x] ~~**[IA] EDGE-6 · `wa-human-reply` devuelve el error crudo de Meta al navegador**~~ — **CERRADO 2026-07-30** (`wa-human-reply` v7). El detalle del proveedor queda solo en los logs; al navegador va `code: 'WA_SEND_FAILED'`. Verificado que el frontend no consumía el campo `meta` y que el texto visible al usuario no cambia.
 - [ ] **[TÚ] EDGE-7 · `auth-login` y `create-appointment` están en el repositorio y no desplegadas** — o es código muerto o un deploy pendiente.
 - [ ] **[TÚ] EDGE-8 · Verificar/redeployar `onboard-tenant`** — confirmar que el deploy v15 es posterior al cambio que agregó `view_pipeline` a OWNER/SECRETARY. Solo afecta tenants nuevos.
 
