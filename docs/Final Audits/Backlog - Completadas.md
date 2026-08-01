@@ -211,3 +211,51 @@ Workflow activo `NovTurnAI`: **143 → 151 nodos**, aplicado por API con probes 
   Medido con contenido de 14 campos a 375×812: antes la tarjeta medía 1,196px y el pie caía en y=940–1004, **fuera de pantalla**; ahora mide 690px (85dvh) y el pie queda en y=687–751, visible. El scroll se puso en el cuerpo del formulario y no en la tarjeta, para que Cancelar/Guardar queden siempre fijos abajo.
   **Control de no-regresión**: con contenido corto (5 campos) la tarjeta mide `343x512` **con y sin el fix — idéntico**. El tope solo entra en juego cuando el contenido no cabe, así que no cambia ninguna pantalla que hoy se vea bien. Por eso se aplicó sin acotar a `max-sm:`: no altera nada que hoy funcione, solo destraba lo que ya estaba roto.
 - [x] **🐛 Nota de método: el HMR de Vite sirve CSS obsoleto** — durante la verificación de T1–T5 llevó a diagnosticar una regresión de tipografía que **no existía**, y a cambiar código que hubo que revertir. Si vas a medir estilos computados tras editar clases de Tailwind, **recargá la página** antes de creerle al número.
+
+---
+
+## 17. Los 9 diagnósticos que resultaron falsos o mal atribuidos
+
+> Registro deliberado. Al trabajar los ítems a fondo, **nueve** describían el síntoma correcto pero señalaban la causa equivocada, o describían un defecto que ya no existía. Sirve para calibrar cuánta fe tenerle al resto del backlog.
+
+| Ítem | Lo que decía la auditoría | Lo que se midió |
+|---|---|---|
+| INF-13 | "defensa en profundidad, no explotable hoy" | **Explotable**: cross-tenant probado con transacción real y rollback |
+| COD-4 | "el banner no está montado" | Además **`setRealtimeStatus` no se llamaba nunca** |
+| INF-3 | "corregir `ensure_future_partitions`" | El generador real era **`create_monthly_partition`** |
+| INF-2 | `REVOKE … FROM anon` | Es un **no-op**: el permiso venía de `PUBLIC` |
+| Finanzas móvil | "la barra de tabs no scrollea" | El **padre** `flex-col items-start` le quitaba el ancho del viewport |
+| T16 | "las gráficas renderizan con **0px**" | Nunca miden 0: el grid estira las tarjetas y de ahí sale el alto |
+| T18 | "`grid-cols-7` da celdas de **49px**" | Ya tiene scroll horizontal con `min-w-[560px]`: son **80px** |
+| T26 | "**18** grids sin colapso" | Son **2**, y uno es el calendario (T18) |
+| T11 | "361 `z-10` y 11 valores sueltos sin escala" | La escalera **ya era coherente**; los 356 `z-10` son un solo modismo |
+| T27 | "3 de 4 no tienen `max-h`" | Correcto pero **subestimado**: con `overflow-hidden` el contenido quedaba inalcanzable |
+
+**Y los conteos envejecen en las dos direcciones:** COD-3 decía 20 archivos y son **30**; INF-12 hablaba de 107 políticas y son **116**; T21 decía 162 `title=` y son **226**; INF-1 decía 127 vs 27 y es **138 vs 36**.
+
+**Lectura:** los diagnósticos *estructurales* aguantaron; lo que envejece son los números y las atribuciones de causa. **Tratá las cifras como orden de magnitud y, antes de "arreglar" algo, medí que siga roto.**
+
+🐛 **Y cuidado con cómo se mide.** Al verificar T16 mi primera sonda reprodujo la tarjeta **sin el grid que la envuelve**, y ahí sí midió altura 0 — o sea, me confirmó el bug que estaba buscando. El `h-full` interno depende de que el grid estire la tarjeta. **Una sonda que no reproduce el contenedor real miente, y miente en la dirección de confirmar tu hipótesis.**
+
+**La causa de fondo de todo esto es INF-1.** Mientras el repositorio esté ~100 migraciones detrás de producción, cualquier hallazgo derivado de leer archivos del repo puede describir un sistema que ya no existe — ya pasó una vez (§11, el falso diagnóstico de `get_stats_dashboard`, donde la migración "correctora" habría **sobrescrito la función buena**).
+
+---
+
+## 18. Frontend — fases 2 a 7 (2026-07-31)
+
+- [x] **T7 · El sidebar es cajón hasta 1024px (opción C, decisión del dueño)** — a 768px el sidebar fijo se llevaba 272px de 768 (el 35% de la pantalla) y dejaba 496px al módulo. Se movieron **cinco** anclajes de `md` a `lg`, y el quinto es CSS, no JSX: `App.jsx` (`lg:ml-[272px]`), `Topbar.jsx` (hamburguesa), `Sidebar.jsx` (velo, aside y el `innerWidth < 1024` de `closeMobile`) y la media query de T6 en `index.css`, que pasó de 767.98 a 1023.98px.
+  ⚠️ **Ese último es el que se olvida**: la superficie del cajón tiene que existir exactamente mientras el aside SEA cajón. Si el CSS se queda en 767.98 y el JSX se va a `lg`, entre 768 y 1023px el menú se desliza transparente sobre el contenido — el bug original de T6, reintroducido. El acoplamiento quedó escrito en el encabezado del bloque de `index.css`.
+  Medido: 375px y 768px → cajón, margen 0, hamburguesa visible, superficie `.92` + blur. 1024px → fijo, margen 272px, hamburguesa oculta, superficie `rgba(0,0,0,0)` y blur `none`, **idéntico al escritorio original**.
+- [x] **T8 y T9 · El acantilado de los 768px, resuelto de rebote** — no hizo falta tocar ningún ancho de lista. La causa era que **dos reglas `md:` disparaban a la vez**: el sidebar tomando 272px y la lista tomando 340px. Al mover solo el sidebar, queda una. Medido a 768px: el panel de detalle pasa de **124px a 396px** (3.2×) y el contenido útil de Re-agendación con el cajón abierto, de **24px a 296px** (12×). La opción C era la más barata y resultó ser también la que arreglaba el problema medido.
+- [x] **T10 · Patrón maestro-detalle móvil** — ya estaba implementado en **todos** los módulos, no solo en Ofertas como decía la auditoría: Conversaciones, Servicios, Usuarios y las 5 secciones de Finanzas usan `${sel ? 'hidden md:flex' : 'flex'}`.
+- [x] **T11 · Contrato de capas escrito en `index.css`** — ver §17 sobre por qué no se reescribieron los 356 `z-10`. Quedan documentados los 12 niveles reales y quién vive en cada uno.
+- [x] **T12/T13 · Los flotantes salen por portal** — componente `ui/Popover.jsx`, adoptado en los desplegables de Filtros de Clientes, Actividad, Re-agendación y Finanzas.
+  ⚠️ **Esto arregló una regresión que introduje yo.** Al volver la fila de acciones una tira deslizable le puse `max-sm:overflow-x-auto`, sin caer en que **poner `overflow-x` en algo distinto de `visible` obliga al navegador a calcular `overflow-y` como `auto`** — no se puede recortar un eje y dejar el otro libre. Los menús de Filtros son `absolute` dentro de esa fila, así que quedaron encerrados: medido, un menú de 220px desbordando 228px una tira de 40px. En cuatro módulos el filtro estaba roto en teléfono.
+  La detección de borde se verificó en 5 posiciones de botón (arriba, medio, pegado abajo, borde izquierdo, borde derecho): en las 5 el panel queda dentro de pantalla, y con el botón abajo se abre hacia arriba.
+- [x] **T14 · Medido y documentado, NO "arreglado"** — un `position: fixed` dentro de un ancestro con `backdrop-filter` se ancla a ese ancestro: medido, `300x200` en vez de `768x1024`. El shell tiene `backdrop-blur-xl`, así que todo `fixed` de adentro está anclado al marco. **Pero eso acá es deseable**: el marco lleva `safe-area-shell`, así que los cajones a pantalla completa heredan gratis el respeto por el notch. Portarlos los sacaría de esa protección. Se portan los flotantes, no los cajones — y quedó escrito para que nadie lo "corrija".
+- [x] **T19/T20/T21 · Componente `ui/Tooltip.jsx`** — por portal, con detección de borde y comportamiento táctil (se abre al tocar, cierra afuera/Escape/scroll), detectado con `matchMedia('(hover: none)')` y no por ancho. Adoptado primero en los `title=` que más duelen: los avisos de **"disponible en Enterprise"**, que son de venta y que en teléfono **no se veían** — el `title` nativo no existe en táctil, así que el cliente veía un botón apagado sin ninguna explicación.
+- [x] **T24 · Objetivos táctiles** — se agranda el **área**, no el botón: un `::after` invisible extiende la zona sensible y el círculo se sigue viendo igual, así el diseño no se mueve. Solo en vertical, porque estirar a lo ancho haría que dos botones vecinos se solapen y el de más abajo en el DOM se coma los toques del otro.
+  **Alcance real, medido con `elementFromPoint`: 11 de los 16.** Los otros 5 llevan `overflow-hidden` en el propio botón y recortan el pseudo-elemento — 26px de área sensible contra 42px sin él, con el mismo tamaño visual de 28×28. Anotado como T24b, no tapado.
+- [x] **T26 · AdminPanel** — el grid de horario pasa a 2 columnas en teléfono con "Duración turno" a ancho completo. A 3 columnas cada campo quedaba en ~93px y la etiqueta no entraba.
+- [x] **T28 · Horizontal 812×375** — sin scroll horizontal, el shell mide exactamente 375 (`100dvh` cumple), el sidebar es cajón y le deja los 812 al contenido, y los modales topan en 319px **con scroll interno**. Sin T27 este caso habría sido el peor de todos.
+- [x] **`ui/Modal.jsx`** — confirmado sin uso (sin import estático, sin `import()`, sin `lazy()`, sin referencia por string, sin `<Modal>`). Se conservó como primitiva de la casa y se le aplicó el patrón de T27, para que quien lo adopte no reintroduzca el modal recortado. Queda como COD-9 decidir si se adopta o se borra.
