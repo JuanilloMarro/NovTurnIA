@@ -1,5 +1,7 @@
 // supabase/functions/admin-update-business/index.ts
 // Sincronizado desde producción (v8) el 2026-07-04 — el repo es la fuente de verdad.
+// v9  (2026-07-11): + record_payment (botón "Marcar pagado" del AdminPanel).
+// v11 (2026-08-01): + extra_messages en la allowlist y en el SELECT de vuelta (F7).
 // Actualiza campos de un negocio (allowlist) y/o envía email de reset de contraseña.
 // Auth: app_super_admins por user_id (fuente de verdad) + SUPER_ADMIN_EMAIL como respaldo.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -77,6 +79,9 @@ Deno.serve(async (req: Request) => {
         "schedule_start", "schedule_end", "schedule_days", "appointment_duration",
         "custom_prompt", "feature_flags", "phone_number_id", "whatsapp_token",
         "ai_paused", "ai_paused_reason", "plan_expires_at", "limit_overrides",
+        // F7 — paquetes de mensajes adicionales (B4). Es la única vía para
+        // cargarlos: la columna solo la escribe service_role.
+        "extra_messages",
       ];
       const sanitized: Record<string, unknown> = {};
       for (const key of ALLOWED_FIELDS) {
@@ -122,6 +127,7 @@ Deno.serve(async (req: Request) => {
         id, name, business_type, timezone, plan_status, notification_email, created_at,
         schedule_start, schedule_end, schedule_days, appointment_duration, custom_prompt,
         feature_flags, phone_number_id, whatsapp_token, ai_paused, ai_paused_reason, plan_expires_at, limit_overrides,
+        extra_messages,
         plans ( id, tier, name, monthly_price, max_patients, max_staff, max_appointments, max_conversations )
       `)
       .eq("id", business_id)

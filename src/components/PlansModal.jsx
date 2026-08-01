@@ -36,6 +36,14 @@ const reasoning = (p) => {
     return 'Estándar';
 };
 
+// F4 · Techo semanal de tokens del Centro IA. Se muestra en miles porque el
+// número crudo (750000) no le dice nada a nadie en una tabla de venta.
+const weeklyTokens = (p) => {
+    const v = p?.ai_weekly_tokens;
+    if (v == null || v === 0) return false;          // false pinta la X roja
+    return `${Math.round(v / 1000).toLocaleString('es-GT')}k / semana`;
+};
+
 // Resuelve basic/pro/enterprise de una fila: literal (true/false/string) o
 // función(planRow) para lo que sí viene de plans.features / límites reales.
 function resolveRow(row, plansByTier) {
@@ -95,6 +103,11 @@ const MODULE_SPECS = [
             { name: 'Ofrecimiento de Servicios Activos por IA', basic: flag('service_description'), pro: flag('service_description'), enterprise: flag('service_description') },
             { name: 'Ofrecimiento de Ofertas Activas por IA', basic: flag('dynamic_pricing'), pro: flag('dynamic_pricing'), enterprise: flag('dynamic_pricing') },
             { name: 'Límite de Mensajes al mes (usuario + IA)', basic: limit('max_conversations'), pro: limit('max_conversations'), enterprise: limit('max_conversations') },
+            // F5 · Los paquetes adicionales existen en la base desde B4
+            // (`businesses.extra_messages`) y no se mencionaban en ningún lado:
+            // el cliente que se pasaba del cupo no sabía que tenía salida.
+            { name: 'Mensajes adicionales al agotar el cupo', basic: 'Paquetes disponibles', pro: 'Paquetes disponibles', enterprise: 'Paquetes disponibles' },
+            { name: 'Aviso al llegar al 80% del cupo', basic: true, pro: true, enterprise: true },
         ],
     },
     {
@@ -160,6 +173,23 @@ const MODULE_SPECS = [
             { name: 'Gestión de Personal', basic: true, pro: true, enterprise: true },
             { name: 'Roles y Permisos Personalizados', basic: flag('custom_roles'), pro: flag('custom_roles'), enterprise: flag('custom_roles') },
             { name: 'Límite de Usuarios', basic: limit('max_staff'), pro: limit('max_staff'), enterprise: limit('max_staff') },
+        ],
+    },
+    // F4 · Centro IA. No aparecía NINGUNA fila sobre este módulo en toda la
+    // comparativa, pese a ser el diferenciador que justifica el salto
+    // Básico→Pro: era invisible justo en la pantalla donde se decide la compra.
+    {
+        title: 'Centro IA', subtitle: 'Análisis y Asistente de Negocio', icon: <AIStar size={20} />,
+        rows: [
+            { name: 'Asistente IA de negocio (chat con tus datos)', basic: flag('stats_intelligence'), pro: flag('stats_intelligence'), enterprise: flag('stats_intelligence') },
+            { name: 'Resumen inteligente por cliente', basic: flag('stats_intelligence'), pro: flag('stats_intelligence'), enterprise: flag('stats_intelligence') },
+            { name: 'Estrategia sugerida por cliente', basic: flag('stats_intelligence'), pro: flag('stats_intelligence'), enterprise: flag('stats_intelligence') },
+            { name: 'Reporte semanal automático del negocio', basic: flag('stats_intelligence'), pro: flag('stats_intelligence'), enterprise: flag('stats_intelligence') },
+            { name: 'Lectura narrada de tus KPIs', basic: flag('stats_intelligence'), pro: flag('stats_intelligence'), enterprise: flag('stats_intelligence') },
+            { name: 'Análisis de retención y clientes en riesgo', basic: flag('business_intelligence'), pro: flag('business_intelligence'), enterprise: flag('business_intelligence') },
+            { name: 'Narrativa financiera del período', basic: flag('business_intelligence'), pro: flag('business_intelligence'), enterprise: flag('business_intelligence') },
+            { name: 'Generación de contenido para ofertas', basic: flag('content_gen'), pro: flag('content_gen'), enterprise: flag('content_gen') },
+            { name: 'Consumo de IA incluido', basic: weeklyTokens, pro: weeklyTokens, enterprise: weeklyTokens },
         ],
     },
     {
@@ -445,7 +475,10 @@ export default function PlansModal({ isOpen, onClose }) {
 // no 1:1 con plans.features (la comparativa detallada de abajo sí lo es).
 const FEATURE_HIGHLIGHTS = {
     basic: ['IA de razonamiento Estándar', 'Turnos con IA Ilimitados', 'Agenda: Vista Día / Semana / Mes', 'Gestión de Clientes (últimos 10)', '1 Usuario', 'Integración de Módulos a la Medida'],
-    pro: ['IA Avanzada + Memoria Contextual', 'Módulo de Finanzas (Ingresos, Egresos, Resumen)', 'Re-agendación de No-Shows y Cancelaciones', 'Kanban de estados de turnos', 'Roles y Permisos de Staff', 'Hasta 5 Usuarios'],
+    // F4 · "Centro IA" va PRIMERO en Pro: es el diferenciador que justifica el
+    // salto desde Básico y no se mencionaba en ninguna parte del modal. Se
+    // agrega sin quitar nada — la lista aguanta el ítem extra.
+    pro: ['Centro IA: asistente que responde sobre tu negocio', 'IA Avanzada + Memoria Contextual', 'Módulo de Finanzas (Ingresos, Egresos, Resumen)', 'Re-agendación de No-Shows y Cancelaciones', 'Kanban de estados de turnos', 'Roles y Permisos de Staff', 'Hasta 5 Usuarios'],
     enterprise: ['IA de razonamiento Premium', 'Insumos y Recetas (Costo por Servicio)', 'Ofertas y Precios Dinámicos', 'Exportación de Información y Reportes', 'Inteligencia de Negocio (LTV, retención, predicción)', 'Usuarios Ilimitados'],
 };
 

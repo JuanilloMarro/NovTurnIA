@@ -14,6 +14,7 @@
 // El corte real (F1) vive en el composer de Conversaciones; acá solo se muestra.
 // ═══════════════════════════════════════════════════════════════════════════
 import { Send, AlertTriangle, Package } from 'lucide-react';
+import { useAppStore } from '../../store/useAppStore';
 
 // Semáforo del consumo — mismo lenguaje visual que el resto del sistema, con el
 // umbral alineado al aviso del 80% (F3): verde → ámbar → rosa.
@@ -64,11 +65,17 @@ export function OutboundUsageBar({ usage }) {
     );
 }
 
-// ── F3 · Aviso al ≥80% con CTA de comprar paquete ────────────────────────────
-// El CTA queda DESHABILITADO: los paquetes (businesses.extra_messages) todavía
-// no existen — dependen de B4. Cuando B4 aterrice, este botón abre el flujo de
-// compra; hoy solo comunica que la opción viene en camino.
+// ── F3/F3b · Aviso al ≥80% con CTA de comprar paquete ────────────────────────
+// El CTA estuvo deshabilitado ("Pronto") mientras no existían los paquetes.
+// B4 ya creó `businesses.extra_messages` y está verificado (cargar 500 extras
+// sube el cupo efectivo), así que el botón se habilita.
+//
+// A dónde lleva: abre el modal de Planes, que desde F5 tiene la fila de
+// "Mensajes adicionales al agotar el cupo". NO cobra — no hay pasarela todavía
+// (eso es PROD-12/Stripe) y la carga del paquete la hace el super-admin desde
+// AdminPanel. Prometer un cobro que no existe sería peor que el botón apagado.
 export function OutboundQuotaNotice({ usage }) {
+    const openPlans = useAppStore(s => s.openPlans);
     const { maxMessagesOut, messagesOutPct, messagesOutBlocked, messagesResetsAt } = usage || {};
     if (maxMessagesOut == null) return null;
 
@@ -101,16 +108,15 @@ export function OutboundQuotaNotice({ usage }) {
                     {sub}
                 </p>
             </div>
-            {/* CTA deshabilitado — depende de B4 (paquetes de mensajes adicionales) */}
+            {/* F3b · Habilitado: B4 ya existe. Abre Planes, donde vive la fila de
+                mensajes adicionales. */}
             <button
                 type="button"
-                disabled
-                title="Los paquetes de mensajes estarán disponibles pronto"
-                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-bold bg-white/60 border border-white/70 text-navy-900/50 shadow-sm cursor-not-allowed opacity-70"
+                onClick={openPlans}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-bold bg-white/70 border border-white/80 text-navy-900 shadow-sm hover:bg-white transition-all active:scale-95"
             >
                 <Package size={13} strokeWidth={2.5} />
                 Comprar paquete
-                <span className="text-[8px] font-bold uppercase tracking-wider text-navy-700/40">Pronto</span>
             </button>
         </div>
     );

@@ -187,6 +187,28 @@ serve(async (req) => {
         ? v.map((d) => DAY_LABELS[Number(d)]).filter(Boolean).join(',')
         : (typeof v === 'string' && v.trim() ? v : 'Lun,Mar,Mié,Jue,Vie');
 
+    // ── B5: fecha de vencimiento del plan ────────────────────────────────────
+    // Antes el alta de PAGO se creaba con `plan_expires_at: null` y el cron
+    // `run-dunning` vence por fecha — o sea que un cliente que pagaba nunca
+    // entraba al ciclo de cobranza: no se le vencía el plan jamás. El trial sí
+    // tenía fecha, así que el bug afectaba solo a los que pagan.
+    //
+    // Un mes calendario con `setMonth`, no 30 días fijos: es el mismo criterio
+    // que usa `record_payment` al extender +1 mes cuando se marca pagado, y así
+    // el alta y la renovación no se desincronizan.
+    //
+    // Salvedad conocida de `setMonth`: si el alta cae un 31 y el mes siguiente
+    // no tiene 31 días, se desborda al mes de después (31-ene → 3-mar, medido).
+    // Se deja así a propósito — el desborde juega a favor del cliente y
+    // corregirlo a "último día del mes" desalinearía el alta de `record_payment`,
+    // que tiene el mismo comportamiento.
+    const planExpiresAt = (() => {
+      const d = new Date();
+      if (trial) d.setDate(d.getDate() + 14);
+      else d.setMonth(d.getMonth() + 1);
+      return d.toISOString();
+    })();
+
     // ── PASO 1: Crear el negocio ─────────────────────────────────────────────
     const { data: business, error: bizError } = await (supabaseAdmin as any)
       .from('businesses')
@@ -194,7 +216,7 @@ serve(async (req) => {
         name: business_name,
         plan_id: planRecord.id,
         plan_status: trial ? 'trial' : 'active',
-        plan_expires_at: trial ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null,
+        plan_expires_at: planExpiresAt,
         timezone,
         schedule_start: toHour(schedule_start),
         schedule_end: toHour(schedule_end),

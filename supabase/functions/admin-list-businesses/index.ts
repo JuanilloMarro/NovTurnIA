@@ -66,6 +66,7 @@ Deno.serve(async (req: Request) => {
         id, name, business_type, timezone, plan_status, notification_email, created_at,
         schedule_start, schedule_end, schedule_days, appointment_duration, custom_prompt,
         feature_flags, phone_number_id, whatsapp_token, ai_paused, ai_paused_reason, plan_expires_at, plan_id, limit_overrides,
+        extra_messages,
         plans ( id, tier, name, monthly_price, max_patients, max_staff, max_appointments, max_conversations )
       `)
       .order("created_at", { ascending: false });
@@ -75,9 +76,12 @@ Deno.serve(async (req: Request) => {
     // Uso del mes actual (un solo query, luego se mapea por negocio)
     const now = new Date();
     const period = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`;
+    // F7 — `messages` es el contador viejo sin dirección; el cupo se corta por
+    // SALIENTES desde B1, así que el panel tiene que mostrar messages_out.
+    // `messages` se sigue devolviendo para no romper nada que ya lo lea.
     const { data: usageRows } = await supabase
       .from("usage_counters")
-      .select("business_id, messages, tokens_total")
+      .select("business_id, messages, messages_in, messages_out, tokens_total")
       .eq("period", period);
     const usageMap = new Map((usageRows ?? []).map((u) => [u.business_id, u]));
 
@@ -106,6 +110,8 @@ Deno.serve(async (req: Request) => {
           appointment_count: appointmentsRes.count ?? 0,
           staff_count: staffRes.count ?? 0,
           messages_used: usage?.messages ?? 0,
+          messages_in_used: usage?.messages_in ?? 0,
+          messages_out_used: usage?.messages_out ?? 0,
           tokens_used: usage?.tokens_total ?? 0,
           admin_name: adminStaff?.full_name ?? null,
           admin_email: adminStaff?.email ?? null,

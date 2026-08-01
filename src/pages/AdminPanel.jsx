@@ -4,7 +4,7 @@ import {
     Building2, Search, Shield, LogOut, Users, Calendar,
     UserCheck, ChevronRight, Save, Mail, RefreshCw,
     SlidersHorizontal, Clock, Bot, Activity, Power, MessageSquare, Layers, Plus, AlertTriangle,
-    Eye, EyeOff, Phone, KeyRound, CreditCard, Download, BarChart3,
+    Eye, EyeOff, Phone, KeyRound, CreditCard, Download, BarChart3, Package,
 } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { useAppStore } from '../store/useAppStore';
@@ -201,6 +201,7 @@ export default function AdminPanel() {
             whatsapp_token: biz.whatsapp_token ?? '',
             feature_flags: biz.feature_flags ?? {},
             limit_overrides: biz.limit_overrides ?? {},
+            extra_messages: biz.extra_messages ?? 0,   // F7
             ai_paused: biz.ai_paused ?? false,
             ai_paused_reason: biz.ai_paused_reason ?? null,
         });
@@ -257,6 +258,7 @@ export default function AdminPanel() {
                 whatsapp_token: form.whatsapp_token || '',   // columna NOT NULL sin default
                 feature_flags: form.feature_flags || {},
                 limit_overrides: form.limit_overrides || {},
+                extra_messages: Number(form.extra_messages) || 0,   // F7
                 ai_paused: !!form.ai_paused,
                 ai_paused_reason: form.ai_paused ? (form.ai_paused_reason || 'manual') : null,
             };
@@ -607,6 +609,58 @@ export default function AdminPanel() {
                                                 </div>
                                             ))}
                                         </div>
+
+                                        {/* F7 · Consumo de SALIENTES y carga de paquetes.
+                                            Se separa de "Override de límites" porque son cosas
+                                            distintas: el override cambia el cupo del plan para
+                                            siempre; el paquete es un extra de un solo mes que el
+                                            cron reinicia junto con el contador. */}
+                                        {(() => {
+                                            const usados = selected.messages_out_used ?? 0;
+                                            const entrantes = selected.messages_in_used ?? 0;
+                                            const cupoPlan = selected.limit_overrides?.max_conversations
+                                                ?? selected.plans?.max_conversations ?? null;
+                                            const extras = Number(form.extra_messages) || 0;
+                                            const efectivo = cupoPlan == null ? null : cupoPlan + extras - usados;
+                                            const pct = cupoPlan == null ? 0
+                                                : Math.min(100, Math.round((usados / Math.max(1, cupoPlan + extras)) * 100));
+                                            return (
+                                                <div className="mt-5 pt-4 border-t border-white/40">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <Package size={14} className="text-navy-700/50" />
+                                                        <p className="text-[11px] font-bold text-navy-700/50 uppercase tracking-widest">Mensajes salientes del mes</p>
+                                                    </div>
+
+                                                    <div className="flex items-baseline justify-between mb-1.5">
+                                                        <span className="text-[12px] font-bold text-navy-900">
+                                                            {usados.toLocaleString('es-GT')}
+                                                            {cupoPlan != null && <span className="text-navy-700/40"> / {(cupoPlan + extras).toLocaleString('es-GT')}</span>}
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-navy-700/40">
+                                                            {entrantes.toLocaleString('es-GT')} entrantes (no consumen cupo)
+                                                        </span>
+                                                    </div>
+                                                    <div className="h-1.5 rounded-full bg-navy-900/10 overflow-hidden">
+                                                        <div className={`h-full rounded-full transition-all ${pct >= 100 ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                                                            style={{ width: `${pct}%` }} />
+                                                    </div>
+                                                    {efectivo != null && (
+                                                        <p className="text-[10px] font-bold text-navy-700/40 mt-1.5">
+                                                            Quedan {Math.max(0, efectivo).toLocaleString('es-GT')} · el paquete se reinicia con el corte mensual
+                                                        </p>
+                                                    )}
+
+                                                    <div className="flex items-center justify-between gap-3 mt-4">
+                                                        <label className="text-[12px] font-bold text-navy-900">Paquete de mensajes extra</label>
+                                                        <input type="number" min="0"
+                                                            value={form.extra_messages ?? ''}
+                                                            onChange={e => setField('extra_messages', e.target.value === '' ? 0 : Number(e.target.value))}
+                                                            placeholder="0"
+                                                            className="glass-input w-32 text-[16px] sm:text-[13px] text-right" />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             )}
