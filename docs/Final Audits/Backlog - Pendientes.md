@@ -9,6 +9,8 @@
 
 ## ⚠️ Estado al cierre de la sesión de flota (2026-07-27)
 
+- [ ] **[TÚ] VER-1 · Smoke test de `wa-human-reply` v7** — no se pudo ejecutar: la ventana de 24h de WhatsApp está cerrada (hace falta que un cliente escriba primero). Qué verificar cuando se abra: enviar un mensaje desde Conversaciones y confirmar que llega. Es la única función donde el `requireEnv` nuevo (EDGE-5) podría fallar al arrancar si faltara un secret. Rollback si falla: redesplegar v6. Las otras 3 funciones (`manage-staff` v10, `ai-chat` v7, `ai-insights` v7) sí se pueden probar sin esperar ventana.
+
 **Bloqueantes que requieren tu mano — nada avanza sin esto:**
 
 | # | Qué | Por qué está trabado |
@@ -97,7 +99,7 @@ Bloques 1 a 3 son obligatorios para que la escalera de precios se cumpla. *(Mode
 
 **Bloque 2 — cargar la escalera**
 - [ ] **[IA] B3 · Cupos nuevos en `plans`** — `max_conversations` 1,050 / 3,000 / 6,750 · `max_patients` 70 / 200 / 450 · `history_retention_months` Pro 3→6. Verificado en producción: hoy siguen en 500/5,000/20,000 y 50/150/∞.
-- [ ] **[IA] B4 · `businesses.extra_messages`** — se suma al cupo, se reinicia con el ciclo. Sin esto no se venden los paquetes de Q350/1,000.
+- [x] ~~**[IA] B4 · `businesses.extra_messages`**~~ — **CERRADO 2026-07-30** (migración `20260730020000`). Columna aditiva + reinicio mensual agregado al cron `reset-usage-ai-pause` (mismo job que despausa, para que no haya ventana con extras y negocio aún pausado). **No hizo falta tocar ninguna función**: `get_plan_limits` y `record_usage` ya la leían de forma tolerante desde B1/B2/B7. Verificado: cargar 500 extras subió el cupo efectivo de 20,000 a 20,500. ➡️ Con esto queda destrabado el CTA "Comprar paquete" de **F3**, hoy deshabilitado.
 - [ ] **[IA] B7 · `get_plan_limits` debe devolver `messages_out` y el cupo efectivo** (plan + extras − consumido). **Avance 2026-07-27:** devuelve `messages_in`, `messages_out`, `extra_messages`, `max_messages_out` y `messages_out_effective`; preserva todas las claves que ya consume el frontend. El término de extras (B4) se lee tolerante (coalesce 0) hasta que exista `businesses.extra_messages`.
 - [ ] **[TÚ] N3 · El gate del bot debe leer el cupo de salientes.**
 
@@ -126,7 +128,7 @@ Bloques 1 a 3 son obligatorios para que la escalera de precios se cumpla. *(Mode
 - [x] ~~**[IA] INF-3 · Corregir `ensure_future_partitions` para emitir políticas con InitPlan**~~ — **CERRADO 2026-07-27** (migración `20260728030000`). El generador real era `create_monthly_partition`: ahora emite `(SELECT public.get_user_business_id())` y ya no crea política INSERT para las particiones de `history` (DEC-1). Verificado corriendo `ensure_future_partitions(6)`: el fix **persiste** tras regenerar.
 - [x] ~~**[IA] INF-4 · InitPlan en las 14 políticas restantes**~~ — **CERRADA la parte prioritaria** (las de particiones `history`/`audit_log`, que crecen sin techo): 16 particiones re-emitidas con InitPlan; medido 0 políticas de partición con el patrón viejo. Quedan las 8 de finanzas, que la propia auditoría clasifica como higiene (con índice el InitPlan no aporta).
 - [x] ~~**[IA] INF-5 · Índices de cobertura en 10 claves foráneas**~~ — **CERRADO 2026-07-27** (migración `20260728070000`). Verificado que eran exactamente las 10 del backlog; los 10 índices creados (aditivo).
-- [ ] **[IA] INF-6 · TOCTOU en los 3 triggers de límite** — `SELECT count(*)` y comparar no es atómico; dos INSERT concurrentes superan el cupo. Fix con `pg_advisory_xact_lock` por `(tenant, período)`, SQL listo en *(Auditoría Técnica §2.3)*.
+- [x] ~~**[IA] INF-6 · TOCTOU en los 3 triggers de límite**~~ — **CERRADO 2026-07-30** (migración `20260730010000`). `pg_advisory_xact_lock` con llave por `(negocio, recurso)` —y además el mes en turnos, porque ese cupo es mensual— tomado **antes** del `count(*)`. Verificado: con cupo activo el lock se toma (`advisory_locks=1`); las llaves de dos negocios distintos difieren, así que no se bloquean entre sí; y el corte de límite sigue disparando con su `HINT` intacto. Cuando el cupo es ilimitado (`NULL`) no se toma lock, que es lo correcto.
 - [x] ~~**[IA] INF-7 · Trigger de auditoría en `services` y `offers`**~~ — **CERRADO 2026-07-27**. `audit_services` y `audit_offers` con el mismo cableado ya probado en `supplies`/`payment_methods`. Verificado con probe transaccional: un cambio de precio en `services` deja rastro en `audit_log` (158→159).
 - [ ] **[IA] INF-8 · `statement_timeout` e `idle_in_transaction_session_timeout` por rol** — el riesgo de saturación no está en Supavisor sino en el pool de PostgREST, único y compartido entre tenants. SQL en *(Auditoría Técnica §3.1)*.
 - [x] ~~**[IA] INF-9 · Agregar `history` a la publicación de realtime**~~ — **CERRADO 2026-07-27** (migración `20260728060000`). Como `history` está particionada, hubo que activar además `publish_via_partition_root=true`: sin eso los eventos viajarían con el nombre de la partición (`history_y2026m07`) y el cliente, suscrito a `history`, no los recibiría. Verificado: `history` en la publicación y `via_root=true`.
