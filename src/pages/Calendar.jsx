@@ -76,7 +76,13 @@ export default function Calendar() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto justify-start lg:justify-end overflow-x-auto lg:overflow-visible">
+                {/* max-sm:flex-nowrap — bajo 640px los 4 grupos se apilaban en 3
+                    filas (144px de alto medidos) mientras el overflow-x-auto de
+                    al lado quedaba muerto, porque con flex-wrap nunca se llega a
+                    desbordar. Sin envolver, la fila mide 40px y se desliza.
+                    El [&>*]:shrink-0 es obligatorio: sin él los grupos se
+                    comprimen (223→101px) en vez de deslizarse. */}
+                <div className="flex items-center gap-3 flex-wrap max-sm:flex-nowrap max-sm:[&>*]:shrink-0 w-full lg:w-auto justify-start lg:justify-end overflow-x-auto lg:overflow-visible">
                     {/* 1. Tab Calendario / Kanban */}
                     <div className="relative overflow-hidden flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
                         <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none z-0" style={{ background: 'rgba(64,98,200,0.05)' }} />

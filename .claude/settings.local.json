@@ -56,7 +56,8 @@
       "Bash(mv mutate.mjs build-payload.mjs)",
       "Bash(node build-payload.mjs)",
       "Bash(MSYS_NO_PATHCONV=1 node scripts/n8n-api.mjs PUT \"/workflows/1npQWgfgBBIwVuxX\" \"C:\\\\Users\\\\JUANDI~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Juan-Diego-OneDrive-Documentos-Antigravity-Projects-NovTurnAI-NovTurnIA\\\\d8fd2711-071e-45c4-b3f7-5d972c04624f\\\\scratchpad\\\\wf-put.json\")",
-      "Bash(grep -v \"^.*//\")"
+      "Bash(grep -v \"^.*//\")",
+      "Bash(MSYS_NO_PATHCONV=1 node \"C:/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/scripts/n8n-api.mjs\" GET /workflows/1npQWgfgBBIwVuxX)"
     ]
   },
   "enableAllProjectMcpServers": true,

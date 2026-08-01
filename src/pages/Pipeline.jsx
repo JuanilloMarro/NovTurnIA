@@ -184,7 +184,10 @@ export default function Pipeline() {
                 <Kpi icon={Timer} label="Respuesta prom." hint="Tiempo promedio de respuesta de la IA a los mensajes de los clientes" value={metrics.avg_response_seconds} suffix="s" />
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3 h-10 flex-wrap shrink-0">
+            {/* max-sm:h-auto — bajo 640px el buscador se lleva la fila entera y
+                Actualizar/Filtros bajan a una segunda línea, pero el h-10 fijo
+                recortaba esos 48px de más. Medido: caja 40px vs contenido 88px. */}
+            <div className="flex items-center gap-2 sm:gap-3 h-10 max-sm:h-auto flex-wrap shrink-0">
                 <div className="relative w-full sm:w-56 h-10">
                     <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                     <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
