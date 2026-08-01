@@ -138,7 +138,13 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
                 <div className="px-6 pb-6 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 md:min-h-0 flex-1 overflow-y-auto md:overflow-hidden custom-scrollbar">
 
                     {/* ── Columna izquierda: cupo diario + nueva excepción (rollos) ── */}
-                    <div className="space-y-5 md:overflow-y-auto md:custom-scrollbar md:pr-1 md:min-h-0">
+                    {/* `custom-scrollbar` va SIN variante a propósito: es una clase
+                        propia definida fuera de `@layer utilities`, así que
+                        `md:custom-scrollbar` compilaba a nada y este panel mostraba
+                        la barra por defecto del navegador. Sin variante sí aplica, y
+                        estilar una barra que no existe (bajo `md` no hay scroll) no
+                        tiene ningún efecto. Mismo caso que `max-sm:no-scrollbar`. */}
+                    <div className="space-y-5 custom-scrollbar md:overflow-y-auto md:pr-1 md:min-h-0">
 
                         {/* Cupo diario */}
                         <div className="space-y-3">

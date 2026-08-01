@@ -1,6 +1,6 @@
 import { supabase } from '../config/supabase';
 import { useAppStore } from '../store/useAppStore';
-import { withRetry } from '../utils/withRetry';
+import { withRetry, resetBreaker } from '../utils/withRetry';
 
 // T-20: getBID() movido al store. Usar getBID() en cada función de servicio
 // para leer el valor actual en el momento de la llamada (no en el momento de importar).
@@ -36,6 +36,10 @@ export function resetServiceCaches() {
     _businessTimezone = null;
     _visiblePatientIds = { ids: null, ts: 0 };
     _visibleStaffIds = { ids: null, ts: 0 };
+    // RES-1: el circuit breaker es estado de módulo. Si quedó abierto por una
+    // caída y el usuario vuelve a entrar, sin esto arrancaría la sesión nueva
+    // fallando rápido sin siquiera probar la red.
+    resetBreaker();
 }
 
 // Invalida los caches de visibilidad — llamado tras crear/borrar pacientes o staff

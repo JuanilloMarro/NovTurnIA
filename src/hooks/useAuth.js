@@ -73,9 +73,11 @@ export function useAuth() {
             useAppStore.getState().setFeatureFlags(schedule?.feature_flags ?? {});
             setAuth(data.user, staffProfile);
             Sentry.setUser({ id: staffProfile.id, business_id: staffProfile.business_id });
-        } catch (err) {
-            throw err;
         } finally {
+            // El `catch (err) { throw err }` que había acá no hacía nada: el
+            // error se propaga igual y el `finally` corre igual. Se quita el
+            // catch y se conserva el finally, que es el que apaga el spinner
+            // tanto si el login sale bien como si falla.
             setLoading(false);
         }
     }

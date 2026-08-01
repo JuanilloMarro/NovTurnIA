@@ -33,7 +33,8 @@ const DAYS = [
     { key: 'Dom', label: 'Domingo' },
 ];
 
-const EMAIL_RE = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+// El `.` dentro de una clase de caracteres es literal: no hace falta escaparlo.
+const EMAIL_RE = /^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$/;
 
 function parseDays(str) {
     if (!str) return new Set(['Lun', 'Mar', 'Mié', 'Jue', 'Vie']);

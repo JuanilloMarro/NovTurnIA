@@ -201,7 +201,7 @@ export default function InsightDrawer({ action, initialRefId = null, initialPati
                         <button
                             onClick={handleGenerate}
                             disabled={generating || loading}
-                            className="relative overflow-hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-navy-900 border border-white/10 text-white text-[11px] font-bold rounded-2xl shadow-card hover:bg-navy-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="relative overflow-hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-navy-900 border border-white/10 text-white text-[11px] font-bold rounded-2xl shadow-card hover:bg-navy-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {generating
                                 ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando análisis...</>

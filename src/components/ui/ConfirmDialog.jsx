@@ -36,7 +36,7 @@ export default function ConfirmDialog({
                     <button onClick={onConfirm} disabled={loading}
                         className={`flex items-center justify-center gap-2 px-6 py-2.5 text-[11px] font-bold rounded-full transition-colors shadow-sm disabled:opacity-50 min-w-[100px] ${danger
                             ? 'bg-rose-500/80 border border-rose-400 text-white hover:bg-rose-600'
-                            : 'bg-navy-900 border border-navy-900 text-white hover:bg-navy-800'}`}>
+                            : 'bg-navy-900 border border-navy-900 text-white hover:bg-navy-700'}`}>
                         <Icon size={13} /> {loading ? loadingLabel : confirmLabel}
                     </button>
                 </div>

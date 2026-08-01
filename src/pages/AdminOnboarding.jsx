@@ -239,7 +239,7 @@ export default function AdminOnboarding() {
                 )}
 
                 <button type="submit" disabled={loading}
-                    className="w-full py-3 bg-navy-900 hover:bg-navy-800 text-white text-sm font-bold rounded-full transition-colors shadow-md disabled:opacity-50">
+                    className="w-full py-3 bg-navy-900 hover:bg-navy-700 text-white text-sm font-bold rounded-full transition-colors shadow-md disabled:opacity-50">
                     {loading ? 'Creando tenant...' : 'Crear tenant'}
                 </button>
             </form>

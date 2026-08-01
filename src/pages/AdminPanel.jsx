@@ -366,7 +366,7 @@ export default function AdminPanel() {
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={() => navigate('/admin/new-tenant')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-navy-900 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-navy-800 transition-colors duration-200">
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-navy-900 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-navy-700 transition-colors duration-200">
                         <Plus size={13} /> <span className="hidden sm:inline">Nuevo negocio</span>
                     </button>
                     <button onClick={load} disabled={loading}
@@ -473,7 +473,7 @@ export default function AdminPanel() {
                                         Marcar pagado
                                     </button>
                                     <button onClick={handleSave} disabled={saving}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-navy-900 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-navy-800 transition-colors duration-200 disabled:opacity-50">
+                                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-navy-900 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-navy-700 transition-colors duration-200 disabled:opacity-50">
                                         {saving ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={13} />}
                                         Guardar
                                     </button>

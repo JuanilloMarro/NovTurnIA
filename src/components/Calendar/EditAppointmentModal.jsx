@@ -50,7 +50,10 @@ export default function EditAppointmentModal({ appointment, onClose, onUpdated }
         if (appointment.date_end) {
             rawEndTime = new Date(appointment.date_end).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: false });
         }
-    } catch(e) {}
+    } catch {
+        // Una fecha inválida en el turno no debe romper el modal: se abre con
+        // los campos en blanco y el usuario la completa.
+    }
 
     const [date, setDate] = useState(rawDate);
     const [dayVal,   setDayVal]   = useState(_rawDay   || '');
