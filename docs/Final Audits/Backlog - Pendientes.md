@@ -36,7 +36,16 @@ Al trabajar los ítems a fondo aparecieron **4 diagnósticos equivocados**, todo
 | INF-3 | "corregir `ensure_future_partitions`" | El generador real era **`create_monthly_partition`** |
 | Finanzas móvil | "la barra de tabs no scrollea" | El **padre** `flex-col items-start` le quitaba el ancho del viewport |
 
-Y los conteos envejecen: COD-3 decía 20 archivos y son **30**; INF-12 hablaba de 107 políticas y son **116**. Los diagnósticos *estructurales* aguantaron; **tratá los números como orden de magnitud y re-medí antes de estimar esfuerzo.**
+**Y en la pasada de frontend del 2026-07-31 aparecieron 3 más, todos en la misma dirección: el ítem describía un defecto que ya no existe.**
+
+| Ítem | Lo que decía el backlog | Lo que se midió |
+|---|---|---|
+| T16 | "las gráficas renderizan con **0px**" | Nunca miden 0: el grid estira las tarjetas y de ahí sale el alto |
+| T18 | "`grid-cols-7` da celdas de **49px**" | Ya tiene scroll horizontal con `min-w-[560px]`: son **80px** |
+| T26 | "**18** grids sin colapso" | Son **2**, y uno es el calendario (T18) |
+| T27 | "3 de 4 no tienen `max-h`" | Correcto, pero **subestimado**: con `overflow-hidden` el contenido quedaba inalcanzable |
+
+Y los conteos envejecen en ambas direcciones: COD-3 decía 20 archivos y son **30**; INF-12 hablaba de 107 políticas y son **116**; T21 decía 162 `title=` y son **226**. Los diagnósticos *estructurales* aguantaron; **tratá los números como orden de magnitud, y antes de "arreglar" algo, medí que siga roto.**
 
 **La causa de fondo es INF-1.** Mientras el repositorio esté ~100 migraciones detrás de producción, cualquier hallazgo derivado de leer archivos del repo puede describir un sistema que ya no existe — ya pasó una vez (Completadas §11, el falso diagnóstico de `get_stats_dashboard`, donde la migración "correctora" habría **sobrescrito la función buena**). Cerrar INF-1 es lo que vuelve confiable el método, no solo la reproducibilidad.
 
@@ -142,7 +151,7 @@ Mi recomendación es **(C)**: el sidebar es el que se come la pantalla, y es un 
   **Falta:** AdminPanel (pantalla de super-admin, no la ve el cliente — prioridad baja).
 - [ ] **[IA] T19 · Componente `<Tooltip>`** por portal, lenguaje glass, detección de borde.
 - [ ] **[IA] T20 · Comportamiento táctil del tooltip.**
-- [ ] **[IA] T21 · Reemplazar los ~162 `title=""` nativos** — invisibles en táctil, no estilizables. Depende de T19.
+- [ ] **[IA] T21 · Reemplazar los `title=""` nativos** — invisibles en táctil, no estilizables. Depende de T19. Re-medido: **226** ocurrencias de `title=` (la auditoría decía 160 y luego 162 — la cifra se quedó muy corta).
 
 ### Fase 4 — contrato de capas
 
@@ -156,13 +165,14 @@ Mi recomendación es **(C)**: el sidebar es el que se come la pantalla, y es un 
 - [ ] ~~**T15 · Hook `useChartHeight()`**~~ · ~~**T16 · Sustituir los 7 altos porcentuales por píxeles**~~ — **RETIRADOS 2026-07-31, el diagnóstico era falso.** T16 afirmaba que "al pasar a una columna el padre resuelve a `auto` y las gráficas renderizan con **0px**". **Medido en navegador y no ocurre**: los 7 `ResponsiveContainer` porcentuales cuelgan de contenedores con alto resuelto — `ChartPanel` lleva `style={{minHeight:320}}` y las `Card` de Inteligencia `min-h-[300px]`, y como ambas viven en un `grid`, los items **se estiran** y de ahí sale el alto definido contra el que resuelve el `height="100%"`. Sonda a 375 / 768 / 1280px: el contenedor de gráfica mide `327x150`, `306x208` y `297x208` — nunca 0.
   🐛 **Cómo se produjo el falso positivo, por si vuelve a pasar**: mi primera sonda reprodujo la tarjeta **sin** el grid que la envuelve y ahí sí midió altura 0. El `h-full` interno depende de que el grid estire la tarjeta. **Una sonda que no reproduce el contenedor real miente**, y miente en la dirección de confirmar el bug que estás buscando. Si T15/T16 vuelven a aparecer en una auditoría, exigí la medición **con el grid puesto**.
 - [x] ~~**[IA] T17 · Variantes móviles de gráfica**~~ — **CERRADO 2026-07-31**, ver Completadas §16.
-- [ ] **[IA] T18 · Calendario mensual en móvil como agenda vertical** — `grid-cols-7` da celdas de 49px.
+- [ ] **[IA] T18 · Calendario mensual en móvil como agenda vertical** — ⚠️ **cifra desactualizada y el problema ya está mitigado**: la auditoría decía "celdas de 49px", pero `CalendarMonth.jsx` ya lleva `overflow-x-auto md:overflow-x-hidden` + `min-w-[560px] md:min-w-0`, o sea que en teléfono el mes mide 560px y se desliza en horizontal: **80px por celda, no 49**. Funciona. Pasar a agenda vertical sigue siendo mejor UX (se ve el mes entero sin deslizar) pero **ya no es un defecto, es una mejora de producto** — y toca el módulo más usado del sistema, así que conviene decidirlo mirando un diseño, no aplicarlo de corrido.
 
 ### Fase 7 — detalle fino
 
-- [ ] **[IA] T24 · Objetivos táctiles a 44px en móvil** — 128 controles por debajo del mínimo.
-- [ ] **[IA] T25 · Escalón tipográfico móvil** — 108 usos bajo 10px.
-- [ ] **[IA] T26 · Grids con variante responsive** — 18 sin colapso.
+- [ ] **[IA] T24 · Objetivos táctiles a 44px en móvil** — re-medido: **218** elementos con alto `h-5`…`h-9`. Tarea real pero grande y delicada: subir alturas cambia el ritmo vertical de barras y tarjetas. Hacerla módulo por módulo, mirando el resultado, no de corrido.
+- [ ] **[IA] T25 · Escalón tipográfico móvil** — re-medido: **110** usos bajo 10px (10 de 7px, 22 de 8px, 78 de 9px); la cifra vieja de 108 era correcta.
+  ⚠️ **No aplicar un override global en el bloque de teléfono**, aunque sea tentador (`.text-\[7px\]{font-size:10px}`): varios de esos 7px viven dentro de círculos de 14px (`w-3.5 h-3.5`, los pasos numerados del Pipeline) y subirlos los desborda. Es una pasada caso por caso con revisión visual — buen candidato para una sesión dedicada junto a T30.
+- [ ] **[IA] T26 · Grids con variante responsive** — ⚠️ **cifra falsa**: la auditoría decía 18 sin colapso. Medidos hoy, los grids que arrancan en 3+ columnas sin variante son **2**: `CalendarMonth.jsx` (el `grid-cols-7` del mes, que es T18 y ya tiene scroll horizontal) y `AdminPanel.jsx:583` (`grid-cols-3`, pantalla de super-admin que el cliente no ve). Los `grid-cols-2` sin variante son deliberados: a 375px dan columnas de ~165px, que es el tamaño correcto para las tarjetas de KPI. **Queda solo AdminPanel:583**, prioridad baja.
 - [x] ~~**[IA] T27 · Modales con `max-h-[85dvh]` y scroll interno**~~ — **CERRADO 2026-07-31**, ver Completadas §16.
 - [ ] **[IA] T28 · Probar en horizontal a 812×375.**
 - [ ] **[TÚ] T29 · Recorrer los 9 módulos autenticados a 375/414/768/834/1024px** — requiere sesión real; ninguna auditoría lo ha podido hacer. El harness de Playwright y el tenant semilla ya existen (Completadas §12); falta completar `SEED_*` en `.env.test` y crear el negocio semilla vía `/admin/new-tenant`.
