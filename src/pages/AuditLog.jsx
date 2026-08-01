@@ -7,6 +7,7 @@ import { withTimeout } from '../utils/withTimeout';
 import FeatureLock from '../components/FeatureLock';
 import SearchField from '../components/ui/SearchField';
 import Popover from '../components/ui/Popover';
+import Tooltip from '../components/ui/Tooltip';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { usePermissions } from '../hooks/usePermissions';
 
@@ -410,10 +411,11 @@ export default function AuditLog() {
 
                     {/* Export CSV — requiere permiso de rol (checkbox) + plan Enterprise */}
                     {canExportReports && (
+                    /* T21 — el `title=` nativo no existe en táctil; este texto es de venta. */
+                    <Tooltip label={hasFeature('export_reports') ? '' : 'Exportación de actividad disponible en Enterprise'}>
                     <button
                         onClick={hasFeature('export_reports') ? handleExport : undefined}
                         disabled={exporting || filtered.length === 0 || !hasFeature('export_reports')}
-                        title={hasFeature('export_reports') ? '' : 'Exportación de actividad disponible en Enterprise'}
                         className={`relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-50 ${!hasFeature('export_reports') ? 'cursor-not-allowed' : ''}`}
                     >
                         <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
@@ -421,6 +423,7 @@ export default function AuditLog() {
                         {hasFeature('export_reports') ? <Download size={14} className="shrink-0 relative z-10" /> : <Lock size={13} className="shrink-0 text-navy-700 relative z-10" />}
                         <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap relative z-10">Exportar</span>
                     </button>
+                    </Tooltip>
                     )}
 
                     {/* Filter funnel button */}

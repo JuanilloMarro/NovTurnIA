@@ -7,6 +7,7 @@ import NewPatientModal from '../components/Patients/NewPatientModal';
 import { Search, SlidersHorizontal, Download, Plus, RefreshCw, Lock } from 'lucide-react';
 import SearchField from '../components/ui/SearchField';
 import Popover from '../components/ui/Popover';
+import Tooltip from '../components/ui/Tooltip';
 import { exportAllPatients, getPatientById } from '../services/supabaseService';
 import { downloadCSV } from '../utils/export';
 import { usePermissions } from '../hooks/usePermissions';
@@ -116,10 +117,14 @@ export default function Patients() {
 
                     {/* Export CSV */}
                     {canExportPatients && (
+                        /* T21 — el `title=` nativo NO existe en táctil: en el teléfono el
+                           cliente veía el botón apagado sin ninguna explicación. Y este
+                           texto en concreto es de venta, así que es el que más importa
+                           que se lea. */
+                        <Tooltip label={exportUnlocked ? '' : 'Exportación de clientes disponible en Enterprise'}>
                         <button
                             onClick={exportUnlocked ? handleExport : undefined}
                             disabled={exporting || !exportUnlocked}
-                            title={exportUnlocked ? '' : 'Exportación de clientes disponible en Enterprise'}
                             className={`relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-50 ${!exportUnlocked ? 'cursor-not-allowed' : ''}`}
                         >
                             <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
@@ -127,7 +132,7 @@ export default function Patients() {
                             {exportUnlocked ? <Download size={14} className="shrink-0" /> : <Lock size={13} className="shrink-0 text-navy-700" />}
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
                         </button>
-
+                        </Tooltip>
                     )}
 
                     {/* Sort funnel button */}

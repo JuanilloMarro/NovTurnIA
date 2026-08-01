@@ -616,7 +616,11 @@ export default function AdminPanel() {
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                                     <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl p-5 space-y-4">
                                         <div className="flex items-center gap-2"><Clock size={14} className="text-navy-700/50" /><p className="text-[11px] font-bold text-navy-700/50 uppercase tracking-widest">Horario de atención</p></div>
-                                        <div className="grid grid-cols-3 gap-3">
+                                        {/* T26 · Apertura y Cierre van juntos —se leen como un rango—
+                                            y "Duración turno" pasa a la fila de abajo a ancho completo.
+                                            A 3 columnas en un teléfono cada campo quedaba en ~93px, y
+                                            "Duración turno" no entra en esa etiqueta. */}
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                             <div>
                                                 <label className={labelCls}>Apertura</label>
                                                 <select value={form.schedule_start} onChange={e => setField('schedule_start', Number(e.target.value))} className="glass-input w-full text-[16px] sm:text-[13px]">
@@ -629,7 +633,7 @@ export default function AdminPanel() {
                                                     {HOURS.filter(h => h > form.schedule_start).map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
                                                 </select>
                                             </div>
-                                            <div>
+                                            <div className="max-sm:col-span-2">
                                                 <label className={labelCls}>Duración turno</label>
                                                 <input type="number" min="5" step="5" value={form.appointment_duration} onChange={e => setField('appointment_duration', e.target.value)} className="glass-input w-full text-[16px] sm:text-[13px]" />
                                             </div>

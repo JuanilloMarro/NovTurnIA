@@ -447,6 +447,53 @@ body::before {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   T11/T12/T14 · CONTRATO DE CAPAS
+   ───────────────────────────────────────────────────────────────────────────
+   La auditoría pedía "tokens de z-index porque hay 361 `z-10` y 11 valores
+   sueltos". Al inventariarlo resultó que **la escalera ya era coherente**: los
+   356 `z-10` no son 356 capas compitiendo, son UN solo modismo repetido —
+   "contenido por encima de los glows decorativos de su propia tarjeta", donde
+   los glows van en `z-0`. Reescribirlos a un token sería puro churn con riesgo
+   de regresión y cero beneficio visible. Lo que faltaba era **escribir la
+   escalera**, no cambiarla. Esta es, medida sobre el código:
+
+     z-0    glows decorativos dentro de una tarjeta
+     z-10   contenido de la tarjeta, por encima de sus glows   (356 usos)
+     z-20   el <aside> del sidebar
+     z-[19] el velo del sidebar (justo debajo del aside, a propósito)
+     z-50   desplegables anclados dentro de un panel
+     z-[100] desplegable dentro de un modal · barra superior
+     z-[110] velo de cajón · lanzador del asistente
+     z-[120] cajones (turno, cliente, finanzas, insight)
+     z-[200] modales
+     z-[300] flotantes portados: Popover, paleta de comandos, popovers de
+             Seguimiento — tienen que ganarle a un modal abierto
+     z-[400] tooltips — por encima de todo lo anterior, nunca reciben clic
+     z-[500] toasts
+
+   REGLA DEL PORTAL (T12/T13). Un flotante que tenga que salirse de su tarjeta
+   va por `createPortal` a `document.body`. No alcanza con subirle el z-index:
+
+     · 369 `overflow-hidden` en el sistema RECORTAN, y el z-index no salva de
+       un recorte. Además `overflow-x: auto` obliga a `overflow-y: auto` — no
+       se puede recortar un solo eje. Así se rompieron los menús de Filtros al
+       volver la fila de acciones una tira deslizable.
+     · 332 `backdrop-blur` CREAN CONTEXTO DE APILAMIENTO, así que un
+       `z-[200]` dentro de una tarjeta jamás le gana a la tarjeta de al lado.
+
+   T14 · Y `position: fixed` tampoco alcanza: un ancestro con `backdrop-filter`
+   se vuelve su bloque contenedor. Medido — un `fixed inset-0` dentro de un
+   marco con `backdrop-blur` mide 300x200 en vez de 768x1024. El shell de la
+   app (`App.jsx`) tiene `backdrop-blur-xl`, así que TODO `fixed` de adentro
+   está anclado al marco, no a la pantalla.
+
+   ⚠️ Ese anclaje NO es un bug acá y no hay que "arreglarlo": el marco lleva
+   `safe-area-shell`, así que los cajones a pantalla completa heredan gratis el
+   respeto por el notch. Portarlos al body los sacaría de esa protección. Se
+   portan los FLOTANTES (menús, tooltips), no los cajones.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
    AJUSTES DE PANTALLA CHICA
    ───────────────────────────────────────────────────────────────────────────
    REGLA DE ORO DE ESTE BLOQUE: el lenguaje visual de escritorio NO se toca.
@@ -502,5 +549,41 @@ body::before {
 
   .mobile-strip::-webkit-scrollbar {
     display: none;
+  }
+
+  /* T24 — Objetivos táctiles.
+     Los 16 botones circulares de 28px (`w-7 h-7`) y 24px (`w-6 h-6`) están por
+     debajo del mínimo cómodo de 44px: cerrar un modal, las flechas de período
+     de Finanzas, quitar un teléfono de un cliente.
+
+     Se agranda el ÁREA, no el botón. Un `::after` invisible extiende la zona
+     sensible; el círculo se sigue viendo exactamente igual, así que el diseño
+     no se mueve ni un pixel — que es la restricción de esta fase.
+
+     Solo se estira en VERTICAL, a propósito. Estirar también a lo ancho haría
+     que dos botones vecinos se solaparan y el de más abajo en el DOM se comería
+     los toques del otro. El alto es el eje que falta: estos botones viven en
+     filas horizontales, donde el dedo falla por arriba o por abajo.
+
+     ⚠️ ALCANCE REAL, MEDIDO con `elementFromPoint`: llega a 11 de los 16.
+     Los otros 5 llevan `overflow-hidden` en el propio botón, que recorta el
+     pseudo-elemento — medido: área sensible 26px con `overflow-hidden` contra
+     42px sin él, con el mismo tamaño visual de 28x28 en ambos. Para esos 5 no
+     hay atajo por CSS: hay que envolverlos o quitarles el recorte, uno por uno
+     y mirando que no se rompa el círculo. Queda anotado en T24. */
+  button.w-7.h-7,
+  button.w-6.h-6 {
+    position: relative;
+  }
+
+  button.w-7.h-7::after,
+  button.w-6.h-6::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
   }
 }
