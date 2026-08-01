@@ -209,7 +209,15 @@ export default function Finance() {
                 <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Ingresos, egresos, cobros y caja</p>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Móvil: una sola fila deslizable, igual que en Citas.
+                El padre es `flex-col items-start` bajo `lg`, así que esta fila tomaba
+                el ancho de su CONTENIDO y no el del viewport — por eso el
+                `max-w-full overflow-x-auto` de la barra de submódulos nunca se
+                activaba y los últimos tabs quedaban cortados sin forma de llegar.
+                `max-sm:w-full` la ancla al viewport; `flex-nowrap` + `[&>*]:shrink-0`
+                evitan que los grupos se apilen o se compriman. Todo con `max-sm:`:
+                desde 640px el diseño actual queda intacto. */}
+            <div className="flex items-center gap-2 flex-wrap justify-end max-sm:w-full max-sm:flex-nowrap max-sm:[&>*]:shrink-0 max-sm:justify-start max-sm:overflow-x-auto mobile-strip">
                 {showCalendar && (
                     <div className="relative">
                         <button
@@ -258,7 +266,7 @@ export default function Finance() {
                     <AddBtn icon={Download} label={csvExporting ? 'Exportando…' : 'Exportar CSV'} onClick={handleExportCsv} />
                 )}
 
-                <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10 max-w-full overflow-x-auto no-scrollbar">
+                <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10 max-w-full overflow-x-auto no-scrollbar max-sm:max-w-none max-sm:overflow-visible">
                     {FINANCE_TABS.map(t => {
                         const Icon = t.icon;
                         return (
@@ -294,8 +302,16 @@ export default function Finance() {
                             <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Finanzas</h1>
                             <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Ingresos, egresos, cobros y caja</p>
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap justify-end">
-                            <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold h-10 max-w-full overflow-x-auto no-scrollbar">
+                        {/* Móvil: una sola fila deslizable, igual que en Citas.
+                El padre es `flex-col items-start` bajo `lg`, así que esta fila tomaba
+                el ancho de su CONTENIDO y no el del viewport — por eso el
+                `max-w-full overflow-x-auto` de la barra de submódulos nunca se
+                activaba y los últimos tabs quedaban cortados sin forma de llegar.
+                `max-sm:w-full` la ancla al viewport; `flex-nowrap` + `[&>*]:shrink-0`
+                evitan que los grupos se apilen o se compriman. Todo con `max-sm:`:
+                desde 640px el diseño actual queda intacto. */}
+            <div className="flex items-center gap-2 flex-wrap justify-end max-sm:w-full max-sm:flex-nowrap max-sm:[&>*]:shrink-0 max-sm:justify-start max-sm:overflow-x-auto mobile-strip">
+                            <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold h-10 max-w-full overflow-x-auto no-scrollbar max-sm:max-w-none max-sm:overflow-visible">
                                 {FINANCE_TABS.map((t, i) => {
                                     const Icon = t.icon;
                                     return (

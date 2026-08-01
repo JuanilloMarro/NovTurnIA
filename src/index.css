@@ -479,3 +479,21 @@ body::before {
     box-shadow: 0 20px 50px rgba(26, 58, 107, 0.18);
   }
 }
+
+/* Corta en 639.98px (el punto de `sm`) porque la tira de acciones usa las
+   variantes `max-sm:` de Tailwind y ambos límites deben coincidir. */
+@media (max-width: 639.98px) {
+  /* T22/T23 — Oculta la barra de scroll de la tira de acciones deslizable.
+     No se puede usar `max-sm:no-scrollbar`: `no-scrollbar` es una clase propia
+     definida fuera de `@layer utilities`, y Tailwind no genera variantes para
+     clases que no conoce — esa utilidad se compila a nada, en silencio.
+     La tira sigue deslizándose con el dedo; solo se esconde la barra. */
+  .mobile-strip {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .mobile-strip::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -5,6 +5,7 @@ import PatientCard from '../components/Patients/PatientCard';
 import PatientDrawer from '../components/Patients/PatientDrawer';
 import NewPatientModal from '../components/Patients/NewPatientModal';
 import { Search, SlidersHorizontal, Download, Plus, RefreshCw, Lock } from 'lucide-react';
+import SearchField from '../components/ui/SearchField';
 import { exportAllPatients, getPatientById } from '../services/supabaseService';
 import { downloadCSV } from '../utils/export';
 import { usePermissions } from '../hooks/usePermissions';
@@ -76,22 +77,15 @@ export default function Patients() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 md:h-10 flex-wrap w-full lg:w-auto">
-                    <div className="relative w-full sm:w-72 h-10">
-                        <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="absolute -top-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(29,95,173,0.05)' }} />
-                        <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                        <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700 z-10">
-                            <Search size={14} strokeWidth={2.5} />
-                        </div>
-                        <input
-                            className="relative w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-md"
-                            placeholder="Buscar por nombre o teléfono..."
-                            value={search}
-                            onChange={e => handleSearch(e.target.value)}
-                        />
-                    </div>
+                <div className="flex items-center gap-2 sm:gap-3 md:h-10 flex-wrap w-full lg:w-auto max-sm:flex-nowrap max-sm:[&>*]:shrink-0 max-sm:overflow-x-auto mobile-strip">
+                    {/* T22/T23 — en móvil colapsa a lupa para no comerse la fila entera.
+                        Desde `sm` renderiza exactamente la misma barra de antes. */}
+                    <SearchField
+                        value={search}
+                        onChange={handleSearch}
+                        placeholder="Buscar por nombre o teléfono..."
+                        className="sm:w-72"
+                    />
 
                     {canCreatePatients && (
                         <button

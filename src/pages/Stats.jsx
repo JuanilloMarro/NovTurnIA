@@ -230,7 +230,10 @@ export default function Stats() {
                 </p>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Móvil: una sola fila deslizable, igual que en Citas. Ver la nota
+                extendida en Finance.jsx — mismo patrón, mismo motivo. Todo con
+                `max-sm:`, así que desde 640px nada cambia. */}
+            <div className="flex items-center gap-2 flex-wrap justify-end max-sm:w-full max-sm:flex-nowrap max-sm:[&>*]:shrink-0 max-sm:justify-start max-sm:overflow-x-auto mobile-strip">
                 {sharedControls}
 
                 {/* Tabs Métricas / Inteligencia */}
