@@ -86,7 +86,7 @@ export default function InsightDrawer({ action, initialRefId = null, initialPati
                     dos bloques separados que dejaban un hueco vacío arriba del
                     contenido cuando el análisis era corto). */}
                 <div className="relative z-10 flex items-center gap-3 p-4 pb-3">
-                    <button onClick={onClose} className="relative overflow-hidden w-7 h-7 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 hover:bg-white/60 shadow-md transition-colors shrink-0">
+                    <button onClick={onClose} className="relative overflow-hidden w-7 h-7 max-sm:w-10 max-sm:h-10 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 hover:bg-white/60 shadow-md transition-colors shrink-0">
                         <ChevronLeft size={16} className="relative z-10" />
                     </button>
                     <div className="w-10 h-10 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shrink-0 shadow-inner">

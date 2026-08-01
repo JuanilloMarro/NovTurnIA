@@ -232,6 +232,29 @@ Workflow activo `NovTurnAI`: **143 → 151 nodos**, aplicado por API con probes 
 
 ---
 
+## 20. Resiliencia, linter y dos bugs que aparecieron solos (2026-08-01)
+
+- [x] **RES-1 · `withRetry` v2 con full jitter y circuit breaker**
+  · **Full jitter**: la v1 esperaba 400ms y 800ms **exactos**, así que tras una caída de Supabase todas las pestañas de todos los tenants reintentaban en el mismo milisegundo y volvían a tumbar al servidor que se estaba recuperando. Medido: 2,000 muestras dan **722 valores distintos** donde la v1 daba 1.
+  · **Circuit breaker**: tras 5 fallos transitorios seguidos el circuito abre y las llamadas fallan de inmediato **sin tocar la red** por 10s; después deja pasar UNA sonda. Sin esto, con el backend caído cada lectura de cada pantalla gasta sus 3 intentos —el usuario espera varios segundos para ver el mismo error— mientras le sigue pegando al servidor. El estado es del módulo entero a propósito: el objetivo es proteger al backend, y todas las lecturas van al mismo backend.
+  · Es la misma lógica que ya corre y está probada del lado del servidor en `_shared/fetchUpstream.ts` (EDGE-2): se porta, no se inventa.
+  · **18 comprobaciones en verde** con `npm run verify:retry`. El proyecto no tiene runner de tests unitarios para `src/`, así que el script corre con `node` a secas.
+  · El breaker se resetea en `resetServiceCaches()`: si quedó abierto por una caída, la sesión nueva no debe arrancar fallando rápido sin siquiera probar la red.
+- [x] **COD-2 · ESLint** — config deliberadamente chica: cazar bugs, no imponer estilo sobre 200 archivos que ya funcionan. Quedan **0 errores y 148 warnings**.
+  ⚠️ La primera corrida dio **2,043 problemas**, y casi todo era ruido mío: 40 `no-undef` en `scripts/*.mjs` (hueco de config — los `.mjs` no matcheaban el patrón y se quedaban sin globals de Node), los worktrees de `.claude/` de sesiones viejas lintándose como código del proyecto, y 48 avisos de `react-hooks/set-state-in-effect` (regla nueva y muy opinada de v7) sobre patrones que acá funcionan. Esas se bajaron a `warn` a propósito: como error bloquearían cualquier CI futuro por código que hoy anda bien.
+  Los 3 errores reales que sí había se arreglaron: un escape innecesario en el regex de email, un `catch {}` vacío sin explicar, y un `catch (err) { throw err }` en `useAuth` que no hacía absolutamente nada.
+- [x] **`npm run check:tw` · detector del bug que ESLint NO puede ver** — el caso `max-sm:no-scrollbar` vive dentro de un string de `className`, que para el linter es texto opaco. El script compara el código contra el **CSS compilado**: si Tailwind no generó la regla, la utilidad no existe.
+  🐛 Costó dos intentos y los dos fallaron en la misma dirección — **inventar en vez de medir**. El primero adivinaba qué clases eran "propias" leyendo los selectores de `index.css`: 4 falsos positivos, marcaba `w-7` y `h-6` como propias solo porque aparecen dentro de la regla `button.w-7.h-7{…}` de T24. El segundo hacía match libre sobre la línea en vez de tokenizar por espacios: de `group-hover/ia:max-w-[90px]` sacaba `ia:max-w-[90px]`, 8 falsos más. Recién comparando contra el compilado y tokenizando por espacios el detector dice la verdad.
+- [x] **🐛 Y encontró 2 bugs REALES que estaban vivos en producción:**
+  1. **`hover:bg-navy-800` en 6 lugares — `navy-800` NO EXISTE** en la paleta (50/100/300/500/700/900). Esos 6 botones, incluidos el de `ErrorBoundary`, el de `ConfirmDialog` y dos del AdminPanel, **no tenían ningún hover**. Pasan a `navy-700`, el siguiente tono real; verificado que `.hover\:bg-navy-700:hover` ahora sí está en el CSS compilado.
+  2. **`md:custom-scrollbar` en `ScheduleConfigModal`** — el mismo bug exacto que `max-sm:no-scrollbar`: `custom-scrollbar` está fuera de `@layer utilities`, así que la variante compilaba a nada y ese panel mostraba la barra por defecto del navegador.
+- [x] **COD-3 · `console` en el bundle de producción** — ⚠️ **el backlog estaba mal planteado**: decía "30 archivos con `console.log/error/warn`". La cuenta real es **45 `console.error`, 1 `console.warn` (ya con guard) y CERO `console.log`**.
+  Eso cambia el arreglo. `console.error` en producción **no es ruido**: es lo que deja diagnosticar cuando un cliente reporta algo raro. Borrarlo a mano en 45 lugares sería trabajo para quedar peor. Lo que sí conviene sacar es la familia informativa. Resuelto con una línea de `esbuild.pure` en `vite.config.js`, que cubre todo el bundle sin tocar ni un archivo de `src/` y sin depender de que alguien se acuerde del guard.
+  Medido en el bundle: `console.log` **10 → 0** (venían de dependencias, ya que `src/` no tenía ninguno), `console.error` 68 y `console.warn` 19 **intactos**.
+- [x] **T24b · Los 5 botones táctiles que el CSS no alcanzaba** — eran los 5 el **botón de cerrar de los cajones**, o sea el objetivo táctil más importante del teléfono. Llevan `overflow-hidden` para recortar sus glows al círculo, y eso también recortaba el pseudo-elemento de T24. Se resolvió sin trucos: en teléfono pasan a 40px con `max-sm:w-10 max-sm:h-10`, el mismo tamaño que el resto de controles móviles del sistema. Medido: 375px → 40×40 visual con ~39px de área sensible; 1280px → **28×28, sin cambios**.
+
+---
+
 ## 17. Los 9 diagnósticos que resultaron falsos o mal atribuidos
 
 > Registro deliberado. Al trabajar los ítems a fondo, **nueve** describían el síntoma correcto pero señalaban la causa equivocada, o describían un defecto que ya no existía. Sirve para calibrar cuánta fe tenerle al resto del backlog.

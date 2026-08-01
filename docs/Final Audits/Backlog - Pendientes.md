@@ -83,7 +83,6 @@
 > *"si cambiaras estilos asegurate que se apliquen solo en telefono no en dimensiones mas grandes… la idea es que no me toques el estilo del actual"*.
 > En la práctica: cada regla nueva va dentro de una media query de pantalla chica o de una variante `max-sm:`, y **se verifica en el CSS compilado**, no en el fuente. El bloque "AJUSTES DE PANTALLA CHICA" de `index.css` es el patrón de referencia, y arriba de él está el contrato de capas.
 
-- [ ] **[IA] T24b · Los 5 botones táctiles que el CSS no alcanza** — la expansión de área táctil llega a 11 de los 16 controles chicos. Los otros 5 llevan `overflow-hidden` en el propio botón, que recorta el pseudo-elemento (medido: 26px de área sensible contra 42px sin él). No hay atajo por CSS: hay que envolverlos o quitarles el recorte, uno por uno, mirando que no se rompa el círculo.
 - [ ] **[IA] T25 · Escalón tipográfico móvil** — **110** usos bajo 10px (10 de 7px, 22 de 8px, 78 de 9px).
   ⚠️ **No aplicar un override global** aunque sea tentador (`.text-\[7px\]{font-size:10px}` en el bloque de teléfono): varios de esos 7px viven dentro de círculos de 14px (`w-3.5 h-3.5`, los pasos numerados del Pipeline) y subirlos los desborda. Es una pasada caso por caso con revisión visual — candidato para una sesión dedicada junto a T30.
 - [ ] **[IA] T21b · Reemplazar el resto de los `title=""` nativos** — quedan ~224. El componente `ui/Tooltip.jsx` ya existe y está adoptado en los avisos de plan, que eran los que más dolían. El resto es trabajo mecánico; conviene hacerlo por módulo.
@@ -96,7 +95,6 @@
 
 ## P5 — Resiliencia y observabilidad
 
-- [ ] **[IA] RES-1 · `withRetry` v2 con full jitter y circuit breaker** — el actual usa backoff determinista (400/800ms): tras una caída, **todas** las pestañas de **todos** los tenants reintentan en el mismo instante. La lógica ya existe escrita y probada del lado del servidor en `_shared/fetchUpstream.ts` — es portarla al cliente, no inventarla. *(Auditoría Técnica §2.5)*
 - [ ] **[IA] RES-2 · Onboarding atómico** — 4 escrituras secuenciales con compensación que solo borra `businesses` y está silenciada con `.catch(() => {})`. Si falla el paso 4 queda un usuario en `auth.users` sin `staff_users`: **login exitoso, dashboard vacío, y el email bloqueado para reintentar**. RPC `provision_tenant` lista *(Auditoría Técnica §2.4)*.
 - [ ] **[IA] OBS-1 · Correlation id extremo a extremo** — `set_request_context` + header en el cliente + tag en Sentry con hash de tenant (**no** el uuid). Diseño en *(Auditoría Técnica §3.2)*.
 - [ ] **[TÚ] OBS-2 · Sentry en producción** — `VITE_SENTRY_DSN` sin configurar en Vercel; `vite.config.js` sigue con `sourcemap: false` (cambiar a `'hidden'` + subir a Sentry CLI).
@@ -110,8 +108,7 @@
 ## P6 — Calidad de código
 
 - [ ] **[IA] COD-1 · `cache: 'no-store'` global** — `src/config/supabase.js:14` lo aplica a *todas* las peticiones, anulando el HTTP cache incluso en lecturas idempotentes. **Revisado y NO aplicado, a propósito**: invertir el default introduce riesgo real de lecturas rancias sobre datos clínicos, porque PostgREST no emite `Cache-Control` y el navegador cachea por heurística — que es justo el motivo por el que se agregó. Sobre `POST/PATCH/DELETE` la bandera no hace nada. Cerrarlo bien exige decidir **caso por caso** qué lecturas toleran staleness: es un trade-off de producto, no un bug.
-- [ ] **[IA] COD-2 · Sin ESLint configurado** — no existe `.eslintrc*` ni `eslint.config.*`. Con un plugin de Tailwind habría cazado el `max-sm:no-scrollbar` que compilaba a nada.
-- [ ] **[IA] COD-3 · 30 archivos con `console.log/error/warn` sin guard `import.meta.env.DEV`** — llegan a producción; solo 1 archivo usa el guard.
+- [ ] **[IA] COD-2b · Bajar los 148 warnings de ESLint** — el linter ya está configurado y en **0 errores**. Los warnings son 48 `no-unused-vars` (imports muertos de refactors viejos), 48 `react-hooks/set-state-in-effect`, 21 `react-refresh/only-export-components` y 17 `exhaustive-deps`. Ninguno rompe nada hoy; conviene bajarlos por módulo, no de corrido, y **`exhaustive-deps` es el que más vale la pena** — una dependencia faltante es estado rancio esperando a pasar.
 - [ ] **[IA] COD-6 · Auditoría profunda de permisos por módulo** — verificar que **todas** las acciones tengan permiso en `usePermissions`/`Users.jsx`/DB, no solo las 6 cerradas en la Pesada #3. EDGE-9 (una llave de permiso que no existía en ningún rol) es la prueba de que esta clase de fallo estaba sin barrer.
 - [ ] **[TÚ] COD-7 · Testear el sistema de punta a punta** — QA formal con click-through autenticado. Harness Fase A listo. ⏸️ Bloqueado en: crear el negocio semilla vía `/admin/new-tenant` (super-admin, humano) y completar `SEED_*` en `.env.test`.
 - [ ] **[TÚ] COD-8 · Versionado de la aplicación** — delimitar metas y features por versión.

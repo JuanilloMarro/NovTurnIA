@@ -67,7 +67,7 @@ export default function PendingValidationDrawer({ entry, canConfirm, canVoid, on
 
             {/* Header */}
             <div className="relative z-10 flex items-center gap-2 p-4">
-                <button onClick={onClose} className="relative overflow-hidden w-7 h-7 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-700 hover:bg-white/60 shadow-md transition-colors">
+                <button onClick={onClose} className="relative overflow-hidden w-7 h-7 max-sm:w-10 max-sm:h-10 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-700 hover:bg-white/60 shadow-md transition-colors">
                     <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
                     <div className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                     <ChevronLeft size={16} className="relative z-10" />
