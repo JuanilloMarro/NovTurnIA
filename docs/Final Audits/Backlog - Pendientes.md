@@ -153,9 +153,9 @@ Mi recomendación es **(C)**: el sidebar es el que se come la pantalla, y es un 
 
 ### Fase 5 — gráficas
 
-- [ ] **[IA] T15 · Hook `useChartHeight()`** (200/260/320 px por breakpoint).
-- [ ] **[IA] T16 · Sustituir los 7 altos porcentuales por píxeles** — al pasar a una columna el padre resuelve a `auto` y las gráficas renderizan con **0px**.
-- [ ] **[IA] T17 · Variantes móviles de gráfica** — radar→lista, donut→barra apilada, LTV→solo ranking.
+- [ ] ~~**T15 · Hook `useChartHeight()`**~~ · ~~**T16 · Sustituir los 7 altos porcentuales por píxeles**~~ — **RETIRADOS 2026-07-31, el diagnóstico era falso.** T16 afirmaba que "al pasar a una columna el padre resuelve a `auto` y las gráficas renderizan con **0px**". **Medido en navegador y no ocurre**: los 7 `ResponsiveContainer` porcentuales cuelgan de contenedores con alto resuelto — `ChartPanel` lleva `style={{minHeight:320}}` y las `Card` de Inteligencia `min-h-[300px]`, y como ambas viven en un `grid`, los items **se estiran** y de ahí sale el alto definido contra el que resuelve el `height="100%"`. Sonda a 375 / 768 / 1280px: el contenedor de gráfica mide `327x150`, `306x208` y `297x208` — nunca 0.
+  🐛 **Cómo se produjo el falso positivo, por si vuelve a pasar**: mi primera sonda reprodujo la tarjeta **sin** el grid que la envuelve y ahí sí midió altura 0. El `h-full` interno depende de que el grid estire la tarjeta. **Una sonda que no reproduce el contenedor real miente**, y miente en la dirección de confirmar el bug que estás buscando. Si T15/T16 vuelven a aparecer en una auditoría, exigí la medición **con el grid puesto**.
+- [x] ~~**[IA] T17 · Variantes móviles de gráfica**~~ — **CERRADO 2026-07-31**, ver Completadas §16.
 - [ ] **[IA] T18 · Calendario mensual en móvil como agenda vertical** — `grid-cols-7` da celdas de 49px.
 
 ### Fase 7 — detalle fino

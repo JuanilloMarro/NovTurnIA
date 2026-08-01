@@ -142,8 +142,13 @@ function LTVChart({ data, loading, error }) {
     };
 
     return (
+        // T17 · En teléfono la barra se oculta y el ranking toma el ancho completo.
+        // No se pierde información: la lista de la derecha ya trae el monto, el
+        // número de citas y la última visita de cada paciente — la barra solo los
+        // grafica. A 375px ese 40% son ~120px y los nombres del 60% restante
+        // quedaban truncados a dos letras.
         <div className="flex items-center gap-6 h-full">
-            <div className="w-[40%] h-full flex items-end">
+            <div className="w-[40%] h-full flex items-end max-sm:hidden">
                 <ResponsiveContainer width="100%" height="85%">
                     <BarChart data={chartData} margin={{ top: 15, right: 0, bottom: 0, left: 0 }} barSize={28}>
                         <XAxis dataKey="display_name" hide />
@@ -155,7 +160,7 @@ function LTVChart({ data, loading, error }) {
                     </BarChart>
                 </ResponsiveContainer>
             </div>
-            <div className="w-[60%] flex flex-col gap-1.5">
+            <div className="w-[60%] flex flex-col gap-1.5 max-sm:w-full">
                 {chartData.map((p, i) => (
                     <div key={i} className="bg-navy-900/3 rounded-2xl p-3 flex flex-col border border-navy-900/5">
                         <div className="flex items-center justify-between mb-0.5">
@@ -191,8 +196,12 @@ function RetentionGauge({ data, loading, error }) {
     const gaugeData = [{ name: 'Retención', value: pct, fill: color }];
 
     return (
-        <div className="flex items-center gap-6 h-full">
-            <div className="relative w-[45%] h-full flex items-center justify-center">
+        // T17 · En teléfono se apila: el medidor arriba a ancho completo con alto
+        // propio (`h-[150px]`, que es lo que hace resolver el `height="100%"` del
+        // ResponsiveContainer cuando el padre deja de tener alto heredado) y las
+        // dos tarjetas debajo en fila.
+        <div className="flex items-center gap-6 h-full max-sm:flex-col max-sm:gap-3 max-sm:justify-center">
+            <div className="relative w-[45%] h-full flex items-center justify-center max-sm:w-full max-sm:h-[150px] max-sm:shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                     <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" startAngle={210} endAngle={-30} data={gaugeData} barSize={18}>
                         <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
@@ -204,12 +213,12 @@ function RetentionGauge({ data, loading, error }) {
                     <span className="text-[10px] font-bold text-navy-900/40 tracking-widest mt-1">Ratio</span>
                 </div>
             </div>
-            <div className="w-[55%] flex flex-col gap-3">
-                <div className="bg-navy-900/3 rounded-2xl p-5 flex flex-col border border-navy-900/5">
+            <div className="w-[55%] flex flex-col gap-3 max-sm:w-full max-sm:flex-row max-sm:gap-2">
+                <div className="bg-navy-900/3 rounded-2xl p-5 flex flex-col border border-navy-900/5 max-sm:flex-1 max-sm:p-3.5">
                     <span className="text-2xl font-bold text-navy-900 leading-none">{retained}</span>
                     <span className="text-[11px] font-bold text-navy-900/40 mt-1">Retornaron</span>
                 </div>
-                <div className="bg-navy-900/3 rounded-2xl p-5 flex flex-col border border-navy-900/5">
+                <div className="bg-navy-900/3 rounded-2xl p-5 flex flex-col border border-navy-900/5 max-sm:flex-1 max-sm:p-3.5">
                     <span className="text-2xl font-bold text-navy-900 leading-none">{total}</span>
                     <span className="text-[11px] font-bold text-navy-900/40 mt-1">Activos</span>
                 </div>
@@ -227,8 +236,12 @@ function PredictionRadar({ data, loading, error }) {
     const top3 = [...data].sort((a, b) => b.avg_appointments - a.avg_appointments).slice(0, 3);
 
     return (
-        <div className="flex items-center gap-6 h-full">
-            <div className="w-[45%] h-full flex items-center justify-center">
+        // T17 · En teléfono se apila. El radar NO se oculta —a diferencia del LTV—
+        // porque grafica los 7 días y la lista de abajo solo muestra el top 3: es
+        // información que no está en ningún otro lado. Va a ancho completo con
+        // `h-[190px]`, el mínimo donde las etiquetas de día siguen legibles.
+        <div className="flex items-center gap-6 h-full max-sm:flex-col max-sm:gap-3">
+            <div className="w-[45%] h-full flex items-center justify-center max-sm:w-full max-sm:h-[190px] max-sm:shrink-0">
                 <ResponsiveContainer width="100%" height="90%">
                     <RadarChart data={data} cx="50%" cy="50%" outerRadius="80%">
                         <PolarGrid stroke="rgba(15,32,68,0.1)" />
@@ -237,7 +250,7 @@ function PredictionRadar({ data, loading, error }) {
                     </RadarChart>
                 </ResponsiveContainer>
             </div>
-            <div className="w-[55%] flex flex-col gap-2">
+            <div className="w-[55%] flex flex-col gap-2 max-sm:w-full">
                 {top3.map((d, i) => (
                     <div key={i} className="bg-navy-900/3 rounded-2xl p-3.5 flex items-center justify-between border border-navy-900/5">
                         <span className="text-[11px] font-bold text-navy-900/40">{d.day_label}</span>
