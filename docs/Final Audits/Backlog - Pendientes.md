@@ -137,7 +137,9 @@ Mi recomendación es **(C)**: el sidebar es el que se come la pantalla, y es un 
 
 ### Fase 6 — componentes del sistema *(en curso, sin bloqueos)*
 
-- [ ] **[IA] T23 · Adoptar `SearchField` en las páginas restantes** — el componente existe y está verificado (T22, Completadas §16). Adoptado hoy en: **Clientes**. Faltan: Conversaciones, Re-agendación, Ofertas, Servicios, Seguimiento, Actividad, Historial de paciente, las 3 secciones de Finanzas (Ingresos, Egresos, Por cobrar) y AdminPanel. Como el markup expandido es idéntico al inline, adoptarlo **no cambia nada desde `sm`**.
+- [ ] **[IA] T23 · Búsqueda colapsable — queda solo AdminPanel** — ⚠️ **la auditoría decía "adoptar en las 9 páginas" y eso era un error de diagnóstico**: de los 9 buscadores, solo **5 tenían el problema**. El síntoma real es `w-full` en móvil, que se lleva la fila entera y empuja los botones de acción a una segunda línea. Los buscadores que ya viven como `flex-1` dentro de un panel de lista angosto (**Ofertas, Servicios, Conversaciones**) ya comparten fila con sus botones: colapsarlos dejaría una fila casi vacía, o sea **peor**. Y el de **Historial de paciente** está dentro de un `hidden lg:flex`: por debajo de 1024px no existe.
+  **Cerrado en:** Clientes, Re-agendación, Actividad, Seguimiento (`ui/SearchField`) e Ingresos · Egresos · Por cobrar (el colapso se agregó a `LedgerSearch` en `financeUi.jsx`, **no** se cambió por `SearchField`: Finanzas tiene su propio estilo de campo más chico y sustituirlo habría cambiado el aspecto en escritorio).
+  **Falta:** AdminPanel (pantalla de super-admin, no la ve el cliente — prioridad baja).
 - [ ] **[IA] T19 · Componente `<Tooltip>`** por portal, lenguaje glass, detección de borde.
 - [ ] **[IA] T20 · Comportamiento táctil del tooltip.**
 - [ ] **[IA] T21 · Reemplazar los ~162 `title=""` nativos** — invisibles en táctil, no estilizables. Depende de T19.

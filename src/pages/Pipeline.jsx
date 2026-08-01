@@ -9,6 +9,7 @@ import { useAppStore } from '../store/useAppStore';
 import PipelineBoard from '../components/Pipeline/PipelineBoard';
 import NewAppointmentModal from '../components/Calendar/NewAppointmentModal';
 import FeatureLock from '../components/FeatureLock';
+import SearchField from '../components/ui/SearchField';
 
 const DAYS_OPTIONS = [
     { id: 15, label: '15 días' },
@@ -188,19 +189,16 @@ export default function Pipeline() {
                 Actualizar/Filtros bajan a una segunda línea, pero el h-10 fijo
                 recortaba esos 48px de más. Medido: caja 40px vs contenido 88px. */}
             <div className="flex items-center gap-2 sm:gap-3 h-10 max-sm:h-auto flex-wrap shrink-0">
-                <div className="relative w-full sm:w-56 h-10">
-                    <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                    <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700 z-10">
-                        <Search size={14} strokeWidth={2.5} />
-                    </div>
-                    <input
-                        className="relative w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-md"
-                        placeholder="Buscar cliente…"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                    />
-                </div>
+                {/* T22/T23 — en móvil colapsa a lupa, así Actualizar y Filtros se
+                    quedan en la misma fila. El `max-sm:h-auto` de arriba sigue
+                    haciendo falta: al ABRIR la búsqueda el campo vuelve a tomar la
+                    fila entera y los botones bajan a la segunda línea. */}
+                <SearchField
+                    value={search}
+                    onChange={setSearch}
+                    placeholder="Buscar cliente…"
+                    className="sm:w-56"
+                />
 
                 <button
                     onClick={reload}

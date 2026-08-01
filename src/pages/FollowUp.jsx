@@ -6,6 +6,7 @@ import { getAppointmentById } from '../services/supabaseService';
 import FollowUpList from '../components/Calendar/FollowUpList';
 import AppointmentDrawer from '../components/Calendar/AppointmentDrawer';
 import FeatureLock from '../components/FeatureLock';
+import SearchField from '../components/ui/SearchField';
 import { RefreshCw, SlidersHorizontal, Lock, UserX, X as XIcon, ChevronRight, ChevronLeft, Phone, Calendar as CalendarIcon, Clock, Tag, RotateCcw, MessageCircle, Trash2, Search } from 'lucide-react';
 
 const MOCK_FOLLOWUP = [
@@ -234,20 +235,15 @@ export default function FollowUp() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto justify-start lg:justify-end overflow-x-auto lg:overflow-visible">
-                    <div className="relative w-full sm:w-64 h-10 shrink-0">
-                        <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700 z-10">
-                            <Search size={14} strokeWidth={2.5} />
-                        </div>
-                        <input
-                            className="relative w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-md"
-                            placeholder="Buscar por nombre o teléfono..."
-                            value={followUpSearch}
-                            onChange={e => setFollowUpSearch(e.target.value)}
-                        />
-                    </div>
+                <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto justify-start lg:justify-end overflow-x-auto lg:overflow-visible max-sm:flex-nowrap max-sm:[&>*]:shrink-0 mobile-strip">
+                    {/* T22/T23 — en móvil colapsa a lupa para no comerse la fila entera.
+                        Desde `sm` renderiza exactamente la misma barra de antes. */}
+                    <SearchField
+                        value={followUpSearch}
+                        onChange={setFollowUpSearch}
+                        placeholder="Buscar por nombre o teléfono..."
+                        className="sm:w-64 shrink-0"
+                    />
                     <button
                         onClick={() => setFollowUpReloadKey(k => k + 1)}
                         disabled={followUpLoading}

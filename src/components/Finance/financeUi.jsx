@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, Search } from 'lucide-react';
 import WheelColumn from '../ui/WheelColumn';
@@ -87,19 +87,66 @@ export function exportFinanceCsv({ income = [], expenses = [], methods = [], lab
 
 // Buscador compacto para filtrar los libros (Ingresos/Egresos/Por cobrar).
 // `wide` amplía el ancho (Ingresos/Egresos venían muy cortos para el texto).
+// T23 · Mismo comportamiento que `ui/SearchField` pero conservando el estilo
+// propio de los libros de Finanzas (más chico, `py-2`, `shadow-sm`, sin glows):
+// por eso NO se reemplaza por aquel componente — cambiaría el aspecto en
+// escritorio, que es justo lo que no se toca.
+//
+// El problema en móvil: el campo es `w-full`, así que dentro del
+// `flex items-center gap-2` que comparte con "Registrar ingreso" / "Nuevo plan"
+// se lleva la fila entera y aplasta el botón. Colapsado a lupa, los dos entran.
+// Desde `sm` el markup expandido es idéntico al de antes.
 export function LedgerSearch({ value, onChange, placeholder = 'Buscar…', wide = false }) {
+    const [open, setOpen] = useState(false);
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+        if (open) inputRef.current?.focus();
+    }, [open]);
+
+    const collapse = () => {
+        onChange('');
+        setOpen(false);
+    };
+
     return (
-        <div className={`relative w-full ${wide ? 'sm:w-96' : 'sm:w-64'}`}>
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700/40">
+        <>
+            {/* Colapsado — solo por debajo de sm. Alto 34px para calzar con el
+                `py-2 + text-[12px]` del campo expandido y con los AddBtn de al lado. */}
+            <button
+                type="button"
+                onClick={() => setOpen(true)}
+                aria-label="Buscar"
+                aria-expanded={open}
+                className={`${open ? 'hidden' : 'flex'} sm:hidden relative shrink-0 w-[34px] h-[34px] items-center justify-center bg-white/40 border border-white/60 rounded-full shadow-sm text-navy-700/40 outline-none transition-all`}
+            >
                 <Search size={14} strokeWidth={2.5} />
+                {value && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-navy-700" />}
+            </button>
+
+            <div className={`${open ? 'block' : 'hidden'} sm:block relative w-full ${wide ? 'sm:w-96' : 'sm:w-64'}`}>
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700/40">
+                    <Search size={14} strokeWidth={2.5} />
+                </div>
+                <input
+                    ref={inputRef}
+                    value={value}
+                    onChange={e => onChange(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Escape') collapse(); }}
+                    placeholder={placeholder}
+                    className="w-full bg-white/40 border border-white/60 rounded-full pl-9 pr-9 sm:pr-4 py-2 text-[12px] font-semibold outline-none focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/40 shadow-sm text-navy-900"
+                />
+                {/* Cierre solo en móvil: desde sm el campo no colapsa nunca */}
+                <button
+                    type="button"
+                    onClick={collapse}
+                    aria-label="Cerrar búsqueda"
+                    className="sm:hidden absolute inset-y-0 right-0 pr-3 flex items-center text-navy-700/40 hover:text-navy-900"
+                >
+                    <X size={14} strokeWidth={2.5} />
+                </button>
             </div>
-            <input
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                placeholder={placeholder}
-                className="w-full bg-white/40 border border-white/60 rounded-full pl-9 pr-4 py-2 text-[12px] font-semibold outline-none focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-700/40 shadow-sm text-navy-900"
-            />
-        </div>
+        </>
     );
 }
 

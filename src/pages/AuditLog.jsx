@@ -5,6 +5,7 @@ import { formatPhone } from '../utils/format';
 import { downloadCSV } from '../utils/export';
 import { withTimeout } from '../utils/withTimeout';
 import FeatureLock from '../components/FeatureLock';
+import SearchField from '../components/ui/SearchField';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { usePermissions } from '../hooks/usePermissions';
 
@@ -383,23 +384,15 @@ export default function AuditLog() {
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
                     <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{filtered.length} registros</p>
                 </div>
-                <div className="flex items-center gap-2 md:h-10 flex-wrap w-full lg:w-auto">
-                    {/* Search bar */}
-                    <div className="relative w-full sm:w-64 h-10">
-                        <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="absolute -top-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(29,95,173,0.05)' }} />
-                        <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
-                        <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700 z-10">
-                            <Search size={14} strokeWidth={2.5} />
-                        </div>
-                        <input
-                            className="w-full h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full pl-10 pr-4 text-xs font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all placeholder-navy-900/60 shadow-md"
-                            placeholder="Buscar por acción o usuario..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
+                <div className="flex items-center gap-2 md:h-10 flex-wrap w-full lg:w-auto max-sm:flex-nowrap max-sm:[&>*]:shrink-0 max-sm:overflow-x-auto mobile-strip">
+                    {/* T22/T23 — en móvil colapsa a lupa para no comerse la fila entera.
+                        Desde `sm` renderiza exactamente la misma barra de antes. */}
+                    <SearchField
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Buscar por acción o usuario..."
+                        className="sm:w-64"
+                    />
 
                     {/* Refresh */}
                     <button
