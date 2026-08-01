@@ -12,7 +12,7 @@
 |---|---|---|---|
 | 1 | **Todo n8n** (A1 recableado · A3 · A5 · A9 · A7) | El túnel de Cloudflare está apagado; la instancia es inalcanzable. El diff de A1+A3+A9 está preparado y verificado (10 nodos, 16 cambios, `payload.json` + `pre.json` de rollback), esperando túnel | **[TÚ]** — levantar el túnel |
 | 2 | **A2 · rotar el `service_role`** | ⛔ **Orden obligatorio**: la clave vieja está embebida en 20 nodos que hoy no se pueden editar. Rotar ahora deja el bot muerto cuando vuelva el túnel. Secuencia: túnel arriba → migrar los 20 nodos a credencial *Header Auth* → **recién ahí** rotar | **[TÚ]**, en ese orden |
-| 3 | **INF-1 · paridad de migraciones** | **140** en producción contra **38** archivos en el repo. Sin branch ni PITR (free tier), el repositorio es la única red de seguridad que existe | **[TÚ]** — CLI de Supabase + contraseña de DB |
+| 3 | **INF-1 · paridad de migraciones** | Medido y nombrado: **120** migraciones de producción sin contraparte en el repo (ver el documento del delta). Sin branch ni PITR (free tier), el repositorio es la única red de seguridad que existe | **[TÚ]** — CLI de Supabase + contraseña de DB |
 | 4 | **VER-1 · smoke test de `wa-human-reply` v7** | La ventana de 24h de WhatsApp está cerrada (hace falta que un cliente escriba primero) | **[TÚ]**, cuando se abra |
 | 5 | **OPS-1 · credencial de WhatsApp sandbox** | Los nodos `WA - Respuesta *` firman con una credencial que Meta rechaza (`GraphMethodException 100/33`) | **[TÚ]** |
 | 6 | **EDGE-4 · allowlist de CORS** | Falta el origen exacto de Vercel | **[TÚ]** — pasarme el dominio |
@@ -23,7 +23,8 @@
 
 ## P0 — Bloqueantes y vulnerabilidades abiertas
 
-- [ ] **[MIXTO] INF-1 · Reproducibilidad: 140 migraciones en producción contra 38 en el repositorio** — el modelo comercial, Finanzas v2, vouchers, agenda avanzada, Centro IA y los triggers de límite no existen en el código. Un restore desde el repositorio produce **un sistema distinto**. *(Infraestructura §2 I1)*
+- [ ] **[TÚ] INF-1 · Reproducibilidad: faltan 120 migraciones en el repositorio** — ➡️ **el delta ya está medido y nombrado, migración por migración, en [INF-1 - Delta de migraciones.md](INF-1%20-%20Delta%20de%20migraciones.md)**. Deja de ser un número difuso: son 141 en producción contra 39 archivos, 21 coinciden, y las 120 que faltan incluyen Finanzas v2 entera, Centro IA, vouchers, Pipeline, agenda avanzada, dunning y los triggers de límite. Un `db reset` desde este repo **no reconstruye producción**.
+  **Cómo cerrarlo** (3 comandos, están en el documento): `supabase link` → `supabase db pull` → `supabase migration list`. `db pull` genera **una** línea base con el esquema completo, que es lo correcto: reconstruir 120 migraciones históricas una por una no aporta nada frente a un baseline que sí reproduce el sistema. Requiere el CLI y la contraseña de la base — por eso es tuyo. *(Infraestructura §2 I1)*
 - [ ] **[IA] A1 · Cancelación de turnos sin aislamiento de tenant** — los 3 nodos `Tool - Cancelar Cita` hacen `PATCH /rest/v1/appointments?id=eq.{{ $fromAI('appointment_id') }}` con `service_role` (salta la RLS) y **sin filtro de `business_id`**; el UUID lo decide el LLM. Los otros 17 tools sí acotan: es la única excepción. La mitad de DB ya está cerrada; **el agujero sigue abierto** hasta recablear los 3 nodos. ⛔ Bloqueo 1. *(Automatización IA §4.1)*
 - [ ] **[TÚ] A2 · `service_role` en texto plano en 20 nodos** — las claves viajan en `jsonHeaders` dentro del JSON del workflow, no en el almacén de credenciales. Cualquiera con acceso al editor o a la API obtiene una llave que ignora toda la RLS. ⛔ Bloqueo 2 — respetar el orden.
 - [ ] **[TÚ] VER-1 · Smoke test de `wa-human-reply` v7** — enviar un mensaje desde Conversaciones y confirmar que llega. Es la única función donde el `requireEnv` nuevo podría fallar **al arrancar** si faltara un secret. Rollback: redesplegar v6. ⛔ Bloqueo 4.
@@ -56,7 +57,6 @@
 
 *(Infraestructura Supabase §8 · Auditoría Técnica §6)*
 
-- [ ] **[IA] INF-8 · `statement_timeout` e `idle_in_transaction_session_timeout` por rol** — el riesgo de saturación no está en Supavisor sino en el pool de PostgREST, **único y compartido entre tenants**. SQL en *(Auditoría Técnica §3.1)*.
 - [ ] **[TÚ] INF-11 · Migrar `whatsapp_token` a Supabase Vault** — texto plano en 1 de 2 negocios; `supabase_vault` está instalado y sin usar.
 - [ ] **[IA] INF-12 · Gate `has_feature()` en políticas de escritura premium** — solo 2 de **116** políticas lo usan, ambas de Centro IA. El resto de módulos premium se gatea únicamente en el frontend. Caso testigo confirmado por `supabase/tests/security/verb_asymmetry_detector.sql`: `ai_chat_messages` tiene `has_feature` en SELECT pero no en DELETE. **Incluye la deuda que dejó INF-2**: cerrar `get_user_business_id`, `is_business_active` y `has_feature` a `anon` exige reescribir antes las ~50 políticas `TO public` que las tienen embebidas.
 - [ ] **[IA] INF-14 · Auditoría asíncrona vía `pgmq`** — los triggers de `audit_log` siguen síncronos dentro de la transacción de negocio. Aceptado por volumen actual.

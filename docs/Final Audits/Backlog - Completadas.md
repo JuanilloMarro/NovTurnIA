@@ -255,6 +255,19 @@ Workflow activo `NovTurnAI`: **143 → 151 nodos**, aplicado por API con probes 
 
 ---
 
+## 21. Infraestructura y medición de INF-1 (2026-08-01)
+
+- [x] **INF-8 · Topes por rol** — ⚠️ **el diagnóstico estaba a medias**. Decía "falta `statement_timeout` e `idle_in_transaction_session_timeout` por rol". Medido antes de tocar: `statement_timeout` **ya existía** donde importa (anon 3s, authenticated 8s, authenticator 8s + lock_timeout). Lo que faltaba de verdad era otra cosa:
+  · **`idle_in_transaction_session_timeout` estaba en 0 — desactivado para todos.** Una transacción abierta y abandonada retenía locks y una conexión del pool indefinidamente. Ahora 60s (authenticated/service_role) y 30s (anon).
+  · **`service_role` no tenía ningún límite**, y es justo el rol con el que entran el bot y las Edge Functions: heredaba el default de 2 minutos por consulta sobre un pool compartido, que es exactamente el modo de fallo que INF-8 quería evitar. Ahora 30s.
+  **Los números salieron de medir, no de estimar** (`pg_stat_statements`, 4,443 consultas): pico máximo 10,075ms, cero consultas sobre 20s, y las 7 que pasan de 5s son **todas internas de Supabase** (decodificación WAL de realtime, listados de Studio) — ninguna de la aplicación. 30s es el triple del peor pico real.
+  ⚠️ Los ajustes de rol se aplican al abrir la conexión; PostgREST mantiene pool, así que las abiertas siguen con los valores viejos hasta reciclarse. Se renuevan solas.
+- [x] **INF-1 · El delta ya está medido y nombrado** — el ítem sigue abierto (cerrarlo necesita el CLI y la contraseña de la base), pero dejó de ser un número difuso. Ver [INF-1 - Delta de migraciones.md](INF-1%20-%20Delta%20de%20migraciones.md): **141 en producción contra 39 archivos, 21 coinciden, 120 sin contraparte**, listadas una por una y agrupadas por mes.
+  El documento también aclara la otra dirección del delta, que nadie había mirado: **18 archivos del repo no existen en producción**. No son un error — son los `001_` a `023_` numerados a mano, de antes de que existiera el seguimiento de migraciones. Su contenido sí está aplicado, pero **no cuentan como respaldo**: no se pueden re-aplicar en orden.
+  Y trae la receta concreta (3 comandos) más el argumento de por qué `db pull` a una línea base es lo correcto acá, en vez de reconstruir 120 migraciones históricas que no aportan nada frente a un baseline que sí reproduce el sistema.
+
+---
+
 ## 17. Los 9 diagnósticos que resultaron falsos o mal atribuidos
 
 > Registro deliberado. Al trabajar los ítems a fondo, **nueve** describían el síntoma correcto pero señalaban la causa equivocada, o describían un defecto que ya no existía. Sirve para calibrar cuánta fe tenerle al resto del backlog.
