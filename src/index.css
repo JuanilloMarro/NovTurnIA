@@ -447,30 +447,37 @@ body::before {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   AJUSTES EXCLUSIVOS DE TELÉFONO
+   AJUSTES DE PANTALLA CHICA
    ───────────────────────────────────────────────────────────────────────────
-   REGLA DE ORO DE ESTE BLOQUE: el lenguaje visual de escritorio y tablet NO se
-   toca. Todo lo que viva acá adentro está encerrado en una media query que
-   corta en 767.98px, así que para cualquier pantalla de 768px o más estas
-   reglas **no existen**: el navegador ni siquiera las evalúa. Cero propiedades
-   sobrescritas, cero riesgo de que un ajuste de móvil se filtre al diseño
-   actual.
+   REGLA DE ORO DE ESTE BLOQUE: el lenguaje visual de escritorio NO se toca.
+   Todo lo que viva acá adentro está encerrado en una media query, así que por
+   encima de su límite estas reglas **no existen**: el navegador ni siquiera
+   las evalúa. Cero propiedades sobrescritas, cero riesgo de filtración.
 
-   Por qué 767.98px y no otro número: es exactamente el punto donde Tailwind
-   activa `md:`. Debajo de ese ancho el sidebar es un cajón deslizable; desde
-   ahí queda fijo dentro del marco de vidrio (`md:translate-x-0`). Cortar en el
+   Por qué 1023.98px y no otro número: es exactamente el punto donde Tailwind
+   activa `lg:`. Debajo de ese ancho el sidebar es un cajón deslizable; desde
+   ahí queda fijo dentro del marco de vidrio (`lg:translate-x-0`). Cortar en el
    mismo lugar garantiza que estas reglas solo alcancen al caso del cajón.
 
-   Si hace falta agregar más ajustes de móvil, van ACÁ DENTRO, no como clases
-   sueltas en el JSX — así queda un solo lugar que auditar.
+   ⚠️ ESTE LÍMITE ESTÁ ACOPLADO AL JSX. Si algún día el sidebar vuelve a `md:`,
+   hay que mover este número con él — si no, el cajón se desliza sin fondo (el
+   bug original de T6) o el fondo aparece cuando el sidebar ya está fijo. Los
+   anclajes que deben coincidir son cinco:
+     · `App.jsx`      → `lg:ml-[272px]`
+     · `Topbar.jsx`   → `lg:hidden` en el botón de hamburguesa
+     · `Sidebar.jsx`  → `lg:hidden` en el velo, `lg:translate-x-0` en el aside
+                        y el `window.innerWidth < 1024` de `closeMobile`
+
+   Si hace falta agregar más ajustes de pantalla chica, van ACÁ DENTRO, no como
+   clases sueltas en el JSX — así queda un solo lugar que auditar.
    ═══════════════════════════════════════════════════════════════════════════ */
-@media (max-width: 767.98px) {
+@media (max-width: 1023.98px) {
   /* T6 — El cajón necesita superficie propia.
-     En móvil el `<aside>` se desliza sobre el contenido, pero es
+     Mientras es cajón el `<aside>` se desliza sobre el contenido, pero es
      `bg-transparent`: el menú se leía encima de la pantalla de atrás, con los
-     dos textos superpuestos. En escritorio/tablet el aside vive DENTRO del
-     marco de vidrio y ahí la transparencia es correcta y deliberada — por eso
-     el fondo se agrega solo acá y no se toca la clase original. */
+     dos textos superpuestos. En escritorio el aside vive DENTRO del marco de
+     vidrio y ahí la transparencia es correcta y deliberada — por eso el fondo
+     se agrega solo acá y no se toca la clase original. */
   .sidebar-drawer {
     background-color: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(24px) saturate(180%);

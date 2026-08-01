@@ -71,7 +71,7 @@ export default function Topbar() {
             {/* Hamburger — solo mobile */}
             <button
                 onClick={toggleSidebar}
-                className="md:hidden w-9 h-9 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-900 shadow-sm hover:bg-white/80 transition-all"
+                className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-900 shadow-sm hover:bg-white/80 transition-all"
                 aria-label="Abrir menú"
             >
                 <Menu size={18} />
