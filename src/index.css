@@ -445,3 +445,37 @@ body::before {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 1.5rem);
   padding-left: max(env(safe-area-inset-left, 0px), 1.5rem);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AJUSTES EXCLUSIVOS DE TELÉFONO
+   ───────────────────────────────────────────────────────────────────────────
+   REGLA DE ORO DE ESTE BLOQUE: el lenguaje visual de escritorio y tablet NO se
+   toca. Todo lo que viva acá adentro está encerrado en una media query que
+   corta en 767.98px, así que para cualquier pantalla de 768px o más estas
+   reglas **no existen**: el navegador ni siquiera las evalúa. Cero propiedades
+   sobrescritas, cero riesgo de que un ajuste de móvil se filtre al diseño
+   actual.
+
+   Por qué 767.98px y no otro número: es exactamente el punto donde Tailwind
+   activa `md:`. Debajo de ese ancho el sidebar es un cajón deslizable; desde
+   ahí queda fijo dentro del marco de vidrio (`md:translate-x-0`). Cortar en el
+   mismo lugar garantiza que estas reglas solo alcancen al caso del cajón.
+
+   Si hace falta agregar más ajustes de móvil, van ACÁ DENTRO, no como clases
+   sueltas en el JSX — así queda un solo lugar que auditar.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 767.98px) {
+  /* T6 — El cajón necesita superficie propia.
+     En móvil el `<aside>` se desliza sobre el contenido, pero es
+     `bg-transparent`: el menú se leía encima de la pantalla de atrás, con los
+     dos textos superpuestos. En escritorio/tablet el aside vive DENTRO del
+     marco de vidrio y ahí la transparencia es correcta y deliberada — por eso
+     el fondo se agrega solo acá y no se toca la clase original. */
+  .sidebar-drawer {
+    background-color: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-right: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 20px 50px rgba(26, 58, 107, 0.18);
+  }
+}
