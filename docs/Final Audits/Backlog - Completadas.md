@@ -214,6 +214,24 @@ Workflow activo `NovTurnAI`: **143 → 151 nodos**, aplicado por API con probes 
 
 ---
 
+## 19. Modelo de negocio — cupos, oferta y cobranza (2026-08-01)
+
+- [x] **B3 · Cupos v3 en producción** — `max_conversations` 1,050 / 3,000 / 6,750 · `max_patients` 70 / 200 / 450 · retención Pro 3→6 meses.
+  ⚠️ **Esta migración BAJA cupos** (Pro 5,000→3,000, Enterprise 20,000→6,750, y le pone techo a `max_patients` de Enterprise que era ∞). Por eso **antes de aplicarla se midió el consumo real de los 3 negocios**: el máximo son **22 mensajes salientes** contra un cupo nuevo de 6,750, y el negocio con más pacientes tiene **6** contra 450. Nadie quedaba por encima, así que nadie perdió el bot. Verificado negocio por negocio después de aplicar. `limit_overrides` sigue siendo la vía de escape si alguien necesita más.
+- [x] **F4 · Centro IA en el modal de Planes** — no aparecía **ni una fila** sobre el módulo, siendo el diferenciador que justifica el salto Básico→Pro: era invisible justo en la pantalla donde se decide la compra. Se agregó la sección con 9 filas (asistente de negocio, resumen y estrategia por cliente, reporte semanal, narrativa de KPIs, retención, narrativa financiera, generación de contenido) y el techo de tokens leído de `plans.ai_weekly_tokens`, mostrado en miles porque "750000" no le dice nada a nadie en una tabla de venta. "Centro IA" pasó además a encabezar los highlights de Pro.
+- [x] **F5 · Mensajes adicionales visibles** — fila de paquetes y de aviso al 80% en la sección Conversaciones. Los paquetes existían en la base desde B4 y no se mencionaban en ningún lado: el cliente que se pasaba del cupo no sabía que tenía salida.
+- [x] **F3b · El CTA "Comprar paquete" se habilita** — estuvo apagado con la leyenda "Pronto" mientras no existía `businesses.extra_messages`. Abre el modal de Planes, donde ahora vive la fila de mensajes adicionales. **No cobra**: no hay pasarela todavía (PROD-12) y la carga la hace el super-admin. Prometer un cobro que no existe sería peor que el botón apagado.
+- [x] **F7 · AdminPanel: consumo de salientes y carga de paquetes** — barra de consumo con los entrantes al lado (aclarando que no consumen cupo) y campo para cargar el paquete.
+  · `admin-list-businesses` **v10**: devolvía solo `messages`, el contador viejo **sin dirección**, pero el cupo se corta por salientes desde B1. Ahora incluye `messages_in`, `messages_out` y `extra_messages`.
+  · `admin-update-business` **v11**: `extra_messages` agregado a la allowlist y al SELECT de vuelta. Sin eso el campo **se descartaba en silencio** — la columna solo la escribe `service_role`.
+  · Probe transaccional: cargar 500 extras sube el cupo saliente efectivo de 6,750 a 7,250. Delta exacto 500, rollback verificado.
+- [x] **B5 · `plan_expires_at` nunca queda NULL en un alta** — el alta de **pago** se creaba con `NULL` y el cron `run-dunning` vence por fecha: un cliente que pagaba **nunca entraba al ciclo de cobranza**, su plan no se vencía jamás y nadie le cobraba la renovación. Solo el trial tenía fecha, así que el bug afectaba exclusivamente a los que pagan.
+  **Resuelto con trigger en la base, no solo en la Edge Function**, porque así cubre todas las vías de alta (Studio, seeds, migraciones futuras) y no solo la que hoy conocemos. Son compatibles: el trigger solo rellena si viene `NULL`. Probe: pago → +1 mes, trial → +14 días, fecha explícita → **no se pisa**.
+  Los negocios existentes con `NULL` **no se tocaron a propósito**: cambiarle la fecha de cobranza a un cliente real es decisión comercial, no técnica. Eso es B5b.
+  🐛 Salvedad conocida de `setMonth`/`interval '1 month'`: un alta el 31 de un mes cae al mes siguiente del corto (31-ene → 3-mar, medido). Se deja así — juega a favor del cliente y corregirlo desalinearía el alta de `record_payment`, que tiene el mismo comportamiento.
+
+---
+
 ## 17. Los 9 diagnósticos que resultaron falsos o mal atribuidos
 
 > Registro deliberado. Al trabajar los ítems a fondo, **nueve** describían el síntoma correcto pero señalaban la causa equivocada, o describían un defecto que ya no existía. Sirve para calibrar cuánta fe tenerle al resto del backlog.

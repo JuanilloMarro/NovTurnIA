@@ -12,7 +12,7 @@
 |---|---|---|---|
 | 1 | **Todo n8n** (A1 recableado · A3 · A5 · A9 · A7) | El túnel de Cloudflare está apagado; la instancia es inalcanzable. El diff de A1+A3+A9 está preparado y verificado (10 nodos, 16 cambios, `payload.json` + `pre.json` de rollback), esperando túnel | **[TÚ]** — levantar el túnel |
 | 2 | **A2 · rotar el `service_role`** | ⛔ **Orden obligatorio**: la clave vieja está embebida en 20 nodos que hoy no se pueden editar. Rotar ahora deja el bot muerto cuando vuelva el túnel. Secuencia: túnel arriba → migrar los 20 nodos a credencial *Header Auth* → **recién ahí** rotar | **[TÚ]**, en ese orden |
-| 3 | **INF-1 · paridad de migraciones** | **138** en producción contra **36** archivos en el repo. Sin branch ni PITR (free tier), el repositorio es la única red de seguridad que existe | **[TÚ]** — CLI de Supabase + contraseña de DB |
+| 3 | **INF-1 · paridad de migraciones** | **140** en producción contra **38** archivos en el repo. Sin branch ni PITR (free tier), el repositorio es la única red de seguridad que existe | **[TÚ]** — CLI de Supabase + contraseña de DB |
 | 4 | **VER-1 · smoke test de `wa-human-reply` v7** | La ventana de 24h de WhatsApp está cerrada (hace falta que un cliente escriba primero) | **[TÚ]**, cuando se abra |
 | 5 | **OPS-1 · credencial de WhatsApp sandbox** | Los nodos `WA - Respuesta *` firman con una credencial que Meta rechaza (`GraphMethodException 100/33`) | **[TÚ]** |
 | 6 | **EDGE-4 · allowlist de CORS** | Falta el origen exacto de Vercel | **[TÚ]** — pasarme el dominio |
@@ -23,7 +23,7 @@
 
 ## P0 — Bloqueantes y vulnerabilidades abiertas
 
-- [ ] **[MIXTO] INF-1 · Reproducibilidad: 138 migraciones en producción contra 36 en el repositorio** — el modelo comercial, Finanzas v2, vouchers, agenda avanzada, Centro IA y los triggers de límite no existen en el código. Un restore desde el repositorio produce **un sistema distinto**. *(Infraestructura §2 I1)*
+- [ ] **[MIXTO] INF-1 · Reproducibilidad: 140 migraciones en producción contra 38 en el repositorio** — el modelo comercial, Finanzas v2, vouchers, agenda avanzada, Centro IA y los triggers de límite no existen en el código. Un restore desde el repositorio produce **un sistema distinto**. *(Infraestructura §2 I1)*
 - [ ] **[IA] A1 · Cancelación de turnos sin aislamiento de tenant** — los 3 nodos `Tool - Cancelar Cita` hacen `PATCH /rest/v1/appointments?id=eq.{{ $fromAI('appointment_id') }}` con `service_role` (salta la RLS) y **sin filtro de `business_id`**; el UUID lo decide el LLM. Los otros 17 tools sí acotan: es la única excepción. La mitad de DB ya está cerrada; **el agujero sigue abierto** hasta recablear los 3 nodos. ⛔ Bloqueo 1. *(Automatización IA §4.1)*
 - [ ] **[TÚ] A2 · `service_role` en texto plano en 20 nodos** — las claves viajan en `jsonHeaders` dentro del JSON del workflow, no en el almacén de credenciales. Cualquiera con acceso al editor o a la API obtiene una llave que ignora toda la RLS. ⛔ Bloqueo 2 — respetar el orden.
 - [ ] **[TÚ] VER-1 · Smoke test de `wa-human-reply` v7** — enviar un mensaje desde Conversaciones y confirmar que llega. Es la única función donde el `requireEnv` nuevo podría fallar **al arrancar** si faltara un secret. Rollback: redesplegar v6. ⛔ Bloqueo 4.
@@ -46,21 +46,9 @@
 - [ ] **[IA] A9 · Bajar la ventana de contexto** — `Historial - Obtener` trae 100 mensajes por turno; con 10 iteraciones, el peor caso son 10 llamadas con 100 mensajes. Es el verdadero motor del costo. Bajar a 20 mensajes y `maxIterations` a 5. ⛔ Bloqueo 1.
 - [ ] **[TÚ] N3 · El gate del bot debe leer el cupo de salientes** — la DB ya lo expone (`messages_out_effective`); falta que el nodo lo consulte. ⛔ Bloqueo 1.
 
-**Bloque 2 — cargar la escalera**
-- [ ] **[IA] B3 · Cupos nuevos en `plans`** — propuesta: `max_conversations` 1,050 / 3,000 / 6,750 · `max_patients` 70 / 200 / 450 · `history_retention_months` Pro 3→6. Medido en producción hoy: **500 / 5,000 / 20,000** y **50 / 150 / ∞**, retención 3/3/12.
-  ⚠️ **Esto BAJA cupos, no los sube.** Pro pasaría de 5,000 a 3,000 mensajes y Enterprise de 20,000 a 6,750. Si un cliente real ya consume por encima del cupo nuevo, **le cortás el bot el día que apliques la migración**. Antes de tocar: medir el consumo real de cada negocio activo y, si hace falta, dejarlos con `limit_overrides` o cargar `extra_messages`. No es una migración inocua.
-
-**Bloque 3 — cerrar el tope del lado del dashboard**
-- [ ] **[IA] F3b · Habilitar el CTA "Comprar paquete"** — está deshabilitado con la leyenda "Pronto" porque esperaba `businesses.extra_messages`. La columna ya existe y está verificada, así que el bloqueo desapareció: falta cablear el botón a la carga de paquetes.
 
 **Bloque 4 — cobranza**
-- [ ] **[IA] B5 · `plan_expires_at` en el alta de pago** — `onboard-tenant/index.ts:197` lo crea `NULL` para toda alta que no sea trial, y el cron vence por fecha. Se resuelve junto con RES-2. De los 3 negocios, *Clínica Doc* sigue en `NULL`; el de QA está en `NULL` a propósito.
-- [ ] **[TÚ] B5b · Marcar pagado a los negocios existentes** — 1 clic por negocio en AdminPanel.
-
-**Bloque 5 — que la oferta se pueda vender**
-- [ ] **[IA] F4 · `PlansModal`: agregar el módulo Centro IA** — no aparece **ninguna** fila sobre Centro IA, chat, reportes ni límite de tokens. Es el diferenciador que justifica el salto Básico→Pro y hoy es **invisible al vender**.
-- [ ] **[IA] F5 · `PlansModal`: fila de mensajes adicionales** con su precio.
-- [ ] **[IA] F7 · AdminPanel: consumo de salientes + carga de paquetes.**
+- [ ] **[TÚ] B5b · Marcar pagado a los negocios existentes** — 1 clic por negocio en AdminPanel, que llama a `record_payment()` y deja el rastro en `payments`. Hoy *Clínica Doc* y *NovTurnIA QA* siguen con `plan_expires_at` en `NULL`. El trigger nuevo solo cubre altas nuevas: cambiarle la fecha de cobranza a un cliente que ya existe es tu decisión, no técnica.
 
 ---
 
