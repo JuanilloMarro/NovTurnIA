@@ -154,8 +154,12 @@ serve(async (req) => {
       if (metaCode === 131047 || metaCode === 131051) {
         return json({ code: 'WINDOW_EXPIRED', error: 'La ventana de 24h cerró.' }, 409);
       }
+      // EDGE-6: el detalle del proveedor queda SOLO en los logs del servidor.
+      // Devolverlo al navegador exponía identificadores internos de Meta
+      // (fbtrace_id, error_subcode, mensajes de la Graph API) sin que el
+      // frontend los use para nada: solo discrimina por `code`.
       console.error('WhatsApp send failed:', graphRes.status, JSON.stringify(errBody));
-      return json({ error: 'WhatsApp rechazó el mensaje.', meta: errBody?.error ?? null }, 502);
+      return json({ error: 'WhatsApp rechazó el mensaje.', code: 'WA_SEND_FAILED' }, 502);
     }
 
     // ── Persistencia: history(role='agent') + pausar IA ──────────────────────

@@ -2,11 +2,16 @@
 // Shared auth utilities for Edge Functions
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireEnv } from './requireEnv.ts';
 
-// Use the SERVICE_ROLE key to bypass RLS (the Edge Function IS the gatekeeper)
+// Use the SERVICE_ROLE key to bypass RLS (the Edge Function IS the gatekeeper).
+// EDGE-5: validado al cargar el módulo. Antes se usaba `!` (aserción de
+// TypeScript, sin efecto en runtime), así que un secret ausente construía el
+// cliente con `undefined` y la función devolvía 401 opacos en producción en vez
+// de fallar de forma visible.
 const supabaseAdmin = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  requireEnv('SUPABASE_URL'),
+  requireEnv('SUPABASE_SERVICE_ROLE_KEY')
 );
 
 export { supabaseAdmin };
