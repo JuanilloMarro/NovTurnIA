@@ -163,7 +163,7 @@ Mi recomendación es **(C)**: el sidebar es el que se come la pantalla, y es un 
 - [ ] **[IA] T24 · Objetivos táctiles a 44px en móvil** — 128 controles por debajo del mínimo.
 - [ ] **[IA] T25 · Escalón tipográfico móvil** — 108 usos bajo 10px.
 - [ ] **[IA] T26 · Grids con variante responsive** — 18 sin colapso.
-- [ ] **[IA] T27 · Modales con `max-h-[85dvh]` y scroll interno** — 3 de 4 revisados no lo tienen.
+- [x] ~~**[IA] T27 · Modales con `max-h-[85dvh]` y scroll interno**~~ — **CERRADO 2026-07-31**, ver Completadas §16.
 - [ ] **[IA] T28 · Probar en horizontal a 812×375.**
 - [ ] **[TÚ] T29 · Recorrer los 9 módulos autenticados a 375/414/768/834/1024px** — requiere sesión real; ninguna auditoría lo ha podido hacer. El harness de Playwright y el tenant semilla ya existen (Completadas §12); falta completar `SEED_*` en `.env.test` y crear el negocio semilla vía `/admin/new-tenant`.
 - [ ] **[IA] T30 · Auditoría de consistencia visual** — repasar que botones, paneles y degradados sigan el mismo lenguaje glass. Sesión dedicada.

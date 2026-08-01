@@ -160,9 +160,16 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
 
     return createPortal(
         <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-            <div ref={modalRef} className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-md overflow-hidden animate-fade-up">
+            {/* T27 · `max-h-[85dvh]` + cuerpo con scroll propio. El overlay es
+                `fixed inset-0`, así que la página de atrás no puede desplazarse: sin
+                esto, un modal más alto que la pantalla quedaba CORTADO por el
+                `overflow-hidden` y el botón Guardar era inalcanzable — en teléfono
+                el formulario entero dejaba de poder enviarse.
+                El tope solo entra en juego cuando el contenido no cabe, así que
+                donde hoy el modal ya entra en pantalla no cambia absolutamente nada. */}
+            <div ref={modalRef} className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-md overflow-hidden animate-fade-up max-h-[85dvh] flex flex-col">
 
-                <div className="flex items-center justify-between px-6 pt-6 pb-2">
+                <div className="flex items-center justify-between px-6 pt-6 pb-2 shrink-0">
                     <h2 className="text-lg font-bold text-navy-900 tracking-tight">Nuevo Turno</h2>
                     <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/40 border border-white/50 text-navy-700 hover:bg-white/60 shadow-sm transition-colors">
                         <X size={16} />
@@ -170,19 +177,21 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                 </div>
 
                 {!canAddAppointment && (
-                    <div className="mx-6 mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700 font-semibold">
+                    <div className="mx-6 mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700 font-semibold shrink-0">
                         Límite de {maxAppointments} turnos/mes de tu plan alcanzado. Sube de plan para agendar más este mes.
                     </div>
                 )}
 
                 {error && (
-                    <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">
+                    <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700 shrink-0">
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
-                    <div className="px-6 py-4 space-y-5">
+                <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col">
+                    {/* El scroll vive acá y no en la tarjeta, para que los botones
+                        Cancelar/Guardar queden siempre fijos abajo y visibles. */}
+                    <div className="px-6 py-4 space-y-5 overflow-y-auto">
 
                         {/* Paciente */}
                         <div className="relative z-[100]">
@@ -333,7 +342,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-center gap-4 px-6 pb-6 pt-2">
+                    <div className="flex items-center justify-center gap-4 px-6 pb-6 pt-2 shrink-0">
                         <button type="button" onClick={onClose}
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm min-w-[100px]">
                             <X size={13} /> Cancelar
