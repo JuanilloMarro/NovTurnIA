@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, Lock, Download, SlidersHorizontal } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useFinance } from '../hooks/useFinance';
@@ -25,6 +25,7 @@ import RecordExpenseModal from '../components/Finance/RecordExpenseModal';
 import FinanceDetailDrawer from '../components/Finance/FinanceDetailDrawer';
 import { exportFinanceCsv, AddBtn } from '../components/Finance/financeUi';
 import { FINANCE_TABS } from '../components/Finance/financeTabs';
+import Popover from '../components/ui/Popover';
 import { getIncomeEntries, getExpenseEntries } from '../services/supabaseService';
 import { showErrorToast } from '../store/useToastStore';
 
@@ -132,6 +133,7 @@ export default function Finance() {
     const [anchorDate, setAnchorDate] = useState(() => new Date());
     const [tab, setTabRaw] = useState('resumen');
     const [showFilters, setShowFilters] = useState(false);
+    const filtersBtnRef = useRef(null);
     const [incomeModal, setIncomeModal] = useState(null); // null | { initial }
     const [expenseModal, setExpenseModal] = useState(null);
     const [selectedEntry, setSelectedEntry] = useState(null); // { entry, type }
@@ -221,6 +223,7 @@ export default function Finance() {
                 {showCalendar && (
                     <div className="relative">
                         <button
+                            ref={filtersBtnRef}
                             onClick={() => setShowFilters(v => !v)}
                             className="relative overflow-hidden group h-9 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
                         >
@@ -230,35 +233,29 @@ export default function Finance() {
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap text-[11px] relative z-10">Filtros</span>
                         </button>
 
-                        {showFilters && (
-                            <div className="overflow-hidden absolute left-0 top-full mt-2 w-64 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-50 p-3 animate-fade-up">
-                                <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
-                                <div className="absolute -top-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(29,95,173,0.05)' }} />
-                                <div className="absolute -bottom-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
-                                <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
-                                <div className="relative z-10">
-                                    <div className="flex items-center justify-between px-1 pb-2 mb-2 border-b border-white/20">
-                                        <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Período</span>
-                                    </div>
-                                    <div className="relative overflow-hidden flex items-center bg-white/40 border border-white/60 rounded-full shadow-sm p-1 text-[11px] font-bold text-navy-900 h-9 mb-2">
-                                        {PERIODS.map(p => (
-                                            <button key={p.key} onClick={() => handlePeriodChange(p.key)}
-                                                className={`flex-1 h-7 rounded-full transition-all ${period === p.key ? 'bg-white/70 shadow-sm border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>
-                                                {p.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className="flex items-center bg-white/40 border border-white/60 rounded-full shadow-sm p-1 h-9">
-                                        <button onClick={handlePrev} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95 shrink-0"><ChevronLeft size={14} /></button>
-                                        <div className="flex-1 h-7 flex items-center justify-center gap-1.5 px-2 min-w-0">
-                                            <CalendarDays size={12} className="text-navy-900 shrink-0" />
-                                            <span className="text-[11px] font-bold text-navy-900 tracking-tight whitespace-nowrap leading-none capitalize truncate">{navLabel}</span>
-                                        </div>
-                                        <button onClick={handleNext} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95 shrink-0"><ChevronRight size={14} /></button>
-                                    </div>
-                                </div>
+                        {/* T12/T13 — por portal: la tira de acciones lleva `overflow-x-auto`
+                            en teléfono y eso recorta también en vertical. */}
+                        <Popover open={showFilters} onClose={() => setShowFilters(false)} anchorRef={filtersBtnRef} align="left" className="w-64">
+                            <div className="flex items-center justify-between px-1 pb-2 mb-2 border-b border-white/20">
+                                <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Período</span>
                             </div>
-                        )}
+                            <div className="relative overflow-hidden flex items-center bg-white/40 border border-white/60 rounded-full shadow-sm p-1 text-[11px] font-bold text-navy-900 h-9 mb-2">
+                                {PERIODS.map(p => (
+                                    <button key={p.key} onClick={() => handlePeriodChange(p.key)}
+                                        className={`flex-1 h-7 rounded-full transition-all ${period === p.key ? 'bg-white/70 shadow-sm border border-white/80 text-navy-900' : 'hover:bg-white/20 text-navy-900/60'}`}>
+                                        {p.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex items-center bg-white/40 border border-white/60 rounded-full shadow-sm p-1 h-9">
+                                <button onClick={handlePrev} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95 shrink-0"><ChevronLeft size={14} /></button>
+                                <div className="flex-1 h-7 flex items-center justify-center gap-1.5 px-2 min-w-0">
+                                    <CalendarDays size={12} className="text-navy-900 shrink-0" />
+                                    <span className="text-[11px] font-bold text-navy-900 tracking-tight whitespace-nowrap leading-none capitalize truncate">{navLabel}</span>
+                                </div>
+                                <button onClick={handleNext} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-900 hover:bg-white/80 shadow-sm transition-all hover:scale-[1.05] active:scale-95 shrink-0"><ChevronRight size={14} /></button>
+                            </div>
+                        </Popover>
                     </div>
                 )}
 

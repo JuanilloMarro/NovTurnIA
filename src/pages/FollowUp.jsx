@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePlanLimits } from '../hooks/usePlanLimits';
@@ -7,6 +7,7 @@ import FollowUpList from '../components/Calendar/FollowUpList';
 import AppointmentDrawer from '../components/Calendar/AppointmentDrawer';
 import FeatureLock from '../components/FeatureLock';
 import SearchField from '../components/ui/SearchField';
+import Popover from '../components/ui/Popover';
 import { RefreshCw, SlidersHorizontal, Lock, UserX, X as XIcon, ChevronRight, ChevronLeft, Phone, Calendar as CalendarIcon, Clock, Tag, RotateCcw, MessageCircle, Trash2, Search } from 'lucide-react';
 
 const MOCK_FOLLOWUP = [
@@ -47,6 +48,7 @@ export default function FollowUp() {
     const [followUpDays, setFollowUpDays] = useState(30);
     const [followUpSearch, setFollowUpSearch] = useState('');
     const [showFollowUpFilters, setShowFollowUpFilters] = useState(false);
+    const filtersBtnRef = useRef(null);
     const [followUpReloadKey, setFollowUpReloadKey] = useState(0);
     const [followUpLoading, setFollowUpLoading] = useState(false);
 
@@ -256,6 +258,7 @@ export default function FollowUp() {
                     </button>
                     <div className="relative">
                         <button
+                            ref={filtersBtnRef}
                             onClick={() => setShowFollowUpFilters(v => !v)}
                             className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
                         >
@@ -265,44 +268,38 @@ export default function FollowUp() {
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap relative z-10">Filtros</span>
                         </button>
 
-                        {showFollowUpFilters && (
-                            <div className="overflow-hidden absolute right-0 top-full mt-2 w-52 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-50 p-2 animate-fade-up">
-                                <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
-                                <div className="absolute -top-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(29,95,173,0.05)' }} />
-                                <div className="absolute -bottom-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
-                                <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
-                                <div className="relative z-10">
-                                    {hasActiveFilters && (
-                                        <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-white/20">
-                                            <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
-                                            <button onClick={() => { setFollowUpType('all'); setFollowUpDays(30); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
-                                        </div>
-                                    )}
-                                    <p className="px-2 pt-2 pb-1 text-[10px] font-bold text-navy-700/40 tracking-wide">Estado</p>
-                                    {TYPE_OPTIONS.map(opt => (
-                                        <div
-                                            key={opt.value}
-                                            onClick={() => setFollowUpType(opt.value)}
-                                            className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${followUpType === opt.value ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
-                                        >
-                                            {opt.label}
-                                        </div>
-                                    ))}
-                                    <div className="border-t border-white/20 mt-1 pt-1">
-                                        <p className="px-2 pt-1 pb-1 text-[10px] font-bold text-navy-700/40 tracking-wide">Período</p>
-                                        {DAYS_OPTIONS.map(opt => (
-                                            <div
-                                                key={opt.value}
-                                                onClick={() => setFollowUpDays(opt.value)}
-                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${followUpDays === opt.value ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
-                                            >
-                                                {opt.label}
-                                            </div>
-                                        ))}
-                                    </div>
+                        {/* T12/T13 — por portal: la fila es tira deslizable en teléfono y
+                            un `overflow-x-auto` recorta también en vertical. */}
+                        <Popover open={showFollowUpFilters} onClose={() => setShowFollowUpFilters(false)} anchorRef={filtersBtnRef} align="right" className="w-52">
+                            {hasActiveFilters && (
+                                <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-white/20">
+                                    <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
+                                    <button onClick={() => { setFollowUpType('all'); setFollowUpDays(30); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
                                 </div>
+                            )}
+                            <p className="px-2 pt-2 pb-1 text-[10px] font-bold text-navy-700/40 tracking-wide">Estado</p>
+                            {TYPE_OPTIONS.map(opt => (
+                                <div
+                                    key={opt.value}
+                                    onClick={() => setFollowUpType(opt.value)}
+                                    className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${followUpType === opt.value ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
+                                >
+                                    {opt.label}
+                                </div>
+                            ))}
+                            <div className="border-t border-white/20 mt-1 pt-1">
+                                <p className="px-2 pt-1 pb-1 text-[10px] font-bold text-navy-700/40 tracking-wide">Período</p>
+                                {DAYS_OPTIONS.map(opt => (
+                                    <div
+                                        key={opt.value}
+                                        onClick={() => setFollowUpDays(opt.value)}
+                                        className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${followUpDays === opt.value ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
+                                    >
+                                        {opt.label}
+                                    </div>
+                                ))}
                             </div>
-                        )}
+                        </Popover>
                     </div>
                 </div>
             </div>

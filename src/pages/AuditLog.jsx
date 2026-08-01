@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getAuditLog, getStaffUsers, getPatientsForAuditLog } from '../services/supabaseService';
 import { Search, Database, SlidersHorizontal, Plus, Edit2, Trash2, X, Download, RefreshCw, Lock } from 'lucide-react';
 import { formatPhone } from '../utils/format';
@@ -6,6 +6,7 @@ import { downloadCSV } from '../utils/export';
 import { withTimeout } from '../utils/withTimeout';
 import FeatureLock from '../components/FeatureLock';
 import SearchField from '../components/ui/SearchField';
+import Popover from '../components/ui/Popover';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { usePermissions } from '../hooks/usePermissions';
 
@@ -173,6 +174,7 @@ export default function AuditLog() {
     const [filterAction, setFilterAction] = useState('');
     const [filterUser, setFilterUser] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+    const filtersBtnRef = useRef(null);
     const [exporting, setExporting] = useState(false);
 
     // T-35: deduplicación O(n) con Set — reemplaza el reduce con find() que era O(n²).
@@ -424,6 +426,7 @@ export default function AuditLog() {
                     {/* Filter funnel button */}
                     <div className="relative">
                         <button
+                            ref={filtersBtnRef}
                             onClick={() => setShowFilters(!showFilters)}
                             className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
                         >
@@ -433,45 +436,38 @@ export default function AuditLog() {
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap relative z-10">Filtros</span>
                         </button>
 
-                        {/* Filter dropdown */}
-                        {showFilters && (
-                            <div className="overflow-hidden absolute right-0 top-full mt-2 w-52 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-50 p-2 animate-fade-up">
-                                <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
-                                <div className="absolute -top-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(29,95,173,0.05)' }} />
-                                <div className="absolute -bottom-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
-                                <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
-                                <div className="relative z-10">
-                                    {hasActiveFilters && (
-                                        <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-white/20">
-                                            <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
-                                            <button onClick={() => { setFilterAction(''); setFilterUser(''); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
-                                        </div>
-                                    )}
-                                    <p className="px-2 pt-1 pb-0.5 text-[10px] font-bold text-navy-700/40 tracking-wide">Acción</p>
-                                    {[{ value: '', label: 'Todas' }, { value: 'INSERT', label: 'Creado' }, { value: 'UPDATE', label: 'Actualizado' }, { value: 'DELETE', label: 'Eliminado' }].map(opt => (
-                                        <div
-                                            key={opt.value}
-                                            onClick={() => setFilterAction(opt.value)}
-                                            className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterAction === opt.value ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
-                                        >
-                                            {opt.label}
-                                        </div>
-                                    ))}
-                                    <div className="border-t border-white/20 mt-1 pt-1">
-                                        <p className="px-2 pt-1 pb-0.5 text-[10px] font-bold text-navy-700/40 tracking-wide">Usuario</p>
-                                        {[{ uuid: '', name: 'Todos' }, ...uniqueUsers].map(u => (
-                                            <div
-                                                key={u.uuid}
-                                                onClick={() => setFilterUser(u.uuid)}
-                                                className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterUser === u.uuid ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
-                                            >
-                                                {u.name}
-                                            </div>
-                                        ))}
-                                    </div>
+                        {/* T12/T13 — por portal: la fila es tira deslizable en teléfono y
+                            un `overflow-x-auto` recorta también en vertical. */}
+                        <Popover open={showFilters} onClose={() => setShowFilters(false)} anchorRef={filtersBtnRef} align="right" className="w-52">
+                            {hasActiveFilters && (
+                                <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-white/20">
+                                    <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Filtros</span>
+                                    <button onClick={() => { setFilterAction(''); setFilterUser(''); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
                                 </div>
+                            )}
+                            <p className="px-2 pt-1 pb-0.5 text-[10px] font-bold text-navy-700/40 tracking-wide">Acción</p>
+                            {[{ value: '', label: 'Todas' }, { value: 'INSERT', label: 'Creado' }, { value: 'UPDATE', label: 'Actualizado' }, { value: 'DELETE', label: 'Eliminado' }].map(opt => (
+                                <div
+                                    key={opt.value}
+                                    onClick={() => setFilterAction(opt.value)}
+                                    className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterAction === opt.value ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
+                                >
+                                    {opt.label}
+                                </div>
+                            ))}
+                            <div className="border-t border-white/20 mt-1 pt-1">
+                                <p className="px-2 pt-1 pb-0.5 text-[10px] font-bold text-navy-700/40 tracking-wide">Usuario</p>
+                                {[{ uuid: '', name: 'Todos' }, ...uniqueUsers].map(u => (
+                                    <div
+                                        key={u.uuid}
+                                        onClick={() => setFilterUser(u.uuid)}
+                                        className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${filterUser === u.uuid ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
+                                    >
+                                        {u.name}
+                                    </div>
+                                ))}
                             </div>
-                        )}
+                        </Popover>
                     </div>
                 </div>
             </div>

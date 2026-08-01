@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { usePatients } from '../hooks/usePatients';
 import PatientCard from '../components/Patients/PatientCard';
@@ -6,6 +6,7 @@ import PatientDrawer from '../components/Patients/PatientDrawer';
 import NewPatientModal from '../components/Patients/NewPatientModal';
 import { Search, SlidersHorizontal, Download, Plus, RefreshCw, Lock } from 'lucide-react';
 import SearchField from '../components/ui/SearchField';
+import Popover from '../components/ui/Popover';
 import { exportAllPatients, getPatientById } from '../services/supabaseService';
 import { downloadCSV } from '../utils/export';
 import { usePermissions } from '../hooks/usePermissions';
@@ -19,6 +20,7 @@ export default function Patients() {
     const { patients, loading, loadingMore, hasMore, search, handleSearch, sortOrder, setSortOrder, reload, loadMore } = usePatients();
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [showSort, setShowSort] = useState(false);
+    const sortBtnRef = useRef(null);
     const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
     const [exporting, setExporting] = useState(false);
 
@@ -134,6 +136,7 @@ export default function Patients() {
                         return (
                             <div className="relative">
                                 <button
+                                    ref={sortBtnRef}
                                     onClick={() => setShowSort(!showSort)}
                                     className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
                                 >
@@ -143,31 +146,27 @@ export default function Patients() {
                                     <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Filtros</span>
                                 </button>
 
-                                {showSort && (
-                                    <div className="overflow-hidden absolute right-0 top-full mt-2 w-52 bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-50 p-2 animate-fade-up">
-                                        <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
-                                        <div className="absolute -top-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(29,95,173,0.05)' }} />
-                                        <div className="absolute -bottom-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(120,110,230,0.05)' }} />
-                                        <div className="absolute -bottom-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
-                                        <div className="relative z-10">
-                                            {hasActiveSort && (
-                                                <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-white/20">
-                                                    <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Orden</span>
-                                                    <button onClick={() => { setSortOrder('recent'); setShowSort(false); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
-                                                </div>
-                                            )}
-                                            {sortOptions.map(opt => (
-                                                <div
-                                                    key={opt.id}
-                                                    onClick={() => setSortOrder(opt.id)}
-                                                    className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
-                                                >
-                                                    {opt.label}
-                                                </div>
-                                            ))}
+                                {/* T12/T13 — por portal. Antes era `absolute` dentro de la fila,
+                                    y desde que la fila es tira deslizable en teléfono
+                                    (`overflow-x-auto`) el navegador la recorta también en
+                                    vertical: el menú quedaba encerrado en 40px de alto. */}
+                                <Popover open={showSort} onClose={() => setShowSort(false)} anchorRef={sortBtnRef} align="right" className="w-52">
+                                    {hasActiveSort && (
+                                        <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-white/20">
+                                            <span className="text-[10px] font-bold text-navy-700/50 tracking-wide">Orden</span>
+                                            <button onClick={() => { setSortOrder('recent'); setShowSort(false); }} className="text-[10px] font-bold text-rose-500 hover:text-rose-600">Limpiar</button>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                    {sortOptions.map(opt => (
+                                        <div
+                                            key={opt.id}
+                                            onClick={() => setSortOrder(opt.id)}
+                                            className={`px-3 py-2 rounded-2xl text-xs font-bold cursor-pointer transition-all border ${sortOrder === opt.id ? 'bg-white/60 backdrop-blur-sm border-white/80 shadow-md text-navy-900' : 'border-transparent text-navy-700/60 hover:bg-white/20'}`}
+                                        >
+                                            {opt.label}
+                                        </div>
+                                    ))}
+                                </Popover>
                             </div>
                         );
                     })()}
