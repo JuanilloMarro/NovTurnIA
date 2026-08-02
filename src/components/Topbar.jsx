@@ -66,8 +66,13 @@ export default function Topbar() {
         setShowProfile(false);
     };
 
+    // `lg:justify-end`, no `md:`. La hamburguesa se muestra hasta `lg` (el sidebar
+    // es cajón hasta 1024px desde T7), así que con `md:justify-end` entre 768 y
+    // 1023px dejaba de estar pegada a la izquierda y se iba a la derecha,
+    // apelotonada contra Centro IA y las notificaciones. Este breakpoint tiene que
+    // ir de la mano con el `lg:hidden` del botón.
     return (
-        <header className="h-[72px] px-6 flex items-center justify-between md:justify-end z-[100] transition-all sticky top-0 bg-transparent">
+        <header className="h-[72px] px-6 flex items-center justify-between lg:justify-end z-[100] transition-all sticky top-0 bg-transparent">
             {/* Hamburguesa — solo mientras el sidebar es cajón.
                 Mismo "doble botón" que la campana y el perfil: píldora de vidrio
                 por fuera con sus glows, y el círculo real adentro. Antes era un

@@ -80,7 +80,7 @@ export default function Patients() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 md:h-10 flex-wrap w-full lg:w-auto max-sm:flex-nowrap max-sm:[&>*]:shrink-0 max-sm:overflow-x-auto mobile-strip">
+                <div className="flex items-center gap-2 sm:gap-3 md:h-10 flex-wrap w-full lg:w-auto max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:overflow-x-auto mobile-strip">
                     {/* T22/T23 — en móvil colapsa a lupa para no comerse la fila entera.
                         Desde `sm` renderiza exactamente la misma barra de antes. */}
                     <SearchField

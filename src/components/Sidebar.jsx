@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock, Tag, History, Wallet, Repeat } from 'lucide-react';
 import AIStar from './Icons/AIStar';
+import RealtimeStatusBanner from './RealtimeStatusBanner';
 import { useAuroraPulse } from '../hooks/useAuroraPulse';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePlanLimits } from '../hooks/usePlanLimits';
@@ -196,7 +197,12 @@ export default function Sidebar({ onOpenPlans }) {
                     </button>
                 </nav>
 
-                <div className="mt-auto pt-6 px-5 border-t border-white/20">
+                <div className="mt-auto pt-6 px-5 border-t border-white/20 shrink-0">
+                    {/* El aviso de Realtime vive acá y no arriba del módulo: en el
+                        pie del sidebar el espacio ya está reservado, así que aparecer
+                        y desaparecer no mueve la altura del módulo. Ver el comentario
+                        del propio componente. */}
+                    <RealtimeStatusBanner />
                     <div className="font-bold text-navy-900/60 truncate tracking-tight text-[12px]">{businessName || 'Cargando...'}</div>
                     <div className="text-navy-900/30 text-[10px] font-semibold tracking-tight mt-1">© {new Date().getFullYear()} NovTurnIA</div>
                 </div>

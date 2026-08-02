@@ -72,7 +72,7 @@ export default function Users() {
     const canEditPermissions = canManageRoles && isEditableRole(selectedUser?.staff_roles);
 
     return (
-        <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-0">
+        <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-4">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-4">
                     <div>

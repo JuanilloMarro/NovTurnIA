@@ -144,8 +144,14 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                 </div>
             </div>
 
-            {/* 2. Área Scrolleable (Solo los items del Turno) — últimos 5, con "ver más" */}
-            <div className="relative z-10 flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
+            {/* 2. Área Scrolleable (Solo los items del Turno) — últimos 5, con "ver más"
+                `min-h-0` es lo que hace que esto scrollee de verdad. Sin él, un hijo
+                de flex no baja de su tamaño de contenido: al tocar "Ver más" la lista
+                crecía, empujaba el footer hacia abajo y los botones de acción
+                terminaban DEBAJO de las fichas, fuera de la vista. Con `min-h-0` la
+                lista se queda dentro de su caja y el footer no se mueve — que es como
+                se comporta el cajón de Re-agendación. */}
+            <div className="relative z-10 flex-1 min-h-0 overflow-y-auto px-6 py-2 custom-scrollbar">
                 {appointments.length === 0 ? (
                     <div className="min-h-[82px] flex items-center justify-center">
                         <p className="text-[11px] text-navy-400 font-semibold italic text-center opacity-60">Sin turnos registrados</p>
@@ -191,8 +197,9 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
                 )}
             </div>
 
-            {/* Bottom Fixed Buttons */}
-            <div className="relative z-10 p-4 mt-auto">
+            {/* Bottom Fixed Buttons — `shrink-0` para que el footer nunca ceda alto
+                a la lista de arriba. */}
+            <div className="relative z-10 p-4 mt-auto shrink-0">
                 <div className="flex items-center justify-center gap-2">
                     {/* 1. Conversación */}
                     <button

@@ -310,10 +310,8 @@ export default function AuditLog() {
                 description="El historial de acciones (creaciones, ediciones, eliminaciones) y la auditoría del staff están disponibles en Pro y Enterprise."
                 requiredPlan="Pro"
             >
-                {/* `px-4` en teléfono para igualar el gap del resto de los módulos
-                (Clientes, Re-agendación…). Estaba en `px-0` y el contenido quedaba
-                pegado a las esquinas. Desde `sm` vuelve a 0, que es como estaba. */}
-            <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-4 sm:px-0">
+            {/* Mismo gap lateral que el render real de abajo. */}
+            <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-4">
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                         <div>
                             <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
@@ -383,14 +381,16 @@ export default function AuditLog() {
         );
     }
 
+    // `px-4` — mismo gap lateral que Clientes y Re-agendación. Estaba en `px-0`
+    // y el módulo quedaba pegado a las esquinas.
     return (
-        <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-0">
+        <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-4">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div>
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
                     <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{filtered.length} registros</p>
                 </div>
-                <div className="flex items-center gap-2 md:h-10 flex-wrap w-full lg:w-auto max-sm:flex-nowrap max-sm:[&>*]:shrink-0 max-sm:overflow-x-auto mobile-strip">
+                <div className="flex items-center gap-2 md:h-10 flex-wrap w-full lg:w-auto max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:overflow-x-auto mobile-strip">
                     {/* T22/T23 — en móvil colapsa a lupa para no comerse la fila entera.
                         Desde `sm` renderiza exactamente la misma barra de antes. */}
                     <SearchField

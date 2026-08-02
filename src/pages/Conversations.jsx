@@ -751,9 +751,14 @@ export default function Conversations() {
                                     POR DEBAJO del Topbar, que es `z-[100]`.
                                     Ahora usa el mismo cableado que los demás cajones del
                                     sistema (`AppointmentDrawer`, `FinanceDetailDrawer`):
-                                    `fixed inset-0` con `z-[120]`, y fondo opaco para que se
-                                    lea. Ver el contrato de capas en index.css. */}
-                                {mobilePanelsOpen && (
+                                    POR PORTAL, y `fixed` no alcanzaba. El panel del chat es
+                                    `backdrop-blur-2xl` + `overflow-hidden`, así que se vuelve
+                                    bloque contenedor de sus descendientes `fixed` (T14) Y los
+                                    recorta: el cajón quedaba encerrado en la tarjeta del chat
+                                    por más `fixed inset-0 z-[120]` que tuviera.
+                                    `createPortal` a `document.body` lo saca de los dos problemas
+                                    de una vez. Ver el contrato de capas en index.css. */}
+                                {mobilePanelsOpen && createPortal(
                                     <div className="xl:hidden fixed inset-0 z-[120] bg-white/95 backdrop-blur-2xl flex flex-col animate-fade-up">
                                         <div className="h-[72px] px-4 flex items-center gap-3 shrink-0 border-b border-white/40">
                                             <button
@@ -773,7 +778,8 @@ export default function Conversations() {
                                                 onInsert={(t) => { handleInsert(t); setMobilePanelsOpen(false); }}
                                             />
                                         </div>
-                                    </div>
+                                    </div>,
+                                    document.body
                                 )}
                             </>
                         ) : (

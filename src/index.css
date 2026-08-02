@@ -534,34 +534,43 @@ body::before {
   }
 }
 
-/* Corta en 639.98px (el punto de `sm`) porque la tira de acciones usa las
-   variantes `max-sm:` de Tailwind y ambos límites deben coincidir. */
+/* T22/T23 — Tira de acciones deslizable.
+   ───────────────────────────────────────────────────────────────────────────
+   ⚠️ ESTA REGLA VA FUERA DE TODA MEDIA QUERY, A PROPÓSITO. Estuvo encerrada en
+   `max-width: 639.98px` y ahí estaba el bug: las filas de acciones llevan
+   `overflow-x-auto lg:overflow-visible`, o sea que el recorte está activo hasta
+   **1023px**, no hasta 639. En tablet la sombra de los botones volvía a salir
+   cortada porque el aire de abajo dejaba de aplicarse en 640.
+   La regla tiene que cubrir el mismo rango que el recorte que compensa.
+
+   Es seguro globalmente: el padding se anula con el margen negativo, así que el
+   alto ocupado en el flujo no cambia (medido: bloque de 80px antes y después), y
+   esconder una barra de scroll que solo existe cuando hay desbordamiento no
+   tiene efecto donde no lo hay.
+
+   Sobre el nombre de la clase: no se puede usar `max-sm:no-scrollbar`.
+   `no-scrollbar` es una clase propia definida fuera de `@layer utilities`, y
+   Tailwind no genera variantes para clases que no conoce — esa utilidad se
+   compila a nada, en silencio. */
+.mobile-strip {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  /* Aire para la sombra de los botones. `overflow-x: auto` recorta al ras de la
+     caja y los botones llevan `shadow-md`: sin esto la sombra de abajo salía
+     cortada y la tira se veía "pegada" al borde. Los `-m` compensan para que la
+     fila no crezca ni empuje al contenido de abajo. */
+  padding-top: 6px;
+  padding-bottom: 6px;
+  margin-top: -6px;
+  margin-bottom: -6px;
+}
+
+.mobile-strip::-webkit-scrollbar {
+  display: none;
+}
+
 @media (max-width: 639.98px) {
-  /* T22/T23 — Oculta la barra de scroll de la tira de acciones deslizable.
-     No se puede usar `max-sm:no-scrollbar`: `no-scrollbar` es una clase propia
-     definida fuera de `@layer utilities`, y Tailwind no genera variantes para
-     clases que no conoce — esa utilidad se compila a nada, en silencio.
-     La tira sigue deslizándose con el dedo; solo se esconde la barra. */
-  .mobile-strip {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-
-    /* Aire para la sombra de los botones.
-       `overflow-x: auto` recorta al ras de la caja, y los botones de acción
-       llevan `shadow-md`: sin este margen la sombra de abajo quedaba cortada y
-       la tira entera se veía "pegada" al borde inferior. 6px alcanzan para que
-       respire; los `-mb` compensan para que la fila no crezca y empuje al
-       contenido de abajo. */
-    padding-top: 6px;
-    padding-bottom: 6px;
-    margin-top: -6px;
-    margin-bottom: -6px;
-  }
-
-  .mobile-strip::-webkit-scrollbar {
-    display: none;
-  }
-
   /* T24 — Objetivos táctiles.
      Los 16 botones circulares de 28px (`w-7 h-7`) y 24px (`w-6 h-6`) están por
      debajo del mínimo cómodo de 44px: cerrar un modal, las flechas de período

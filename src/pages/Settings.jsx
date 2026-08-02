@@ -239,7 +239,7 @@ export default function Settings() {
     // ── Render ──────────────────────────────────────────────────────────────
 
     return (
-        <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-0">
+        <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-4">
             {/* Page Header */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                 <div>

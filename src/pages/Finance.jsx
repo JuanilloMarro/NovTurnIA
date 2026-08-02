@@ -216,10 +216,10 @@ export default function Finance() {
                 el ancho de su CONTENIDO y no el del viewport — por eso el
                 `max-w-full overflow-x-auto` de la barra de submódulos nunca se
                 activaba y los últimos tabs quedaban cortados sin forma de llegar.
-                `max-sm:w-full` la ancla al viewport; `flex-nowrap` + `[&>*]:shrink-0`
+                `max-lg:w-full` la ancla al viewport; `flex-nowrap` + `[&>*]:shrink-0`
                 evitan que los grupos se apilen o se compriman. Todo con `max-sm:`:
                 desde 640px el diseño actual queda intacto. */}
-            <div className="flex items-center gap-2 flex-wrap justify-end max-sm:w-full max-sm:flex-nowrap max-sm:[&>*]:shrink-0 max-sm:justify-start max-sm:overflow-x-auto mobile-strip">
+            <div className="flex items-center gap-2 flex-wrap justify-end max-lg:w-full max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:justify-start max-lg:overflow-x-auto mobile-strip">
                 {showCalendar && (
                     <div className="relative">
                         <button
@@ -263,7 +263,7 @@ export default function Finance() {
                     <AddBtn icon={Download} label={csvExporting ? 'Exportando…' : 'Exportar CSV'} onClick={handleExportCsv} />
                 )}
 
-                <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10 max-w-full overflow-x-auto no-scrollbar max-sm:max-w-none max-sm:overflow-visible">
+                <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10 max-w-full overflow-x-auto no-scrollbar max-lg:max-w-none max-lg:overflow-visible">
                     {FINANCE_TABS.map(t => {
                         const Icon = t.icon;
                         return (
@@ -304,11 +304,11 @@ export default function Finance() {
                 el ancho de su CONTENIDO y no el del viewport — por eso el
                 `max-w-full overflow-x-auto` de la barra de submódulos nunca se
                 activaba y los últimos tabs quedaban cortados sin forma de llegar.
-                `max-sm:w-full` la ancla al viewport; `flex-nowrap` + `[&>*]:shrink-0`
+                `max-lg:w-full` la ancla al viewport; `flex-nowrap` + `[&>*]:shrink-0`
                 evitan que los grupos se apilen o se compriman. Todo con `max-sm:`:
                 desde 640px el diseño actual queda intacto. */}
-            <div className="flex items-center gap-2 flex-wrap justify-end max-sm:w-full max-sm:flex-nowrap max-sm:[&>*]:shrink-0 max-sm:justify-start max-sm:overflow-x-auto mobile-strip">
-                            <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold h-10 max-w-full overflow-x-auto no-scrollbar max-sm:max-w-none max-sm:overflow-visible">
+            <div className="flex items-center gap-2 flex-wrap justify-end max-lg:w-full max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:justify-start max-lg:overflow-x-auto mobile-strip">
+                            <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold h-10 max-w-full overflow-x-auto no-scrollbar max-lg:max-w-none max-lg:overflow-visible">
                                 {FINANCE_TABS.map((t, i) => {
                                     const Icon = t.icon;
                                     return (
@@ -342,10 +342,10 @@ export default function Finance() {
                    ("Categorías", "Métodos de pago", "Meta mensual", "Precios") no
                    entran en 375px, y al estar en un `inline-flex` dentro de un
                    `justify-end` se salían del viewport sin forma de alcanzarlos.
-                   `max-sm:w-full` + `justify-start` los ancla a la pantalla y la
+                   `max-lg:w-full` + `justify-start` los ancla a la pantalla y la
                    píldora pasa a deslizarse. */
-                <div className="shrink-0 flex justify-end max-sm:justify-start mb-3">
-                    <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10 max-sm:w-full max-sm:overflow-x-auto mobile-strip">
+                <div className="shrink-0 flex justify-end max-lg:justify-start mb-3">
+                    <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10 max-lg:w-full max-lg:overflow-x-auto mobile-strip">
                         {AJUSTES_SUBTABS.map(t => {
                             const Icon = t.icon;
                             return (
