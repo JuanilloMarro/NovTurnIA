@@ -498,7 +498,8 @@ body::before {
   .mobile-strip {
     width: 100% !important;
     flex-wrap: nowrap !important;
-    justify-content: flex-start !important;
+    justify-content: flex-end !important;
+    justify-content: safe flex-end !important;
     overflow-x: auto !important;
   }
 
@@ -649,6 +650,22 @@ body::before {
   padding-bottom: 6px;
   margin-top: -6px;
   margin-bottom: -6px;
+
+  /* Alineación a la DERECHA, como en escritorio.
+     La tira es `w-full` en pantallas chicas, así que sin esto los botones se
+     iban contra el título, a la izquierda. Acá vive el criterio para todos los
+     módulos (Citas, Estadísticas, Re-agendación, Actividad, Finanzas): una sola
+     fuente de verdad en vez de una clase `justify-*` distinta por página.
+
+     ⚠️ `safe flex-end` y no `flex-end` a secas. Cuando el contenido DESBORDA, un
+     `flex-end` normal empuja los primeros botones fuera del área desplazable y
+     no hay forma de llegar a ellos — se pierden. `safe` alinea a la derecha
+     mientras entra y cae a la izquierda en cuanto no entra, que es exactamente
+     lo que se quiere de una tira deslizable.
+     Se declara `flex-end` antes como respaldo: un navegador que no entienda la
+     palabra clave `safe` ignora la segunda línea y se queda con la primera. */
+  justify-content: flex-end;
+  justify-content: safe flex-end;
 }
 
 .mobile-strip::-webkit-scrollbar {

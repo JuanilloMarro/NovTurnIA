@@ -219,7 +219,7 @@ export default function Finance() {
                 `max-lg:w-full` la ancla al viewport; `flex-nowrap` + `[&>*]:shrink-0`
                 evitan que los grupos se apilen o se compriman. Todo con `max-sm:`:
                 desde 640px el diseño actual queda intacto. */}
-            <div className="flex items-center gap-2 flex-wrap justify-end max-lg:w-full max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:justify-start max-lg:overflow-x-auto mobile-strip">
+            <div className="flex items-center gap-2 flex-wrap max-lg:w-full max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:overflow-x-auto mobile-strip">
                 {showCalendar && (
                     <div className="relative">
                         <button
@@ -307,7 +307,7 @@ export default function Finance() {
                 `max-lg:w-full` la ancla al viewport; `flex-nowrap` + `[&>*]:shrink-0`
                 evitan que los grupos se apilen o se compriman. Todo con `max-sm:`:
                 desde 640px el diseño actual queda intacto. */}
-            <div className="flex items-center gap-2 flex-wrap justify-end max-lg:w-full max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:justify-start max-lg:overflow-x-auto mobile-strip">
+            <div className="flex items-center gap-2 flex-wrap max-lg:w-full max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:overflow-x-auto mobile-strip">
                             <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold h-10 max-w-full overflow-x-auto no-scrollbar max-lg:max-w-none max-lg:overflow-visible">
                                 {FINANCE_TABS.map((t, i) => {
                                     const Icon = t.icon;

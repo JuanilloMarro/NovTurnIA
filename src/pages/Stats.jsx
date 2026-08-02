@@ -233,7 +233,7 @@ export default function Stats() {
             {/* Móvil: una sola fila deslizable, igual que en Citas. Ver la nota
                 extendida en Finance.jsx — mismo patrón, mismo motivo. Todo con
                 `max-sm:`, así que desde 640px nada cambia. */}
-            <div className="flex items-center gap-2 flex-wrap justify-end max-lg:w-full max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:justify-start max-lg:overflow-x-auto mobile-strip">
+            <div className="flex items-center gap-2 flex-wrap max-lg:w-full max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:overflow-x-auto mobile-strip">
                 {sharedControls}
 
                 {/* Tabs Métricas / Inteligencia */}
