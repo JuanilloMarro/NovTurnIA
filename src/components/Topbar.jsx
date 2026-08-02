@@ -72,7 +72,7 @@ export default function Topbar() {
     // apelotonada contra Centro IA y las notificaciones. Este breakpoint tiene que
     // ir de la mano con el `lg:hidden` del botón.
     return (
-        <header className="h-[72px] px-6 flex items-center justify-between lg:justify-end z-[100] transition-all sticky top-0 bg-transparent">
+        <header className="app-topbar h-[72px] px-6 flex items-center justify-between lg:justify-end z-[100] transition-all sticky top-0 bg-transparent">
             {/* Hamburguesa — solo mientras el sidebar es cajón.
                 Mismo "doble botón" que la campana y el perfil: píldora de vidrio
                 por fuera con sus glows, y el círculo real adentro. Antes era un

@@ -128,7 +128,7 @@ export default function App() {
                             {isSuperAdmin ? <Navigate to="/admin" replace /> : (
                             <div className="h-[100dvh] w-screen relative overflow-hidden bg-transparent safe-area-shell flex items-center justify-center">
                                 {/* Macro Módulo Unificado - Sensación Voladora y de Cristal */}
-                                <div className="w-full max-w-[1920px] h-full rounded-none sm:rounded-[24px] lg:rounded-[32px] bg-white/40 backdrop-blur-xl sm:border sm:border-white/60 shadow-none sm:shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex">
+                                <div className="app-frame w-full max-w-[1920px] h-full rounded-none sm:rounded-[24px] lg:rounded-[32px] bg-white/40 backdrop-blur-xl sm:border sm:border-white/60 shadow-none sm:shadow-[0_20px_50px_rgba(26,58,107,0.05),inset_0_2px_4px_rgba(255,255,255,0.8)] overflow-hidden relative z-10 flex">
                                     <Sidebar onOpenPlans={openPlans} />
                                     {/* T7 · ml-0 mientras el sidebar es cajón, lg:ml-[272px] cuando queda
                                         fijo. Anclado en `lg` y no en `md` a propósito: a 768px el sidebar
