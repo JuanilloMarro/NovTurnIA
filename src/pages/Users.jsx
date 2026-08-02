@@ -74,7 +74,7 @@ export default function Users() {
     return (
         <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-4">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 shrink-0">
                     <div>
                         <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Gestión de Usuarios</h1>
                         <p className="text-xs text-navy-700/60 font-semibold tracking-wide">

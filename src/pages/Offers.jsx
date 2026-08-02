@@ -401,7 +401,7 @@ export default function Offers() {
                 {/* Réplica exacta del layout del módulo real */}
                 <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-4">
                     <div className="flex items-center justify-between gap-3 mb-4">
-                        <div>
+                        <div className="shrink-0">
                             <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Ofertas</h1>
                             <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Promociones temporales impulsadas por Inteligencia Artificial</p>
                         </div>
@@ -482,7 +482,7 @@ export default function Offers() {
         <div className="h-full flex flex-col mx-auto w-full max-w-[1080px] pt-2 px-4">
             {/* Page Header */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-                <div>
+                <div className="shrink-0">
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Ofertas</h1>
                     <p className="text-xs text-navy-700/60 font-semibold tracking-wide">
                         Promociones temporales impulsadas por Inteligencia Artificial

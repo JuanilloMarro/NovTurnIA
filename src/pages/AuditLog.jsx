@@ -313,7 +313,7 @@ export default function AuditLog() {
             {/* Mismo gap lateral que el render real de abajo. */}
             <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-4">
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-                        <div>
+                        <div className="shrink-0">
                             <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
                             <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Historial de acciones del staff y el sistema</p>
                         </div>
@@ -386,7 +386,7 @@ export default function AuditLog() {
     return (
         <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-4">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-                <div>
+                <div className="shrink-0">
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
                     <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{filtered.length} registros</p>
                 </div>

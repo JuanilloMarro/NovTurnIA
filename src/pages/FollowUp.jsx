@@ -230,7 +230,7 @@ export default function FollowUp() {
     return (
         <div className={`h-full flex flex-col w-full pt-2 relative transition-all duration-300 ${selectedAppointment ? 'px-2 sm:pl-0 sm:pr-[440px]' : 'px-4'}`}>
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 shrink-0">
                     <div>
                         <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Re-agendación</h1>
                         <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Recuperación de pacientes y re-agendamiento</p>

@@ -206,7 +206,7 @@ export default function Finance() {
     // viven a la IZQUIERDA de los tabs para no competir con ellos por espacio.
     const header = (
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-            <div className="min-w-0">
+            <div className="shrink-0">
                 <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Finanzas</h1>
                 <p className="text-xs text-navy-700/60 font-semibold tracking-wide">Ingresos, egresos, cobros y caja</p>
             </div>

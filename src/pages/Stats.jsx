@@ -221,7 +221,7 @@ export default function Stats() {
 
     const header = (
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
-            <div>
+            <div className="shrink-0">
                 <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">
                     {activeTab === 'metricas' ? 'Estadísticas' : 'Inteligencia de negocio'}
                 </h1>
