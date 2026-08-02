@@ -80,7 +80,13 @@ export default function Patients() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 md:h-10 flex-wrap w-full lg:w-auto max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:overflow-x-auto mobile-strip">
+                {/* Sin `md:h-10`. Ese alto fijo era la causa de que los botones se
+                    vieran CORTADOS en tablet: con `box-sizing: border-box`, los 40px
+                    fijos menos los 12px de padding vertical que aporta `.mobile-strip`
+                    dejaban una caja de contenido de 28px para botones de 40px, que
+                    entonces desbordaban y los recortaba el `overflow-x-auto`.
+                    Sin alto fijo la fila mide sus 40px naturales y no recorta nada. */}
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full lg:w-auto max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:overflow-x-auto mobile-strip">
                     {/* T22/T23 — en móvil colapsa a lupa para no comerse la fila entera.
                         Desde `sm` renderiza exactamente la misma barra de antes. */}
                     <SearchField

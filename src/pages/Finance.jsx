@@ -345,7 +345,12 @@ export default function Finance() {
                    `max-lg:w-full` + `justify-start` los ancla a la pantalla y la
                    píldora pasa a deslizarse. */
                 <div className="shrink-0 flex justify-end max-lg:justify-start mb-3">
-                    <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10 max-lg:w-full max-lg:overflow-x-auto mobile-strip">
+                    {/* `no-scrollbar` y NO `mobile-strip`: esta píldora tiene borde y
+                        fondo propios, así que el padding que aporta `.mobile-strip`
+                        (pensado para dar aire a la sombra de botones sueltos) la
+                        engordaría por dentro y además choca con el `h-10` fijo. Acá
+                        solo hace falta esconder la barra de scroll. */}
+                    <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10 max-lg:w-full max-lg:overflow-x-auto no-scrollbar">
                         {AJUSTES_SUBTABS.map(t => {
                             const Icon = t.icon;
                             return (

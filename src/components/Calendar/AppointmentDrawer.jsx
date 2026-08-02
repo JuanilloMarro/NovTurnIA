@@ -246,9 +246,15 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                     </div>
                 </div>
             </div>
-            {/* Footer de Acciones fijo abajo */}
-            <div className="relative z-10 p-4 mt-auto">
-                <div className="flex flex-wrap items-center justify-center gap-2">
+            {/* Footer de Acciones fijo abajo.
+                `mobile-strip` le da la tira deslizante en horizontal: la regla de
+                `(orientation: landscape) and (hover: none)` de index.css fuerza
+                `nowrap` + `overflow-x: auto` + hijos sin comprimir. Antes estos
+                botones envolvían en 2 y 3 filas, y en un teléfono acostado (375px de
+                alto) el footer se comía el cajón. En vertical la clase solo aporta el
+                aire para la sombra, que es neutral en el flujo. */}
+            <div className="relative z-10 p-4 mt-auto shrink-0">
+                <div className="flex flex-wrap items-center justify-center gap-2 mobile-strip">
                     {/* 0. Reagendar (solo Cancelado y No se presentó) */}
                     {canRescheduleAppointments && (status === 'cancelled' || status === 'no_show') && (
                         <button

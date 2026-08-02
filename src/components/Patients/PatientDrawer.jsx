@@ -200,7 +200,9 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
             {/* Bottom Fixed Buttons — `shrink-0` para que el footer nunca ceda alto
                 a la lista de arriba. */}
             <div className="relative z-10 p-4 mt-auto shrink-0">
-                <div className="flex items-center justify-center gap-2">
+                {/* `mobile-strip` — tira deslizante en horizontal (ver AppointmentDrawer
+                    y la regla de landscape en index.css). */}
+                <div className="flex items-center justify-center gap-2 mobile-strip">
                     {/* 1. Conversación */}
                     <button
                         onClick={() => {

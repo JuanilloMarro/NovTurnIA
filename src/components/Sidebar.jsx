@@ -28,7 +28,13 @@ function NavGlow() {
 // necesario porque el overflow-hidden del pill recortaría el halo difuminado.
 // `auroraClass` trae las clases de fase del pulso (is-live / is-on) desde useAuroraPulse.
 function NavItem({ to, end, icon: Icon, label, locked, iconSize = 16, labelClass = '', onClick, aurora = false, auroraClass = '' }) {
-    const base = 'relative overflow-hidden flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300';
+    // `shrink-0` — los items conservan SU ALTO ORIGINAL siempre.
+    // Sin esto, un hijo de flex tiene `flex-shrink: 1`: cuando los 14 items no
+    // entraban, en vez de activarse el scroll se APLASTABAN uno por uno hasta
+    // caber. Quedaba lo peor de los dos mundos — items de distinto alto que el
+    // diseño original Y scroll a medias. Con `shrink-0` mantienen su medida y el
+    // `overflow-y-auto` del <nav> hace su trabajo: o entra, o se desliza.
+    const base = 'relative overflow-hidden shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300';
     const link = (
         <NavLink
             to={to}
@@ -90,7 +96,9 @@ export default function Sidebar({ onOpenPlans }) {
     };
 
     // Estilo del botón "Planes" (no es ruta, nunca está activo) — variante inactiva del item.
-    const normalClass = 'relative overflow-hidden flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300 border border-transparent text-navy-700/40 hover:bg-white/30 hover:text-navy-700';
+    // `shrink-0` por la misma razón que los NavItem: alto original, y si no cabe
+    // que deslice el <nav>, no que se aplaste el botón.
+    const normalClass = 'relative overflow-hidden shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold tracking-wide transition-all duration-300 border border-transparent text-navy-700/40 hover:bg-white/30 hover:text-navy-700';
 
     return (
         <>

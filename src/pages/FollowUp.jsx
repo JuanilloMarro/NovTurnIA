@@ -237,7 +237,7 @@ export default function FollowUp() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto justify-start lg:justify-end overflow-x-auto lg:overflow-visible max-sm:flex-nowrap max-sm:[&>*]:shrink-0 mobile-strip">
+                <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto justify-start lg:justify-end overflow-x-auto lg:overflow-visible max-lg:flex-nowrap max-lg:[&>*]:shrink-0 mobile-strip">
                     {/* T22/T23 — en móvil colapsa a lupa para no comerse la fila entera.
                         Desde `sm` renderiza exactamente la misma barra de antes. */}
                     <SearchField

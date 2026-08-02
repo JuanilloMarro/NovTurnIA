@@ -390,7 +390,10 @@ export default function AuditLog() {
                     <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>
                     <p className="text-xs text-navy-700/60 font-semibold tracking-wide">{filtered.length} registros</p>
                 </div>
-                <div className="flex items-center gap-2 md:h-10 flex-wrap w-full lg:w-auto max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:overflow-x-auto mobile-strip">
+                {/* Sin `md:h-10` — mismo recorte que en Clientes: 40px fijos menos los
+                    12px de padding de `.mobile-strip` dejaban 28px de caja para botones
+                    de 40px. */}
+                <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto max-lg:flex-nowrap max-lg:[&>*]:shrink-0 max-lg:overflow-x-auto mobile-strip">
                     {/* T22/T23 — en móvil colapsa a lupa para no comerse la fila entera.
                         Desde `sm` renderiza exactamente la misma barra de antes. */}
                     <SearchField
