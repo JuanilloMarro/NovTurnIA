@@ -254,7 +254,7 @@ export default function AppointmentDrawer({ appointment, onClose, onUpdated, var
                 alto) el footer se comía el cajón. En vertical la clase solo aporta el
                 aire para la sombra, que es neutral en el flujo. */}
             <div className="relative z-10 p-4 mt-auto shrink-0">
-                <div className="flex flex-wrap items-center justify-center gap-2 mobile-strip">
+                <div className="flex flex-wrap items-center justify-center gap-2 mobile-strip mobile-strip--center">
                     {/* 0. Reagendar (solo Cancelado y No se presentó) */}
                     {canRescheduleAppointments && (status === 'cancelled' || status === 'no_show') && (
                         <button

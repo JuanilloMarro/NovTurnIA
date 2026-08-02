@@ -505,6 +505,22 @@ body::before {
   .mobile-strip > * {
     flex-shrink: 0 !important;
   }
+
+  /* Variante centrada — para los pies de acción de los cajones (Perfil de
+     cliente, Detalle de turno), que van centrados por diseño. El
+     `flex-start` de arriba es correcto para las filas de cabecera de módulo,
+     pero acá los empujaba a la izquierda.
+
+     `safe center` y no `center` a secas: cuando el contenido DESBORDA, un
+     `center` normal deja los primeros botones fuera del área desplazable y no
+     hay forma de llegar a ellos. `safe` centra mientras entra y cae a
+     `flex-start` en cuanto no entra, que es justo el comportamiento que se
+     quiere. Se declara `center` antes como respaldo para navegadores que no
+     entiendan la palabra clave `safe` (la ignoran y se quedan con el primero). */
+  .mobile-strip--center {
+    justify-content: center !important;
+    justify-content: safe center !important;
+  }
 }
 
 /* Teléfono acostado — el caso extremo: ~375px de alto.

@@ -202,7 +202,7 @@ export default function PatientDrawer({ patient, onClose, onRefresh }) {
             <div className="relative z-10 p-4 mt-auto shrink-0">
                 {/* `mobile-strip` — tira deslizante en horizontal (ver AppointmentDrawer
                     y la regla de landscape en index.css). */}
-                <div className="flex items-center justify-center gap-2 mobile-strip">
+                <div className="flex items-center justify-center gap-2 mobile-strip mobile-strip--center">
                     {/* 1. Conversación */}
                     <button
                         onClick={() => {
