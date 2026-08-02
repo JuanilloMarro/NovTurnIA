@@ -335,7 +335,13 @@ export default function Finance() {
     }
 
     return (
-        <div className={`relative h-full flex flex-col pt-2 px-2 transition-all duration-300 ${(selectedEntry || selectedPending) ? 'sm:pr-[388px]' : ''}`}>
+        /* Ni `relative` ni el `pr` de la ficha viven acá. Estaban en este div —el
+           módulo entero— y por eso una ficha de Ingresos/Egresos/Por confirmar,
+           que es de un SUBMÓDULO, se posicionaba contra todo el módulo: tapaba de
+           arriba a abajo y además corría la cabecera y las barras de submódulo
+           hacia la izquierda. Ahora ese papel lo cumple el contenedor del
+           contenido, más abajo, así que la cabecera y los tabs quedan fijos. */
+        <div className="h-full flex flex-col pt-2 px-2">
             {header}
             {tab === 'ajustes' && (
                 /* Misma cura que la barra de submódulos de Finanzas: los 4 subtabs
@@ -363,7 +369,13 @@ export default function Finance() {
                     </div>
                 </div>
             )}
-            <div className="flex-1 min-h-0 flex flex-col">
+            {/* ESTE es el marco de referencia de las fichas de detalle.
+                `relative` acá y no en el módulo: así el cajón se ancla al área de
+                contenido y su alto queda POR DEBAJO de los botones de submódulo.
+                El `sm:pr-[388px]` también se mueve acá, para que al abrir una ficha
+                se corra solo el contenido — la cabecera y las barras de submódulo
+                no se mueven ni un pixel. */}
+            <div className={`relative flex-1 min-h-0 flex flex-col transition-all duration-300 ${(selectedEntry || selectedPending) ? 'sm:pr-[388px]' : ''}`}>
                 <FeatureLock feature="finance" variant="screen" title="Finanzas" description="El módulo financiero (ingresos, costos, cobros, caja, comisiones y reportes) está disponible en los planes Pro y Enterprise.">
                     <div className="h-full flex flex-col min-h-0">
                         {fin.loading && tab === 'resumen' ? (
@@ -428,30 +440,32 @@ export default function Finance() {
                         )}
                     </div>
                 </FeatureLock>
+
+                {/* Las fichas van DENTRO del área de contenido, que es su marco de
+                    referencia. Antes colgaban del módulo y por eso lo cubrían entero. */}
+                {selectedEntry && (
+                    <FinanceDetailDrawer
+                        entry={selectedEntry.entry}
+                        type={selectedEntry.type}
+                        canVoid={canVoidFinance}
+                        canEdit={selectedEntry.type === 'income' ? canRecordIncome : canRecordExpense}
+                        onEdit={(e) => selectedEntry.type === 'income' ? setIncomeModal({ initial: e }) : setExpenseModal({ initial: e })}
+                        onClose={() => setSelectedEntry(null)}
+                        onVoid={selectedEntry.type === 'income' ? fin.voidIncomeEntry : fin.voidExpenseEntry}
+                    />
+                )}
+
+                {selectedPending && (
+                    <PendingValidationDrawer
+                        entry={selectedPending}
+                        canConfirm={canConfirmDelivery}
+                        canVoid={canVoidFinance}
+                        onConfirm={fin.confirmValidation}
+                        onVoid={fin.voidIncomeEntry}
+                        onClose={() => setSelectedPending(null)}
+                    />
+                )}
             </div>
-
-            {selectedEntry && (
-                <FinanceDetailDrawer
-                    entry={selectedEntry.entry}
-                    type={selectedEntry.type}
-                    canVoid={canVoidFinance}
-                    canEdit={selectedEntry.type === 'income' ? canRecordIncome : canRecordExpense}
-                    onEdit={(e) => selectedEntry.type === 'income' ? setIncomeModal({ initial: e }) : setExpenseModal({ initial: e })}
-                    onClose={() => setSelectedEntry(null)}
-                    onVoid={selectedEntry.type === 'income' ? fin.voidIncomeEntry : fin.voidExpenseEntry}
-                />
-            )}
-
-            {selectedPending && (
-                <PendingValidationDrawer
-                    entry={selectedPending}
-                    canConfirm={canConfirmDelivery}
-                    canVoid={canVoidFinance}
-                    onConfirm={fin.confirmValidation}
-                    onVoid={fin.voidIncomeEntry}
-                    onClose={() => setSelectedPending(null)}
-                />
-            )}
 
             {incomeModal && (
                 <RecordIncomeModal
