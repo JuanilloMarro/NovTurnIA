@@ -68,14 +68,23 @@ export default function Topbar() {
 
     return (
         <header className="h-[72px] px-6 flex items-center justify-between md:justify-end z-[100] transition-all sticky top-0 bg-transparent">
-            {/* Hamburger — solo mobile */}
-            <button
-                onClick={toggleSidebar}
-                className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full bg-white/60 border border-white/80 text-navy-900 shadow-sm hover:bg-white/80 transition-all"
-                aria-label="Abrir menú"
-            >
-                <Menu size={18} />
-            </button>
+            {/* Hamburguesa — solo mientras el sidebar es cajón.
+                Mismo "doble botón" que la campana y el perfil: píldora de vidrio
+                por fuera con sus glows, y el círculo real adentro. Antes era un
+                círculo suelto y rompía el lenguaje de la barra. */}
+            <div className="lg:hidden relative flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-11">
+                <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                </div>
+                <button
+                    onClick={toggleSidebar}
+                    className="relative z-10 w-9 h-9 rounded-full bg-white/60 backdrop-blur-sm border border-white/80 hover:bg-white/80 shadow-md hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900"
+                    aria-label="Abrir menú"
+                >
+                    <Menu size={18} />
+                </button>
+            </div>
 
             <div className="flex items-center gap-2 mt-2">
 
@@ -136,13 +145,20 @@ export default function Topbar() {
 
                 {/* ── Perfil de usuario ──────────────────────────────── */}
                 <div className="relative" ref={profileRef}>
-                    <button
-                        onClick={() => { setShowProfile(!showProfile); setShowNotif(false); }}
-                        className="w-11 h-11 rounded-full bg-gradient-to-b from-white to-gray-100 border border-gray-200/60 flex items-center justify-center text-navy-900 font-bold shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] text-[15px] hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
-                        aria-label="Menú de usuario"
-                    >
-                        {getInitials(profile?.full_name || profile?.display_name)}
-                    </button>
+                    {/* Doble botón, igual que la campana y la hamburguesa. */}
+                    <div className="relative flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-11">
+                        <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl" style={{ background: 'rgba(120,110,230,0.05)' }} />
+                        </div>
+                        <button
+                            onClick={() => { setShowProfile(!showProfile); setShowNotif(false); }}
+                            className="relative z-10 w-9 h-9 rounded-full bg-white/60 backdrop-blur-sm border border-white/80 hover:bg-white/80 shadow-md hover:scale-[1.02] transition-all flex items-center justify-center text-navy-900 font-bold text-[13px]"
+                            aria-label="Menú de usuario"
+                        >
+                            {getInitials(profile?.full_name || profile?.display_name)}
+                        </button>
+                    </div>
 
                     {showProfile && (
                         <div className="absolute top-14 right-0 w-64 bg-white/90 md:bg-white/30 backdrop-blur-2xl rounded-3xl shadow-[0_10px_40px_rgba(26,58,107,0.15)] border border-white/60 overflow-hidden animate-fade-up z-[110]">

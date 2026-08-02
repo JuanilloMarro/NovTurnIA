@@ -147,7 +147,7 @@ function AssistantPanel({ moduleCtx, hasFeature, onLaunchAction, onOpenHub }) {
     }
 
     return (
-        <div className="relative z-10 flex flex-col min-h-0 max-h-[min(620px,calc(100vh-120px))]">
+        <div className="relative z-10 flex flex-col min-h-0 max-h-[min(620px,calc(100dvh-120px))]">
             {/* Header — título, acceso a Centro IA en medio, consumo semanal */}
             <div className="shrink-0 flex items-center justify-between gap-2 px-4 pt-3.5 pb-2.5">
                 <span className="flex items-center gap-1.5 text-[12px] font-bold text-navy-900 tracking-tight shrink-0">

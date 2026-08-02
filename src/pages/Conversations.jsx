@@ -744,9 +744,17 @@ export default function Conversations() {
                                     document.body
                                 )}
 
-                                {/* Móvil/tablet: paneles a pantalla completa (sin sidebar) */}
+                                {/* Móvil/tablet: paneles a pantalla completa.
+                                    Antes era `absolute inset-0 z-40`, y eso fallaba por dos
+                                    razones a la vez: el `absolute` lo encerraba en la columna
+                                    del chat en vez de ocupar la pantalla, y `z-40` lo dejaba
+                                    POR DEBAJO del Topbar, que es `z-[100]`.
+                                    Ahora usa el mismo cableado que los demás cajones del
+                                    sistema (`AppointmentDrawer`, `FinanceDetailDrawer`):
+                                    `fixed inset-0` con `z-[120]`, y fondo opaco para que se
+                                    lea. Ver el contrato de capas en index.css. */}
                                 {mobilePanelsOpen && (
-                                    <div className="xl:hidden absolute inset-0 z-40 bg-white/50 backdrop-blur-2xl flex flex-col animate-fade-up">
+                                    <div className="xl:hidden fixed inset-0 z-[120] bg-white/95 backdrop-blur-2xl flex flex-col animate-fade-up">
                                         <div className="h-[72px] px-4 flex items-center gap-3 shrink-0 border-b border-white/40">
                                             <button
                                                 onClick={() => setMobilePanelsOpen(false)}

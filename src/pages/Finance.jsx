@@ -338,8 +338,14 @@ export default function Finance() {
         <div className={`relative h-full flex flex-col pt-2 px-2 transition-all duration-300 ${(selectedEntry || selectedPending) ? 'sm:pr-[388px]' : ''}`}>
             {header}
             {tab === 'ajustes' && (
-                <div className="shrink-0 flex justify-end mb-3">
-                    <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10">
+                /* Misma cura que la barra de submódulos de Finanzas: los 4 subtabs
+                   ("Categorías", "Métodos de pago", "Meta mensual", "Precios") no
+                   entran en 375px, y al estar en un `inline-flex` dentro de un
+                   `justify-end` se salían del viewport sin forma de alcanzarlos.
+                   `max-sm:w-full` + `justify-start` los ancla a la pantalla y la
+                   píldora pasa a deslizarse. */
+                <div className="shrink-0 flex justify-end max-sm:justify-start mb-3">
+                    <div className="inline-flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 text-[11px] font-bold text-navy-900 h-10 max-sm:w-full max-sm:overflow-x-auto mobile-strip">
                         {AJUSTES_SUBTABS.map(t => {
                             const Icon = t.icon;
                             return (

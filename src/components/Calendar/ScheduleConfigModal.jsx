@@ -123,7 +123,7 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
     return createPortal(
         <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4" onClick={onClose}>
             <div onClick={e => e.stopPropagation()}
-                className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-3xl overflow-hidden animate-fade-up flex flex-col max-h-[90vh]">
+                className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[32px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] w-full max-w-3xl overflow-hidden animate-fade-up flex flex-col max-h-[85dvh]">
 
                 <div className="flex items-center justify-between px-6 pt-6 pb-2 shrink-0">
                     <div>

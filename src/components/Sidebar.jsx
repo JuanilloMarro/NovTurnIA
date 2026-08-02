@@ -119,7 +119,14 @@ export default function Sidebar({ onOpenPlans }) {
                     <span className="font-bold text-navy-900 tracking-tight text-lg">NovTurnIA</span>
                 </div>
 
-                <nav className="flex-1 flex flex-col gap-1.5 mt-2">
+                {/* `min-h-0 overflow-y-auto` — sin esto el menú se CORTA. Son hasta 14
+                    ítems; en un teléfono con la barra de direcciones del navegador
+                    comiendo ~100px, los últimos (Usuarios y Planes) caían fuera del
+                    cajón y no había forma de llegar a ellos: el <nav> era `flex-1`
+                    pero sin scroll, así que el sobrante simplemente se recortaba.
+                    `min-h-0` es obligatorio: un hijo de flex no baja de su tamaño de
+                    contenido sin eso, y el overflow nunca se activaría. */}
+                <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col gap-1.5 mt-2">
                     <NavItem to="/" end icon={Calendar} label="Citas" onClick={closeMobile} />
 
                     {canViewFollowUp && (

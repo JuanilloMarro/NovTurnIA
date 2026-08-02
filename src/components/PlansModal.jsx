@@ -277,7 +277,7 @@ export default function PlansModal({ isOpen, onClose }) {
 
     return createPortal(
         <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-            <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[40px] shadow-[0_20px_50px_rgba(26,58,107,0.15)] w-full max-w-4xl max-h-[96vh] overflow-hidden animate-fade-up flex flex-col">
+            <div className="bg-white/30 backdrop-blur-2xl border border-white/60 rounded-[40px] shadow-[0_20px_50px_rgba(26,58,107,0.15)] w-full max-w-4xl max-h-[92dvh] overflow-hidden animate-fade-up flex flex-col">
                 {/* Sticky Header - Adjusted */}
                 <div className="sticky top-0 z-50 px-10 pt-8 pb-4 flex items-center justify-center relative shrink-0 pointer-events-none">
                     {/* Centered Logo */}

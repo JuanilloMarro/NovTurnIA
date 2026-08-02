@@ -545,6 +545,17 @@ body::before {
   .mobile-strip {
     -ms-overflow-style: none;
     scrollbar-width: none;
+
+    /* Aire para la sombra de los botones.
+       `overflow-x: auto` recorta al ras de la caja, y los botones de acción
+       llevan `shadow-md`: sin este margen la sombra de abajo quedaba cortada y
+       la tira entera se veía "pegada" al borde inferior. 6px alcanzan para que
+       respire; los `-mb` compensan para que la fila no crezca y empuje al
+       contenido de abajo. */
+    padding-top: 6px;
+    padding-bottom: 6px;
+    margin-top: -6px;
+    margin-bottom: -6px;
   }
 
   .mobile-strip::-webkit-scrollbar {

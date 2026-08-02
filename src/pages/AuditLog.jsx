@@ -310,7 +310,10 @@ export default function AuditLog() {
                 description="El historial de acciones (creaciones, ediciones, eliminaciones) y la auditoría del staff están disponibles en Pro y Enterprise."
                 requiredPlan="Pro"
             >
-                <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-0">
+                {/* `px-4` en teléfono para igualar el gap del resto de los módulos
+                (Clientes, Re-agendación…). Estaba en `px-0` y el contenido quedaba
+                pegado a las esquinas. Desde `sm` vuelve a 0, que es como estaba. */}
+            <div className="h-full flex flex-col max-w-[1080px] mx-auto w-full pt-2 px-4 sm:px-0">
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-4">
                         <div>
                             <h1 className="text-xl font-bold text-navy-900 tracking-tight leading-none mb-1">Registro de Actividad</h1>

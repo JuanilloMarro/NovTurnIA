@@ -22,14 +22,20 @@ export function AppointmentStatusChart({ data, confRate }) {
                 </div>
             </div>
 
-            <div className="relative flex-1 min-h-0 flex flex-col items-center justify-center">
+            {/* `min-h-[180px]` — el pastel competía con la leyenda por el alto y
+                perdía: los 4 estados de abajo son contenido fijo, así que el
+                `flex-1` del gráfico se quedaba con las sobras y quedaba diminuto.
+                Con un piso propio el pastel manda y la leyenda se acomoda.
+                El anillo además pasa de 40/56% a 52/78% de radio: antes ocupaba
+                poco más de la mitad del espacio disponible y el resto era aire. */}
+            <div className="relative flex-1 min-h-[180px] flex flex-col items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
                             data={chartData}
                             cx="50%"  cy="50%"
-                            innerRadius="40%"
-                            outerRadius="56%"
+                            innerRadius="52%"
+                            outerRadius="78%"
                             paddingAngle={hasData ? 3 : 0}
                             dataKey="value"
                             stroke="none"

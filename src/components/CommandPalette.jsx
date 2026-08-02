@@ -84,7 +84,7 @@ export default function CommandPalette() {
 
     let idx = -1; // índice corrido para el resaltado entre grupos
     return createPortal(
-        <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[300] flex items-start justify-center pt-[12vh] px-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 bg-navy-900/10 backdrop-blur-md z-[300] flex items-start justify-center pt-[12dvh] px-4" onClick={() => setOpen(false)}>
             <div onClick={e => e.stopPropagation()}
                 className="w-full max-w-lg bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[28px] shadow-[0_8px_32px_rgba(26,58,107,0.15)] overflow-hidden animate-fade-up">
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-white/50">
@@ -95,7 +95,7 @@ export default function CommandPalette() {
                     <kbd className="text-[9px] font-bold text-navy-700/40 bg-white/50 border border-white/60 rounded-md px-1.5 py-0.5 shrink-0">ESC</kbd>
                 </div>
 
-                <div className="max-h-[50vh] overflow-y-auto custom-scrollbar py-2">
+                <div className="max-h-[50dvh] overflow-y-auto custom-scrollbar py-2">
                     {loading && <p className="text-[11px] font-semibold text-navy-700/40 text-center py-4">Buscando…</p>}
                     {!loading && query.trim().length >= 2 && flat.length === 0 && (
                         <p className="text-[11px] font-semibold text-navy-700/40 text-center py-4">Sin resultados para "{query}"</p>

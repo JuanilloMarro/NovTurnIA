@@ -21,6 +21,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="NovTurnIA" />
 
+  <!-- La barra de direcciones del navegador NO se puede ocultar desde la página:
+       no existe una API para eso, y es deliberado (el usuario tiene que poder
+       ver siempre en qué sitio está). Las dos únicas salidas reales son:
+         1. `100dvh` en vez de `100vh` — el alto se recalcula cuando la barra
+            aparece o se esconde. Ya está aplicado en todo el sistema.
+         2. Instalar como app ("Agregar a pantalla de inicio"). Con este
+            manifest y `display: standalone` la app abre SIN barra de
+            direcciones ni pestañas, a pantalla completa. En iOS lo habilitan
+            los meta `apple-mobile-web-app-*` de arriba; en Android hace falta
+            este manifest, que antes no existía. -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
