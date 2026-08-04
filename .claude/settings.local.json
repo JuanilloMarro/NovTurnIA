@@ -57,7 +57,13 @@
       "Bash(node build-payload.mjs)",
       "Bash(MSYS_NO_PATHCONV=1 node scripts/n8n-api.mjs PUT \"/workflows/1npQWgfgBBIwVuxX\" \"C:\\\\Users\\\\JUANDI~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Juan-Diego-OneDrive-Documentos-Antigravity-Projects-NovTurnAI-NovTurnIA\\\\d8fd2711-071e-45c4-b3f7-5d972c04624f\\\\scratchpad\\\\wf-put.json\")",
       "Bash(grep -v \"^.*//\")",
-      "Bash(MSYS_NO_PATHCONV=1 node \"C:/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/scripts/n8n-api.mjs\" GET /workflows/1npQWgfgBBIwVuxX)"
+      "Bash(MSYS_NO_PATHCONV=1 node \"C:/Users/jmarr/Documents/Antigravity Projects/NovTurnIA/NovTurnIA/scripts/n8n-api.mjs\" GET /workflows/1npQWgfgBBIwVuxX)",
+      "mcp__supabase__search_docs",
+      "mcp__f3c71feb-d9d2-49b4-80ae-986f994028b6__list_organizations",
+      "mcp__f3c71feb-d9d2-49b4-80ae-986f994028b6__get_organization",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_publishable_keys",
+      "Bash(curl -s -H \"apikey: sb_publishable_Un4ayUksCdBudQeld2jg2g_zJ85HTvy\" https://kwpaaqdkklwwfslhkqpb.supabase.co/auth/v1/settings)"
     ]
   },
   "enableAllProjectMcpServers": true,

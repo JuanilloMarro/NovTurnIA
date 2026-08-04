@@ -280,7 +280,9 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
                 <div className="flex items-center justify-center px-6 pb-6 pt-2 shrink-0">
                     <button type="button" onClick={onClose}
                         className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white/40 border border-white/60 text-navy-800 text-[11px] font-bold rounded-full hover:bg-white/60 transition-colors shadow-sm min-w-[120px]">
-                        Cerrar
+                        {/* Era el único botón de cierre del sistema sin icono; el resto
+                            de los "Cancelar" ya llevan la X. */}
+                        <X size={13} /> Cerrar
                     </button>
                 </div>
 

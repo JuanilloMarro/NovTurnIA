@@ -336,12 +336,19 @@ export default function FinanceSummary({ fin, period, year, month, day, isCurren
                 par de KPIs, salvo la 3ra que es la meta del mes. */}
             {showGoal ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                    <div className="grid grid-cols-2 gap-3">{kpiIngresos}{kpiEgresos}</div>
-                    <div className="grid grid-cols-2 gap-3">{kpiNeta}{kpiMargen}</div>
+                    {/* `max-sm:grid-cols-1` — en teléfono el 2×2 dejaba tarjetas tan
+                        angostas que el badge de porcentaje se comía el valor. Apiladas
+                        a una columna cada KPI se lee entero, y desde `sm` vuelve el 2×2
+                        de siempre. */}
+                    <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-3">{kpiIngresos}{kpiEgresos}</div>
+                    <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-3">{kpiNeta}{kpiMargen}</div>
                     <GoalPanel goal={Number(fin.monthlyGoal)} projection={fin.projection} />
                 </div>
             ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                /* `max-sm:grid-cols-1` — misma razón que arriba: en teléfono los 4
+                   KPIs en 2×2 quedaban tan angostos que el badge de porcentaje
+                   competía con el monto. En pila se leen bien. */
+                <div className="grid grid-cols-2 max-sm:grid-cols-1 lg:grid-cols-4 gap-3">
                     {kpiIngresos}{kpiEgresos}{kpiNeta}{kpiMargen}
                 </div>
             )}

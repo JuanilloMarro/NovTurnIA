@@ -365,7 +365,7 @@ export default function Conversations() {
             {/* F3 · Aviso al ≥80% del cupo con CTA de comprar paquete (deshabilitado — B4) */}
             <OutboundQuotaNotice usage={planLimits} />
 
-            <div className="flex-1 flex gap-4 min-h-0 mb-4 lg:mb-6">
+            <div className="flex-1 flex gap-4 min-h-0 mb-4 lg:mb-6 module-gap-b">
                 <div className="relative flex-1 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md flex overflow-hidden animate-fade-up">
                     <div className="absolute -top-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
                     <div className="absolute -top-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(29,95,173,0.05)' }} />
@@ -770,7 +770,12 @@ export default function Conversations() {
                                             </button>
                                             <div className="font-bold text-navy-900 text-sm">Paneles</div>
                                         </div>
-                                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                                        {/* `min-h-0` — sin esto el scroll NO se activa: un hijo
+                                            de flex no baja de su tamaño de contenido, así que la
+                                            lista crecía y "Ofertas activas" quedaba recortada
+                                            abajo, sin barra para llegar. Es el mismo caso que el
+                                            menú del sidebar y el cajón de Perfil de cliente. */}
+                                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
                                             <ContextPanels
                                                 patient={selectedPatientEffective}
                                                 windowOpen={windowOpen}

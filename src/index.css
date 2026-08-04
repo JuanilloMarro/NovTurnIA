@@ -483,6 +483,18 @@ body::before {
     box-shadow: none !important;
   }
 
+  /* Margen inferior: en horizontal se sumaban DOS espacios y quedaba un hueco
+     grande. Medido en tablet acostada: `pb-4` del <main> (16px) + `lg:mb-6` del
+     contenedor del módulo (24px) = 40px de aire muerto abajo, con el alto ya
+     escaso. Se anulan los dos; el gutter del safe-area ya se fue más arriba. */
+  main {
+    padding-bottom: 0 !important;
+  }
+
+  .module-gap-b {
+    margin-bottom: 0 !important;
+  }
+
   /* Las tiras de acciones se comportan como en vertical SIN depender del ancho.
      Las variantes `max-lg:` del JSX cortan en 1024px, así que una tablet
      acostada (1024 justo) se quedaba con la fila apilada y los botones
@@ -518,10 +530,6 @@ body::before {
      `flex-start` en cuanto no entra, que es justo el comportamiento que se
      quiere. Se declara `center` antes como respaldo para navegadores que no
      entiendan la palabra clave `safe` (la ignoran y se quedan con el primero). */
-  .mobile-strip--center {
-    justify-content: center !important;
-    justify-content: safe center !important;
-  }
 }
 
 /* Teléfono acostado — el caso extremo: ~375px de alto.
@@ -668,11 +676,76 @@ body::before {
   justify-content: safe flex-end;
 }
 
+/* Pista de que el menú sigue hacia abajo.
+   Con 14 módulos, en un teléfono la lista se corta y no había nada que lo
+   sugiriera: el cliente tendría que adivinar que hay más. Un degradado sutil al
+   pie del <nav> insinúa contenido cortado, y se desvanece solo al llegar al
+   final gracias a `mask-image` sobre el scroll — no es un elemento nuevo ni
+   ocupa espacio, así que no empuja ningún item.
+
+   `pointer-events: none` implícito: es un ::after sin contenido, no intercepta
+   toques. Y solo se pinta cuando de verdad hay desbordamiento, porque en ese
+   caso el gradiente queda sobre un item; si todo entra, cae sobre el fondo
+   transparente del cajón y no se nota. */
+.nav-scroll-hint {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
+}
+
+/* Cuando ya se llegó al final, se quita el difuminado para que el último item
+   se lea completo. Lo activa el propio scroll vía `data-fin="1"` desde el JSX. */
+.nav-scroll-hint[data-fin='1'] {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Variante CENTRADA — los pies de acción de las fichas emergentes (Detalle de
+   turno, Perfil de cliente). Van centrados por diseño, a diferencia de las filas
+   de cabecera de módulo, que van a la derecha.
+
+   ⚠️ Va FUERA de toda media query, y con `!important`. Estuvo solo dentro del
+   bloque de horizontal y por eso en vertical y en escritorio los botones se
+   corrían a la derecha: el `safe flex-end` de la regla base de arriba se les
+   aplicaba igual. Es una regresión que introduje al mover la alineación a
+   `.mobile-strip`; acá queda cerrada para todas las dimensiones.
+
+   `safe center` por lo mismo que el resto: centra mientras entra, y cae a la
+   izquierda si desborda, para no dejar botones fuera del área desplazable. */
+.mobile-strip--center {
+  justify-content: center !important;
+  justify-content: safe center !important;
+}
+
 .mobile-strip::-webkit-scrollbar {
   display: none;
 }
 
 @media (max-width: 639.98px) {
+  /* EL "ZOOM" AL TOCAR UN CAMPO ES TEMA DE CÓDIGO, NO DEL NAVEGADOR.
+     Safari en iOS hace zoom automático al enfocar cualquier campo cuya
+     `font-size` sea MENOR a 16px, y después deja la página alejada — de ahí que
+     haya que pellizcar para volver. No es un bug del navegador, y no se arregla
+     con `user-scalable=no`: iOS lo ignora desde hace años, y además desactivar
+     el zoom rompería la accesibilidad de quien lo necesita.
+
+     La única cura real es que el campo mida 16px mientras está en teléfono.
+     T4 ya lo había hecho a mano en Login y AdminPanel; acá se cierra para TODO
+     el sistema de una sola vez, en vez de ir campo por campo. Desde 640px cada
+     campo vuelve al tamaño que le da su propia clase.
+
+     ⚠️ `!important` es necesario, no cosmético. Sin él la regla solo funcionaba
+     a medias, y de una forma que engaña: `input:not(...):not(...)` tiene
+     especificidad (0,2,1) —cada `:not()` suma la de su argumento— así que le
+     ganaba a `text-sm`; pero `select` y `textarea` son selectores de elemento
+     (0,0,1) y perdían contra cualquier `text-[11px]`. Medido: los input salían
+     en 16px y los select/textarea seguían en 11px y 10px, o sea que en esos dos
+     el zoom seguía pasando. */
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
   /* T24 — Objetivos táctiles.
      Los 16 botones circulares de 28px (`w-7 h-7`) y 24px (`w-6 h-6`) están por
      debajo del mínimo cómodo de 44px: cerrar un modal, las flechas de período

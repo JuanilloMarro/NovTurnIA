@@ -481,7 +481,7 @@ export default function AuditLog() {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 lg:mb-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 lg:mb-6 module-gap-b">
                 {loading ? (
                     <div className="flex items-center justify-center p-12">
                         <div className="w-8 h-8 border-4 border-navy-100 border-t-navy-700 rounded-full animate-spin" />

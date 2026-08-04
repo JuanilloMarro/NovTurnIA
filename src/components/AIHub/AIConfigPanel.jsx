@@ -325,7 +325,11 @@ export default function AIConfigPanel({ canEdit = true }) {
             {/* Columna derecha: Identidad + Horario (lado a lado, angostos y altos) + IA pausada */}
             <div className="flex-1 min-w-0 flex flex-col gap-5 min-h-0">
 
-                <div className="grid grid-cols-2 gap-5 shrink-0">
+                {/* `max-sm:grid-cols-1` — SOLO en teléfono. Identidad y Horario
+                    lado a lado quedaban demasiado angostos; apilados, todos los
+                    paneles del módulo se leen como una sola pila vertical, igual
+                    que el del orbe de arriba. Desde `sm` vuelven lado a lado. */}
+                <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-5 shrink-0">
 
                     <div className={`ai-aurora rounded-[22px] ${auroraClass}`}>
                         <div className="relative h-full bg-white/40 backdrop-blur-2xl border border-white/60 rounded-[22px] shadow-md p-5 overflow-hidden">

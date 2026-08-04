@@ -39,7 +39,7 @@ export default function Topbar() {
     const markOneRead = useToastStore(s => s.markOneRead);
     const markOneUnread = useToastStore(s => s.markOneUnread);
     const deleteOne = useToastStore(s => s.deleteOne);
-    const { theme, setTheme, toggleSidebar, businessName } = useAppStore();
+    const { theme, setTheme, toggleSidebar, isSidebarOpen, businessName } = useAppStore();
     const [showNotif, setShowNotif] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const notifRef = useRef(null);
@@ -75,9 +75,13 @@ export default function Topbar() {
         <header className="app-topbar h-[72px] px-6 flex items-center justify-between lg:justify-end z-[100] transition-all sticky top-0 bg-transparent">
             {/* Hamburguesa — solo mientras el sidebar es cajón.
                 Mismo "doble botón" que la campana y el perfil: píldora de vidrio
-                por fuera con sus glows, y el círculo real adentro. Antes era un
-                círculo suelto y rompía el lenguaje de la barra. */}
-            <div className="lg:hidden relative flex items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-11">
+                por fuera con sus glows, y el círculo real adentro.
+
+                Se OCULTA con el cajón abierto (`isSidebarOpen`): el cajón se desliza
+                por encima y el botón quedaba justo sobre el logo y el nombre del
+                sistema, ilegibles los dos. Cerrar ya se puede tocando afuera (el velo)
+                o eligiendo un módulo, así que no se pierde ninguna salida. */}
+            <div className={`${isSidebarOpen ? 'hidden' : 'flex'} lg:hidden relative items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-11`}>
                 <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
                     <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl" style={{ background: 'rgba(64,98,200,0.05)' }} />
                     <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl" style={{ background: 'rgba(120,110,230,0.05)' }} />

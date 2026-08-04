@@ -114,7 +114,11 @@ export default function Popover({
                 // en la esquina y se ve un salto.
                 visibility: pos ? 'visible' : 'hidden',
             }}
-            className={`overflow-hidden ${className} bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[24px] shadow-md z-[300] p-2 animate-fade-up`}
+            /* `bg-white/80` + `backdrop-blur-3xl` — antes era `/70` con `blur-2xl` y
+               el contenido de atrás se transparentaba lo suficiente como para
+               competir con las opciones del panel. Más opacidad y más desenfoque
+               separan el panel del fondo sin cambiar el lenguaje de vidrio. */
+            className={`overflow-hidden ${className} bg-white/80 backdrop-blur-3xl border border-white/60 rounded-[24px] shadow-lg z-[300] p-2 animate-fade-up`}
         >
             <div className="absolute -top-8 -right-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(64,98,200,0.05)' }} />
             <div className="absolute -top-8 -left-8 pointer-events-none z-0" style={{ width: '70%', height: '70%', borderRadius: '50%', filter: 'blur(40px)', background: 'rgba(29,95,173,0.05)' }} />

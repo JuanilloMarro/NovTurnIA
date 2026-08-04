@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock, Tag, History, Wallet, Repeat } from 'lucide-react';
 import AIStar from './Icons/AIStar';
@@ -88,6 +88,18 @@ export default function Sidebar({ onOpenPlans }) {
         }
     }, [businessId]);
 
+    // Pista de "hay más módulos abajo". El degradado del pie del <nav> se apaga
+    // al llegar al final para que el último item se lea completo. Se mide con
+    // tolerancia de 2px porque el scroll fraccionario nunca da el número exacto.
+    const navRef = useRef(null);
+    const [navAtEnd, setNavAtEnd] = useState(false);
+    const handleNavScroll = () => {
+        const n = navRef.current;
+        if (!n) return;
+        setNavAtEnd(n.scrollTop + n.clientHeight >= n.scrollHeight - 2);
+    };
+    useEffect(() => { handleNavScroll(); }, []);
+
     // T7 · 1024 = el punto donde Tailwind activa `lg:` y el aside deja de ser
     // cajón. Debe coincidir con `lg:translate-x-0` de abajo: si no, en tablet el
     // menú se cerraría solo estando fijo, o quedaría abierto tapando el contenido.
@@ -135,7 +147,12 @@ export default function Sidebar({ onOpenPlans }) {
                     pero sin scroll, así que el sobrante simplemente se recortaba.
                     `min-h-0` es obligatorio: un hijo de flex no baja de su tamaño de
                     contenido sin eso, y el overflow nunca se activaría. */}
-                <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col gap-1.5 mt-2">
+                <nav
+                    ref={navRef}
+                    onScroll={handleNavScroll}
+                    data-fin={navAtEnd ? '1' : '0'}
+                    className="nav-scroll-hint flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col gap-1.5 mt-2"
+                >
                     <NavItem to="/" end icon={Calendar} label="Citas" onClick={closeMobile} />
 
                     {canViewFollowUp && (

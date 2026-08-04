@@ -270,30 +270,35 @@ function formatCentsDisplay(cents) {
     return (cents / 100).toFixed(2);
 }
 export function CentsAmountInput({ cents, onChange, autoFocus, max = 9999999 }) {
-    function handleKey(e) {
-        if (e.key === 'Backspace') {
-            e.preventDefault();
-            const next = Math.floor((cents ?? 0) / 10);
-            onChange(next === 0 ? null : next);
-            return;
-        }
-        if (!/^\d$/.test(e.key)) return;
-        e.preventDefault();
-        const next = (cents ?? 0) * 10 + Number(e.key);
-        onChange(Math.min(next, max));
+    // EN TELÉFONO NO SE PODÍA ESCRIBIR NINGÚN MONTO. El campo tenía
+    // `inputMode="none"` —que le pide expresamente al navegador NO abrir teclado—
+    // más `readOnly`, y toda la lógica colgaba de `onKeyDown`. En escritorio
+    // funcionaba porque hay teclado físico; en un celular no aparecía nada y el
+    // campo quedaba muerto.
+    //
+    // Ahora se maneja por `onChange` y se leen los DÍGITOS del valor, lo que da
+    // exactamente el mismo comportamiento de caja registradora y además funciona
+    // con el teclado nativo:
+    //   "3.50" + tecla 0  → "3.500" → dígitos 3500 → Q35.00
+    //   "3.50" + borrar   → "3.5"   → dígitos 35   → Q0.35
+    // `inputMode="numeric"` abre el teclado numérico; el filtro de dígitos hace
+    // que pegar texto o escribir una coma a mano siga siendo imposible.
+    function handleChange(e) {
+        const digits = (e.target.value || '').replace(/\D/g, '');
+        if (digits === '') { onChange(null); return; }
+        onChange(Math.min(Number(digits), max));
     }
     return (
         <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-navy-700/60 font-bold text-sm pointer-events-none select-none">Q</span>
             <input
                 type="text"
-                inputMode="none"
-                readOnly
+                inputMode="numeric"
                 autoFocus={autoFocus}
                 value={formatCentsDisplay(cents)}
-                onKeyDown={handleKey}
+                onChange={handleChange}
                 placeholder="0.00"
-                className={`w-full bg-white/40 border border-white/60 rounded-full pl-9 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm cursor-text select-none ${cents ? 'text-navy-900' : 'text-navy-700/40'}`}
+                className={`w-full bg-white/40 border border-white/60 rounded-full pl-9 pr-4 py-2.5 text-[16px] sm:text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm ${cents ? 'text-navy-900' : 'text-navy-700/40'}`}
             />
         </div>
     );
@@ -314,29 +319,25 @@ function formatTenthsDisplay(tenths) {
     return (tenths / 10).toFixed(1);
 }
 export function PercentInput({ tenths, onChange, autoFocus, max = 1000 }) {
-    function handleKey(e) {
-        if (e.key === 'Backspace') {
-            e.preventDefault();
-            const next = Math.floor((tenths ?? 0) / 10);
-            onChange(next === 0 ? null : next);
-            return;
-        }
-        if (!/^\d$/.test(e.key)) return;
-        e.preventDefault();
-        const next = (tenths ?? 0) * 10 + Number(e.key);
-        onChange(Math.min(next, max));
+    // Mismo arreglo que `CentsAmountInput`: tenía `inputMode="none"` + `readOnly`,
+    // así que en teléfono no abría teclado y el % de comisión no se podía
+    // escribir. Se pasa a `onChange` leyendo los dígitos, que conserva el
+    // comportamiento de caja registradora y funciona con el teclado nativo.
+    function handleChange(e) {
+        const digits = (e.target.value || '').replace(/\D/g, '');
+        if (digits === '') { onChange(null); return; }
+        onChange(Math.min(Number(digits), max));
     }
     return (
         <div className="relative">
             <input
                 type="text"
-                inputMode="none"
-                readOnly
+                inputMode="numeric"
                 autoFocus={autoFocus}
                 value={formatTenthsDisplay(tenths)}
-                onKeyDown={handleKey}
+                onChange={handleChange}
                 placeholder="0.0"
-                className={`w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-9 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm cursor-text select-none text-right ${tenths ? 'text-navy-900' : 'text-navy-700/40'}`}
+                className={`w-full bg-white/40 border border-white/60 rounded-full pl-4 pr-9 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm text-right ${tenths ? 'text-navy-900' : 'text-navy-700/40'}`}
             />
             <span className="absolute inset-y-0 right-0 pr-4 flex items-center text-navy-700/60 font-bold text-sm pointer-events-none select-none">%</span>
         </div>

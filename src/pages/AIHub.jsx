@@ -249,7 +249,12 @@ function InsightsPanel({ mock, feed, hasFeature, onOpenAction, firstName }) {
                 <div className="absolute -bottom-16 -right-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(120,110,230,0.05)' }} />
                 <div className="absolute -bottom-16 -left-16 pointer-events-none z-0" style={{ width: '55%', height: '55%', borderRadius: '50%', filter: 'blur(60px)', background: 'rgba(64,98,200,0.05)' }} />
 
-                <div className="relative z-10 flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 flex flex-col items-center justify-center gap-3">
+                {/* `overflow-x-hidden` explícito. Declarar solo `overflow-y-auto` hace
+                    que el navegador calcule `overflow-x` como `auto` también — no se
+                    puede desplazar un eje y dejar el otro en `visible`. Por eso este
+                    panel tenía una barra HORIZONTAL además de la vertical, y se podía
+                    arrastrar de lado. La vertical se conserva; la horizontal se corta. */}
+                <div className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar p-5 flex flex-col items-center justify-center gap-3">
                     <div className="shrink-0 flex flex-col items-center text-center">
                         <div className="relative w-[440px] max-w-full h-[300px] -mb-2">
                             {/* El orbe real también en el preview bloqueado — antes se
