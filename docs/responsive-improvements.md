@@ -3,7 +3,7 @@
 Filtros: en los paneles emergentes que muestras las opciones de filtros agregar un poco mas de blur hacia el fondo porque a veces queda info atras y no es tan notorio las demas opciones un poco de blur para que blurree las opciones dentras del panel.
 
 Investiga por que algunas opciones como la búsqueda o botones de accion dentro del celular activan como un zoom y hay que alejar mira si es tema de codigo o si ya es tema de navegador omitelo.
-
+    
 ## Dimensiones de celular
 
 Sidebar Menú:

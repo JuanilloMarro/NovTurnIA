@@ -77,11 +77,18 @@ export default function Topbar() {
                 Mismo "doble botón" que la campana y el perfil: píldora de vidrio
                 por fuera con sus glows, y el círculo real adentro.
 
-                Se OCULTA con el cajón abierto (`isSidebarOpen`): el cajón se desliza
-                por encima y el botón quedaba justo sobre el logo y el nombre del
-                sistema, ilegibles los dos. Cerrar ya se puede tocando afuera (el velo)
-                o eligiendo un módulo, así que no se pierde ninguna salida. */}
-            <div className={`${isSidebarOpen ? 'hidden' : 'flex'} lg:hidden relative items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-11`}>
+                Con el cajón abierto se vuelve INVISIBLE, no `hidden`: el cajón se
+                desliza por encima y el botón quedaba justo sobre el logo y el nombre
+                del sistema, ilegibles los dos. Cerrar sigue estando disponible tocando
+                afuera (el velo) o eligiendo un módulo.
+
+                ⚠️ `invisible` y NO `hidden` a propósito. `hidden` es `display: none` y
+                saca el elemento del flujo: el header es `justify-between`, así que al
+                desaparecer el botón el grupo de la derecha —Centro IA, notificaciones
+                y perfil— se corría hacia la izquierda. `invisible` es
+                `visibility: hidden`: deja de verse y de recibir toques, pero CONSERVA
+                su espacio, así que los otros tres no se mueven ni un pixel. */}
+            <div className={`flex ${isSidebarOpen ? 'invisible' : ''} lg:hidden relative items-center bg-white/40 backdrop-blur-2xl border border-white/60 rounded-full shadow-md p-1 h-11`}>
                 <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
                     <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl" style={{ background: 'rgba(64,98,200,0.05)' }} />
                     <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl" style={{ background: 'rgba(120,110,230,0.05)' }} />
