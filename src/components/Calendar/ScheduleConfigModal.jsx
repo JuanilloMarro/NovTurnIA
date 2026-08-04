@@ -245,8 +245,17 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
 
                     {/* ── Columna derecha: listado de excepciones registradas ── */}
                     <div className="flex flex-col md:min-h-0 bg-white/30 border border-white/50 rounded-2xl overflow-hidden">
-                        <p className="text-[11px] font-bold text-navy-700/50 px-4 pt-3.5 pb-2.5 shrink-0 border-b border-white/40">
-                            Excepciones registradas ({exceptions.length})
+                        {/* `text-navy-800` sin opacidad, igual que "Cupo máximo..." y
+                            "Agregar festivo..." de la columna izquierda. Antes era
+                            `text-navy-700/50` — mucho más pálido que sus vecinos — y en
+                            móvil, con las dos columnas apiladas, esta tarjeta aparece
+                            justo debajo del botón "Agregar excepción": con el título casi
+                            invisible sobre el vidrio esmerilado, lo único que se leía con
+                            claridad era el borde/fondo blanco de la tarjeta — de ahí la
+                            "línea blanca" o "componente comprimido". El icono la empareja
+                            además con el resto de encabezados de sección del modal. */}
+                        <p className="flex items-center gap-1.5 text-[11px] font-bold text-navy-800 tracking-wide px-4 pt-3.5 pb-2.5 shrink-0 border-b border-white/40">
+                            <CalendarOff size={12} /> Excepciones registradas ({exceptions.length})
                         </p>
                         <div className="md:flex-1 md:overflow-y-auto custom-scrollbar p-3 space-y-2">
                             {loading ? (

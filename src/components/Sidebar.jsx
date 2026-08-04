@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock, Tag, History, Wallet, Repeat } from 'lucide-react';
+import { Calendar, Users, BarChart2, MessageCircle, Bot, ShieldCheck, Settings, List, Layers, CreditCard, Lock, Tag, History, Wallet, Repeat, ChevronDown } from 'lucide-react';
 import AIStar from './Icons/AIStar';
 import RealtimeStatusBanner from './RealtimeStatusBanner';
 import { useAuroraPulse } from '../hooks/useAuroraPulse';
@@ -88,17 +88,48 @@ export default function Sidebar({ onOpenPlans }) {
         }
     }, [businessId]);
 
-    // Pista de "hay más módulos abajo". El degradado del pie del <nav> se apaga
-    // al llegar al final para que el último item se lea completo. Se mide con
-    // tolerancia de 2px porque el scroll fraccionario nunca da el número exacto.
+    // Pista de "hay más módulos abajo". El degradado del pie del <nav> ya
+    // insinuaba el corte, pero por sí solo no bastaba — el cliente tendría que
+    // adivinar que hay más opciones. Se suma un chip explícito "Ver más" con
+    // flecha, con dos condiciones:
+    //   · `navHasOverflow` — solo aparece si el <nav> REALMENTE desborda. Un
+    //     negocio con pocos módulos habilitados (permisos/plan) nunca lo ve.
+    //   · `navScrolled` — se apaga apenas el usuario empieza a deslizar, no
+    //     recién al llegar al final: una vez que desliza ya descubrió que hay
+    //     más, así que seguir mostrando el chip solo estorbaría.
+    // El degradado (`navAtEnd`, la clase `nav-scroll-hint`) se conserva aparte:
+    // se apaga solo al llegar al final, para que el último item se lea entero.
     const navRef = useRef(null);
     const [navAtEnd, setNavAtEnd] = useState(false);
+    const [navHasOverflow, setNavHasOverflow] = useState(false);
+    const [navScrolled, setNavScrolled] = useState(false);
+
+    const recomputeNavOverflow = () => {
+        const n = navRef.current;
+        if (!n) return;
+        setNavHasOverflow(n.scrollHeight > n.clientHeight + 1);
+    };
     const handleNavScroll = () => {
         const n = navRef.current;
         if (!n) return;
         setNavAtEnd(n.scrollTop + n.clientHeight >= n.scrollHeight - 2);
+        setNavScrolled(n.scrollTop > 4);
     };
-    useEffect(() => { handleNavScroll(); }, []);
+
+    // Recalcula cuando cambia la lista de módulos visibles — los permisos y
+    // features se resuelven de forma asíncrona, así que el número de items
+    // puede crecer después del primer render — y cuando cambia el alto
+    // disponible (rotación de pantalla, la barra de direcciones apareciendo o
+    // escondiéndose).
+    useEffect(() => {
+        recomputeNavOverflow();
+        handleNavScroll();
+    }, [canViewStats, canManageRoles, canManageServices, canViewPatients, canViewConversations, canViewFollowUp, canViewFinance, canUseAIHub, canViewPipeline, statsUnlocked, aiHubUnlocked, auditUnlocked, offersUnlocked, followUpUnlocked, pipelineUnlocked, financeUnlocked]);
+
+    useEffect(() => {
+        window.addEventListener('resize', recomputeNavOverflow);
+        return () => window.removeEventListener('resize', recomputeNavOverflow);
+    }, []);
 
     // T7 · 1024 = el punto donde Tailwind activa `lg:` y el aside deja de ser
     // cajón. Debe coincidir con `lg:translate-x-0` de abajo: si no, en tablet el
@@ -147,11 +178,12 @@ export default function Sidebar({ onOpenPlans }) {
                     pero sin scroll, así que el sobrante simplemente se recortaba.
                     `min-h-0` es obligatorio: un hijo de flex no baja de su tamaño de
                     contenido sin eso, y el overflow nunca se activaría. */}
+                <div className="relative flex-1 min-h-0 mt-2">
                 <nav
                     ref={navRef}
                     onScroll={handleNavScroll}
                     data-fin={navAtEnd ? '1' : '0'}
-                    className="nav-scroll-hint flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col gap-1.5 mt-2"
+                    className="nav-scroll-hint h-full overflow-y-auto no-scrollbar flex flex-col gap-1.5"
                 >
                     <NavItem to="/" end icon={Calendar} label="Citas" onClick={closeMobile} />
 
@@ -221,6 +253,19 @@ export default function Sidebar({ onOpenPlans }) {
                         <CreditCard size={16} className="shrink-0 relative z-10" /> <span className="relative z-10">Planes</span>
                     </button>
                 </nav>
+
+                    {/* Chip "Ver más" — explícito a propósito, no solo el degradado.
+                        `pointer-events-none`: es un aviso visual, nunca debe robarle un
+                        toque al último ítem visible, que puede quedar justo debajo. */}
+                    {navHasOverflow && !navScrolled && (
+                        <div className="pointer-events-none absolute inset-x-0 bottom-1.5 flex justify-center animate-fade-up">
+                            <span className="flex items-center gap-1 pl-2.5 pr-2 py-1 rounded-full bg-white/70 backdrop-blur-md border border-white/70 shadow-sm text-[9px] font-bold text-navy-700/60 tracking-wide">
+                                Ver más
+                                <ChevronDown size={11} strokeWidth={2.5} className="animate-bounce" />
+                            </span>
+                        </div>
+                    )}
+                </div>
 
                 <div className="mt-auto pt-6 px-5 border-t border-white/20 shrink-0">
                     {/* El aviso de Realtime vive acá y no arriba del módulo: en el

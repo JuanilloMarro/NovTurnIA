@@ -214,7 +214,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                                                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/50 transition-colors border-b border-white/40 last:border-0"
                                                     onClick={() => { setPatientObj(p); setPatientQ(''); setPatients([]); }}
                                                 >
-                                                    <div className="w-8 h-8 rounded-full bg-navy-900 flex items-center justify-center text-white text-xs font-bold border border-white/30 shadow-sm">
+                                                    {/* Avatar blanco con iniciales navy, no círculo navy sólido con
+                                                        texto blanco — es la convención de ícono que ya usan
+                                                        PatientCard y Users.jsx en el resto del sistema. */}
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-b from-white to-gray-100 border border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] flex items-center justify-center text-navy-900 text-xs font-bold">
                                                         {getInitials(p.display_name)}
                                                     </div>
                                                     <div className="text-left">
@@ -229,7 +232,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onCreated, initia
                             ) : (
                                 <div className="flex items-center justify-between bg-white/50 border border-white/60 py-1.5 px-2.5 rounded-full shadow-sm">
                                     <div className="flex items-center gap-2.5">
-                                        <div className="w-10 h-10 rounded-full bg-navy-900 flex items-center justify-center text-white text-sm font-bold shadow-md border border-white/20">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-b from-white to-gray-100 border border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0px_rgba(255,255,255,1)] flex items-center justify-center text-navy-900 text-sm font-bold">
                                             {getInitials(patientObj.display_name)}
                                         </div>
                                         <div className="flex items-center gap-1.5">
