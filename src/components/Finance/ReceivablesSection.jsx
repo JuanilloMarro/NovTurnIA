@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Search, User, X, HandCoins, Check, Ban, MessageCircle, ChevronDown, HeartHandshake, Layers } from 'lucide-react';
+import { Plus, Search, User, X, HandCoins, Check, Ban, MessageCircle, ChevronDown, HeartHandshake, Layers, Trash2 } from 'lucide-react';
 import { searchPatients } from '../../services/supabaseService';
 import { useAppStore } from '../../store/useAppStore';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
@@ -216,6 +216,8 @@ export default function ReceivablesSection({ rec, canRecord, canVoid }) {
     const [newPlan, setNewPlan] = useState(false);
     const [paying, setPaying] = useState(null);   // plan
     const [cancelling, setCancelling] = useState(null); // plan
+    const [deleting, setDeleting] = useState(null);     // plan a borrar de la base
+    const [deleteBusy, setDeleteBusy] = useState(false);
     const [cancelBusy, setCancelBusy] = useState(false);
 
     const t = query.trim().toLowerCase();
@@ -291,17 +293,28 @@ export default function ReceivablesSection({ rec, canRecord, canVoid }) {
                                                 {money(p.balance)}
                                             </span>
                                         </div>
-                                        {p.status === 'active' && (
-                                            <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                                                {p.patient_phone && <ReminderCopyButton plan={p} businessName={businessName} />}
-                                                {canRecord && (
-                                                    <IconAddBtn icon={HandCoins} label="Abonar" tone="success" onClick={() => setPaying(p)} />
-                                                )}
-                                                {canVoid && (
-                                                    <IconAddBtn icon={Ban} label="Cancelar" tone="danger" onClick={() => setCancelling(p)} />
-                                                )}
-                                            </div>
-                                        )}
+                                        {/* Eliminar vive FUERA del bloque `active`: un plan
+                                            completado o cancelado también se tiene que poder
+                                            borrar, que es justamente cuando estorba en la
+                                            lista. Cancelar sigue siendo solo para activos —
+                                            son cosas distintas: cancelar conserva el plan en
+                                            el historial, eliminar lo saca de la base. */}
+                                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                            {p.status === 'active' && (
+                                                <>
+                                                    {p.patient_phone && <ReminderCopyButton plan={p} businessName={businessName} />}
+                                                    {canRecord && (
+                                                        <IconAddBtn icon={HandCoins} label="Abonar" tone="success" onClick={() => setPaying(p)} />
+                                                    )}
+                                                    {canVoid && (
+                                                        <IconAddBtn icon={Ban} label="Cancelar" tone="danger" onClick={() => setCancelling(p)} />
+                                                    )}
+                                                </>
+                                            )}
+                                            {canVoid && (
+                                                <IconAddBtn icon={Trash2} label="Eliminar" tone="danger" onClick={() => setDeleting(p)} />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -336,6 +349,32 @@ export default function ReceivablesSection({ rec, canRecord, canVoid }) {
                     }
                 }}
                 onCancel={() => setCancelling(null)} />
+
+            {/* El aviso cambia según si el plan ya tiene abonos: esos abonos son
+                `income_entries` REALES y ya contabilizados, así que borrar el plan
+                no es lo mismo que borrar uno creado por error. Si la DB no permite
+                el borrado (FK), el error se muestra tal cual en vez de fallar mudo. */}
+            <ConfirmDialog open={!!deleting} danger loading={deleteBusy}
+                title="¿Eliminar este plan?"
+                message={deleting
+                    ? (Number(deleting.paid_amount) > 0
+                        ? `"${deleting.description}" ya tiene ${money(deleting.paid_amount)} en abonos registrados. Se elimina el plan de la base de datos y esta acción no se puede deshacer. Si solo querés que deje de aparecer, usá Cancelar en vez de Eliminar.`
+                        : `Se elimina "${deleting.description}" de la base de datos. No tiene abonos registrados. Esta acción no se puede deshacer.`)
+                    : ''}
+                confirmLabel="Sí, eliminar" loadingLabel="Eliminando..."
+                onConfirm={async () => {
+                    setDeleteBusy(true);
+                    try {
+                        await rec.removePlan(deleting.id);
+                        showSuccessToast('Plan eliminado', 'Ya no aparece en Por cobrar.');
+                        setDeleting(null);
+                    } catch (err) {
+                        showErrorToast('No se pudo eliminar', err.message || '');
+                    } finally {
+                        setDeleteBusy(false);
+                    }
+                }}
+                onCancel={() => setDeleting(null)} />
         </div>
     );
 }

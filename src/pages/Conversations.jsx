@@ -386,7 +386,11 @@ export default function Conversations() {
                                     <div className="absolute -top-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(29,95,173,0.05)' }} />
                                     <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                                     <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700 z-10">
+                                    {/* `text-navy-700/50` — mismo tono que Ofertas y que el
+                                        SearchField compartido (Clientes, Re-agendación,
+                                        Actividad, Seguimiento). Esta barra es inline, así que
+                                        no lo heredaba del componente. */}
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700/50 z-10">
                                         <Search size={14} strokeWidth={2.5} />
                                     </div>
                                     <input
@@ -826,9 +830,21 @@ export default function Conversations() {
                     </div>
                 </div>
 
-                {/* Right Column: Context Panels — fuera del box principal, a la derecha */}
+                {/* Right Column: Context Panels — fuera del box principal, a la derecha.
+                    `p-2 -my-2` — la sombra de la tarjeta se veía CORTADA arriba y abajo,
+                    a diferencia de la caja principal de al lado. El motivo: esta columna
+                    es `overflow-y-auto` (hace falta, es lo que deja deslizar hasta
+                    "Ofertas activas"), y un contenedor con overflow RECORTA en el borde
+                    de su padding. Tenía `px-2`, así que a los costados la sombra sí
+                    asomaba, pero en vertical el padding era 0 y la tarjeta mide
+                    exactamente el 100% del alto: la sombra quedaba rebanada a ras.
+                    `p-2` abre 8px de aire dentro del recorte (medido: `shadow-md` se
+                    extiende ~6px, así que entra completa) y `-my-2` devuelve esos mismos
+                    8px por fuera, para que la tarjeta siga arrancando y terminando
+                    EXACTAMENTE donde antes — alineada con la caja principal. Medido: la
+                    tarjeta va de 0 a 500 en ambos casos, y el aire pasa de 0px a 8px. */}
                 {selectedPatient && showContext && (
-                    <div className="hidden xl:flex w-[380px] flex-col shrink-0 min-h-0 overflow-y-auto no-scrollbar px-2">
+                    <div className="hidden xl:flex w-[380px] flex-col shrink-0 min-h-0 overflow-y-auto no-scrollbar p-2 -my-2">
                         <ContextPanels
                             patient={selectedPatientEffective}
                             windowOpen={windowOpen}

@@ -99,10 +99,8 @@ export default function Patients() {
                     {canCreatePatients && (
                         <button
                             onClick={() => { setSelectedPatient(null); setIsNewPatientModalOpen(true); }}
-                            className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                            className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 text-navy-900 text-[11px] font-bold rounded-full hover:bg-white/40 transition-all duration-300 outline-none"
                         >
-                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                             <Plus size={14} className="shrink-0 relative z-10" />
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[110px] transition-all duration-300 whitespace-nowrap relative z-10">Agregar Cliente</span>
                         </button>
@@ -112,10 +110,8 @@ export default function Patients() {
                     <button
                         onClick={() => reload(search, true, 0)}
                         disabled={loading}
-                        className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-40"
+                        className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 text-navy-900 text-[11px] font-bold rounded-full hover:bg-white/40 transition-all duration-300 disabled:opacity-40"
                     >
-                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                         <RefreshCw size={14} className={`shrink-0 ${loading ? 'animate-spin' : ''}`} />
                         <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
                     </button>
@@ -131,10 +127,8 @@ export default function Patients() {
                         <button
                             onClick={exportUnlocked ? handleExport : undefined}
                             disabled={exporting || !exportUnlocked}
-                            className={`relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-50 ${!exportUnlocked ? 'cursor-not-allowed' : ''}`}
+                            className={`relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 text-navy-900 text-[11px] font-bold rounded-full hover:bg-white/40 transition-all duration-300 disabled:opacity-50 ${!exportUnlocked ? 'cursor-not-allowed' : ''}`}
                         >
-                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                             {exportUnlocked ? <Download size={14} className="shrink-0" /> : <Lock size={13} className="shrink-0 text-navy-700" />}
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[60px] transition-all duration-300 whitespace-nowrap">Exportar</span>
                         </button>
@@ -149,10 +143,8 @@ export default function Patients() {
                                 <button
                                     ref={sortBtnRef}
                                     onClick={() => setShowSort(!showSort)}
-                                    className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                                    className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 text-navy-900 text-[11px] font-bold rounded-full hover:bg-white/40 transition-all duration-300 outline-none"
                                 >
-                                    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                                    <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                                     <SlidersHorizontal size={14} className="shrink-0" />
                                     <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap">Filtros</span>
                                 </button>

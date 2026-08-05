@@ -201,10 +201,15 @@ export default function InsightDrawer({ action, initialRefId = null, initialPati
                         <button
                             onClick={handleGenerate}
                             disabled={generating || loading}
-                            className="relative overflow-hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-navy-900 border border-white/10 text-white text-[11px] font-bold rounded-2xl shadow-card hover:bg-navy-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                            // Blanco de vidrio, igual que los botones de acción del resto de
+                            // los módulos (Turnos, Seguimiento, Ofertas): el navy sólido
+                            // hacía que este botón se leyera como un componente ajeno dentro
+                            // del panel. Solo cambia el color — medidas, radio y espaciado
+                            // quedan idénticos.
+                            className="relative overflow-hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-2xl shadow-md hover:bg-white/60 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {generating
-                                ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando análisis...</>
+                                ? <><div className="w-3.5 h-3.5 border-2 border-navy-900/20 border-t-navy-900 rounded-full animate-spin" /> Generando análisis...</>
                                 : insight
                                     ? <><RefreshCw size={13} /> Regenerar análisis</>
                                     : <><AIStar size={13} /> Generar análisis</>}

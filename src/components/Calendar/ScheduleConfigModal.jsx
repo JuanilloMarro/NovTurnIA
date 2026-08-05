@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CalendarOff, Plus, Trash2, Save, Users as UsersIcon } from 'lucide-react';
 import { getScheduleExceptions, createScheduleException, deleteScheduleException, updateDailyCap, getBusinessInfo } from '../../services/supabaseService';
@@ -39,6 +39,29 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
     const [end, setEnd] = useState('18');
     const [note, setNote] = useState('');
     const [adding, setAdding] = useState(false);
+
+    // En teléfono las 2 columnas se apilan y la lista de excepciones queda
+    // DEBAJO de todo el formulario: medido en 390x640, arranca 72px por fuera
+    // del área visible y hay que deslizar 510px para alcanzarla. Existe y se
+    // puede llegar, pero el usuario agrega una excepción y no ve nada pasar.
+    // Tras agregar, se acerca la lista a la vista.
+    const gridRef = useRef(null);
+    const listRef = useRef(null);
+    function revealList() {
+        const g = gridRef.current, l = listRef.current;
+        if (!g || !l) return;
+        // Desde 768px son 2 columnas y la lista ya está a la vista: no tocar.
+        if (window.matchMedia('(min-width: 768px)').matches) return;
+        // `scrollTop` directo, por dos motivos medidos:
+        //   · NO `scrollIntoView`: arrastra a cualquier ancestro con overflow y
+        //     termina moviendo el modal entero.
+        //   · NO `behavior: 'smooth'`: medido en este mismo contenedor, el
+        //     desplazamiento suave se queda en 0 y no mueve nada, mientras que el
+        //     instantáneo sí llega. Además el navegador desactiva el suave cuando
+        //     el sistema pide menos animación (`prefers-reduced-motion`), así que
+        //     habría fallado en silencio justo para quien más lo necesita.
+        g.scrollTop = l.offsetTop - g.offsetTop;
+    }
 
     const daysInMonth = (monthVal && yearVal?.length === 4)
         ? new Date(Number(yearVal), Number(monthVal), 0).getDate()
@@ -95,6 +118,7 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
             showSuccessToast('Excepción agregada', closed ? 'Día marcado como cerrado.' : 'Horario especial guardado.');
             setNote(''); setClosed(true);
             await load();
+            revealList();
             onSaved?.();
         } catch (err) {
             showErrorToast('No se pudo agregar', err.message || '');
@@ -135,7 +159,7 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
                     </button>
                 </div>
 
-                <div className="px-6 pb-6 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 md:min-h-0 flex-1 overflow-y-auto md:overflow-hidden custom-scrollbar">
+                <div ref={gridRef} className="px-6 pb-6 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 md:min-h-0 flex-1 overflow-y-auto md:overflow-hidden custom-scrollbar">
 
                     {/* ── Columna izquierda: cupo diario + nueva excepción (rollos) ── */}
                     {/* `custom-scrollbar` va SIN variante a propósito: es una clase
@@ -261,7 +285,7 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
                         el grid pasa a desbordar de verdad y su `overflow-y-auto` hace su
                         trabajo. Solo bajo `md`: de 768px para arriba son 2 columnas y ahí
                         manda `md:min-h-0`, que sigue intacto. */}
-                    <div className="flex flex-col max-md:min-h-max md:min-h-0 bg-white/30 border border-white/50 rounded-2xl overflow-hidden">
+                    <div ref={listRef} className="flex flex-col max-md:min-h-max md:min-h-0 bg-white/30 border border-white/50 rounded-2xl overflow-hidden">
                         {/* `text-navy-800` sin opacidad, igual que "Cupo máximo..." y
                             "Agregar festivo...", con el icono para emparejarla con el
                             resto de encabezados de sección del modal. */}

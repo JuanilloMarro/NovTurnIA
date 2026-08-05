@@ -61,7 +61,12 @@ export default function SearchField({
                 <div className="absolute -top-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(29,95,173,0.05)' }} />
                 <div className="absolute -bottom-3 -right-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                 <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700 z-10">
+                {/* `text-navy-700/50` — el mismo tono que la lupa de Ofertas, que es
+                    el criterio elegido para todo el sistema. Antes era `text-navy-700`
+                    sólido y se leía más pesado que el resto de las barras.
+                    Cubre de una sola vez Clientes, Re-agendación, Actividad y
+                    Seguimiento, que son los 4 módulos que usan este componente. */}
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-navy-700/50 z-10">
                     <Search size={14} strokeWidth={2.5} />
                 </div>
                 <input

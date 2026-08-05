@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { getPaymentPlans, createPaymentPlan, recordPlanPayment, cancelPaymentPlan } from '../services/supabaseService';
+import { getPaymentPlans, createPaymentPlan, recordPlanPayment, cancelPaymentPlan, deletePaymentPlan } from '../services/supabaseService';
 
 const PAGE_SIZE = 20;
 
@@ -49,9 +49,10 @@ export function useReceivables(enabled = true) {
     async function addPlan(fields) { const r = await createPaymentPlan(fields); await load(); return r; }
     async function addPayment(fields) { const r = await recordPlanPayment(fields); await load(); return r; }
     async function cancelPlan(id, reason) { const r = await cancelPaymentPlan(id, reason); await load(); return r; }
+    async function removePlan(id) { await deletePaymentPlan(id); await load(); }
 
     const active = plans.filter(p => p.status === 'active');
     const totalBalance = active.reduce((s, p) => s + Number(p.balance || 0), 0);
 
-    return { plans, active, totalBalance, loading, hasMore, loadingMore, loadMore, reload: load, addPlan, addPayment, cancelPlan };
+    return { plans, active, totalBalance, loading, hasMore, loadingMore, loadMore, reload: load, addPlan, addPayment, cancelPlan, removePlan };
 }

@@ -2163,6 +2163,25 @@ export async function cancelPaymentPlan(id, reason = null) {
     return data;
 }
 
+// Borrado REAL del plan (distinto de cancelar, que lo deja en el historial con
+// estado 'cancelled'). Sirve para limpiar planes creados por error.
+//
+// ⚠️ Los abonos de un plan son `income_entries` reales. Si la FK de la DB tiene
+// ON DELETE CASCADE, borrar un plan con abonos se llevaría ingresos ya
+// contabilizados; si es RESTRICT, la DB devolverá error y no se borrará nada.
+// Por eso la UI pide confirmación aparte cuando el plan ya tiene abonos, y este
+// error se propaga tal cual para que se vea en pantalla en vez de fallar mudo.
+// `business_id` va en el filtro además de RLS: defensa en profundidad, igual que
+// el resto de los borrados del servicio.
+export async function deletePaymentPlan(id) {
+    const { error } = await supabase
+        .from('payment_plans')
+        .delete()
+        .eq('id', id)
+        .eq('business_id', getBID());
+    if (error) throw error;
+}
+
 // ── Vouchers de pago (código único compartible) ──────────
 // Los vouchers ligados a un cobro de turno (income_id != null) los crea la DB
 // en submit_income_validation; aquí solo se listan/crean los manuales.
