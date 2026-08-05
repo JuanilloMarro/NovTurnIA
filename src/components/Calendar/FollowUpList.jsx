@@ -13,14 +13,14 @@ function StatusBadge({ status }) {
     if (status === 'no_show') {
         return (
             <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 border border-gray-200 px-2 py-[2px] rounded-md text-[9px] font-bold whitespace-nowrap">
-                <UserX size={9} strokeWidth={3} />
+                <UserX size={9} />
                 No se presentó
             </span>
         );
     }
     return (
         <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 px-2 py-[2px] rounded-md text-[9px] font-bold whitespace-nowrap">
-            <X size={9} strokeWidth={3} />
+            <X size={9} />
             Cancelado
         </span>
     );
@@ -145,7 +145,7 @@ export default function FollowUpList({ type = 'all', days = 30, search = '', rel
                                 <div className="flex items-center gap-3.5 relative z-10">
                                     {/* Icon Avatar matching Activity Log */}
                                     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${iconBg}`}>
-                                        <Icon size={16} strokeWidth={2.5} />
+                                        <Icon size={16} />
                                     </div>
                                     
                                     <div className="flex-1">

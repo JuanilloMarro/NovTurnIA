@@ -124,7 +124,7 @@ export default function FollowUp() {
                                 <div key={row.id} className="relative overflow-hidden bg-white/40 backdrop-blur-2xl border border-white/60 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-md">
                                     <div className="flex items-center gap-3.5">
                                         <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border shadow-sm ${iconBg}`}>
-                                            <Icon size={16} strokeWidth={2.5} />
+                                            <Icon size={16} />
                                         </div>
                                         <div>
                                             <p className="text-[13px] font-semibold text-navy-900 leading-snug">
@@ -163,7 +163,7 @@ export default function FollowUp() {
                                     </div>
                                     <div className="mt-2">
                                         <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 border border-gray-200 px-2 py-[2px] rounded-md text-[9px] font-bold">
-                                            <UserX size={9} strokeWidth={3} />Ausente
+                                            <UserX size={9} />Ausente
                                         </span>
                                     </div>
                                 </div>
@@ -245,8 +245,10 @@ export default function FollowUp() {
                     <button
                         onClick={() => setFollowUpReloadKey(k => k + 1)}
                         disabled={followUpLoading}
-                        className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 text-navy-900 text-[11px] font-bold rounded-full hover:bg-white/40 active:scale-95 transition-all duration-300 disabled:opacity-40 outline-none"
+                        className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md active:scale-95 transition-all duration-300 disabled:opacity-40 outline-none"
                     >
+                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                        <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                         <RefreshCw size={14} className={`shrink-0 relative z-10 ${followUpLoading ? 'animate-spin' : ''}`} />
                         <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap relative z-10">Actualizar</span>
                     </button>
@@ -254,8 +256,10 @@ export default function FollowUp() {
                         <button
                             ref={filtersBtnRef}
                             onClick={() => setShowFollowUpFilters(v => !v)}
-                            className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 text-navy-900 text-[11px] font-bold rounded-full hover:bg-white/40 transition-all duration-300 outline-none"
+                            className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
                         >
+                            <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                            <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                             <SlidersHorizontal size={14} className="shrink-0 relative z-10" />
                             <span className="max-w-0 overflow-hidden group-hover:max-w-[50px] transition-all duration-300 whitespace-nowrap relative z-10">Filtros</span>
                         </button>
