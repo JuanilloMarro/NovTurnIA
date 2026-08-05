@@ -327,7 +327,9 @@ export default function AuditLog() {
                                 <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                                 <RefreshCw size={14} className="relative z-10" />
                             </div>
-                            <div className="relative overflow-hidden h-10 flex items-center gap-2 px-4 text-navy-900 text-[11px] font-bold rounded-full hover:bg-white/40 shrink-0">
+                            <div className="relative overflow-hidden h-10 flex items-center gap-2 px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md shrink-0">
+                                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(64,98,200,0.05)' }} />
+                                <div className="absolute -bottom-3 -left-3 w-10 h-10 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(120,110,230,0.05)' }} />
                                 <SlidersHorizontal size={14} className="shrink-0 relative z-10" />
                                 <span className="relative z-10">Filtros</span>
                             </div>

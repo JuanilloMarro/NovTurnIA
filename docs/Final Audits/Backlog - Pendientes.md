@@ -1,8 +1,9 @@
 # Backlog Maestro — Pendientes
 
-> **Solo pendientes.** Si algo está hecho, no aparece acá: se registra en [Backlog - Completadas.md](Backlog%20-%20Completadas.md) con su evidencia. Nada de casillas `[x]`, nada de "cerrado, ver Completadas".
+> **Solo pendientes.** Si algo está hecho va a [Backlog - Completadas](Backlog%20-%20Completadas.md). Nada de casillas `[x]`, nada de "cerrado, ver Completadas", nada de histórico.
+> **Observaciones, decisiones tomadas, trampas operativas y diseños propuestos NO van acá:** viven en **[Observaciones y Decisiones](Observaciones%20y%20Decisiones.md)**. Leelo antes de trabajar cualquier ítem de n8n — tiene las trampas del API y los diseños de A5 y A7.
 > **Responsable:** **[IA]** = aplicable por el asistente vía MCP/API · **[TÚ]** = requiere Vercel/Supabase Studio/Meta/n8n manual · **[MIXTO]** = ambos.
-> **Antes de trabajar un ítem, re-medilo.** Nueve diagnósticos de estas auditorías resultaron falsos o mal atribuidos al ir a tocarlos; el detalle de cada uno está en Completadas §17.
+> **Antes de trabajar un ítem, re-medilo.** Varios diagnósticos resultaron falsos o mal atribuidos al ir a tocarlos.
 
 ---
 
@@ -10,14 +11,10 @@
 
 | # | Qué está trabado | Causa | Quién lo destraba |
 |---|---|---|---|
-| 1 | **Todo n8n** (A1 recableado · A3 · A5 · A9 · A7) | El túnel de Cloudflare está apagado; la instancia es inalcanzable. El diff de A1+A3+A9 está preparado y verificado (10 nodos, 16 cambios, `payload.json` + `pre.json` de rollback), esperando túnel | **[TÚ]** — levantar el túnel |
-| 2 | **A2 · rotar el `service_role`** | ⛔ **Orden obligatorio**: la clave vieja está embebida en 20 nodos que hoy no se pueden editar. Rotar ahora deja el bot muerto cuando vuelva el túnel. Secuencia: túnel arriba → migrar los 20 nodos a credencial *Header Auth* → **recién ahí** rotar | **[TÚ]**, en ese orden |
-| 3 | **INF-1 · paridad de migraciones** | Medido y nombrado: **120** migraciones de producción sin contraparte en el repo (ver el documento del delta). Sin branch ni PITR (free tier), el repositorio es la única red de seguridad que existe | **[TÚ]** — CLI de Supabase + contraseña de DB |
-| 4 | **VER-1 · smoke test de `wa-human-reply` v7** | La ventana de 24h de WhatsApp está cerrada (hace falta que un cliente escriba primero) | **[TÚ]**, cuando se abra |
-| 5 | **OPS-1 · credencial de WhatsApp sandbox** | Los nodos `WA - Respuesta *` firman con una credencial que Meta rechaza (`GraphMethodException 100/33`) | **[TÚ]** |
-| 6 | **EDGE-4 · allowlist de CORS** | Falta el origen exacto de Vercel | **[TÚ]** — pasarme el dominio |
-
-**Nota sobre el tenant de QA:** `NovTurnIA QA` (`0dcfe80e-…`) quedó con plan **Enterprise** y `plan_status='active'` para poder recorrer los módulos premium. Si querés que expire solo, volvelo a `basic`/`trial`.
+| 1 | **INF-1 · paridad de migraciones** | **120** migraciones de producción sin contraparte en el repo. Sin branch ni PITR (free tier), el repositorio es la única red de seguridad que existe | **[TÚ]** — CLI de Supabase + contraseña de DB |
+| 2 | **VER-1 · smoke test de `wa-human-reply` v7** | La ventana de 24h de WhatsApp está cerrada (hace falta que un cliente escriba primero) | **[TÚ]**, cuando se abra |
+| 3 | **OPS-1 · credencial de WhatsApp sandbox** | Los nodos `WA - Respuesta *` firman con una credencial que Meta rechaza (`GraphMethodException 100/33`) | **[TÚ]** |
+| 4 | **EDGE-4 · allowlist de CORS** | Falta el origen exacto de Vercel | **[TÚ]** — pasarme el dominio |
 
 ---
 
@@ -25,8 +22,6 @@
 
 - [ ] **[TÚ] INF-1 · Reproducibilidad: faltan 120 migraciones en el repositorio** — ➡️ **el delta ya está medido y nombrado, migración por migración, en [INF-1 - Delta de migraciones.md](INF-1%20-%20Delta%20de%20migraciones.md)**. Deja de ser un número difuso: son 141 en producción contra 39 archivos, 21 coinciden, y las 120 que faltan incluyen Finanzas v2 entera, Centro IA, vouchers, Pipeline, agenda avanzada, dunning y los triggers de límite. Un `db reset` desde este repo **no reconstruye producción**.
   **Cómo cerrarlo** (3 comandos, están en el documento): `supabase link` → `supabase db pull` → `supabase migration list`. `db pull` genera **una** línea base con el esquema completo, que es lo correcto: reconstruir 120 migraciones históricas una por una no aporta nada frente a un baseline que sí reproduce el sistema. Requiere el CLI y la contraseña de la base — por eso es tuyo. *(Infraestructura §2 I1)*
-- [ ] **[IA] A1 · Cancelación de turnos sin aislamiento de tenant** — los 3 nodos `Tool - Cancelar Cita` hacen `PATCH /rest/v1/appointments?id=eq.{{ $fromAI('appointment_id') }}` con `service_role` (salta la RLS) y **sin filtro de `business_id`**; el UUID lo decide el LLM. Los otros 17 tools sí acotan: es la única excepción. La mitad de DB ya está cerrada; **el agujero sigue abierto** hasta recablear los 3 nodos. ⛔ Bloqueo 1. *(Automatización IA §4.1)*
-- [ ] **[TÚ] A2 · `service_role` en texto plano en 20 nodos** — las claves viajan en `jsonHeaders` dentro del JSON del workflow, no en el almacén de credenciales. Cualquiera con acceso al editor o a la API obtiene una llave que ignora toda la RLS. ⛔ Bloqueo 2 — respetar el orden.
 - [ ] **[TÚ] VER-1 · Smoke test de `wa-human-reply` v7** — enviar un mensaje desde Conversaciones y confirmar que llega. Es la única función donde el `requireEnv` nuevo podría fallar **al arrancar** si faltara un secret. Rollback: redesplegar v6. ⛔ Bloqueo 4.
 - [ ] **[TÚ] VER-2 · Re-verificar el límite de `max_staff`** — como `manage-staff` devolvía 403 a todo el mundo, el check de `max_staff` **nunca se ejerció de verdad en producción**. Con la v10 desplegada, confirmar a mano que al llegar al tope el alta se rechaza con mensaje amable.
 - [ ] **[TÚ] OPS-1 · Credencial de WhatsApp no cubre el número sandbox** — `GraphMethodException 100/33`. ⛔ Bloqueo 5.
@@ -38,14 +33,10 @@
 
 *(Modelo de Negocio §8-12)*
 
-> ~~N1 · Consolidar la respuesta del bot a un mensaje por turno~~ — **retirada**: la auditoría de n8n verificó recorriendo el grafo que ninguna ruta encadena dos envíos. La palanca de ahorro del 50-66% no existe.
-
 **Bloque 1 — medir bien y gastar poco** *(la mitad de DB está cerrada; lo que falta es todo de n8n)*
 
-- [ ] **[IA] A5 · Medir tokens reales, no estimados** — `record_usage` calcula `(historial + mensaje + 1200) / 4` en vez de leer el `usageMetadata` de Gemini. Subcuenta ~450 tokens por mensaje (el prompt de sistema son 3,008 caracteres y solo se computan 1,200) y **omite por completo** los tokens de las llamadas a herramientas. El margen se calcula hoy con datos sesgados a la baja. Incluye recablear los 3 nodos `Uso - Registrar` para pasar `p_direction`. ⛔ Bloqueo 1.
-- [ ] **[IA] A3 · `maxOutputTokens` explícito en los 3 agentes** — hoy queda el default del proveedor y con `maxIterations: 10` un turno puede encadenar 10 llamadas sin tope. 400 basta para WhatsApp. ⛔ Bloqueo 1.
-- [ ] **[IA] A9 · Bajar la ventana de contexto** — `Historial - Obtener` trae 100 mensajes por turno; con 10 iteraciones, el peor caso son 10 llamadas con 100 mensajes. Es el verdadero motor del costo. Bajar a 20 mensajes y `maxIterations` a 5. ⛔ Bloqueo 1.
-- [ ] **[TÚ] N3 · El gate del bot debe leer el cupo de salientes** — la DB ya lo expone (`messages_out_effective`); falta que el nodo lo consulte. ⛔ Bloqueo 1.
+- [ ] **[TÚ] A5a · Validar y activar el reconciliador de tokens** — el workflow `Tokens - Reconciliación (A5)` (`T44G3h5zETwtXJd2`) está creado e **inactivo**. Correrlo a mano una vez desde la UI, revisar que `Code - Sumar Tokens por Negocio` devuelva un ítem por negocio con cifras razonables, y recién ahí activarlo.
+- [ ] **[IA] A5b · Poner en 0 la estimación de tokens del bot** — en los 3 nodos `Uso - Registrar`, dejar `p_tokens_in`/`p_tokens_out` en 0 y agregar `p_direction: "out"`. ⚠️ **Debe hacerse en el mismo momento en que se activa A5a**: si conviven, los tokens se cuentan dos veces; si se hace antes, se dejan de contar. Detalle en [Observaciones y Decisiones §P1](Observaciones%20y%20Decisiones.md).
 
 
 **Bloque 4 — cobranza**
@@ -101,7 +92,6 @@
 - [ ] **[IA] OBS-1 · Correlation id extremo a extremo** — `set_request_context` + header en el cliente + tag en Sentry con hash de tenant (**no** el uuid). Diseño en *(Auditoría Técnica §3.2)*.
 - [ ] **[TÚ] OBS-2 · Sentry en producción** — `VITE_SENTRY_DSN` sin configurar en Vercel; `vite.config.js` sigue con `sourcemap: false` (cambiar a `'hidden'` + subir a Sentry CLI).
 - [ ] **[MIXTO] OBS-3 · Métricas SaaS (MRR, churn, LTV, CAC)** — sin instrumentar. Hoy no se puede responder "¿cuánto facturo este mes?" sin contar negocios a mano.
-- [ ] **[TÚ] RES-3 · Error Workflow global en n8n** — no existe un workflow con Error Trigger; un fallo fuera de las ramas manejadas muere en silencio.
 - [ ] **[IA] RES-4 · Rate limiting por tenant en n8n** — hoy es por usuario+negocio (20 msg/h); falta cuota agregada que aísle ráfagas de un tenant ruidoso.
 - [ ] **[TÚ] RES-5 · Preview deployments de Vercel apuntan a la DB de producción** — configurar una branch de Supabase. Conecta con INF-1: sin migraciones versionadas no se puede levantar una branch con el modelo real. (Y branching exige plan Pro.)
 
@@ -122,10 +112,8 @@
 
 **Bot / IA** *(detalle en [Automatización IA - n8n](Automatizacion%20IA%20-%20n8n.md))*
 - [ ] **[MIXTO] A4 · Motor de recordatorios (H6)** — confirmado en el workflow activo: **cero `scheduleTrigger`**, el único disparador es `Trigger - WhatsApp`. `reminders` (Pro/Ent) y `auto_confirm` (Ent) **se venden sin motor**. El workflow inactivo de abril tenía uno completo: es rescate, no obra nueva. **Son 2 de los 15 mensajes del presupuesto del modelo de negocio.**
-- [ ] **[IA] A7 · 92 de 151 nodos sin `onError`** — incluidos `Historial - Obtener`, `Buffer - Obtener`, `Paciente - Crear` y `Audio - Transcribir`. Si fallan, la ejecución muere y **el cliente nunca recibe respuesta**, sin traza. Los 18 de WhatsApp sí están protegidos. ⛔ Bloqueo 1.
-- [ ] **[TÚ] A8 · Workflow de error global** — sin Error Trigger, los fallos de esos 92 nodos no llegan a ninguna tabla ni alerta.
-- [ ] **[TÚ] A6 · Pro y Enterprise usan el mismo modelo** (`gemini-2.5-flash`) — la feature `ai_reasoning` vende una escalera de tres niveles que en el bot son dos.
-- [ ] **[TÚ] A10 · `custom_prompt` inyectado a los 3 agentes** — es feature Pro/Ent; el frontend impide editarlo, pero si la columna trae valor el bot lo usa.
+- [ ] **[IA] A7 · `onError` en los 65 nodos que alimentan a otros** — cobertura hoy **73/138**. **Ya no está bloqueado**: A8 existe y está cableado, así que "continuar" dejó de significar "fallar en silencio". Sigue sin admitir una regla en bloque — criterio y caso testigo en [Observaciones y Decisiones §P2](Observaciones%20y%20Decisiones.md).
+- [ ] **[IA] A14 · El mensaje del cliente no se guarda al cortarse por límite** — verificado recorriendo el grafo: los gates de límite **son ancestros** de `Historial - Guardar Mensaje Usuario`, así que al cortar, el mensaje nunca llega a guardarse; el dueño ve la notificación pero no qué pidió el cliente. **No es un ajuste**: exige mover los gates después de la resolución del paciente (al cortar todavía no existe `patient_id`), y eso toca el camino principal del bot.
 - [ ] **[IA] PROD-3 · Batch semanal automático de Centro IA** — `pg_cron` para `weekly_digest`/`retention`, hoy solo on-demand.
 - [ ] **[IA] PROD-4 · Botón "Crear oferta"** que pre-llene el módulo Ofertas desde un insight `content_offer`.
 - [ ] **[IA] PROD-5 · Techo de tokens para el bot** — `usage_counters` ya acumula `tokens_in`/`tokens_out` (17 mensajes → 9,071 tokens), pero **nada corta por tokens** y el consumo no se muestra en ninguna pantalla.

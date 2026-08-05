@@ -71,7 +71,11 @@
       "PowerShell(node node_modules/eslint/bin/eslint.js src/components/Pipeline/DealCard.jsx src/components/Pipeline/DealActionsMenu.jsx src/hooks/usePipeline.js src/pages/Pipeline.jsx src/components/Calendar/ScheduleConfigModal.jsx)",
       "Bash(grep -c \"disabled\\\\\\\\\\\\\\\\:pointer-events-none\" dist/assets/*.css)",
       "Bash(grep -vE \"^\\\\s*[+-]\\\\s*\\(//|\\\\*|/\\\\*\\)\")",
-      "Bash(grep -E \"^[+-].*textarea|^[+-].*className=\\\\\"flex-1 resize|^[+-].*className=\\\\{\\\\`flex-1 resize\")"
+      "Bash(grep -E \"^[+-].*textarea|^[+-].*className=\\\\\"flex-1 resize|^[+-].*className=\\\\{\\\\`flex-1 resize\")",
+      "Bash(sed 's/eyJ[A-Za-z0-9_.-]*/<TOKEN-REDACTADO>/g')",
+      "Bash(git check-ignore *)",
+      "Bash(sed 's/=.*/=<set>/' .env)",
+      "Bash(node scripts/n8n-api.mjs GET \"/workflows?limit=50\")"
     ]
   },
   "enableAllProjectMcpServers": true,

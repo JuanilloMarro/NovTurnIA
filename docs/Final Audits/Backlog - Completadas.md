@@ -1,5 +1,8 @@
 # Backlog Maestro — Completadas
 
+> **Solo completadas.** Lo pendiente vive en [Backlog - Pendientes](Backlog%20-%20Pendientes.md).
+> **Observaciones, decisiones, trampas operativas y diseños propuestos NO van acá:** viven en [Observaciones y Decisiones](Observaciones%20y%20Decisiones.md).
+
 > Registro único de lo que está hecho y verificado en NovTurnIA.
 > **Responsable:** **[IA]** = aplicado por el asistente vía MCP/API · **[TÚ]** = acción manual, ya hecha · **[MIXTO]** = ambos.
 > **Hermano:** [Backlog - Pendientes.md](Backlog%20-%20Pendientes.md)
@@ -313,3 +316,76 @@ Workflow activo `NovTurnAI`: **143 → 151 nodos**, aplicado por API con probes 
 - [x] **T26 · AdminPanel** — el grid de horario pasa a 2 columnas en teléfono con "Duración turno" a ancho completo. A 3 columnas cada campo quedaba en ~93px y la etiqueta no entraba.
 - [x] **T28 · Horizontal 812×375** — sin scroll horizontal, el shell mide exactamente 375 (`100dvh` cumple), el sidebar es cajón y le deja los 812 al contenido, y los modales topan en 319px **con scroll interno**. Sin T27 este caso habría sido el peor de todos.
 - [x] **`ui/Modal.jsx`** — confirmado sin uso (sin import estático, sin `import()`, sin `lazy()`, sin referencia por string, sin `<Modal>`). Se conservó como primitiva de la casa y se le aplicó el patrón de T27, para que quien lo adopte no reintroduzca el modal recortado. Queda como COD-9 decidir si se adopta o se borra.
+
+---
+
+## 19. n8n — sesión del túnel (2026-08-05)
+
+Túnel de Cloudflare arriba y API pública verificada. Workflow activo `1npQWgfgBBIwVuxX`
+(151 nodos, 137 reales + 14 sticky notes). Snapshot de rollback tomado antes de tocar
+nada. Todo lo de abajo está **verificado releyendo la instancia**, no asumido.
+
+- [x] **A1 (recableado n8n) · Cancelación acotada al tenant** — los 3 nodos
+  `Tool - Cancelar Cita {Basic|Pro|Enterprise}` pasaron de `PATCH /rest/v1/appointments?id=eq.{{$fromAI(...)}}`
+  (sin filtro de negocio, con `service_role`, UUID elegido por el LLM) a
+  `POST /rest/v1/rpc/bot_cancel_appointment`, con `p_business_id` y `p_patient_id` tomados
+  del contexto (`$('Negocio - Obtener')` / `$('Paciente - …')`) y **solo** `p_appointment_id`
+  desde `$fromAI`. **POST y no GET**: por GET, PostgREST corre la función en transacción de
+  solo-lectura y el UPDATE se descarta en silencio. La RPC ya estaba en producción desde
+  `20260728010000`; esto cierra la otra mitad. **El agujero cross-tenant queda cerrado.**
+- [x] **A3 · Techo de salida** — `maxOutputTokens: 400` en `Modelo - Basic/Pro/Enterprise`.
+- [x] **A9 · Ventana de contexto** — `Historial - Obtener` 100 → 20; `maxIterations` 10 → 5
+  en los 3 agentes.
+- [x] **A7 (parcial, 28 de 93)** — cobertura de `onError` 44/137 → **72/137**. Criterio en
+  Pendientes. Los 65 restantes quedan por decisión nodo por nodo, no por falta de acceso.
+- [x] **Corrección de dos cifras de la auditoría** — A7 es **93 de 137**, no 92 de 151 (los
+  151 cuentan sticky notes). Y el barrido inicial "solo 7 de 20 tools acotan por
+  `business_id`" era un **falso positivo del método**: buscaba en la URL, y los demás lo
+  pasan en el body vía RPCs `bot_*`. Reanalizado por procedencia de parámetros, la
+  auditoría tenía razón: los 3 `Cancelar Cita` eran la única escritura sin acotar.
+
+
+
+- [x] **N3 · El corte del bot lee el cupo de SALIENTES** — el gate `Flow - ¿Conversaciones Ok?`
+  contaba `usage_counters.messages` (entrantes + salientes, la columna previa al split B1)
+  contra `max_conversations`. Ahora mide **solo `messages_out`** contra el cupo efectivo
+  `coalesce(limit_overrides->>max_conversations, plans.max_conversations) + extra_messages`,
+  que es la misma definición de `get_plan_limits.max_messages_out`. **Corte duro**: al
+  alcanzarlo cae por la rama FALSE, ya cableada a `WA - Error Limite Alcanzado 2` +
+  `Notificación - Límite alcanzado 2`.
+  4 nodos tocados (`Conversaciones - Contar` trae `messages_out`; `Set - Total Conversaciones`
+  expone `total_salientes`; el Code node propaga ambos; el gate compara). **Cero nodos nuevos,
+  cero conexiones modificadas.** Verificado releyendo la instancia. `messages_out` se confirmó
+  poblado con datos reales antes de cablearlo (ejecución 403: `messages_out: 22`).
+
+- [x] **A5 (construcción) · Workflow `Tokens - Reconciliación (A5)`** — `T44G3h5zETwtXJd2`,
+  7 nodos, creado **inactivo**. Recupera el `tokenUsage` real de las ejecuciones terminadas
+  del bot y lo suma con `record_usage` (`p_messages: 0`, `p_direction: 'out'`), agrupado por
+  negocio. Idempotente por cursor en `staticData`. Apunta a `http://localhost:5678` y no al
+  túnel, que rota por sesión. La lógica de agregación se validó **contra la ejecución real 403
+  antes de crear el workflow**: extrae el negocio correcto y suma las 5 llamadas al modelo.
+  Queda pendiente activarlo (A5a/A5b en Pendientes) — deben pasar juntos o se cuenta doble.
+
+- [x] **A8 / RES-3 · Workflow global de errores** — `Errores - Captura Global (A8)`
+  (`5vHI3uTMR9kK41C4`, 4 nodos) y **cableado** en `settings.errorWorkflow` del bot.
+  El Error Trigger no trae el `runData`, así que la ejecución fallida se recupera por API
+  para sacar negocio, nombre del cliente y qué estaba pidiendo; con eso inserta en
+  `notifications` (`type: bot_error`) usando la credencial `Supabase account` ya existente.
+  Si no puede determinar el negocio no inserta nada: la ejecución del propio workflow de
+  errores queda como registro, en vez de una notificación huérfana.
+- [x] **A10 · `custom_prompt` deja de filtrarse al plan Básico** — quitada la inyección del
+  `Agente - Basic`; verificado que sigue en Pro y Enterprise, que es donde se vende.
+- [x] **A11 · Una queja con groserías se rutea como queja** — se quitó del `esValido` de
+  `Buffer - Campos` únicamente el término de palabrotas
+  (`mierda|puta|idiota|…`); se conservaron el de solo-emoji y el de carácter repetido, que
+  sí detectan mensajes sin contenido. Antes, un cliente enojado recibía "solo puedo ayudarte
+  con la gestión de turnos"; ahora llega al clasificador, que tiene ruta de QUEJA con handoff.
+- [x] **A12 · La rama FALSE de `¿Teléfono Negocio Existe?` deja rastro** — tenía **una sola
+  rama cableada**. Se agregó `Log - Teléfono No Registrado` (nodo terminal) con el
+  `phone_number_id`, el motivo y la hora. Sigue sin responder —eso es correcto— pero ahora
+  se puede diagnosticar "por qué no me funciona el número".
+- [x] **A13 · Los tools dejan de llamarse por alias** — 29 referencias por agente, en los 3
+  (`GetServices`, `GetDayAppts`, `CreateAppt`, `GetUserAppt`, `UpdateAppt`) reemplazadas por
+  el nombre real del nodo de su plan. Verificados 0 alias sueltos en el prompt resultante.
+- [x] **A15 · Rate limit a 10 mensajes/hora** — `Flow - ¿API Limit Ok?` pasó de `> 20` a
+  `> 10` (bloquea del 11º), por decisión del dueño.

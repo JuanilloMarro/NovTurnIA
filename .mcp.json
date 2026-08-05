@@ -2,11 +2,11 @@
   "mcpServers": {
     "supabase": {
       "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=kwpaaqdkklwwfslhkqpb"
+      "url": "https://mcp.supabase.com/mcp?project_ref=kwpaaqdkklwwfslhkqpb&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching"
     },
     "n8n": {
       "type": "http",
-      "url": "https://poison-loud-snow-tomato.trycloudflare.com/mcp-server/http",
+      "url": "https://levitra-provider-giant-distances.trycloudflare.com/mcp-server/http",
       "headers": {
         "Authorization": "Bearer ${N8N_MCP_TOKEN}"
       }
