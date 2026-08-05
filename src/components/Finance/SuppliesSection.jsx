@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, Pencil, Package, ChefHat, Search } from 'lucide-react';
 import { getServiceRecipe, setServiceRecipe } from '../../services/supabaseService';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
-import { ModalShell, FieldLabel, TextInput, AmountInput, ModalButtons, money } from './financeUi';
+import { ModalShell, FieldLabel, TextInput, CentsAmountInput, decimalToCents, centsToDecimal, ModalButtons, money } from './financeUi';
 import ConfirmDialog from '../ui/ConfirmDialog';
 
 // ── Botón estilo lista "IA pausada" (pill glass + glows + label expandible) ──
@@ -105,7 +105,13 @@ function SupplyModal({ initial, onClose, onSave }) {
             </div>
             <div>
                 <FieldLabel title="Costo unitario" subtitle="Cuánto te cuesta una unidad de este insumo." />
-                <AmountInput value={form.unit_cost} onChange={v => setForm(f => ({ ...f, unit_cost: v }))} />
+                {/* `form.unit_cost` sigue guardándose como decimal (es lo que espera
+                    `onSave`); la conversión a centavos se hace solo en el borde, para
+                    no tocar el contrato del formulario ni el de la fila existente. */}
+                <CentsAmountInput
+                    cents={decimalToCents(form.unit_cost)}
+                    onChange={c => setForm(f => ({ ...f, unit_cost: centsToDecimal(c) ?? '' }))}
+                />
             </div>
             <div>
                 <FieldLabel title="Unidad" subtitle="Cómo se mide: unidad, ml, g, hora…" />

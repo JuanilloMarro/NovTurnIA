@@ -4,7 +4,7 @@ import { searchPatients } from '../../services/supabaseService';
 import { useAppStore } from '../../store/useAppStore';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
 import ConfirmDialog from '../ui/ConfirmDialog';
-import { ModalShell, FieldLabel, TextInput, AmountInput, CentsAmountInput, decimalToCents, centsToDecimal, OptionWheel, NotesField, ModalButtons, LedgerSearch, MiniStatCard, useMethodOptions, money } from './financeUi';
+import { ModalShell, FieldLabel, TextInput, CentsAmountInput, decimalToCents, centsToDecimal, OptionWheel, NotesField, ModalButtons, LedgerSearch, MiniStatCard, useMethodOptions, money } from './financeUi';
 import { formatPhone } from '../../utils/format';
 
 // Por cobrar — planes de pago (tratamientos/paquetes en abonos). El caso
@@ -55,7 +55,7 @@ function NewPlanModal({ onClose, onSubmit }) {
     const [searching, setSearching] = useState(false);
     const debounceRef = useRef(null);
     const [description, setDescription] = useState('');
-    const [total, setTotal] = useState('');
+    const [totalCents, setTotalCents] = useState(null);
     const [notes, setNotes] = useState('');
     const [saving, setSaving] = useState(false);
 
@@ -71,7 +71,7 @@ function NewPlanModal({ onClose, onSubmit }) {
     }, [query]);
 
     async function submit() {
-        const amt = Number(total);
+        const amt = centsToDecimal(totalCents) ?? 0;
         if (!description.trim()) { showErrorToast('Falta descripción', 'Describe el tratamiento o paquete.'); return; }
         if (!(amt > 0)) { showErrorToast('Total inválido', 'Ingresa el total a cobrar.'); return; }
         setSaving(true);
@@ -137,7 +137,7 @@ function NewPlanModal({ onClose, onSubmit }) {
             </div>
             <div>
                 <FieldLabel title="Total a cobrar" subtitle="El monto completo del tratamiento o paquete." />
-                <AmountInput value={total} onChange={setTotal} />
+                <CentsAmountInput cents={totalCents} onChange={setTotalCents} />
             </div>
             <div>
                 <FieldLabel title="Notas" subtitle="Detalle opcional (acuerdos, frecuencia de abonos…)." />

@@ -157,7 +157,17 @@ export default function CategoriesSection({ canManage, activeKind, setActiveKind
                                     <button
                                         key={c.id}
                                         onClick={() => handleSelect(c)}
-                                        className={`relative w-full flex items-center gap-4 p-4 rounded-2xl overflow-hidden transition-all duration-200 text-left group border ${isSelected
+                                        // `shrink-0` — las fichas conservan SU ALTO ORIGINAL siempre.
+                                        // Son hijas de un `flex flex-col` con `flex-1`, así que por
+                                        // defecto traen `flex-shrink: 1`, y su `overflow-hidden` deja
+                                        // su tamaño mínimo automático en 0: cuando la lista no cabía,
+                                        // en vez de activarse la barra se APLASTABAN una por una
+                                        // (el avatar de 44px sí aguantaba por su propio `shrink-0`,
+                                        // así que lo que se arruinaba era el alto de la ficha).
+                                        // Con `shrink-0` mantienen su medida y el `overflow-y-auto`
+                                        // del contenedor hace su trabajo: o entra, o se desliza.
+                                        // Mismo caso y misma cura que los items del Sidebar.
+                                        className={`relative w-full shrink-0 flex items-center gap-4 p-4 rounded-2xl overflow-hidden transition-all duration-200 text-left group border ${isSelected
                                             ? 'bg-white/40 backdrop-blur-2xl border-white/60 shadow-md'
                                             : 'border-transparent hover:bg-white/20'
                                             }`}

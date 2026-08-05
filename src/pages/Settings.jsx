@@ -385,7 +385,11 @@ export default function Settings() {
                                         <button
                                             key={s.id}
                                             onClick={() => handleSelect(s)}
-                                            className={`relative w-full flex items-center gap-4 p-4 rounded-2xl overflow-hidden transition-all duration-200 text-left group border ${isSelected
+                                            // `shrink-0` — mismo caso que las fichas de Categorías y Métodos
+                                            // de pago en Finanzas: hijas de un `flex flex-col` con `flex-1`
+                                            // y con `overflow-hidden`, que les deja el mínimo automático en
+                                            // 0. Sin esto se aplastaban en vez de activar la barra.
+                                            className={`relative w-full shrink-0 flex items-center gap-4 p-4 rounded-2xl overflow-hidden transition-all duration-200 text-left group border ${isSelected
                                                 ? 'bg-white/40 backdrop-blur-2xl border-white/60 shadow-md'
                                                 : 'border-transparent hover:bg-white/20'
                                                 }`}
@@ -537,7 +541,9 @@ export default function Settings() {
                                                     <textarea
                                                         value={form.description}
                                                         onChange={e => setField('description', e.target.value)}
-                                                        placeholder="Ej. Evaluación completa de signos vitales e historial clínico para pacientes de primera vez..."
+                                                        // Mismo criterio que el placeholder de Ofertas: se acorta
+                                                        // el ejemplo, no se toca `rows` ni el tamaño de letra.
+                                                        placeholder="Ej. Evaluación inicial con historial clínico completo."
                                                         rows="3"
                                                         className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 resize-none custom-scrollbar"
                                                     />

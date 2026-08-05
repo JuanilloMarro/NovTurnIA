@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Wallet, Lock, Unlock, ArrowUpRight, ArrowDownRight, Scale, Clock, SlidersHorizontal, ChevronDown, ChevronLeft } from 'lucide-react';
 import { showSuccessToast, showErrorToast } from '../../store/useToastStore';
-import { ModalShell, FieldLabel, AmountInput, NotesField, ModalButtons, AddBtn, money } from './financeUi';
+import { ModalShell, FieldLabel, CentsAmountInput, centsToDecimal, NotesField, ModalButtons, AddBtn, money } from './financeUi';
 
 // Caja diaria — el ritual de apertura/cierre de efectivo (barberías y salones
 // viven de esto). El "esperado" lo calcula la DB: apertura + ingresos en
@@ -30,11 +30,14 @@ function diffBadge(diff) {
 }
 
 function OpenModal({ onClose, onSubmit }) {
-    const [amount, setAmount] = useState('');
+    // Monto por unidades (centavos) en vez del `type="number"` libre: acá se
+    // podía escribir "50" de una y meter el punto a mano. Vacío sigue valiendo
+    // 0, igual que antes con `Number('')`.
+    const [amountCents, setAmountCents] = useState(null);
     const [notes, setNotes] = useState('');
     const [saving, setSaving] = useState(false);
     async function submit() {
-        const amt = Number(amount);
+        const amt = centsToDecimal(amountCents) ?? 0;
         if (!(amt >= 0)) { showErrorToast('Monto inválido', 'Ingresa el efectivo inicial (puede ser 0).'); return; }
         setSaving(true);
         try {
@@ -51,7 +54,7 @@ function OpenModal({ onClose, onSubmit }) {
             footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Abrir caja" loading={saving} confirmIcon={Unlock} />}>
             <div>
                 <FieldLabel title="Fondo inicial" subtitle="El efectivo que hay en caja al abrir (cambio, sencillo…)." />
-                <AmountInput value={amount} onChange={setAmount} autoFocus />
+                <CentsAmountInput cents={amountCents} onChange={setAmountCents} autoFocus />
             </div>
             <div>
                 <FieldLabel title="Notas" subtitle="Detalle opcional." />
@@ -62,12 +65,14 @@ function OpenModal({ onClose, onSubmit }) {
 }
 
 function CloseModal({ expected, onClose, onSubmit }) {
-    const [amount, setAmount] = useState('');
+    const [amountCents, setAmountCents] = useState(null);
     const [notes, setNotes] = useState('');
     const [saving, setSaving] = useState(false);
-    const diff = amount === '' ? null : Number(amount) - Number(expected || 0);
+    // `null` = todavía no tocó el campo, igual que el `amount === ''` de antes:
+    // el aviso de sobrante/faltante no aparece hasta que hay un conteo.
+    const diff = amountCents == null ? null : centsToDecimal(amountCents) - Number(expected || 0);
     async function submit() {
-        const amt = Number(amount);
+        const amt = centsToDecimal(amountCents) ?? 0;
         if (!(amt >= 0)) { showErrorToast('Conteo inválido', 'Ingresa el efectivo contado.'); return; }
         setSaving(true);
         try {
@@ -88,7 +93,7 @@ function CloseModal({ expected, onClose, onSubmit }) {
             footer={<ModalButtons onCancel={onClose} onConfirm={submit} confirmLabel="Cerrar caja" loading={saving} confirmIcon={Lock} />}>
             <div>
                 <FieldLabel title="Efectivo contado" subtitle="Cuenta el dinero físico de la caja y anota el total real." />
-                <AmountInput value={amount} onChange={setAmount} autoFocus />
+                <CentsAmountInput cents={amountCents} onChange={setAmountCents} autoFocus />
             </div>
             {diff != null && isFinite(diff) && (
                 <div className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border text-[11.5px] font-bold ${diff === 0 ? 'bg-emerald-500/5 border-emerald-500/15 text-emerald-700' : diff > 0 ? 'bg-sky-500/5 border-sky-500/15 text-sky-700' : 'bg-rose-500/5 border-rose-500/15 text-rose-600'}`}>

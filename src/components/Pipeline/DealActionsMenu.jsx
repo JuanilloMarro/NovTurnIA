@@ -8,7 +8,7 @@ import { MessageCircle, User, CalendarCheck } from 'lucide-react';
 // aparecían al pasar el hover sobre el chip "N/M"); ahora son un menú propio
 // detrás de un botón explícito en la ficha — acción directa en un clic, sin
 // depender de hover.
-export default function DealActionsMenu({ anchorRect, onClose, patientId, appointmentId, canViewConversations, canViewPatients }) {
+export default function DealActionsMenu({ anchorRect, onClose, patientId, appointmentId, canViewConversations, canViewPatients, panelRef }) {
     const navigate = useNavigate();
     if (!anchorRect) return null;
 
@@ -23,6 +23,14 @@ export default function DealActionsMenu({ anchorRect, onClose, patientId, appoin
 
     return createPortal(
         <div
+            // `panelRef` — el detector de clic-fuera que vive en DealCard tiene que
+            // poder reconocer ESTE panel como "adentro". Como el menú sale por
+            // portal a document.body, no es descendiente del botón de 3 puntos, así
+            // que sin esta referencia el `mousedown` sobre una opción contaba como
+            // clic fuera, cerraba el menú y el botón se desmontaba ANTES de que
+            // llegara el `click`: ninguna de las 3 acciones navegaba nunca.
+            // Mismo patrón que `panelRef` en components/ui/Popover.jsx.
+            ref={panelRef}
             onClick={(e) => e.stopPropagation()}
             style={{ position: 'fixed', top, left, width }}
             className="z-[300] bg-white/70 backdrop-blur-2xl border border-white/60 rounded-2xl shadow-md p-1.5 animate-fade-up"

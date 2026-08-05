@@ -157,7 +157,7 @@ function PatientInfoContent({ patient, windowOpen, hoursLeft }) {
         || patient?.patient_phones?.[0]?.phone || '';
 
     return (
-        <div className="relative">
+        <div className="relative shrink-0">
             <PanelHeader icon={Contact} title="Ficha del cliente" />
 
             <div className="relative z-10 px-1 mt-2 space-y-2.5">
@@ -305,7 +305,7 @@ function ActiveServicesContent({ onInsert }) {
     );
 
     return (
-        <div className="relative">
+        <div className="relative shrink-0">
             <div className="relative z-10 flex flex-col">
                 <PanelHeader icon={Layers} title="Servicios activos" count={activeServices.length || null} />
                 <FeatureLock feature="custom_prompt" requiredPlan="Pro">
@@ -439,7 +439,7 @@ function ActiveOffersContent({ onInsert }) {
     );
 
     return (
-        <div className="relative">
+        <div className="relative shrink-0">
             <div className="relative z-10 flex flex-col">
                 <PanelHeader icon={Tag} title="Ofertas activas" count={offersUnlocked ? (activeOffers.length || null) : 1} />
                 {offersUnlocked ? realContent : (
@@ -471,8 +471,28 @@ function ActiveOffersContent({ onInsert }) {
 // tarjetas independientes — mismo lenguaje "todo flota junto" del resto del
 // sistema (Centro IA, etc.).
 export function ContextPanels({ patient, windowOpen, hoursLeft, onInsert }) {
+    // `min-h-full`, NO `h-full` — acá estaba el motivo de que "Ofertas activas"
+    // (la última sección) quedara cortada sin barra para llegar, tanto en el
+    // modal de Paneles del teléfono como en la columna de escritorio.
+    // Los dos contenedores que envuelven este panel YA tienen `overflow-y-auto`,
+    // pero con `h-full` esta tarjeta medía EXACTAMENTE el 100% del contenedor y
+    // `PANEL` trae `overflow-hidden`: lo que sobraba se recortaba adentro, así
+    // que el contenedor nunca veía desborde (`scrollHeight === clientHeight`) y
+    // no aparecía ninguna barra. El scroll existía; no había nada que scrollear.
+    // `min-h-full` conserva el mismo aspecto cuando el contenido es corto (la
+    // tarjeta sigue llenando la columna) pero la deja CRECER cuando es largo,
+    // que es cuando el contenedor por fin desborda y desliza de verdad.
+    //
+    // Las 3 secciones de adentro llevan `shrink-0` (en su propia raíz). Los
+    // separadores ya lo tenían, ellas no: como son hijas de un flex column, con
+    // `flex-shrink: 1` por defecto se APLASTABAN una por una cuando el contenido
+    // no cabía, en vez de dejar que apareciera la barra. Es el mismo motivo por
+    // el que los items del Sidebar lo llevan. Hoy `min-h-full` ya hace que nunca
+    // haya espacio libre negativo, así que el `shrink-0` es el cinturón además
+    // de los tirantes: si mañana algún ancestro vuelve a limitar el alto, las
+    // fichas conservan su medida y lo que se activa es el scroll, no el apriete.
     return (
-        <div className={`${PANEL} h-full p-4 flex flex-col gap-4`}>
+        <div className={`${PANEL} min-h-full p-4 flex flex-col gap-4`}>
             <PanelGlow />
             <PatientInfoContent patient={patient} windowOpen={windowOpen} hoursLeft={hoursLeft} />
             <div className="relative z-10 h-px bg-navy-900/8 shrink-0" />

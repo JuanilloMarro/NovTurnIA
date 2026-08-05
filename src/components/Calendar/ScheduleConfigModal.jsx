@@ -244,16 +244,27 @@ export default function ScheduleConfigModal({ onClose, onSaved }) {
                     </div>
 
                     {/* ── Columna derecha: listado de excepciones registradas ── */}
-                    <div className="flex flex-col md:min-h-0 bg-white/30 border border-white/50 rounded-2xl overflow-hidden">
+                    {/* `max-md:min-h-max` — esto es la "línea blanca" que aparecía entre
+                        "Agregar excepción" y "Cerrar", y NO era un divisor suelto ni un
+                        problema de contraste: era ESTA MISMA tarjeta aplastada.
+                        Bajo 768px el grid apila las 2 columnas en 2 filas `auto` dentro
+                        de un contenedor de alto definido (`flex-1`). El `overflow-hidden`
+                        de la tarjeta (que viene con el `rounded-2xl`) pone su tamaño
+                        mínimo automático en 0, así que la fila podía encogerse por debajo
+                        de su contenido: medido en 375px, la tarjeta quedaba en 50px de
+                        alto con 247px de contenido adentro, recortado. Y como las filas
+                        se encogían hasta caber justo, `scrollHeight` era igual a
+                        `clientHeight` y el `overflow-y-auto` del grid NUNCA se activaba —
+                        no había forma de llegar a ella ni deslizando. Lo único visible
+                        era el borde y el fondo blanco: la "línea".
+                        `min-height: max-content` le devuelve el piso de tamaño natural,
+                        el grid pasa a desbordar de verdad y su `overflow-y-auto` hace su
+                        trabajo. Solo bajo `md`: de 768px para arriba son 2 columnas y ahí
+                        manda `md:min-h-0`, que sigue intacto. */}
+                    <div className="flex flex-col max-md:min-h-max md:min-h-0 bg-white/30 border border-white/50 rounded-2xl overflow-hidden">
                         {/* `text-navy-800` sin opacidad, igual que "Cupo máximo..." y
-                            "Agregar festivo..." de la columna izquierda. Antes era
-                            `text-navy-700/50` — mucho más pálido que sus vecinos — y en
-                            móvil, con las dos columnas apiladas, esta tarjeta aparece
-                            justo debajo del botón "Agregar excepción": con el título casi
-                            invisible sobre el vidrio esmerilado, lo único que se leía con
-                            claridad era el borde/fondo blanco de la tarjeta — de ahí la
-                            "línea blanca" o "componente comprimido". El icono la empareja
-                            además con el resto de encabezados de sección del modal. */}
+                            "Agregar festivo...", con el icono para emparejarla con el
+                            resto de encabezados de sección del modal. */}
                         <p className="flex items-center gap-1.5 text-[11px] font-bold text-navy-800 tracking-wide px-4 pt-3.5 pb-2.5 shrink-0 border-b border-white/40">
                             <CalendarOff size={12} /> Excepciones registradas ({exceptions.length})
                         </p>

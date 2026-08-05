@@ -166,7 +166,10 @@ function MethodsPanel({ canManage }) {
                                 const isSelected = selectedId === m.id;
                                 return (
                                     <button key={m.id} onClick={() => handleSelect(m)}
-                                        className={`relative w-full flex items-center gap-4 p-4 rounded-2xl overflow-hidden transition-all duration-200 text-left border ${isSelected ? 'bg-white/40 backdrop-blur-2xl border-white/60 shadow-md' : 'border-transparent hover:bg-white/20'} ${m.active ? '' : 'opacity-50'}`}>
+                                        // `shrink-0` por el mismo motivo que las fichas de Categorías: contenedor
+                                        // `flex flex-col` con `flex-1` + ficha con `overflow-hidden` (que le deja el
+                                        // mínimo automático en 0) = se aplastaban en vez de activar la barra.
+                                        className={`relative w-full shrink-0 flex items-center gap-4 p-4 rounded-2xl overflow-hidden transition-all duration-200 text-left border ${isSelected ? 'bg-white/40 backdrop-blur-2xl border-white/60 shadow-md' : 'border-transparent hover:bg-white/20'} ${m.active ? '' : 'opacity-50'}`}>
                                         <div className="w-11 h-11 rounded-2xl bg-navy-900/5 border border-navy-900/10 flex items-center justify-center shrink-0">
                                             {m.is_cash ? <Banknote size={16} className="text-emerald-600" /> : <CreditCard size={16} className="text-navy-900" />}
                                         </div>

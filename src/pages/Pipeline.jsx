@@ -71,7 +71,7 @@ export default function Pipeline() {
     const [showFilters, setShowFilters] = useState(false);
     const [scheduleTarget, setScheduleTarget] = useState(null);
 
-    const { byColumn, metrics, loading, reload, setDeals } = usePipeline({ days });
+    const { byColumn, metrics, loading, reloading, reload, setDeals } = usePipeline({ days });
 
     // Pasos HUMANOS (llamada de recuperación, recordatorio, encuesta, reseña):
     // optimista con snapshot + revert en catch — mismo patrón que el
@@ -202,9 +202,13 @@ export default function Pipeline() {
 
                 <button
                     onClick={reload}
-                    className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 outline-none"
+                    disabled={reloading}
+                    className="relative overflow-hidden group h-10 flex items-center justify-center gap-0 hover:gap-1.5 px-3 hover:px-4 bg-white/40 backdrop-blur-2xl border border-white/60 text-navy-900 text-[11px] font-bold rounded-full shadow-md transition-all duration-300 disabled:opacity-40 outline-none"
                 >
-                    <RefreshCw size={14} strokeWidth={2.5} className={loading ? 'animate-spin' : ''} />
+                    {/* `reloading`, no `loading`: el primero es el refresco manual y
+                        es el único que este botón debe reflejar. Mismo trato que el
+                        botón Actualizar de Turnos (Calendar.jsx). */}
+                    <RefreshCw size={14} strokeWidth={2.5} className={reloading ? 'animate-spin' : ''} />
                     <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-300 whitespace-nowrap">Actualizar</span>
                 </button>
 

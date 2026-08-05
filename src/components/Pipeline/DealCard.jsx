@@ -43,9 +43,18 @@ export default function DealCard({
     const [showActions, setShowActions] = useState(false);
     const [actionsAnchor, setActionsAnchor] = useState(null);
     const dotsRef = useRef(null);
+    const actionsPanelRef = useRef(null);
     useEffect(() => {
         if (!showActions) return;
         const onDocClick = (e) => {
+            // El panel PRIMERO: sale por portal a document.body, así que no es
+            // descendiente de `dotsRef` y sin esta línea un `mousedown` sobre
+            // "Ver chat"/"Ver perfil"/"Ver turno" se contaba como clic fuera. El
+            // menú se cerraba en ese mousedown y el botón se desmontaba antes de
+            // que el navegador emitiera el `click`, así que su onClick —el que
+            // hace navigate()— no llegaba a correr NUNCA. Desde afuera se veía
+            // como "el menú no lleva a ningún lado".
+            if (actionsPanelRef.current?.contains(e.target)) return;
             if (dotsRef.current?.contains(e.target)) return;
             setShowActions(false);
         };
@@ -125,6 +134,7 @@ export default function DealCard({
                     {showActions && (
                         <DealActionsMenu
                             anchorRect={actionsAnchor}
+                            panelRef={actionsPanelRef}
                             onClose={() => setShowActions(false)}
                             patientId={deal.patient_id}
                             appointmentId={deal.appointment_id}

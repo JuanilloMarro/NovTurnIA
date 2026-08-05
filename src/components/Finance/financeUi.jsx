@@ -244,15 +244,13 @@ export function TextInput({ value, onChange, placeholder, autoFocus, maxLength }
     );
 }
 
-export function AmountInput({ value, onChange, autoFocus }) {
-    return (
-        <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-navy-700/60 font-bold text-sm pointer-events-none">Q</span>
-            <input type="number" min="0" step="0.01" inputMode="decimal" value={value} onChange={e => onChange(e.target.value)} autoFocus={autoFocus} placeholder="0.00"
-                className="w-full bg-white/40 border border-white/60 rounded-full pl-9 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm text-navy-900" />
-        </div>
-    );
-}
+// `AmountInput` (un `type="number"` libre) se ELIMINÓ a propósito. Era el único
+// campo de dinero donde se podía escribir "50" de una, teclear el punto a mano o
+// pegar texto — justo lo contrario de la regla de que todo monto se ingrese
+// desde 0 y avance por unidades. Sus 5 usos (apertura y cierre de caja, cobro de
+// servicio, total por cobrar y costo unitario de insumos) pasaron a
+// `CentsAmountInput`. Si hace falta un campo de dinero nuevo, usá ese; no
+// vuelvas a introducir uno numérico libre.
 
 // ── Monto por unidades (mismo mecanismo que el precio de Servicios/Ofertas,
 // ver Settings.jsx) — cada dígito corre el punto decimal, como una caja
@@ -269,6 +267,34 @@ function formatCentsDisplay(cents) {
     if (cents == null || cents === 0) return '0.00';
     return (cents / 100).toFixed(2);
 }
+
+// Ancla el cursor SIEMPRE al final del campo.
+//
+// Es lo que hace que el acumulador sea de verdad "de derecha a izquierda". La
+// lógica de estos campos lee TODOS los dígitos del valor y los reinterpreta
+// desde la unidad más baja, y eso solo es correcto si el dígito nuevo entra por
+// el final. Si el usuario tocaba en medio del número —sobre la decena, por
+// ejemplo— el dígito se insertaba ahí y el monto pegaba un salto: con "0.00" y
+// el cursor al principio, una sola tecla "5" daba "50.00" → Q50.00 en vez de
+// Q0.05. Lo mismo pasaba con las flechas o al seleccionar todo.
+//
+// Con el cursor anclado al final, toda pulsación entra por la unidad más baja y
+// avanza de a una, como una caja registradora. `onSelect` cubre TODAS las formas
+// de mover el cursor (clic, arrastre, flechas, Ctrl+A), no solo el clic. El
+// `if` evita recursión: al reposicionar se dispara otro `select`, pero ahí la
+// condición ya no se cumple y corta.
+function useCaretAtEnd() {
+    const ref = useRef(null);
+    const toEnd = () => {
+        const el = ref.current;
+        if (!el) return;
+        const n = el.value.length;
+        if (el.selectionStart !== n || el.selectionEnd !== n) {
+            el.setSelectionRange(n, n);
+        }
+    };
+    return [ref, toEnd];
+}
 export function CentsAmountInput({ cents, onChange, autoFocus, max = 9999999 }) {
     // EN TELÉFONO NO SE PODÍA ESCRIBIR NINGÚN MONTO. El campo tenía
     // `inputMode="none"` —que le pide expresamente al navegador NO abrir teclado—
@@ -283,6 +309,7 @@ export function CentsAmountInput({ cents, onChange, autoFocus, max = 9999999 }) 
     //   "3.50" + borrar   → "3.5"   → dígitos 35   → Q0.35
     // `inputMode="numeric"` abre el teclado numérico; el filtro de dígitos hace
     // que pegar texto o escribir una coma a mano siga siendo imposible.
+    const [inputRef, caretToEnd] = useCaretAtEnd();
     function handleChange(e) {
         const digits = (e.target.value || '').replace(/\D/g, '');
         if (digits === '') { onChange(null); return; }
@@ -292,6 +319,9 @@ export function CentsAmountInput({ cents, onChange, autoFocus, max = 9999999 }) 
         <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-navy-700/60 font-bold text-sm pointer-events-none select-none">Q</span>
             <input
+                ref={inputRef}
+                onSelect={caretToEnd}
+                onFocus={caretToEnd}
                 type="text"
                 inputMode="numeric"
                 autoFocus={autoFocus}
@@ -323,6 +353,9 @@ export function PercentInput({ tenths, onChange, autoFocus, max = 1000 }) {
     // así que en teléfono no abría teclado y el % de comisión no se podía
     // escribir. Se pasa a `onChange` leyendo los dígitos, que conserva el
     // comportamiento de caja registradora y funciona con el teclado nativo.
+    // Mismo anclaje de cursor que CentsAmountInput, por el mismo motivo: sin él,
+    // escribir sobre la decena convertía "0.0" en "50.0" de un solo golpe.
+    const [inputRef, caretToEnd] = useCaretAtEnd();
     function handleChange(e) {
         const digits = (e.target.value || '').replace(/\D/g, '');
         if (digits === '') { onChange(null); return; }
@@ -331,6 +364,9 @@ export function PercentInput({ tenths, onChange, autoFocus, max = 1000 }) {
     return (
         <div className="relative">
             <input
+                ref={inputRef}
+                onSelect={caretToEnd}
+                onFocus={caretToEnd}
                 type="text"
                 inputMode="numeric"
                 autoFocus={autoFocus}

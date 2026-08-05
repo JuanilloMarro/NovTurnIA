@@ -134,6 +134,7 @@ export function usePipeline({ days = 90 } = {}) {
     const [deals, setDeals] = useState([]);
     const [metrics, setMetrics] = useState({});
     const [loading, setLoading] = useState(true);
+    const [reloading, setReloading] = useState(false);
     const [error, setError] = useState(null);
 
     const load = useCallback(async (silent = false) => {
@@ -184,9 +185,27 @@ export function usePipeline({ days = 90 } = {}) {
         return groups;
     }, [deals]);
 
+    // `reloading` es un estado APARTE de `loading` a propósito, igual que en
+    // useAppointments (el botón Actualizar de Turnos). Antes esto era
+    // `reload: () => load(true)`, y ese `true` significa "silencioso": saltea el
+    // `setLoading(true)`. O sea que el botón Actualizar recargaba de verdad pero
+    // NO encendía ningún estado, así que el ícono nunca giraba y no pasaba nada
+    // visible — de ahí la sensación de que "no sirve".
+    // La recarga sigue siendo silenciosa (`load(true)`) para no reemplazar el
+    // tablero por esqueletos en cada refresco; lo que da la señal es `reloading`,
+    // que solo mueve el spinner del botón.
+    const reload = useCallback(async () => {
+        setReloading(true);
+        try {
+            await load(true);
+        } finally {
+            setReloading(false);
+        }
+    }, [load]);
+
     return {
-        deals, byColumn, metrics, loading, error,
-        reload: () => load(true),
+        deals, byColumn, metrics, loading, reloading, error,
+        reload,
         setDeals,
     };
 }

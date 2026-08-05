@@ -811,7 +811,12 @@ export default function Offers() {
                                             rows={2}
                                             value={form.description}
                                             onChange={e => setField('description', e.target.value)}
-                                            placeholder="Ej. Válido para pacientes nuevos que agenden su turno a través de la aplicación en horario matutino..."
+                                            // El ejemplo se acorta, NO se achica la caja ni la letra: con
+                                            // `rows={2}` a 14px entran ~90 caracteres en teléfono y el texto
+                                            // anterior tenía 101, así que se pasaba de largo y aparecía la
+                                            // barra justo en el placeholder — que es lo único que no se
+                                            // puede desplazar para leer, porque al escribir desaparece.
+                                            placeholder="Ej. Válido solo para clientes nuevos en horario matutino."
                                             className="w-full bg-white/40 border border-white/60 rounded-2xl px-4 py-2.5 text-sm font-semibold text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-all shadow-sm placeholder-navy-700/40 resize-none custom-scrollbar"
                                         />
                                     </div>

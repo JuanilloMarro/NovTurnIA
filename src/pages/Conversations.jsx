@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, MessageCircle, Bot, ShieldAlert, SlidersHorizontal, Send, Clock, PanelRight, Trash2, X } from 'lucide-react';
 import AIStar from '../components/Icons/AIStar';
 import { ContextPanels } from '../components/conversations/ContextSidebar';
+import Tooltip from '../components/ui/Tooltip';
 import { OutboundUsageBar, OutboundQuotaNotice } from '../components/conversations/OutboundUsage';
 import { usePermissions } from '../hooks/usePermissions';
 import { getPatientHistory, setHumanTakeover, getPatientsForConversations, sendHumanMessage, deletePatient, deleteHistoryMessage } from '../services/supabaseService';
@@ -327,6 +328,10 @@ export default function Conversations() {
     const hoursLeft = lastInboundAt
         ? Math.max(0, Math.ceil((WINDOW_24H_MS - (Date.now() - new Date(lastInboundAt).getTime())) / 3_600_000))
         : 0;
+    // Único caso donde el composer se explica con el tooltip de ventana cerrada.
+    // Se excluye el cupo agotado porque ese estado ya tiene su propio aviso rojo
+    // debajo de la barra y no debe robarle el tooltip.
+    const showWindowClosedTip = !windowOpen && !messagesOutBlocked;
 
     // Intercala separadores de fecha entre los mensajes (estilo WhatsApp)
     const messageItems = useMemo(() => {
@@ -681,23 +686,45 @@ export default function Conversations() {
                                                 </button>
                                             )}
                                             {canReplyConversations && (<>
-                                                <textarea
-                                                    ref={textareaRef}
-                                                    value={draft}
-                                                    onChange={e => setDraft(e.target.value)}
-                                                    onKeyDown={e => {
-                                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                                            e.preventDefault();
-                                                            handleSend();
-                                                        }
-                                                    }}
-                                                    rows={1}
-                                                    placeholder={messagesOutBlocked
-                                                        ? 'Cupo de mensajes del mes agotado'
-                                                        : (windowOpen ? 'Escribe un mensaje…' : 'La ventana de 24h está cerrada')}
-                                                    disabled={sending || !windowOpen || messagesOutBlocked}
-                                                    className="flex-1 resize-none max-h-32 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-3xl px-4 py-2.5 text-[13px] font-medium text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-colors placeholder-navy-900/50 shadow-md disabled:opacity-50 disabled:cursor-not-allowed custom-scrollbar"
-                                                />
+                                                {/* El aviso de ventana cerrada salió del placeholder y pasó a
+                                                    Tooltip: "La ventana de 24h está cerrada" no entra en la
+                                                    barra en teléfono y se leía cortado. El Tooltip del sistema
+                                                    además SÍ funciona en táctil (se abre al tocar), que es
+                                                    justamente lo que un `title=` nativo no hace.
+                                                    Con la ventana abierta `label` es null y Tooltip devuelve
+                                                    el hijo pelado, así que el textarea sigue siendo hijo
+                                                    directo del flex, igual que antes.
+                                                    El `pointer-events-none` condicional es lo que permite que
+                                                    el tooltip se dispare: un control deshabilitado no emite
+                                                    eventos de puntero, así que sin eso ni el hover ni el toque
+                                                    llegarían al ancla que lo envuelve. Va SOLO en este caso y
+                                                    no como `disabled:` para no apagar el cursor
+                                                    `not-allowed` de los otros estados deshabilitados (cupo
+                                                    agotado, enviando), que no llevan tooltip. */}
+                                                <Tooltip
+                                                    className={`flex-1 min-w-0 ${showWindowClosedTip ? 'cursor-not-allowed' : ''}`}
+                                                    label={showWindowClosedTip
+                                                        ? 'La ventana de 24 h de WhatsApp está cerrada. Para poder escribirle, el cliente tiene que mandar un mensaje primero.'
+                                                        : null}
+                                                >
+                                                    <textarea
+                                                        ref={textareaRef}
+                                                        value={draft}
+                                                        onChange={e => setDraft(e.target.value)}
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                                e.preventDefault();
+                                                                handleSend();
+                                                            }
+                                                        }}
+                                                        rows={1}
+                                                        placeholder={messagesOutBlocked
+                                                            ? 'Cupo de mensajes del mes agotado'
+                                                            : 'Escribe un mensaje…'}
+                                                        disabled={sending || !windowOpen || messagesOutBlocked}
+                                                        className={`flex-1 resize-none max-h-32 bg-white/40 backdrop-blur-2xl border border-white/60 rounded-3xl px-4 py-2.5 text-[13px] font-medium text-navy-900 outline-none focus:border-white focus:bg-white/60 focus:ring-1 focus:ring-white transition-colors placeholder-navy-900/50 shadow-md disabled:opacity-50 disabled:cursor-not-allowed custom-scrollbar ${showWindowClosedTip ? 'pointer-events-none' : ''}`}
+                                                    />
+                                                </Tooltip>
                                                 <button
                                                     onClick={handleSend}
                                                     disabled={sending || !draft.trim() || !windowOpen || messagesOutBlocked}
