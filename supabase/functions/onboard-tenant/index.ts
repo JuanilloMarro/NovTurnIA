@@ -125,8 +125,9 @@ serve(async (req) => {
     );
   }
 
+  // Solo se rastrea el usuario de auth: es lo ÚNICO que puede quedar suelto,
+  // porque las 3 escrituras de Postgres viven en una transacción que se revierte sola.
   let createdAuthUserId: string | null = null;
-  let createdBusinessId: string | null = null;
 
   try {
     const {
@@ -209,40 +210,19 @@ serve(async (req) => {
       return d.toISOString();
     })();
 
-    // ── PASO 1: Crear el negocio ─────────────────────────────────────────────
-    const { data: business, error: bizError } = await (supabaseAdmin as any)
-      .from('businesses')
-      .insert({
-        name: business_name,
-        plan_id: planRecord.id,
-        plan_status: trial ? 'trial' : 'active',
-        plan_expires_at: planExpiresAt,
-        timezone,
-        schedule_start: toHour(schedule_start),
-        schedule_end: toHour(schedule_end),
-        schedule_days: toScheduleDays(schedule_days),
-        phone_number_id: phone_number_id ?? '',
-        whatsapp_token: whatsapp_token ?? '',
-      })
-      .select('id')
-      .single();
+    // ── RES-2 · Alta atómica ─────────────────────────────────────────────────
+    // Antes eran 4 escrituras sueltas (businesses → staff_roles → auth → staff_users)
+    // compensadas a mano en el catch, con las dos compensaciones silenciadas por
+    // `.catch(() => {})`. Si la compensación fallaba también, quedaba un usuario en
+    // `auth.users` sin `staff_users`: login exitoso, dashboard vacío y el email
+    // tomado, así que el cliente no podía siquiera reintentar el alta.
+    //
+    // Ahora hay UN solo paso que puede dejar rastro (auth) y UNA transacción que
+    // hace el resto. El orden importa: auth va PRIMERO justamente porque es el
+    // único que no puede vivir dentro de la transacción de Postgres — si falla,
+    // no hay nada que compensar.
 
-    if (bizError) throw new Error(`Error creando negocio: ${bizError.message}`);
-    createdBusinessId = business.id;
-
-    // ── PASO 2: Crear roles por defecto ─────────────────────────────────────
-    const { data: roles, error: rolesError } = await supabaseAdmin
-      .from('staff_roles')
-      .insert([
-        { business_id: business.id, name: 'owner',     permissions: OWNER_PERMISSIONS },
-        { business_id: business.id, name: 'secretary', permissions: SECRETARY_PERMISSIONS },
-      ])
-      .select('id, name');
-
-    if (rolesError) throw new Error(`Error creando roles: ${rolesError.message}`);
-    const ownerRole = roles.find((r: { name: string }) => r.name === 'owner');
-
-    // ── PASO 3: Crear usuario en auth.users ─────────────────────────────────
+    // ── PASO 1: usuario en auth.users (fuera de Postgres, por eso va primero) ──
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: admin_email.trim().toLowerCase(),
       password: admin_password,
@@ -259,24 +239,40 @@ serve(async (req) => {
     }
     createdAuthUserId = authData.user.id;
 
-    // ── PASO 4: Crear staff_users con rol owner ──────────────────────────────
-    const { error: staffError } = await supabaseAdmin
-      .from('staff_users')
-      .insert({
-        id: authData.user.id,
-        business_id: business.id,
-        email: admin_email.trim().toLowerCase(),
-        full_name: admin_name || admin_email,
-        role_id: ownerRole?.id ?? null,
-        active: true,
-      });
+    // ── PASO 2: negocio + roles + staff_users, en UNA transacción ─────────────
+    // Los permisos viajan como parámetro y no viven en el SQL: son ~40 llaves por
+    // rol y duplicarlos en la migración crearía dos fuentes de verdad que se
+    // desincronizan con el primer permiso nuevo.
+    // `planExpiresAt` también se manda calculado desde acá — ver la nota de arriba
+    // sobre `setMonth`: resolverlo en SQL con `interval '1 month'` cambiaría el
+    // vencimiento de las altas del día 31.
+    const { data: newBusinessId, error: rpcError } = await (supabaseAdmin as any).rpc(
+      'provision_tenant',
+      {
+        p_user_id: authData.user.id,
+        p_business_name: business_name,
+        p_plan_id: planRecord.id,
+        p_trial: !!trial,
+        p_plan_expires_at: planExpiresAt,
+        p_timezone: timezone,
+        p_schedule_start: toHour(schedule_start),
+        p_schedule_end: toHour(schedule_end),
+        p_schedule_days: toScheduleDays(schedule_days),
+        p_phone_number_id: phone_number_id ?? '',
+        p_whatsapp_token: whatsapp_token ?? '',
+        p_owner_permissions: OWNER_PERMISSIONS,
+        p_secretary_permissions: SECRETARY_PERMISSIONS,
+        p_owner_name: admin_name || admin_email,
+        p_owner_email: admin_email.trim().toLowerCase(),
+      }
+    );
 
-    if (staffError) throw new Error(`Error creando staff_users: ${staffError.message}`);
+    if (rpcError) throw new Error(`Error provisionando el negocio: ${rpcError.message}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        business_id: business.id,
+        business_id: newBusinessId,
         admin_user_id: authData.user.id,
         message: `Tenant "${business_name}" creado correctamente.`,
       }),
@@ -286,17 +282,35 @@ serve(async (req) => {
   } catch (err) {
     console.error('onboard-tenant error:', err);
 
-    // ── Rollback ─────────────────────────────────────────────────────────────
+    // ── Compensación ─────────────────────────────────────────────────────────
+    // Solo queda UN caso posible: auth creado y la RPC falló. La transacción ya
+    // garantiza que no quedó nada en Postgres, así que basta con borrar el usuario.
+    //
+    // Y si ESTE borrado falla, ya no se traga el error: se deja un log explícito
+    // con el id huérfano. Antes iba a `.catch(() => {})` y el estado inconsistente
+    // —usuario sin negocio, email tomado— quedaba invisible para todos.
+    let compensacionFallida: string | null = null;
     if (createdAuthUserId) {
-      await supabaseAdmin.auth.admin.deleteUser(createdAuthUserId).catch(() => {});
-    }
-    if (createdBusinessId) {
-      // Cascade elimina staff_roles y staff_users si hay FK con ON DELETE CASCADE
-      await supabaseAdmin.from('businesses').delete().eq('id', createdBusinessId).catch(() => {});
+      const { error: delError } = await supabaseAdmin.auth.admin.deleteUser(createdAuthUserId);
+      if (delError) {
+        compensacionFallida = createdAuthUserId;
+        console.error(
+          `onboard-tenant: NO se pudo borrar el usuario huérfano ${createdAuthUserId} ` +
+          `(${admin_email ?? 'email desconocido'}): ${delError.message}. ` +
+          `Ese email queda tomado y hay que borrarlo a mano en Auth.`
+        );
+      }
     }
 
     return new Response(
-      JSON.stringify({ error: (err as Error).message || 'Error interno del servidor.' }),
+      JSON.stringify({
+        error: (err as Error).message || 'Error interno del servidor.',
+        // Se le dice al super-admin qué quedó sucio, en vez de dejarlo adivinar
+        // por qué el email "ya existe" en el siguiente intento.
+        ...(compensacionFallida
+          ? { orphan_auth_user_id: compensacionFallida, warning: 'El usuario de Auth no pudo borrarse; ese email queda tomado hasta eliminarlo a mano.' }
+          : {}),
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

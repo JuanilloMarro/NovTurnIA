@@ -190,3 +190,5 @@ silencioso.
 | A7 | 92 de 151 nodos sin `onError` | **93 de 137** | Los 151 incluyen 14 sticky notes, que no ejecutan nada |
 | A1 | "los otros 17 tools sí acotan" | **Correcto** | Un barrido por URL da falso positivo (7 de 20): los demás pasan `business_id` en el *body* vía RPCs `bot_*`. Verificado por procedencia de parámetros |
 | T21b | 226 `title=` nativos | 54 en ~25 archivos | 104 eran props de componentes propios |
+| RES-2 | "la compensación **solo** borra `businesses`" | Borra **las dos** cosas | El `catch` sí hacía `deleteUser` además del `delete` de `businesses`. El problema real no era una compensación incompleta sino que **ambas estaban silenciadas** con `.catch(() => {})`: si la compensación fallaba, el estado inconsistente quedaba invisible. El arreglo elimina la compensación de Postgres (ahora es una transacción) y deja de tragarse el error de la de auth |
+| RES-2 | "RPC `provision_tenant` lista" | **No existía** | Estaba diseñada en Auditoría Técnica §2.4, pero verificado contra producción: `PGRST202`, la función no existe. Había que escribirla |
