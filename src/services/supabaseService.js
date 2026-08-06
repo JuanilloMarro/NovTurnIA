@@ -811,7 +811,12 @@ export async function sendHumanMessage(patientId, text) {
         if (code === 'WINDOW_EXPIRED') {
             return { ok: false, code: 'WINDOW_EXPIRED' };
         }
-        throw new Error(payload?.error || payload?.message || 'No se pudo enviar el mensaje.');
+        // Se adjunta el status HTTP: es lo que distingue un rechazo de Meta (502/400
+        // desde la Cloud API) de un problema de permisos (401/403) o de un fallo de
+        // la propia función (500). Sin esto, todos los fallos se veían iguales.
+        const status = error.context?.status ?? error.status ?? null;
+        const detalle = payload?.error || payload?.message || error.message || 'No se pudo enviar el mensaje.';
+        throw new Error(status ? `${detalle} (HTTP ${status})` : detalle);
     }
 
     return { ok: true };
@@ -1474,6 +1479,34 @@ export async function getPatientsForConversations() {
         q = q.in('id', visibleIds.length ? visibleIds : ['00000000-0000-0000-0000-000000000000']);
     }
     const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+}
+
+/**
+ * Actividad reciente de conversaciones, para ordenar el listado por último
+ * mensaje y marcar los no leídos.
+ *
+ * POR QUÉ NO SE RESUELVE EN LA CONSULTA DE PACIENTES: `getPatientsForConversations`
+ * ordena por `patients.created_at`, que es la fecha de ALTA del cliente, no su
+ * última actividad. Un cliente viejo que escribe hoy quedaba hundido al final de
+ * la lista. Y `history` no tiene marca de leído, así que el "no leído" se resuelve
+ * del lado del cliente comparando contra la última vez que se abrió cada chat.
+ *
+ * Se traen filas planas (no un agregado) porque PostgREST no hace GROUP BY, y
+ * porque quien las agrupa necesita el `lastSeen` local para contar no leídos.
+ * El `limit` acota a la actividad reciente: quien no aparezca acá simplemente no
+ * tiene mensajes en la ventana y cae al orden por fecha de alta.
+ *
+ * @returns {Promise<Array<{patient_id: string, role: string, created_at: string}>>}
+ */
+export async function getConversationsActivity({ limit = 800 } = {}) {
+    const { data, error } = await supabase
+        .from('history')
+        .select('patient_id, role, created_at')
+        .eq('business_id', getBID())
+        .order('created_at', { ascending: false })
+        .limit(limit);
     if (error) throw error;
     return data || [];
 }

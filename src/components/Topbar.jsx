@@ -121,7 +121,14 @@ export default function Topbar() {
                         >
                             <Bell size={16} />
                             {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 z-20 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-600 text-[9px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
+                                /* Mismo trío del sistema que el badge de no leídos de
+                                   Conversaciones, en rojo: `bg-rose-500/10` +
+                                   `border-rose-500/20` + `text-rose-700`. Antes era rojo
+                                   sólido con texto blanco y `animate-pulse`.
+                                   Se conserva el `ring-2 ring-white` porque este badge se
+                                   monta ENCIMA de la píldora blanca de la campana: sin ese
+                                   anillo, un fondo translúcido se confundiría con el botón. */
+                                <span className="absolute -top-1 -right-1 z-20 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500/10 border border-rose-500/20 text-[9px] font-bold text-rose-700 tabular-nums leading-none shadow-sm ring-2 ring-white">
                                     {unreadCount}
                                 </span>
                             )}

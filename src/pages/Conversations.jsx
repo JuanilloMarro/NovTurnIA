@@ -7,7 +7,7 @@ import { ContextPanels } from '../components/conversations/ContextSidebar';
 import Tooltip from '../components/ui/Tooltip';
 import { OutboundUsageBar, OutboundQuotaNotice } from '../components/conversations/OutboundUsage';
 import { usePermissions } from '../hooks/usePermissions';
-import { getPatientHistory, setHumanTakeover, getPatientsForConversations, sendHumanMessage, deletePatient, deleteHistoryMessage } from '../services/supabaseService';
+import { getPatientHistory, setHumanTakeover, getPatientsForConversations, getConversationsActivity, sendHumanMessage, deletePatient, deleteHistoryMessage } from '../services/supabaseService';
 import { showErrorToast } from '../store/useToastStore';
 import { formatPhone } from '../utils/format';
 import { useAppStore } from '../store/useAppStore';
@@ -81,8 +81,95 @@ export default function Conversations() {
             .catch(() => { });
     }, []);
 
+    // ── Actividad reciente: orden por último mensaje + no leídos ──────────────
+    // `patients` viene ordenado por fecha de ALTA del cliente, así que un cliente
+    // viejo que escribe hoy quedaba hundido al final. Acá se trae la actividad de
+    // `history` y se recalcula el orden por último mensaje.
+    const [activity, setActivity] = useState([]);
+    // `history` no tiene columna de leído, así que el no leído se resuelve
+    // localmente: se guarda cuándo se abrió cada chat por última vez.
+    // Es por navegador — en otro dispositivo los badges arrancan de cero.
+    const LAST_SEEN_KEY = 'novturnia:convLastSeen';
+    const BASELINE_KEY = 'novturnia:convBaseline';
+    const [lastSeen, setLastSeen] = useState(() => {
+        try { return JSON.parse(localStorage.getItem(LAST_SEEN_KEY) || '{}'); } catch { return {}; }
+    });
+    // Línea base: sin ella, el badge mostraba el TOTAL histórico de mensajes del
+    // cliente (4, 5…) en vez de los no leídos, porque todo mensaje anterior a la
+    // primera visita contaba como nuevo. Se fija una sola vez, la primera vez que
+    // se abre el módulo: lo de antes se da por leído y a partir de ahí solo cuenta
+    // lo que llega nuevo.
+    const [baseline] = useState(() => {
+        try {
+            const guardado = localStorage.getItem(BASELINE_KEY);
+            if (guardado) return guardado;
+            const ahora = new Date().toISOString();
+            localStorage.setItem(BASELINE_KEY, ahora);
+            return ahora;
+        } catch { return new Date().toISOString(); }
+    });
+    const marcarVisto = (patientId) => {
+        setLastSeen(prev => {
+            const next = { ...prev, [patientId]: new Date().toISOString() };
+            try { localStorage.setItem(LAST_SEEN_KEY, JSON.stringify(next)); } catch { /* modo privado */ }
+            return next;
+        });
+    };
+
+    const refrescarActividad = () => {
+        getConversationsActivity().then(setActivity).catch(() => { });
+    };
+    // Sondeo, NO realtime: `history` no tiene canal en useRealtime.js y no se puede
+    // verificar desde acá si la tabla está en la publicación de realtime — un canal
+    // que no existe falla en silencio, y este es justo el caso que se reportó
+    // (llegó un mensaje y no apareció nada). El sondeo sí funciona seguro.
+    // Se refresca además al volver a la pestaña, que es cuando más se nota.
+    useEffect(() => {
+        refrescarActividad();
+        const id = setInterval(refrescarActividad, 30_000);
+        const alVolver = () => { if (document.visibilityState === 'visible') refrescarActividad(); };
+        document.addEventListener('visibilitychange', alVolver);
+        window.addEventListener('focus', alVolver);
+        return () => {
+            clearInterval(id);
+            document.removeEventListener('visibilitychange', alVolver);
+            window.removeEventListener('focus', alVolver);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // patient_id -> { ultimo, noLeidos }
+    const actividadPorPaciente = useMemo(() => {
+        const mapa = {};
+        for (const fila of activity) {
+            const e = mapa[fila.patient_id] ??= { ultimo: null, noLeidos: 0 };
+            // las filas vienen de más nueva a más vieja: la primera es la última actividad
+            if (!e.ultimo) e.ultimo = fila.created_at;
+            // Solo cuenta lo que escribió el CLIENTE y es posterior tanto a la última
+            // vez que se abrió ese chat como a la línea base. El corte por la línea
+            // base es lo que hace que sea un contador de NO LEÍDOS y no el total
+            // histórico de la conversación.
+            if (fila.role === 'user') {
+                const visto = lastSeen[fila.patient_id];
+                const desde = visto && visto > baseline ? visto : baseline;
+                if (new Date(fila.created_at) > new Date(desde)) e.noLeidos += 1;
+            }
+        }
+        return mapa;
+    }, [activity, lastSeen, baseline]);
+
     function handleSearch(q) { setSearch(q); }
     const [selectedPatient, setSelectedPatient] = useState(null);
+
+    // Con el chat abierto, lo que llega ya se está leyendo: se marca visto en cada
+    // refresco. Sin esto, al cambiarse a otro cliente aparecía un badge por mensajes
+    // que el usuario ya tenía en pantalla.
+    // Va DESPUÉS de declarar `selectedPatient`: el array de dependencias se evalúa
+    // durante el render, así que arriba reventaría por zona muerta temporal.
+    useEffect(() => {
+        if (selectedPatient?.id) marcarVisto(selectedPatient.id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activity, selectedPatient?.id]);
     const [history, setHistory] = useState([]);
     const [historyHasMore, setHistoryHasMore] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(false);
@@ -267,10 +354,18 @@ export default function Conversations() {
             setSelectedPatient(prev => ({ ...prev, human_takeover: true }));
             // Persiste el takeover (idempotente — n8n también lo hace; defensa en profundidad)
             setHumanTakeover(selectedPatient.id, true).catch(() => { });
-        } catch {
+            // Mi propia respuesta también mueve el chat al tope de la lista.
+            refrescarActividad();
+        } catch (err) {
             setHistory(prev => prev.filter(m => m.id !== tempId));
             setDraft(text);
-            showErrorToast('No se pudo enviar', 'Intenta nuevamente en unos segundos.');
+            // El `catch` NO llevaba binding: descartaba el error y siempre mostraba
+            // "Intenta nuevamente en unos segundos". Con eso, un fallo real de la
+            // Edge Function (credencial de WhatsApp rechazada por Meta, cupo, etc.)
+            // era indistinguible de un problema de red, y el smoke test de VER-1 no
+            // podía diagnosticarse: la función sí dice qué pasa, pero nadie lo veía.
+            console.error('[wa-human-reply] envío fallido:', err);
+            showErrorToast('No se pudo enviar', err?.message || 'Intenta nuevamente en unos segundos.');
         } finally {
             setSending(false);
         }
@@ -296,7 +391,12 @@ export default function Conversations() {
         })
         .sort((a, b) => {
             if (sortOrder === 'recent') {
-                return new Date(b.created_at) - new Date(a.created_at);
+                // "Reciente" = último MENSAJE, no fecha de alta del cliente. Quien no
+                // tiene actividad en la ventana consultada cae a su fecha de alta,
+                // que deja a los que sí escribieron siempre por encima.
+                const ta = actividadPorPaciente[a.id]?.ultimo || a.created_at;
+                const tb = actividadPorPaciente[b.id]?.ultimo || b.created_at;
+                return new Date(tb) - new Date(ta);
             }
             const na = (a.display_name || '').toLowerCase();
             const nb = (b.display_name || '').toLowerCase();
@@ -483,10 +583,11 @@ export default function Conversations() {
                             ) : filteredPatients.map(p => {
                                 const isSelected = selectedPatient?.id === p.id;
                                 const name = p.display_name || 'Sin nombre';
+                                const noLeidos = isSelected ? 0 : (actividadPorPaciente[p.id]?.noLeidos || 0);
                                 return (
                                     <button
                                         key={p.id}
-                                        onClick={() => setSelectedPatient(p)}
+                                        onClick={() => { setSelectedPatient(p); marcarVisto(p.id); }}
                                         className={`relative w-full flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 text-left group border overflow-hidden ${isSelected ? 'bg-white/40 backdrop-blur-2xl border-white/60 shadow-md' : 'border-transparent hover:bg-white/30'}`}
                                     >
                                         {isSelected && <>
@@ -500,7 +601,10 @@ export default function Conversations() {
                                             <span className="block">{getInitials(name)}</span>
                                         </div>
                                         <div className="relative z-10 flex-1 min-w-0">
-                                            <div className={`font-bold text-sm truncate ${isSelected ? 'text-navy-900' : 'text-navy-900/80'}`}>{name}</div>
+                                            {/* Con mensajes sin leer el nombre va en negro pleno, como en
+                                                WhatsApp: el peso tipográfico es la señal que se lee de un
+                                                vistazo, el badge solo la cuantifica. */}
+                                            <div className={`font-bold text-sm truncate ${noLeidos > 0 ? 'text-navy-900' : isSelected ? 'text-navy-900' : 'text-navy-900/80'}`}>{name}</div>
                                             <div className="flex items-center gap-2">
                                                 <div className={`text-xs font-semibold tracking-wide truncate mt-0.5 ${isSelected ? 'text-navy-700' : 'text-navy-700/60'}`}>{formatPhone(getPhone(p))}</div>
                                                 {p.human_takeover && (
@@ -508,6 +612,20 @@ export default function Conversations() {
                                                 )}
                                             </div>
                                         </div>
+                                        {noLeidos > 0 && (
+                                            /* Toma la ESTRUCTURA de los contenedores de icono del sistema
+                                               (píldora sutil con borde), pero en verde: es el mismo trío
+                                               `bg-emerald-500/10` + `border-emerald-500/20` +
+                                               `text-emerald-700` que ya usan las píldoras de estado de
+                                               Centro IA. Los tres tonos distintos son los que hacen que
+                                               el verde se lea sin gritar. */
+                                            <span
+                                                className="relative z-10 shrink-0 min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-[10px] font-bold tabular-nums leading-none"
+                                                title={`${noLeidos} mensaje${noLeidos === 1 ? '' : 's'} sin leer`}
+                                            >
+                                                {noLeidos > 99 ? '99+' : noLeidos}
+                                            </span>
+                                        )}
                                     </button>
                                 );
                             })}
